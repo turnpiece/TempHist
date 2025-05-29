@@ -1,2 +1,4 @@
 config.js
 .env
+__pycache__/
+weather_cache/
