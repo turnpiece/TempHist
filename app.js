@@ -7,7 +7,7 @@ const today = new Date();
 const month = String(today.getMonth() + 1).padStart(2, '0');
 const day = String(today.getDate()).padStart(2, '0');
 const currentYear = today.getFullYear();
-const startYear = 1970;
+const startYear = currentYear - 50;
 
 const labels = [];
 const temperatures = [];
@@ -43,7 +43,7 @@ function initChart(yMin, yMax) {
       },
       scales: {
         x: {
-          reverse: true,
+          reverse: false,
           title: {
             display: true,
             text: 'Year'
@@ -121,8 +121,8 @@ const fetchHistoricalData = async () => {
 
         if (!chartInitialized) {
           baseTemp = temp;
-          const yMin = Math.floor(baseTemp - 7);
-          const yMax = Math.ceil(baseTemp + 7);
+          const yMin = Math.floor(baseTemp - 3);
+          const yMax = Math.ceil(baseTemp + 3);
           initChart(yMin, yMax);
         }
 
