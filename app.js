@@ -1,11 +1,6 @@
 Chart.register(window['chartjs-plugin-annotation']);
 
-if (!config?.apiKey) {
-  alert("Missing API key! Please add one to config.js.");
-  throw new Error("API key not found");
-}
-
-const apiKey = config.apiKey;
+const apiBase = 'https://temphist-api.onrender.com';
 const tempLocation = 'London';
 
 const today = new Date();
@@ -106,7 +101,7 @@ function updateChart(year, temp) {
 const fetchHistoricalData = async () => {
   for (let year = currentYear; year >= startYear; year--) {
     const date = `${year}-${month}-${day}`;
-    const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${tempLocation}/${date}?unitGroup=metric&include=days&key=${apiKey}`;
+    const url = `${apiBase}/weather/${tempLocation}/${date}`;
 
     try {
       const response = await fetch(url);
