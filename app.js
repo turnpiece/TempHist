@@ -10,9 +10,14 @@ const currentYear = today.getFullYear();
 const startYear = currentYear - 50;
 const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
+const barThickness = 20;
 const labels = [];
 const temperatures = [];
 
+// set chart width
+document.getElementById('tempChart').width = (currentYear - startYear + 1) * barThickness;
+
+// set up the chart
 let chart;
 let chartInitialized = false;
 let baseTemp = null;
@@ -25,14 +30,28 @@ function initChart(yMin, yMax) {
   chart = new Chart(ctx, {
     type: 'bar',
     data: {
-      datasets: [{
-        label: `Avg Temp in ${tempLocation} on ${month}-${day}`,
-        data: [],
-        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-        borderWidth: 0, // ✅ No border
-        barPercentage: 1.0,
-        categoryPercentage: 1.0,
-      }]
+      datasets: [
+        {
+          label: `Avg Temp in ${tempLocation} on ${month}-${day}`,
+          type: 'bar',
+          data: [],
+          backgroundColor: 'rgba(54, 162, 235, 0.5)',
+          borderWidth: 0,
+          categoryPercentage: 1.0,
+          barPercentage: 1.0
+        },
+        {
+          label: 'Linear Trend',
+          type: 'line',
+          data: [],
+          borderColor: 'black',
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          fill: false,
+          borderDash: [5, 5],
+          pointRadius: 0,
+          borderWidth: 2
+        }
+      ]
     },
     options: {
       responsive: false,
@@ -75,32 +94,16 @@ function initChart(yMin, yMax) {
 }
 
 function updateChart(year, temp) {
-  chart.data.datasets[0].data.push({ x: year, y: temp });
+  const barData = chart.data.datasets[0].data;
 
-  // Update y-axis min/max if needed
-  if (temp < chart.options.scales.y.min) {
-    chart.options.scales.y.min = Math.floor(temp - 1);
-  }
-  if (temp > chart.options.scales.y.max) {
-    chart.options.scales.y.max = Math.ceil(temp + 1);
-  }
+  barData.push({ x: year, y: temp });
 
-  // Update average line
-  const temps = chart.data.datasets[0].data.map(point => point.y);
-  const avg = temps.reduce((sum, t) => sum + t, 0) / temps.length;
-
-  chart.options.plugins.annotation.annotations.averageLine = {
-    type: 'line',
-    yMin: avg,
-    yMax: avg,
-    borderColor: 'red',
-    borderWidth: 2,
-    label: {
-      content: `Avg: ${avg.toFixed(1)}°C`,
-      enabled: true,
-      position: 'end'
-    }
-  };
+  // Update y-axis range based on all data
+  const values = barData.map(point => point.y);
+  const minTemp = Math.min(...values);
+  const maxTemp = Math.max(...values);
+  chart.options.scales.y.min = Math.floor(minTemp - 1);
+  chart.options.scales.y.max = Math.ceil(maxTemp + 1);
 
   chart.update();
 }
@@ -145,6 +148,30 @@ const fetchHistoricalData = async () => {
 
   loadingEl.style.display = 'none';
   canvasEl.style.display = 'block';
+
+  const barData = chart.data.datasets[0].data;
+  const trendLine = calculateTrendLine(barData);
+  chart.data.datasets[1].data = trendLine;
+  chart.update();
 };
 
 fetchHistoricalData();
+
+function calculateTrendLine(points) {
+  const n = points.length;
+  const sumX = points.reduce((sum, p) => sum + p.x, 0);
+  const sumY = points.reduce((sum, p) => sum + p.y, 0);
+  const sumXY = points.reduce((sum, p) => sum + p.x * p.y, 0);
+  const sumXX = points.reduce((sum, p) => sum + p.x * p.x, 0);
+
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+
+  const xStart = points[0].x;
+  const xEnd = points[points.length - 1].x;
+
+  return [
+    { x: xStart, y: slope * xStart + intercept },
+    { x: xEnd, y: slope * xEnd + intercept }
+  ];
+}
