@@ -25,29 +25,38 @@ function initChart(yMin, yMax) {
   chart = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: [],
       datasets: [{
         label: `Avg Temp in ${tempLocation} on ${month}-${day}`,
         data: [],
         backgroundColor: 'rgba(54, 162, 235, 0.5)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1
+        borderWidth: 0, // ✅ No border
+        barPercentage: 1.0,
+        categoryPercentage: 1.0,
       }]
     },
     options: {
-      responsive: true,
+      responsive: false,
+      maintainAspectRatio: false,
       plugins: {
         legend: { display: true },
-        annotation: {
-          annotations: {}
-        }
+        annotation: { annotations: {} }
       },
       scales: {
         x: {
-          reverse: false,
+          type: 'linear',
+          position: 'bottom',
+          min: startYear,
+          max: currentYear + 1,
+          ticks: {
+            stepSize: 5,
+            callback: val => val.toString()
+          },
           title: {
             display: true,
             text: 'Year'
+          },
+          grid: {
+            display: false
           }
         },
         y: {
@@ -66,13 +75,9 @@ function initChart(yMin, yMax) {
 }
 
 function updateChart(year, temp) {
-  labels.push(year.toString());
-  temperatures.push(temp);
+  chart.data.datasets[0].data.push({ x: year, y: temp });
 
-  chart.data.labels = labels;
-  chart.data.datasets[0].data = temperatures;
-
-  // Check if we need to expand y-axis
+  // Update y-axis min/max if needed
   if (temp < chart.options.scales.y.min) {
     chart.options.scales.y.min = Math.floor(temp - 1);
   }
@@ -81,7 +86,8 @@ function updateChart(year, temp) {
   }
 
   // Update average line
-  const avg = temperatures.reduce((sum, t) => sum + t, 0) / temperatures.length;
+  const temps = chart.data.datasets[0].data.map(point => point.y);
+  const avg = temps.reduce((sum, t) => sum + t, 0) / temps.length;
 
   chart.options.plugins.annotation.annotations.averageLine = {
     type: 'line',
@@ -140,6 +146,5 @@ const fetchHistoricalData = async () => {
   loadingEl.style.display = 'none';
   canvasEl.style.display = 'block';
 };
-
 
 fetchHistoricalData();
