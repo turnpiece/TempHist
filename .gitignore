@@ -1,4 +1,5 @@
 config.js
+webhook.php
 .env
 __pycache__/
 weather_cache/
