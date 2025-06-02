@@ -8,7 +8,8 @@ const month = String(today.getMonth() + 1).padStart(2, '0');
 const day = String(today.getDate()).padStart(2, '0');
 const currentYear = today.getFullYear();
 const startYear = currentYear - 50;
-
+const loadingEl = document.getElementById('loading');
+const canvasEl = document.getElementById('tempChart');
 const labels = [];
 const temperatures = [];
 
@@ -99,6 +100,9 @@ function updateChart(year, temp) {
 }
 
 const fetchHistoricalData = async () => {
+  loadingEl.style.display = 'block';
+  canvasEl.style.display = 'none';
+
   for (let year = currentYear; year >= startYear; year--) {
     const date = `${year}-${month}-${day}`;
     const url = `${apiBase}/weather/${tempLocation}/${date}`;
@@ -117,8 +121,6 @@ const fetchHistoricalData = async () => {
       const temp = data.days?.[0]?.temp;
 
       if (temp !== undefined) {
-        console.log(`Loaded: ${year} - ${temp}°C`);
-
         if (!chartInitialized) {
           baseTemp = temp;
           const yMin = Math.floor(baseTemp - 3);
@@ -127,8 +129,6 @@ const fetchHistoricalData = async () => {
         }
 
         updateChart(year, temp);
-      } else {
-        console.warn(`No temperature data for ${date}`);
       }
     } catch (error) {
       console.warn(`Fetch error for ${year}: ${error.message}`);
@@ -136,6 +136,10 @@ const fetchHistoricalData = async () => {
 
     await delay(300);
   }
+
+  loadingEl.style.display = 'none';
+  canvasEl.style.display = 'block';
 };
+
 
 fetchHistoricalData();
