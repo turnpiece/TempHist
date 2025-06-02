@@ -197,6 +197,40 @@ const fetchHistoricalData = async () => {
   };
 
   chart.update();
+
+  // Summary text
+  const latest = barData[barData.length - 1];
+  const previous = barData.slice(0, -1); // exclude current year
+
+  const maxPrevious = Math.max(...previous.map(p => p.y));
+  const mostRecentWarmerYear = [...previous].reverse().find(p => p.y >= latest.y);
+  const avgPrevious = previous.reduce((sum, p) => sum + p.y, 0) / previous.length;
+  const diff = latest.y - avgPrevious;
+  const roundedDiff = diff.toFixed(1);
+
+  let summaryText;
+
+  if (!mostRecentWarmerYear) {
+    summaryText = `This is the warmest ${day}/${month} on record.`;
+  } else {
+    const yearsSince = latest.x - mostRecentWarmerYear.x;
+    if (yearsSince === 1) {
+      summaryText = `This is the warmest ${day}/${month} since last year.`;
+    } else {
+      summaryText = `This is the warmest ${day}/${month} in ${yearsSince} years.`;
+    }
+  }
+
+  if (Math.abs(diff) < 0.05) {
+    summaryText += ` It is about average for this date.`;
+  } else if (diff > 0) {
+    summaryText += ` It is ${roundedDiff}°C warmer than average.`;
+  } else {
+    summaryText += ` It is ${Math.abs(roundedDiff)}°C cooler than average.`;
+  }
+
+  document.getElementById('summary').textContent = summaryText;
+
 };
 
 fetchHistoricalData();

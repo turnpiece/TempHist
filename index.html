@@ -10,6 +10,11 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
+    #summary {
+      font-weight: bold; 
+      font-size: 1.2em; 
+      margin-top: 1em;
+    }
   </style>
 </head>
 <body>
@@ -20,6 +25,8 @@
   <div class="chart-container"></div>
     <canvas id="tempChart" style="display:none;" width="1000"></canvas>
   </div>
+  <p id="summary"></p>
+
   <script src="app.js"></script>
 </body>
 </html>
