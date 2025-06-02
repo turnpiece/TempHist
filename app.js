@@ -64,7 +64,7 @@ function initChart(yMin, yMax) {
           type: 'linear',
           position: 'bottom',
           min: startYear,
-          max: currentYear + 1,
+          max: currentYear,
           ticks: {
             stepSize: 5,
             callback: val => val.toString()
@@ -170,23 +170,30 @@ const fetchHistoricalData = async () => {
   const barData = chart.data.datasets[1].data;
   const trendData = calculateTrendLine(barData, startYear - 0.5, currentYear + 0.5);
   chart.data.datasets[0].data = trendData.points;
-  
+
+  const [start, end] = trendData.points;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const angleRad = Math.atan2(dy, dx);       // angle in radians
+  const angleDeg = angleRad * (180 / Math.PI); // convert to degrees
+
   const slopePerYear = trendData.slope;
   const slopeLabel = `${slopePerYear >= 0 ? '+' : ''}${slopePerYear.toFixed(2)}°C/year`;
 
   chart.options.plugins.annotation.annotations.trendLabel = {
     type: 'label',
-    xValue: currentYear,
-    yValue: trendData.points[1].y,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    xValue: currentYear - 1.5,
+    yValue: trendData.points[1].y + 1,
+    xAdjust: -20,
     font: {
       size: 12,
       weight: 'bold'
     },
-    color: 'white',
-    padding: 6,
+    color: 'rgba(0, 0, 235, 0.4)',
+    padding: 10,
     content: slopeLabel,
-    position: 'start'
+    position: 'start',
+    rotation: -angleDeg
   };
 
   chart.update();
