@@ -103,38 +103,38 @@ const fetchHistoricalData = async () => {
   loadingEl.style.display = 'block';
   canvasEl.style.display = 'none';
 
-  for (let year = currentYear; year >= startYear; year--) {
-    const date = `${year}-${month}-${day}`;
-    const url = `${apiBase}/weather/${tempLocation}/${date}`;
+  const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
 
-    try {
-      const response = await fetch(url);
-      const contentType = response.headers.get("content-type");
-
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.warn(`Error for ${year}: Non-JSON response - "${text}"`);
-        continue;
+  const results = await Promise.allSettled(
+    years.map(async year => {
+      const date = `${year}-${month}-${day}`;
+      const url = `${apiBase}/weather/${tempLocation}/${date}`;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        const temp = data.days?.[0]?.temp;
+        return { year, temp };
+      } catch (e) {
+        console.warn(`Fetch failed for ${year}:`, e);
+        return { year, temp: null };
       }
+    })
+  );
 
-      const data = await response.json();
-      const temp = data.days?.[0]?.temp;
+  const validResults = results
+    .filter(r => r.status === 'fulfilled' && r.value.temp !== null)
+    .map(r => r.value)
+    .sort((a, b) => a.year - b.year); // chronological order
 
-      if (temp !== undefined) {
-        if (!chartInitialized) {
-          baseTemp = temp;
-          const yMin = Math.floor(baseTemp - 3);
-          const yMax = Math.ceil(baseTemp + 3);
-          initChart(yMin, yMax);
-        }
+  if (validResults.length) {
+    baseTemp = validResults[0].temp;
+    const yMin = Math.floor(baseTemp - 3);
+    const yMax = Math.ceil(baseTemp + 3);
+    initChart(yMin, yMax);
 
-        updateChart(year, temp);
-      }
-    } catch (error) {
-      console.warn(`Fetch error for ${year}: ${error.message}`);
+    for (const { year, temp } of validResults) {
+      updateChart(year, temp);
     }
-
-    await delay(300);
   }
 
   loadingEl.style.display = 'none';
