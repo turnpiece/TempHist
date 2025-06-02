@@ -32,6 +32,17 @@ function initChart(yMin, yMax) {
     data: {
       datasets: [
         {
+          label: 'Linear Trend',
+          type: 'line',
+          data: [],
+          borderColor: 'black',
+          backgroundColor: 'rgba(0, 0, 0, 0.1)', // Filled area
+          fill: true,                           // ✅ fill area below line
+          borderDash: [5, 5],
+          pointRadius: 0,
+          borderWidth: 1
+        },
+        {
           label: `Avg Temp in ${tempLocation} on ${month}-${day}`,
           type: 'bar',
           data: [],
@@ -39,17 +50,6 @@ function initChart(yMin, yMax) {
           borderWidth: 0,
           categoryPercentage: 1.0,
           barPercentage: 1.0
-        },
-        {
-          label: 'Linear Trend',
-          type: 'line',
-          data: [],
-          borderColor: 'black',
-          backgroundColor: 'rgba(0, 0, 0, 0.1)',
-          fill: false,
-          borderDash: [5, 5],
-          pointRadius: 0,
-          borderWidth: 2
         }
       ]
     },
@@ -94,7 +94,7 @@ function initChart(yMin, yMax) {
 }
 
 function updateChart(year, temp) {
-  const barData = chart.data.datasets[0].data;
+  const barData = chart.data.datasets[1].data;
 
   barData.push({ x: year, y: temp });
 
@@ -149,9 +149,9 @@ const fetchHistoricalData = async () => {
   loadingEl.style.display = 'none';
   canvasEl.style.display = 'block';
 
-  const barData = chart.data.datasets[0].data;
+  const barData = chart.data.datasets[1].data;
   const trendLine = calculateTrendLine(barData);
-  chart.data.datasets[1].data = trendLine;
+  chart.data.datasets[0].data = trendLine;
   chart.update();
 };
 
