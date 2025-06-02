@@ -11,8 +11,9 @@ const startYear = currentYear - 50;
 const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
 const barThickness = 20;
-const labels = [];
-const temperatures = [];
+const barColour = 'rgba(235, 0, 0, 0.5)';
+const trendColour = 'rgba(0, 0, 235, 0.4)';
+const barData = [];
 
 // set chart width
 document.getElementById('tempChart').width = (currentYear - startYear + 1) * barThickness;
@@ -35,18 +36,16 @@ function initChart(yMin, yMax) {
           label: 'Linear Trend',
           type: 'line',
           data: [],
-          borderColor: 'black',
-          backgroundColor: 'rgba(0, 0, 0, 0.1)', // Filled area
+          backgroundColor: trendColour, // Filled area
           fill: true,                           // ✅ fill area below line
-          borderDash: [5, 5],
           pointRadius: 0,
-          borderWidth: 1
+          borderWidth: 0
         },
         {
           label: `Avg Temp in ${tempLocation} on ${month}-${day}`,
           type: 'bar',
           data: [],
-          backgroundColor: 'rgba(54, 162, 235, 0.5)',
+          backgroundColor: barColour,
           borderWidth: 0,
           categoryPercentage: 1.0,
           barPercentage: 1.0
@@ -94,18 +93,37 @@ function initChart(yMin, yMax) {
 }
 
 function updateChart(year, temp) {
-  const barData = chart.data.datasets[1].data;
-
   barData.push({ x: year, y: temp });
 
-  // Update y-axis range based on all data
-  const values = barData.map(point => point.y);
-  const minTemp = Math.min(...values);
-  const maxTemp = Math.max(...values);
+  chart.data.datasets[1].data = [...barData];
+
+  // Expand y-axis if needed
+  const temps = barData.map(p => p.y);
+  const minTemp = Math.min(...temps);
+  const maxTemp = Math.max(...temps);
   chart.options.scales.y.min = Math.floor(minTemp - 1);
   chart.options.scales.y.max = Math.ceil(maxTemp + 1);
 
   chart.update();
+}
+
+function calculateTrendLine(points, startX, endX) {
+  const n = points.length;
+  const sumX = points.reduce((sum, p) => sum + p.x, 0);
+  const sumY = points.reduce((sum, p) => sum + p.y, 0);
+  const sumXY = points.reduce((sum, p) => sum + p.x * p.y, 0);
+  const sumXX = points.reduce((sum, p) => sum + p.x * p.x, 0);
+
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+
+  return {
+    points: [
+      { x: startX, y: slope * startX + intercept },
+      { x: endX, y: slope * endX + intercept }
+    ],
+    slope
+  };
 }
 
 const fetchHistoricalData = async () => {
@@ -150,28 +168,28 @@ const fetchHistoricalData = async () => {
   canvasEl.style.display = 'block';
 
   const barData = chart.data.datasets[1].data;
-  const trendLine = calculateTrendLine(barData);
-  chart.data.datasets[0].data = trendLine;
+  const trendData = calculateTrendLine(barData, startYear - 0.5, currentYear + 0.5);
+  chart.data.datasets[0].data = trendData.points;
+  
+  const slopePerYear = trendData.slope;
+  const slopeLabel = `${slopePerYear >= 0 ? '+' : ''}${slopePerYear.toFixed(2)}°C/year`;
+
+  chart.options.plugins.annotation.annotations.trendLabel = {
+    type: 'label',
+    xValue: currentYear,
+    yValue: trendData.points[1].y,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    font: {
+      size: 12,
+      weight: 'bold'
+    },
+    color: 'white',
+    padding: 6,
+    content: slopeLabel,
+    position: 'start'
+  };
+
   chart.update();
 };
 
 fetchHistoricalData();
-
-function calculateTrendLine(points) {
-  const n = points.length;
-  const sumX = points.reduce((sum, p) => sum + p.x, 0);
-  const sumY = points.reduce((sum, p) => sum + p.y, 0);
-  const sumXY = points.reduce((sum, p) => sum + p.x * p.y, 0);
-  const sumXX = points.reduce((sum, p) => sum + p.x * p.x, 0);
-
-  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-  const intercept = (sumY - slope * sumX) / n;
-
-  const xStart = points[0].x;
-  const xEnd = points[points.length - 1].x;
-
-  return [
-    { x: xStart, y: slope * xStart + intercept },
-    { x: xEnd, y: slope * xEnd + intercept }
-  ];
-}
