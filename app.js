@@ -3,10 +3,26 @@ Chart.register(window['chartjs-plugin-annotation']);
 const apiBase = 'https://temphist-api.onrender.com';
 const tempLocation = 'London';
 
-const today = new Date();
-const month = String(today.getMonth() + 1).padStart(2, '0');
-const day = String(today.getDate()).padStart(2, '0');
-const currentYear = today.getFullYear();
+const now = new Date();
+const useYesterday = now.getHours() < 12;
+const dateToUse = new Date(now);
+
+if (useYesterday) {
+  dateToUse.setDate(dateToUse.getDate() - 1);
+}
+
+// Handle 29 Feb fallback to 28 Feb if not a leap year in comparison range
+const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
+
+if (isLeapDay) {
+  dateToUse.setDate(28);
+  document.getElementById('dataNotice').textContent = '29th February detected — comparing 28th Feb instead for consistency.';
+}
+
+const day = String(dateToUse.getDate()).padStart(2, '0');
+const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
+const currentYear = dateToUse.getFullYear();
+
 const startYear = currentYear - 50;
 const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
@@ -24,6 +40,7 @@ let chartInitialized = false;
 let baseTemp = null;
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
 
 function initChart(yMin, yMax) {
   const ctx = document.getElementById('tempChart').getContext('2d');
@@ -42,7 +59,7 @@ function initChart(yMin, yMax) {
           borderWidth: 0
         },
         {
-          label: `Avg Temp in ${tempLocation} on ${month}-${day}`,
+          label: `Average temperature in ${tempLocation} on ${friendlyDate}`,
           type: 'bar',
           data: [],
           backgroundColor: barColour,
@@ -126,6 +143,12 @@ function calculateTrendLine(points, startX, endX) {
   };
 }
 
+function getOrdinal(n) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 const fetchHistoricalData = async () => {
   loadingEl.style.display = 'block';
   canvasEl.style.display = 'none';
@@ -201,32 +224,76 @@ const fetchHistoricalData = async () => {
   // Summary text
   const latest = barData[barData.length - 1];
   const previous = barData.slice(0, -1); // exclude current year
-
-  const maxPrevious = Math.max(...previous.map(p => p.y));
-  const mostRecentWarmerYear = [...previous].reverse().find(p => p.y >= latest.y);
   const avgPrevious = previous.reduce((sum, p) => sum + p.y, 0) / previous.length;
   const diff = latest.y - avgPrevious;
   const roundedDiff = diff.toFixed(1);
 
-  let summaryText;
+  // Detect hot and cold records
+  const isWarmestOnRecord = previous.every(p => latest.y > p.y);
 
-  if (!mostRecentWarmerYear) {
-    summaryText = `This is the warmest ${day}/${month} on record.`;
+  let warmSummary = '';
+  if (isWarmestOnRecord) {
+    warmSummary = `This is the warmest ${friendlyDate} on record.`;
   } else {
-    const yearsSince = latest.x - mostRecentWarmerYear.x;
-    if (yearsSince === 1) {
-      summaryText = `This is the warmest ${day}/${month} since last year.`;
-    } else {
-      summaryText = `This is the warmest ${day}/${month} in ${yearsSince} years.`;
+    let lastWarmerYear = null;
+    for (let i = previous.length - 1; i >= 0; i--) {
+      if (previous[i].y > latest.y) {
+        lastWarmerYear = previous[i].x;
+        break;
+      }
+    }
+    if (lastWarmerYear !== null) {
+      const yearsSinceWarm = latest.x - lastWarmerYear;
+      if (yearsSinceWarm > 1) {
+        if (yearsSinceWarm <= 10) {
+          warmSummary = `This is the warmest ${friendlyDate} since ${lastWarmerYear}.`;
+        } else {
+          warmSummary = `This is the warmest ${friendlyDate} in ${yearsSinceWarm} years.`;
+        }
+      }
     }
   }
 
+  // Find if this is the coldest on record
+  const isColdestOnRecord = previous.every(p => latest.y < p.y);
+
+  let coldSummary = '';
+  if (isColdestOnRecord) {
+    coldSummary = `This is the coldest ${friendlyDate} on record.`;
+  } else {
+    // Find the last year where it was colder than today
+    let lastColderYear = null;
+    for (let i = previous.length - 1; i >= 0; i--) {
+      if (previous[i].y < latest.y) {
+        lastColderYear = previous[i].x;
+        break;
+      }
+    }
+    if (lastColderYear !== null) {
+      const yearsSinceCold = latest.x - lastColderYear;
+      if (yearsSinceCold > 1) {
+        coldSummary = `This is the coldest ${friendlyDate} `;
+        if (yearsSinceCold <= 10) {
+          coldSummary += `since ${lastColderYear}.`;
+        } else {
+          coldSummary += `in ${yearsSinceCold} years.`;
+        }
+      }
+    }
+  }
+
+  let summaryText = '';
+
+  summaryText += ` ${warmSummary}`;
+  summaryText += ` ${coldSummary}`;
+
+  // Temperature difference from average
   if (Math.abs(diff) < 0.05) {
     summaryText += ` It is about average for this date.`;
   } else if (diff > 0) {
-    summaryText += ` It is ${roundedDiff}°C warmer than average.`;
+    summaryText += ` It is ${roundedDiff}°C warmer than average today.`;
   } else {
-    summaryText += ` It is ${Math.abs(roundedDiff)}°C cooler than average.`;
+    summaryText += ` It is ${Math.abs(roundedDiff)}°C cooler than average today.`;
   }
 
   document.getElementById('summary').textContent = summaryText;
