@@ -193,7 +193,7 @@ const fetchHistoricalData = async () => {
   const barData = chart.data.datasets[1].data;
   const trendData = calculateTrendLine(barData, startYear - 0.5, currentYear + 0.5);
   chart.data.datasets[0].data = trendData.points;
-
+/*
   const [start, end] = trendData.points;
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -218,86 +218,39 @@ const fetchHistoricalData = async () => {
     position: 'start',
     rotation: -angleDeg
   };
-
+*/
   chart.update();
+};
 
-  // Summary text
-  const latest = barData[barData.length - 1];
-  const previous = barData.slice(0, -1); // exclude current year
-  const avgPrevious = previous.reduce((sum, p) => sum + p.y, 0) / previous.length;
-  const diff = latest.y - avgPrevious;
-  const roundedDiff = diff.toFixed(1);
-
-  // Detect hot and cold records
-  const isWarmestOnRecord = previous.every(p => latest.y > p.y);
-
-  let warmSummary = '';
-  if (isWarmestOnRecord) {
-    warmSummary = `This is the warmest ${friendlyDate} on record.`;
-  } else {
-    let lastWarmerYear = null;
-    for (let i = previous.length - 1; i >= 0; i--) {
-      if (previous[i].y > latest.y) {
-        lastWarmerYear = previous[i].x;
-        break;
-      }
-    }
-    if (lastWarmerYear !== null) {
-      const yearsSinceWarm = latest.x - lastWarmerYear;
-      if (yearsSinceWarm > 1) {
-        if (yearsSinceWarm <= 10) {
-          warmSummary = `This is the warmest ${friendlyDate} since ${lastWarmerYear}.`;
-        } else {
-          warmSummary = `This is the warmest ${friendlyDate} in ${yearsSinceWarm} years.`;
-        }
-      }
-    }
+const fetchSummary = async () => {
+  const url = `${apiBase}/summary/${tempLocation}/${month}-${day}`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    document.getElementById('summaryText').textContent = data.summary || 'No summary available.';
+  } catch (error) {
+    console.warn(`Summary fetch error: ${error.message}`);
   }
+};
 
-  // Find if this is the coldest on record
-  const isColdestOnRecord = previous.every(p => latest.y < p.y);
+const fetchTrend = async () => {
+  const url = `${apiBase}/trend/${tempLocation}/${month}-${day}`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
 
-  let coldSummary = '';
-  if (isColdestOnRecord) {
-    coldSummary = `This is the coldest ${friendlyDate} on record.`;
-  } else {
-    // Find the last year where it was colder than today
-    let lastColderYear = null;
-    for (let i = previous.length - 1; i >= 0; i--) {
-      if (previous[i].y < latest.y) {
-        lastColderYear = previous[i].x;
-        break;
-      }
+    if (typeof data.slope === 'number' && data.units) {
+      const direction = data.slope > 0 ? 'rising' : data.slope < 0 ? 'falling' : 'stable';
+      const formatted = `Trend: ${direction} at ${Math.abs(data.slope).toFixed(3)} ${data.units}`;
+      document.getElementById('trendText').textContent = formatted;
+    } else {
+      document.getElementById('trendText').textContent = 'No trend data available.';
     }
-    if (lastColderYear !== null) {
-      const yearsSinceCold = latest.x - lastColderYear;
-      if (yearsSinceCold > 1) {
-        coldSummary = `This is the coldest ${friendlyDate} `;
-        if (yearsSinceCold <= 10) {
-          coldSummary += `since ${lastColderYear}.`;
-        } else {
-          coldSummary += `in ${yearsSinceCold} years.`;
-        }
-      }
-    }
+  } catch (error) {
+    console.warn(`Trend fetch error: ${error.message}`);
   }
-
-  let summaryText = '';
-
-  summaryText += ` ${warmSummary}`;
-  summaryText += ` ${coldSummary}`;
-
-  // Temperature difference from average
-  if (Math.abs(diff) < 0.05) {
-    summaryText += ` It is about average for this date.`;
-  } else if (diff > 0) {
-    summaryText += ` It is ${roundedDiff}°C warmer than average today.`;
-  } else {
-    summaryText += ` It is ${Math.abs(roundedDiff)}°C cooler than average today.`;
-  }
-
-  document.getElementById('summary').textContent = summaryText;
-
 };
 
 fetchHistoricalData();
+fetchSummary();
+fetchTrend();

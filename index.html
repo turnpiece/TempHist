@@ -10,22 +10,29 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
-    #summary {
+    #summaryText,
+    #trendText {
       font-weight: bold; 
       font-size: 1.2em; 
       margin-top: 1em;
+    }
+    #loading {
+      font-size: 1.2em; 
+      text-align:center; 
+      margin-top:20px;
     }
   </style>
 </head>
 <body>
   <h1>Temperature on this day each year</h1>
-  <div id="loading" style="text-align:center; margin-top:20px;">
+  <div id="loading">
     <span>Loading...</span>
   </div>
   <div class="chart-container"></div>
     <canvas id="tempChart" style="display:none;" width="1000"></canvas>
   </div>
-  <p id="summary"></p>
+  <div id="summaryText"></div>
+  <div id="trendText"></div>
   <p id="dataNotice"></p>
 
   <script src="app.js"></script>
