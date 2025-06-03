@@ -27,7 +27,7 @@ const startYear = currentYear - 50;
 const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
 const barColour = 'rgba(255, 0, 0, 0.8)';
-const trendColour = 'rgba(0, 255, 0, 0.3)';
+const trendColour = 'rgba(0, 255, 0, 0.25)';
 const barData = [];
 
 // set up the chart
@@ -46,7 +46,7 @@ function initChart(yMin, yMax) {
     data: {
       datasets: [
         {
-          label: 'Linear Trend',
+          label: 'Trend',
           type: 'line',
           data: [],
           backgroundColor: trendColour, // Filled area

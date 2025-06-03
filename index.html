@@ -14,24 +14,24 @@
     #trendText {
       font-weight: bold; 
       font-size: 1.2em; 
-      margin-top: 1em;
+      margin: 2em 1em;
     }
     #loading {
       font-size: 1.2em; 
-      text-align:center; 
-      margin-top:20px;
+      text-align: center; 
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
   <h1>Temperature on this day each year</h1>
+  <div id="summaryText"></div>
   <div id="loading">
     <span>Loading...</span>
   </div>
   <div class="chart-container"></div>
     <canvas id="tempChart" style="display:none;" width="800" height="1000"></canvas>
   </div>
-  <div id="summaryText"></div>
   <div id="trendText"></div>
   <p id="dataNotice"></p>
 
