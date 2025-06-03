@@ -26,13 +26,9 @@ const currentYear = dateToUse.getFullYear();
 const startYear = currentYear - 50;
 const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
-const barThickness = 20;
-const barColour = 'rgba(235, 0, 0, 0.5)';
-const trendColour = 'rgba(0, 0, 235, 0.4)';
+const barColour = 'rgba(255, 0, 0, 0.8)';
+const trendColour = 'rgba(0, 255, 0, 0.3)';
 const barData = [];
-
-// set chart width
-document.getElementById('tempChart').width = (currentYear - startYear + 1) * barThickness;
 
 // set up the chart
 let chart;
@@ -54,12 +50,12 @@ function initChart(yMin, yMax) {
           type: 'line',
           data: [],
           backgroundColor: trendColour, // Filled area
-          fill: true,                           // ✅ fill area below line
+          fill: true,                   // ✅ fill area below line
           pointRadius: 0,
           borderWidth: 0
         },
         {
-          label: `Average temperature in ${tempLocation} on ${friendlyDate}`,
+          label: `Temperature in ${tempLocation} on ${friendlyDate}`,
           type: 'bar',
           data: [],
           backgroundColor: barColour,
@@ -70,6 +66,7 @@ function initChart(yMin, yMax) {
       ]
     },
     options: {
+      indexAxis: 'y',
       responsive: false,
       maintainAspectRatio: false,
       plugins: {
@@ -78,8 +75,14 @@ function initChart(yMin, yMax) {
       },
       scales: {
         x: {
+          title: {
+            display: true,
+            text: 'Temperature (°C)'
+          }
+        },
+        y: {
+          reverse: false,
           type: 'linear',
-          position: 'bottom',
           min: startYear,
           max: currentYear,
           ticks: {
@@ -87,19 +90,11 @@ function initChart(yMin, yMax) {
             callback: val => val.toString()
           },
           title: {
-            display: true,
+            display: false,
             text: 'Year'
           },
           grid: {
             display: false
-          }
-        },
-        y: {
-          min: yMin,
-          max: yMax,
-          title: {
-            display: true,
-            text: 'Temperature (°C)'
           }
         }
       }
@@ -110,16 +105,16 @@ function initChart(yMin, yMax) {
 }
 
 function updateChart(year, temp) {
-  barData.push({ x: year, y: temp });
+  barData.push({ x: temp, y: year });
 
   chart.data.datasets[1].data = [...barData];
 
-  // Expand y-axis if needed
-  const temps = barData.map(p => p.y);
+  // Expand x-axis if needed (temperature now on x-axis)
+  const temps = barData.map(p => p.x);
   const minTemp = Math.min(...temps);
   const maxTemp = Math.max(...temps);
-  chart.options.scales.y.min = Math.floor(minTemp - 1);
-  chart.options.scales.y.max = Math.ceil(maxTemp + 1);
+  chart.options.scales.x.min = Math.floor(minTemp - 1);
+  chart.options.scales.x.max = Math.ceil(maxTemp + 1);
 
   chart.update();
 }
@@ -191,34 +186,9 @@ const fetchHistoricalData = async () => {
   canvasEl.style.display = 'block';
 
   const barData = chart.data.datasets[1].data;
-  const trendData = calculateTrendLine(barData, startYear - 0.5, currentYear + 0.5);
-  chart.data.datasets[0].data = trendData.points;
-/*
-  const [start, end] = trendData.points;
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const angleRad = Math.atan2(dy, dx);       // angle in radians
-  const angleDeg = angleRad * (180 / Math.PI); // convert to degrees
+  const trendData = calculateTrendLine(barData.map(d => ({ x: d.y, y: d.x })), startYear - 0.5, currentYear + 0.5);
+  chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x })); // swap back for chart
 
-  const slopePerYear = trendData.slope;
-  const slopeLabel = `${slopePerYear >= 0 ? '+' : ''}${slopePerYear.toFixed(2)}°C/year`;
-
-  chart.options.plugins.annotation.annotations.trendLabel = {
-    type: 'label',
-    xValue: currentYear - 1.5,
-    yValue: trendData.points[1].y + 1,
-    xAdjust: -20,
-    font: {
-      size: 12,
-      weight: 'bold'
-    },
-    color: 'rgba(0, 0, 235, 0.4)',
-    padding: 10,
-    content: slopeLabel,
-    position: 'start',
-    rotation: -angleDeg
-  };
-*/
   chart.update();
 };
 
