@@ -1,7 +1,6 @@
 Chart.register(window['chartjs-plugin-annotation']);
 
 const apiBase = 'https://temphist-api.onrender.com';
-const tempLocation = 'London';
 
 const now = new Date();
 const useYesterday = now.getHours() < 12;
@@ -30,6 +29,33 @@ const barColour = 'rgba(255, 0, 0, 0.8)';
 const trendColour = 'rgba(0, 255, 0, 0.25)';
 const barData = [];
 
+// get the location
+let tempLocation = 'London'; // default
+
+async function getCityFromCoords(lat, lon) {
+  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+  const data = await response.json();
+  return data.address.city || data.address.town || data.address.village || tempLocation;
+}
+
+async function detectUserLocation() {
+  if (!navigator.geolocation) {
+    console.warn('Geolocation is not supported by this browser.');
+    fetchData(); // fallback
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    const { latitude, longitude } = position.coords;
+    tempLocation = await getCityFromCoords(latitude, longitude);
+    console.log(`Detected location: ${tempLocation}`);
+    fetchData();
+  }, (error) => {
+    console.warn('Geolocation error:', error.message);
+    fetchData(); // fallback
+  });
+}
+
 // set up the chart
 let chart;
 let chartInitialized = false;
@@ -38,7 +64,90 @@ let baseTemp = null;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
 
-function initChart(yMin, yMax) {
+const fetchHistoricalData = async () => {
+  loadingEl.style.display = 'block';
+  canvasEl.style.display = 'none';
+
+  const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
+
+  const results = await Promise.allSettled(
+    years.map(async year => {
+      const date = `${year}-${month}-${day}`;
+      const url = `${apiBase}/weather/${tempLocation}/${date}`;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        const temp = data.days?.[0]?.temp;
+        return { year, temp };
+      } catch (e) {
+        console.warn(`Fetch failed for ${year}:`, e);
+        return { year, temp: null };
+      }
+    })
+  );
+
+  const validResults = results
+    .filter(r => r.status === 'fulfilled' && r.value.temp !== null)
+    .map(r => r.value)
+    .sort((a, b) => a.year - b.year); // chronological order
+
+  if (validResults.length) {
+    baseTemp = validResults[0].temp;
+    initChart();
+
+    for (const { year, temp } of validResults) {
+      updateChart(year, temp);
+    }
+  }
+
+  loadingEl.style.display = 'none';
+  canvasEl.style.display = 'block';
+
+  const barData = chart.data.datasets[1].data;
+  const trendData = calculateTrendLine(barData.map(d => ({ x: d.y, y: d.x })), startYear - 0.5, currentYear + 0.5);
+  chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x })); // swap back for chart
+
+  chart.update();
+};
+
+const fetchSummary = async () => {
+  const url = `${apiBase}/summary/${tempLocation}/${month}-${day}`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    document.getElementById('summaryText').textContent = data.summary || 'No summary available.';
+  } catch (error) {
+    console.warn(`Summary fetch error: ${error.message}`);
+  }
+};
+
+const fetchTrend = async () => {
+  const url = `${apiBase}/trend/${tempLocation}/${month}-${day}`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (typeof data.slope === 'number' && data.units) {
+      const direction = data.slope > 0 ? 'rising' : data.slope < 0 ? 'falling' : 'stable';
+      const formatted = `Trend: ${direction} at ${Math.abs(data.slope).toFixed(3)} ${data.units}`;
+      document.getElementById('trendText').textContent = formatted;
+    } else {
+      document.getElementById('trendText').textContent = 'No trend data available.';
+    }
+  } catch (error) {
+    console.warn(`Trend fetch error: ${error.message}`);
+  }
+};
+
+const params = new URLSearchParams(window.location.search);
+if (params.get('location')) {
+  tempLocation = params.get('location');
+  fetchData();
+} else {
+  detectUserLocation(); // uses geolocation
+}
+
+function initChart() {
   const ctx = document.getElementById('tempChart').getContext('2d');
 
   chart = new Chart(ctx, {
@@ -144,83 +253,8 @@ function getOrdinal(n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-const fetchHistoricalData = async () => {
-  loadingEl.style.display = 'block';
-  canvasEl.style.display = 'none';
-
-  const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
-
-  const results = await Promise.allSettled(
-    years.map(async year => {
-      const date = `${year}-${month}-${day}`;
-      const url = `${apiBase}/weather/${tempLocation}/${date}`;
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-        const temp = data.days?.[0]?.temp;
-        return { year, temp };
-      } catch (e) {
-        console.warn(`Fetch failed for ${year}:`, e);
-        return { year, temp: null };
-      }
-    })
-  );
-
-  const validResults = results
-    .filter(r => r.status === 'fulfilled' && r.value.temp !== null)
-    .map(r => r.value)
-    .sort((a, b) => a.year - b.year); // chronological order
-
-  if (validResults.length) {
-    baseTemp = validResults[0].temp;
-    const yMin = Math.floor(baseTemp - 3);
-    const yMax = Math.ceil(baseTemp + 3);
-    initChart(yMin, yMax);
-
-    for (const { year, temp } of validResults) {
-      updateChart(year, temp);
-    }
-  }
-
-  loadingEl.style.display = 'none';
-  canvasEl.style.display = 'block';
-
-  const barData = chart.data.datasets[1].data;
-  const trendData = calculateTrendLine(barData.map(d => ({ x: d.y, y: d.x })), startYear - 0.5, currentYear + 0.5);
-  chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x })); // swap back for chart
-
-  chart.update();
-};
-
-const fetchSummary = async () => {
-  const url = `${apiBase}/summary/${tempLocation}/${month}-${day}`;
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    document.getElementById('summaryText').textContent = data.summary || 'No summary available.';
-  } catch (error) {
-    console.warn(`Summary fetch error: ${error.message}`);
-  }
-};
-
-const fetchTrend = async () => {
-  const url = `${apiBase}/trend/${tempLocation}/${month}-${day}`;
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (typeof data.slope === 'number' && data.units) {
-      const direction = data.slope > 0 ? 'rising' : data.slope < 0 ? 'falling' : 'stable';
-      const formatted = `Trend: ${direction} at ${Math.abs(data.slope).toFixed(3)} ${data.units}`;
-      document.getElementById('trendText').textContent = formatted;
-    } else {
-      document.getElementById('trendText').textContent = 'No trend data available.';
-    }
-  } catch (error) {
-    console.warn(`Trend fetch error: ${error.message}`);
-  }
-};
-
-fetchHistoricalData();
-fetchSummary();
-fetchTrend();
+function fetchData() {
+  fetchHistoricalData();
+  fetchSummary();
+  fetchTrend();
+}
