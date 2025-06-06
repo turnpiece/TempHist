@@ -1,6 +1,6 @@
 Chart.register(window['chartjs-plugin-annotation']);
 
-const apiBase = 'https://temphist-api.onrender.com';
+const apiBase = 'https://api.temphist.com';
 
 const now = new Date();
 const useYesterday = now.getHours() < 12;
@@ -169,7 +169,7 @@ function initChart() {
           opacity: 1
         },
         {
-          label: `Temperature in ${tempLocation} on ${friendlyDate}`,
+          label: 'Temperature',
           type: 'bar',
           data: [],
           backgroundColor: barColour,
@@ -185,7 +185,17 @@ function initChart() {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: true },
-        annotation: { annotations: {} }
+        annotation: { annotations: {} },
+        tooltip: {
+          callbacks: {
+            title: function(context) {
+              return `${context[0].parsed.y.toString().replace(/,/g, '')}: ${context[0].parsed.x}°C`
+            },
+            label: function(context) {
+              return ''
+            }
+          }
+        }
       },
       scales: {
         x: {
