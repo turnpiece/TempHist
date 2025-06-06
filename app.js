@@ -26,7 +26,7 @@ const startYear = currentYear - 50;
 const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
 const barColour = 'rgba(255, 0, 0, 0.8)';
-const trendColour = 'rgba(0, 255, 0, 0.25)';
+const trendColour = '#ffff00';
 const barData = [];
 
 // get the location
@@ -56,6 +56,9 @@ async function detectUserLocation() {
   });
 }
 
+// whether or not to show the chart
+let chartVisible;
+
 // set up the chart
 let chart;
 let chartInitialized = false;
@@ -65,8 +68,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
 
 const fetchHistoricalData = async () => {
-  loadingEl.style.display = 'block';
-  canvasEl.style.display = 'none';
+  hideChart();
 
   const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
 
@@ -95,13 +97,14 @@ const fetchHistoricalData = async () => {
     baseTemp = validResults[0].temp;
     initChart();
 
+    if (!chartVisible) {
+      showChart();
+    }
+
     for (const { year, temp } of validResults) {
       updateChart(year, temp);
     }
   }
-
-  loadingEl.style.display = 'none';
-  canvasEl.style.display = 'block';
 
   const barData = chart.data.datasets[1].data;
   const trendData = calculateTrendLine(barData.map(d => ({ x: d.y, y: d.x })), startYear - 0.5, currentYear + 0.5);
@@ -158,10 +161,12 @@ function initChart() {
           label: 'Trend',
           type: 'line',
           data: [],
-          backgroundColor: trendColour, // Filled area
-          fill: true,                   // ✅ fill area below line
+          backgroundColor: trendColour,
+          borderColor: trendColour,
+          fill: false,
           pointRadius: 0,
-          borderWidth: 0
+          borderWidth: 3,
+          opacity: 1
         },
         {
           label: `Temperature in ${tempLocation} on ${friendlyDate}`,
@@ -257,4 +262,16 @@ function fetchData() {
   fetchHistoricalData();
   fetchSummary();
   fetchTrend();
+}
+
+function showChart() {
+  loadingEl.style.display = 'none';
+  canvasEl.style.display = 'block';
+  chartVisible = true;
+}
+
+function hideChart() {
+  loadingEl.style.display = 'block';
+  canvasEl.style.display = 'none';
+  chartVisible = false;
 }
