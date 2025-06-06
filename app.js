@@ -25,7 +25,8 @@ const currentYear = dateToUse.getFullYear();
 const startYear = currentYear - 50;
 const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
-const barColour = 'rgba(255, 0, 0, 0.8)';
+const barColour = 'rgba(186, 0, 0, 0.8)';
+const thisYearColour = 'rgba(32, 186, 0, 0.8)';
 const trendColour = '#ffff00';
 const barData = [];
 
@@ -181,17 +182,17 @@ function initChart() {
     },
     options: {
       indexAxis: 'y',
-      responsive: false,
-      maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: true,
       plugins: {
-        legend: { display: true },
+        legend: { display: false },
         annotation: { annotations: {} },
         tooltip: {
           callbacks: {
             title: function(context) {
-              return `${context[0].parsed.y.toString().replace(/,/g, '')}: ${context[0].parsed.x}°C`
+              return `${context[0].parsed.y.toString()}: ${context[0].parsed.x}°C`
             },
-            label: function(context) {
+            label: function() {
               return ''
             }
           }
@@ -232,6 +233,11 @@ function updateChart(year, temp) {
   barData.push({ x: temp, y: year });
 
   chart.data.datasets[1].data = [...barData];
+  
+  // Update colors for all bars
+  chart.data.datasets[1].backgroundColor = barData.map(point => 
+    point.y === currentYear ? thisYearColour : barColour
+  );
 
   // Expand x-axis if needed (temperature now on x-axis)
   const temps = barData.map(p => p.x);
