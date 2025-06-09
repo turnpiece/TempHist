@@ -3,7 +3,7 @@ Chart.register(window['chartjs-plugin-annotation']);
 const apiBase = 'https://api.temphist.com';
 
 const now = new Date();
-const useYesterday = now.getHours() < 12;
+const useYesterday = now.getHours() < 1;
 const dateToUse = new Date(now);
 
 if (useYesterday) {
@@ -107,8 +107,17 @@ const fetchHistoricalData = async () => {
       showChart();
     }
 
+    // First add all historical data
     for (const { year, temp } of validResults) {
-      updateChart(year, temp);
+      if (year !== currentYear) {
+        updateChart(year, temp);
+      }
+    }
+
+    // Then add current year data last
+    const currentYearData = validResults.find(r => r.year === currentYear);
+    if (currentYearData) {
+      updateChart(currentYearData.year, currentYearData.temp);
     }
   }
 
@@ -243,7 +252,7 @@ function updateChart(year, temp) {
   
   // Update colors for all bars
   chart.data.datasets[1].backgroundColor = barData.map(point => 
-    point.y === currentYear ? 'rgba(0, 255, 0, 0.8)' : barColour
+    point.y === currentYear ? thisYearColour : barColour
   );
 
   // Calculate average temperature
