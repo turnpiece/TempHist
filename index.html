@@ -7,16 +7,23 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
   <style type="text/css">
     body {
-      background-color: #121234;
+      background-color: #242456;
       color: #ececec;
       max-width: 800px;
       margin: 10px auto;
       padding: 20px;
       font-family: Arial, Helvetica, sans-serif;
     }
+    a {
+      color: #ececec;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
     .chart-container {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
+      min-height: 1000px;
     }
     #summaryText,
     #trendText {
@@ -32,20 +39,34 @@
     h1 {
       font-size: 1.4em
     }
+    #footer {
+      font-size: 0.9em; 
+    }
   </style>
 </head>
 <body>
-  <h1>Temperature on this day each year</h1>
-  <div id="summaryText"></div>
-  <div id="loading">
-    <span>Loading...</span>
+  <div id="header">
+    <object data="logo.svg" type="image/svg+xml">
+      <img src="logo.png" alt="TempHist logo" />
+    </object>
+    <h1>TempHist</h1>
   </div>
-  <div class="chart-container"></div>
-    <canvas id="tempChart" style="display:none;" width="800" height="1000"></canvas>
-  </div>
-  <div id="trendText"></div>
-  <p id="dataNotice"></p>
 
+  <div id="content">
+    <div id="summaryText"></div>
+    <div id="loading">
+      <span>Loading...</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="tempChart" style="display:none;" width="800" height="1000"></canvas>
+    </div>
+    <div id="trendText"></div>
+    <p id="dataNotice"></p>
+  </div>
+
+  <div id="footer">
+    <a href="https://turnpiece.com">Turnpiece</a>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>

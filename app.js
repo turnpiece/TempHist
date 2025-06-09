@@ -27,7 +27,8 @@ const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
 const barColour = 'rgba(186, 0, 0, 0.8)';
 const thisYearColour = 'rgba(32, 186, 0, 0.8)';
-const trendColour = '#ffff00';
+const trendColour = '#999900';
+const avgColour = '#00ffff';
 const barData = [];
 
 // get the location
@@ -236,8 +237,29 @@ function updateChart(year, temp) {
   
   // Update colors for all bars
   chart.data.datasets[1].backgroundColor = barData.map(point => 
-    point.y === currentYear ? thisYearColour : barColour
+    point.y === currentYear ? 'rgba(0, 255, 0, 0.8)' : barColour
   );
+
+  // Calculate average temperature
+  const avgTemp = barData.reduce((sum, point) => sum + point.x, 0) / barData.length;
+  
+  // Add average line annotation
+  chart.options.plugins.annotation.annotations = {
+    averageLine: {
+      type: 'line',
+      yMin: startYear - 1,
+      yMax: currentYear + 1,
+      xMin: avgTemp,
+      xMax: avgTemp,
+      borderColor: avgColour,
+      borderWidth: 3,
+      label: {
+        display: true,
+        content: `Average: ${avgTemp.toFixed(1)}°C`,
+        position: 'start'
+      }
+    }
+  };
 
   // Expand x-axis if needed (temperature now on x-axis)
   const temps = barData.map(p => p.x);
