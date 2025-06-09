@@ -25,10 +25,11 @@ const currentYear = dateToUse.getFullYear();
 const startYear = currentYear - 50;
 const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
-const barColour = 'rgba(186, 0, 0, 0.8)';
+const barColour = 'rgba(186, 0, 0, 1)';
 const thisYearColour = 'rgba(32, 186, 0, 0.8)';
+const showTrend = false;
 const trendColour = '#999900';
-const avgColour = '#00ffff';
+const avgColour = '#009999';
 const barData = [];
 
 // get the location
@@ -68,6 +69,9 @@ let baseTemp = null;
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
+
+// display the date
+document.getElementById('dateText').text = friendlyDate;
 
 const fetchHistoricalData = async () => {
   hideChart();
@@ -167,17 +171,18 @@ function initChart() {
           borderColor: trendColour,
           fill: false,
           pointRadius: 0,
-          borderWidth: 3,
-          opacity: 1
+          borderWidth: 5,
+          opacity: 1,
+          hidden: !showTrend
         },
         {
-          label: 'Temperature',
+          label: `Temperature in ${tempLocation} on ${friendlyDate}`,
           type: 'bar',
           data: [],
           backgroundColor: barColour,
           borderWidth: 0,
           categoryPercentage: 1.0,
-          barPercentage: 1.0
+          barPercentage: 0.9
         }
       ]
     },
@@ -185,6 +190,7 @@ function initChart() {
       indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: true,
+      aspectRatio: 1.5,
       plugins: {
         legend: { display: false },
         annotation: { annotations: {} },
@@ -299,7 +305,9 @@ function getOrdinal(n) {
 function fetchData() {
   fetchHistoricalData();
   fetchSummary();
-  fetchTrend();
+  if (showTrend) {
+    fetchTrend();
+  }
 }
 
 function showChart() {

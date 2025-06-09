@@ -2,70 +2,93 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Historical Temperature Chart</title>
+  <title>TempHist – the temperature on this day each year</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
   <style type="text/css">
     body {
       background-color: #242456;
       color: #ececec;
-      max-width: 800px;
-      margin: 10px auto;
       padding: 20px;
       font-family: Arial, Helvetica, sans-serif;
     }
     a {
       color: #ececec;
-    }
-    a:hover {
       text-decoration: underline;
+    }
+    .container {
+      position: relative;
+      max-width: 800px;
+      margin: 10px auto;
     }
     .chart-container {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-      min-height: 1000px;
+      min-height: 80vh;
     }
-    #summaryText,
-    #trendText {
-      margin: 1em 0;
+    #header, 
+    #footer,
+    #footer a {
+      color: #ba0000;
     }
-    #trendText {
-      color: #ffff00
+    #header {
+      height: 60px;
+      border-bottom: 1px solid;
+    }
+    #header h1 {
+      position: absolute;
+      left: 60px;
+      top: 0;
+      font-size: 1.4em;
+    }
+    #header #logo {
+      width: 50px;
+      height: 50px;
     }
     #loading {
       text-align: center; 
       margin-top: 20px;
     }
-    h1 {
-      font-size: 1.4em
-    }
     #footer {
+      border-top: 1px solid;
       font-size: 0.9em; 
+    }
+    #dateText {
+      font-size: 1.2em;
     }
   </style>
 </head>
 <body>
   <div id="header">
-    <object data="logo.svg" type="image/svg+xml">
-      <img src="logo.png" alt="TempHist logo" />
-    </object>
-    <h1>TempHist</h1>
+    <div class="container">
+      <div id="logo">
+        <object data="logo.svg" type="image/svg+xml">
+          <img src="logo.png" alt="TempHist logo" width="50" height="50" />
+        </object>
+      </div>
+      <h1>TempHist</h1>
+    </div>
   </div>
 
   <div id="content">
-    <div id="summaryText"></div>
-    <div id="loading">
-      <span>Loading...</span>
+    <div class="container">
+      <div id="dateText"></div>
+      <div id="summaryText"></div>
+      <div id="loading">
+        <span>Loading...</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="tempChart" style="display:none;" width="800" height="1000"></canvas>
+      </div>
+      <div id="trendText"></div>
+      <p id="dataNotice"></p>
     </div>
-    <div class="chart-container">
-      <canvas id="tempChart" style="display:none;" width="800" height="1000"></canvas>
-    </div>
-    <div id="trendText"></div>
-    <p id="dataNotice"></p>
   </div>
 
   <div id="footer">
-    <a href="https://turnpiece.com">Turnpiece</a>
+    <div class="container">
+      <a href="https://turnpiece.com">Turnpiece</a>
+    </div>
   </div>
   <script src="app.js"></script>
 </body>
