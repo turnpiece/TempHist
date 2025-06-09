@@ -71,7 +71,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
 
 // display the date
-document.getElementById('dateText').text = friendlyDate;
+document.getElementById('dateText').textContent = friendlyDate;
 
 const fetchHistoricalData = async () => {
   hideChart();
