@@ -1,7 +1,6 @@
 Chart.register(window['chartjs-plugin-annotation']);
 
 const apiBase = 'https://api.temphist.com';
-const corsProxy = 'https://corsproxy.io/?';
 const DEBUGGING = true;
 
 const now = new Date();
@@ -59,7 +58,7 @@ function debugTimeEnd(label) {
 // Helper function to handle API URLs
 function getApiUrl(path) {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return corsProxy + encodeURIComponent(apiBase + path);
+    return `http://localhost:3000/api${path}`;
   }
   return apiBase + path;
 }
@@ -109,26 +108,37 @@ const fetchHistoricalData = async () => {
   const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
   debugLog(`Fetching data for ${years.length} years...`);
 
-  const results = await Promise.allSettled(
-    years.map(async year => {
-      const date = `${year}-${month}-${day}`;
-      const url = getApiUrl(`/weather/${tempLocation}/${date}`);
-      try {
-        const startTime = DEBUGGING ? performance.now() : 0;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (DEBUGGING) {
-          const endTime = performance.now();
-          debugLog(`Year ${year} fetch took ${(endTime - startTime).toFixed(2)}ms`);
+  // Batch the years into groups of 10 for parallel processing
+  const batchSize = 10;
+  const batches = [];
+  for (let i = 0; i < years.length; i += batchSize) {
+    batches.push(years.slice(i, i + batchSize));
+  }
+
+  const results = [];
+  for (const batch of batches) {
+    const batchResults = await Promise.allSettled(
+      batch.map(async year => {
+        const date = `${year}-${month}-${day}`;
+        const url = getApiUrl(`/weather/${tempLocation}/${date}`);
+        try {
+          const startTime = DEBUGGING ? performance.now() : 0;
+          const response = await fetch(url);
+          const data = await response.json();
+          if (DEBUGGING) {
+            const endTime = performance.now();
+            debugLog(`Year ${year} fetch took ${(endTime - startTime).toFixed(2)}ms`);
+          }
+          const temp = data.days?.[0]?.temp;
+          return { year, temp };
+        } catch (e) {
+          console.warn(`Fetch failed for ${year}:`, e);
+          return { year, temp: null };
         }
-        const temp = data.days?.[0]?.temp;
-        return { year, temp };
-      } catch (e) {
-        console.warn(`Fetch failed for ${year}:`, e);
-        return { year, temp: null };
-      }
-    })
-  );
+      })
+    );
+    results.push(...batchResults);
+  }
 
   const validResults = results
     .filter(r => r.status === 'fulfilled' && r.value.temp !== null)
@@ -146,18 +156,26 @@ const fetchHistoricalData = async () => {
     }
 
     debugTime('Adding data points');
-    // First add all historical data
-    for (const { year, temp } of validResults) {
-      if (year !== currentYear) {
-        updateChart(year, temp);
-      }
-    }
+    // Collect all data points first
+    const allData = validResults.map(({ year, temp }) => ({ x: temp, y: year }));
+    barData.push(...allData);
+    
+    // Update chart once with all data
+    chart.data.datasets[1].data = [...barData];
+    
+    // Update colors for all bars
+    chart.data.datasets[1].backgroundColor = barData.map(point => 
+      point.y === currentYear ? thisYearColour : barColour
+    );
 
-    // Then add current year data last
-    const currentYearData = validResults.find(r => r.year === currentYear);
-    if (currentYearData) {
-      updateChart(currentYearData.year, currentYearData.temp);
-    }
+    // Expand x-axis if needed
+    const temps = barData.map(p => p.x);
+    const minTemp = Math.min(...temps);
+    const maxTemp = Math.max(...temps);
+    chart.options.scales.x.min = Math.floor(minTemp - 1);
+    chart.options.scales.x.max = Math.ceil(maxTemp + 1);
+
+    chart.update();
     debugTimeEnd('Adding data points');
 
     // Get average from API
@@ -168,11 +186,11 @@ const fetchHistoricalData = async () => {
 
   debugTimeEnd('Total fetch time');
 
-  const barData = chart.data.datasets[1].data;
-  const trendData = calculateTrendLine(barData.map(d => ({ x: d.y, y: d.x })), startYear - 0.5, currentYear + 0.5);
-  chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x })); // swap back for chart
-
-  chart.update();
+  if (showTrend) {
+    const trendData = calculateTrendLine(barData.map(d => ({ x: d.y, y: d.x })), startYear - 0.5, currentYear + 0.5);
+    chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x })); // swap back for chart
+    chart.update();
+  }
 };
 
 const fetchSummary = async () => {
@@ -307,31 +325,6 @@ function initChart() {
   });
 
   chartInitialized = true;
-}
-
-function updateChart(year, temp) {
-  const startTime = DEBUGGING ? performance.now() : 0;
-  barData.push({ x: temp, y: year });
-
-  chart.data.datasets[1].data = [...barData];
-  
-  // Update colors for all bars
-  chart.data.datasets[1].backgroundColor = barData.map(point => 
-    point.y === currentYear ? thisYearColour : barColour
-  );
-
-  // Expand x-axis if needed (temperature now on x-axis)
-  const temps = barData.map(p => p.x);
-  const minTemp = Math.min(...temps);
-  const maxTemp = Math.max(...temps);
-  chart.options.scales.x.min = Math.floor(minTemp - 1);
-  chart.options.scales.x.max = Math.ceil(maxTemp + 1);
-
-  chart.update();
-  if (DEBUGGING) {
-    const endTime = performance.now();
-    debugLog(`Chart update for year ${year} took ${(endTime - startTime).toFixed(2)}ms`);
-  }
 }
 
 async function updateAverageLine() {

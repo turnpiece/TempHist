@@ -1,0 +1,26 @@
+{
+  "name": "temphist",
+  "version": "1.0.0",
+  "description": "Daily temperature history chart. Shows the temperature on the same day each year over the past 50 years for the current location.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/turnpiece/TempHist.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/turnpiece/TempHist/issues"
+  },
+  "homepage": "https://github.com/turnpiece/TempHist#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "http-proxy-middleware": "^3.0.5"
+  }
+}
