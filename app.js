@@ -276,16 +276,21 @@ function initChart() {
           data: [],
           backgroundColor: barColour,
           borderWidth: 0,
-          categoryPercentage: 1.0,
-          barPercentage: 0.9
+          barPercentage: 0.9,
+          categoryPercentage: 1.0
         }
       ]
     },
     options: {
       indexAxis: 'y',
       responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: window.innerWidth < 500 ? 0.8 : 1.5,
+      maintainAspectRatio: false,
+      layout: {
+        padding: {
+          left: window.innerWidth < 500 ? 5 : 10,
+          right: window.innerWidth < 500 ? 5 : 10
+        }
+      },
       plugins: {
         legend: { display: false },
         annotation: {
@@ -297,11 +302,14 @@ function initChart() {
               xMin: 0,
               xMax: 0,
               borderColor: avgColour,
-              borderWidth: 3,
+              borderWidth: 2,
               label: {
                 display: true,
                 content: 'Average',
-                position: 'start'
+                position: 'start',
+                font: {
+                  size: 12
+                }
               }
             }
           }
@@ -321,7 +329,15 @@ function initChart() {
         x: {
           title: {
             display: true,
-            text: 'Temperature (°C)'
+            text: 'Temperature (°C)',
+            font: {
+              size: 12
+            }
+          },
+          ticks: {
+            font: {
+              size: 11
+            }
           }
         },
         y: {
@@ -331,7 +347,10 @@ function initChart() {
           max: currentYear,
           ticks: {
             stepSize: 5,
-            callback: val => val.toString()
+            callback: val => val.toString(),
+            font: {
+              size: 11
+            }
           },
           title: {
             display: false,

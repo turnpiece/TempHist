@@ -29,13 +29,13 @@ a {
 
 @media (max-width: 500px) {
   .chart-container {
-    min-height: 90vh;
-    padding: 0 5px;
+    min-height: 100vh;
+    padding: 0;
   }
   
   #tempChart {
     width: 100% !important;
-    height: auto !important;
+    height: 100% !important;
   }
 }
 
