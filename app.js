@@ -33,6 +33,27 @@ const trendColour = '#999900';
 const avgColour = '#009999';
 const barData = [];
 
+// Add loading state management
+let loadingStartTime = null;
+let loadingCheckInterval = null;
+
+function updateLoadingMessage() {
+  if (!loadingStartTime) return;
+  
+  const elapsedSeconds = Math.floor((Date.now() - loadingStartTime) / 1000);
+  const loadingText = document.getElementById('loadingText');
+  
+  if (elapsedSeconds < 10) {
+    loadingText.textContent = 'Loading temperature data...';
+  } else if (elapsedSeconds < 30) {
+    loadingText.textContent = 'Still loading... This might take a moment.';
+  } else if (elapsedSeconds < 60) {
+    loadingText.textContent = 'Taking longer than usual... The server is waking up.';
+  } else {
+    loadingText.textContent = 'The server is taking a while to respond. This is normal for the first request after inactivity.';
+  }
+}
+
 // get the location
 let tempLocation = 'London'; // default
 
@@ -264,7 +285,7 @@ function initChart() {
       indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: true,
-      aspectRatio: 1.5,
+      aspectRatio: window.innerWidth < 500 ? 0.8 : 1.5,
       plugins: {
         legend: { display: false },
         annotation: {
@@ -319,6 +340,12 @@ function initChart() {
           grid: {
             display: false
           }
+        }
+      },
+      elements: {
+        bar: {
+          minBarLength: 30,
+          maxBarThickness: 50
         }
       }
     }
@@ -382,13 +409,21 @@ function fetchData() {
 }
 
 function showChart() {
+  if (loadingCheckInterval) {
+    clearInterval(loadingCheckInterval);
+    loadingCheckInterval = null;
+  }
+  loadingStartTime = null;
   loadingEl.style.display = 'none';
   canvasEl.style.display = 'block';
   chartVisible = true;
 }
 
 function hideChart() {
+  loadingStartTime = Date.now();
+  loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
   loadingEl.style.display = 'block';
   canvasEl.style.display = 'none';
   chartVisible = false;
+  updateLoadingMessage(); // Initial message
 }
