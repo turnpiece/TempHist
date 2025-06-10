@@ -337,6 +337,11 @@ function initChart() {
           ticks: {
             font: {
               size: 11
+            },
+            stepSize: 2,
+            callback: function(value) {
+              // Only show even numbers
+              return value % 2 === 0 ? value : '';
             }
           }
         },
