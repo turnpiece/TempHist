@@ -1,6 +1,8 @@
 Chart.register(window['chartjs-plugin-annotation']);
 
 const apiBase = 'https://api.temphist.com';
+const corsProxy = 'https://corsproxy.io/?';
+const DEBUGGING = true;
 
 const now = new Date();
 const useYesterday = now.getHours() < 1;
@@ -34,6 +36,33 @@ const barData = [];
 
 // get the location
 let tempLocation = 'London'; // default
+
+// Helper function for debug logging
+function debugLog(...args) {
+  if (DEBUGGING) {
+    console.log(...args);
+  }
+}
+
+function debugTime(label) {
+  if (DEBUGGING) {
+    console.time(label);
+  }
+}
+
+function debugTimeEnd(label) {
+  if (DEBUGGING) {
+    console.timeEnd(label);
+  }
+}
+
+// Helper function to handle API URLs
+function getApiUrl(path) {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return corsProxy + encodeURIComponent(apiBase + path);
+  }
+  return apiBase + path;
+}
 
 async function getCityFromCoords(lat, lon) {
   const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
@@ -74,17 +103,24 @@ const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en
 document.getElementById('dateText').textContent = friendlyDate;
 
 const fetchHistoricalData = async () => {
+  debugTime('Total fetch time');
   hideChart();
 
   const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
+  debugLog(`Fetching data for ${years.length} years...`);
 
   const results = await Promise.allSettled(
     years.map(async year => {
       const date = `${year}-${month}-${day}`;
-      const url = `${apiBase}/weather/${tempLocation}/${date}`;
+      const url = getApiUrl(`/weather/${tempLocation}/${date}`);
       try {
+        const startTime = DEBUGGING ? performance.now() : 0;
         const response = await fetch(url);
         const data = await response.json();
+        if (DEBUGGING) {
+          const endTime = performance.now();
+          debugLog(`Year ${year} fetch took ${(endTime - startTime).toFixed(2)}ms`);
+        }
         const temp = data.days?.[0]?.temp;
         return { year, temp };
       } catch (e) {
@@ -100,13 +136,16 @@ const fetchHistoricalData = async () => {
     .sort((a, b) => a.year - b.year); // chronological order
 
   if (validResults.length) {
+    debugTime('Chart initialization');
     baseTemp = validResults[0].temp;
     initChart();
+    debugTimeEnd('Chart initialization');
 
     if (!chartVisible) {
       showChart();
     }
 
+    debugTime('Adding data points');
     // First add all historical data
     for (const { year, temp } of validResults) {
       if (year !== currentYear) {
@@ -119,7 +158,15 @@ const fetchHistoricalData = async () => {
     if (currentYearData) {
       updateChart(currentYearData.year, currentYearData.temp);
     }
+    debugTimeEnd('Adding data points');
+
+    // Get average from API
+    debugTime('Average line update');
+    await updateAverageLine();
+    debugTimeEnd('Average line update');
   }
+
+  debugTimeEnd('Total fetch time');
 
   const barData = chart.data.datasets[1].data;
   const trendData = calculateTrendLine(barData.map(d => ({ x: d.y, y: d.x })), startYear - 0.5, currentYear + 0.5);
@@ -129,7 +176,7 @@ const fetchHistoricalData = async () => {
 };
 
 const fetchSummary = async () => {
-  const url = `${apiBase}/summary/${tempLocation}/${month}-${day}`;
+  const url = getApiUrl(`/summary/${tempLocation}/${month}-${day}`);
   try {
     const response = await fetch(url);
     const data = await response.json();
@@ -140,7 +187,7 @@ const fetchSummary = async () => {
 };
 
 const fetchTrend = async () => {
-  const url = `${apiBase}/trend/${tempLocation}/${month}-${day}`;
+  const url = getApiUrl(`/trend/${tempLocation}/${month}-${day}`);
   try {
     const response = await fetch(url);
     const data = await response.json();
@@ -202,7 +249,24 @@ function initChart() {
       aspectRatio: 1.5,
       plugins: {
         legend: { display: false },
-        annotation: { annotations: {} },
+        annotation: {
+          annotations: {
+            averageLine: {
+              type: 'line',
+              yMin: startYear - 1,
+              yMax: currentYear + 1,
+              xMin: 0,
+              xMax: 0,
+              borderColor: avgColour,
+              borderWidth: 3,
+              label: {
+                display: true,
+                content: 'Average',
+                position: 'start'
+              }
+            }
+          }
+        },
         tooltip: {
           callbacks: {
             title: function(context) {
@@ -246,6 +310,7 @@ function initChart() {
 }
 
 function updateChart(year, temp) {
+  const startTime = DEBUGGING ? performance.now() : 0;
   barData.push({ x: temp, y: year });
 
   chart.data.datasets[1].data = [...barData];
@@ -255,27 +320,6 @@ function updateChart(year, temp) {
     point.y === currentYear ? thisYearColour : barColour
   );
 
-  // Calculate average temperature
-  const avgTemp = barData.reduce((sum, point) => sum + point.x, 0) / barData.length;
-  
-  // Add average line annotation
-  chart.options.plugins.annotation.annotations = {
-    averageLine: {
-      type: 'line',
-      yMin: startYear - 1,
-      yMax: currentYear + 1,
-      xMin: avgTemp,
-      xMax: avgTemp,
-      borderColor: avgColour,
-      borderWidth: 3,
-      label: {
-        display: true,
-        content: `Average: ${avgTemp.toFixed(1)}°C`,
-        position: 'start'
-      }
-    }
-  };
-
   // Expand x-axis if needed (temperature now on x-axis)
   const temps = barData.map(p => p.x);
   const minTemp = Math.min(...temps);
@@ -284,6 +328,31 @@ function updateChart(year, temp) {
   chart.options.scales.x.max = Math.ceil(maxTemp + 1);
 
   chart.update();
+  if (DEBUGGING) {
+    const endTime = performance.now();
+    debugLog(`Chart update for year ${year} took ${(endTime - startTime).toFixed(2)}ms`);
+  }
+}
+
+async function updateAverageLine() {
+  try {
+    const url = getApiUrl(`/average/${tempLocation}/${month}-${day}`);
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (typeof data.average === 'number') {
+      const annotation = chart.options.plugins.annotation.annotations.averageLine;
+      annotation.xMin = data.average;
+      annotation.xMax = data.average;
+      annotation.label.content = `Average: ${data.average.toFixed(1)}°C`;
+      chart.update();
+
+      // display average temperature
+      document.getElementById('avgText').textContent = `Average: ${data.average.toFixed(1)}°C`;
+    }
+  } catch (error) {
+    console.warn('Average fetch error:', error);
+  }
 }
 
 function calculateTrendLine(points, startX, endX) {
