@@ -150,7 +150,7 @@ const fetchHistoricalData = async () => {
             const endTime = performance.now();
             debugLog(`Year ${year} fetch took ${(endTime - startTime).toFixed(2)}ms`);
           }
-          const temp = data.days?.[0]?.tempmax;
+          const temp = data.days?.[0]?.temp;
           return { year, temp };
         } catch (e) {
           console.warn(`Fetch failed for ${year}:`, e);
