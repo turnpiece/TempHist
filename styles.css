@@ -25,6 +25,13 @@ a {
   width: 100%;
   max-width: 100%;
   padding: 0 10px;
+  position: relative;
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 60vh;
 }
 
 @media (max-width: 500px) {
@@ -33,9 +40,8 @@ a {
     padding: 0;
   }
   
-  #tempChart {
-    width: 100% !important;
-    height: 100% !important;
+  .chart-container canvas {
+    min-height: 100vh;
   }
 }
 

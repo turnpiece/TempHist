@@ -1,15 +1,43 @@
+// Constants and configuration
+const DEBUGGING = true;
+
+// Helper function for debug logging
+function debugLog(...args) {
+  if (DEBUGGING) {
+    console.log(...args);
+  }
+}
+
+function debugTime(label) {
+  if (DEBUGGING) {
+    console.time(label);
+  }
+}
+
+function debugTimeEnd(label) {
+  if (DEBUGGING) {
+    console.timeEnd(label);
+  }
+}
+
+debugLog('Script starting...');
+
 Chart.register(window['chartjs-plugin-annotation']);
 
 const apiBase = 'https://api.temphist.com';
 const localApiBase = 'http://localhost:3000/api';
-const DEBUGGING = true;
+
+debugLog('Constants initialized');
 
 const now = new Date();
 const useYesterday = now.getHours() < 1;
 const dateToUse = new Date(now);
 
+debugLog('Date calculations complete:', { now, useYesterday, dateToUse });
+
 if (useYesterday) {
   dateToUse.setDate(dateToUse.getDate() - 1);
+  debugLog('Using yesterday\'s date');
 }
 
 // Handle 29 Feb fallback to 28 Feb if not a leap year in comparison range
@@ -18,11 +46,14 @@ const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
 if (isLeapDay) {
   dateToUse.setDate(28);
   document.getElementById('dataNotice').textContent = '29th February detected — comparing 28th Feb instead for consistency.';
+  debugLog('Leap day detected, using 28th Feb instead');
 }
 
 const day = String(dateToUse.getDate()).padStart(2, '0');
 const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
 const currentYear = dateToUse.getFullYear();
+
+debugLog('Date components prepared:', { day, month, currentYear });
 
 const startYear = currentYear - 50;
 const loadingEl = document.getElementById('loading');
@@ -33,6 +64,17 @@ const showTrend = false;
 const trendColour = '#999900';
 const avgColour = '#009999';
 const barData = [];
+
+// whether or not to show the chart
+let chartVisible;
+let chart;
+
+const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
+
+// display the date
+document.getElementById('dateText').textContent = friendlyDate;
+
+debugLog('DOM elements and variables initialized');
 
 // Add loading state management
 let loadingStartTime = null;
@@ -58,25 +100,6 @@ function updateLoadingMessage() {
 // get the location
 let tempLocation = 'London'; // default
 
-// Helper function for debug logging
-function debugLog(...args) {
-  if (DEBUGGING) {
-    console.log(...args);
-  }
-}
-
-function debugTime(label) {
-  if (DEBUGGING) {
-    console.time(label);
-  }
-}
-
-function debugTimeEnd(label) {
-  if (DEBUGGING) {
-    console.timeEnd(label);
-  }
-}
-
 // Helper function to handle API URLs
 function getApiUrl(path) {
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -97,35 +120,25 @@ async function getCityFromCoords(lat, lon) {
   return data.address.city || data.address.town || data.address.village || tempLocation;
 }
 
-async function detectUserLocation() {
-  if (!navigator.geolocation) {
-    console.warn('Geolocation is not supported by this browser.');
-    fetchData(); // fallback
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(async (position) => {
-    const { latitude, longitude } = position.coords;
-    tempLocation = await getCityFromCoords(latitude, longitude);
-    console.log(`Detected location: ${tempLocation}`);
-    fetchData();
-  }, (error) => {
-    console.warn('Geolocation error:', error.message);
-    fetchData(); // fallback
-  });
+// Add these functions near the top with other utility functions
+function setLocationCookie(city) {
+  const expiry = new Date();
+  expiry.setHours(expiry.getHours() + 1); // Expire after 1 hour
+  document.cookie = `tempLocation=${city};expires=${expiry.toUTCString()};path=/`;
 }
 
-// whether or not to show the chart
-let chartVisible;
+function getLocationCookie() {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'tempLocation') {
+      return value;
+    }
+  }
+  return null;
+}
 
-// set up the chart
-let chart;
-
-const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
-
-// display the date
-document.getElementById('dateText').textContent = friendlyDate;
-
+// Modify the fetchHistoricalData function to handle timeouts better
 const fetchHistoricalData = async () => {
   debugTime('Total fetch time');
   hideChart();
@@ -141,6 +154,8 @@ const fetchHistoricalData = async () => {
   }
 
   const results = [];
+  let firstBatchReceived = false;
+
   for (const batch of batches) {
     const batchResults = await Promise.allSettled(
       batch.map(async year => {
@@ -149,6 +164,9 @@ const fetchHistoricalData = async () => {
         try {
           const startTime = DEBUGGING ? performance.now() : 0;
           const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
           const data = await response.json();
           if (DEBUGGING) {
             const endTime = performance.now();
@@ -157,49 +175,232 @@ const fetchHistoricalData = async () => {
           const temp = data.days?.[0]?.temp;
           return { year, temp };
         } catch (e) {
-          console.warn(`Fetch failed for ${year}:`, e);
+          console.warn(`Fetch failed for ${year}:`, e.message);
           return { year, temp: null };
         }
       })
     );
     results.push(...batchResults);
+
+    // After first batch, initialize and show chart
+    if (!firstBatchReceived) {
+      const validResults = results
+        .filter(r => r.status === 'fulfilled' && r.value.temp !== null)
+        .map(r => r.value)
+        .sort((a, b) => a.year - b.year);
+
+      if (validResults.length) {
+        debugTime('Chart initialization');
+        const initialData = validResults.map(({ year, temp }) => ({ x: temp, y: year }));
+        barData.push(...initialData);
+        
+        // Create initial chart
+        const ctx = document.getElementById('tempChart').getContext('2d');
+        chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            datasets: [
+              {
+                label: 'Trend',
+                type: 'line',
+                data: [],
+                backgroundColor: trendColour,
+                borderColor: trendColour,
+                fill: false,
+                pointRadius: 0,
+                borderWidth: 5,
+                opacity: 1,
+                hidden: !showTrend
+              },
+              {
+                label: `Temperature in ${tempLocation} on ${friendlyDate}`,
+                type: 'bar',
+                data: barData,
+                backgroundColor: barData.map(point => 
+                  point.y === currentYear ? thisYearColour : barColour
+                ),
+                borderWidth: 0,
+                barPercentage: 0.9,
+                categoryPercentage: 1.0
+              }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+              padding: {
+                left: window.innerWidth < 500 ? 5 : 10,
+                right: window.innerWidth < 500 ? 5 : 10
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              annotation: {
+                annotations: {
+                  averageLine: {
+                    type: 'line',
+                    yMin: startYear - 1,
+                    yMax: currentYear + 1,
+                    xMin: 0,
+                    xMax: 0,
+                    borderColor: avgColour,
+                    borderWidth: 2,
+                    label: {
+                      display: true,
+                      content: 'Average',
+                      position: 'start',
+                      font: {
+                        size: 12
+                      }
+                    }
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  title: function(context) {
+                    return `${context[0].parsed.y.toString()}: ${context[0].parsed.x}°C`
+                  },
+                  label: function() {
+                    return ''
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                type: 'linear',
+                title: {
+                  display: true,
+                  text: 'Temperature (°C)',
+                  font: {
+                    size: 12
+                  }
+                },
+                min: Math.floor(Math.min(...barData.map(p => p.x)) - 1),
+                max: Math.ceil(Math.max(...barData.map(p => p.x)) + 1),
+                ticks: {
+                  font: {
+                    size: 11
+                  },
+                  stepSize: 2,
+                  callback: function(value) {
+                    // Only show even numbers
+                    return value % 2 === 0 ? value : '';
+                  }
+                }
+              },
+              y: {
+                reverse: false,
+                type: 'linear',
+                min: startYear,
+                max: currentYear,
+                ticks: {
+                  stepSize: 5,
+                  callback: val => val.toString(),
+                  font: {
+                    size: 11
+                  }
+                },
+                title: {
+                  display: false,
+                  text: 'Year'
+                },
+                grid: {
+                  display: false
+                }
+              }
+            },
+            elements: {
+              bar: {
+                minBarLength: 30,
+                maxBarThickness: 50
+              }
+            }
+          }
+        });
+        
+        debugLog('Initial chart created with data:', barData);
+        debugLog('Initial x-axis config:', chart.options.scales.x);
+        
+        debugTimeEnd('Chart initialization');
+        showChart();
+        firstBatchReceived = true;
+      }
+    }
   }
 
   const validResults = results
     .filter(r => r.status === 'fulfilled' && r.value.temp !== null)
     .map(r => r.value)
-    .sort((a, b) => a.year - b.year); // chronological order
+    .sort((a, b) => a.year - b.year);
 
   if (validResults.length) {
-    debugTime('Chart initialization');
-    initChart();
-    debugTimeEnd('Chart initialization');
-
-    if (!chartVisible) {
-      showChart();
-    }
-
     debugTime('Adding data points');
-    // Collect all data points first
+    // Collect all data points
     const allData = validResults.map(({ year, temp }) => ({ x: temp, y: year }));
+    barData.length = 0; // Clear existing data
     barData.push(...allData);
     
-    // Update chart once with all data
-    chart.data.datasets[1].data = [...barData];
+    debugLog('Updating chart with data:', barData);
+    debugLog('Current x-axis config before update:', chart.options.scales.x);
     
-    // Update colors for all bars
+    // Update existing chart instead of recreating it
+    chart.data.datasets[1].data = [...barData];
     chart.data.datasets[1].backgroundColor = barData.map(point => 
       point.y === currentYear ? thisYearColour : barColour
     );
 
-    // Expand x-axis if needed
+    // Update x-axis range
     const temps = barData.map(p => p.x);
     const minTemp = Math.min(...temps);
     const maxTemp = Math.max(...temps);
-    chart.options.scales.x.min = Math.floor(minTemp - 1);
-    chart.options.scales.x.max = Math.ceil(maxTemp + 1);
 
-    chart.update();
+    // Ensure min and max are even numbers
+    const min = Math.floor(minTemp - 1);
+    const max = Math.ceil(maxTemp + 1);
+    const evenMin = min % 2 === 0 ? min : min - 1;
+    const evenMax = max % 2 === 0 ? max : max + 1;
+
+    // Completely reset the x-axis configuration
+    chart.options.scales.x = {
+      type: 'linear',
+      title: {
+        display: true,
+        text: 'Temperature (°C)',
+        font: {
+          size: 12
+        }
+      },
+      min: evenMin,
+      max: evenMax,
+      ticks: {
+        font: {
+          size: 11
+        },
+        stepSize: 2,
+        callback: function(value) {
+          // Only show even numbers
+          return value % 2 === 0 ? value : '';
+        }
+      }
+    };
+
+    debugLog('New x-axis config:', chart.options.scales.x);
+
+    // Force a complete update with animation disabled
+    chart.update('none');
+    
+    debugLog('Chart updated. Current x-axis config:', chart.options.scales.x);
+    debugLog('Chart dimensions:', {
+      width: chart.width,
+      height: chart.height,
+      canvasWidth: chart.canvas.width,
+      canvasHeight: chart.canvas.height
+    });
+
     debugTimeEnd('Adding data points');
 
     // Get average from API
@@ -247,136 +448,14 @@ const fetchTrend = async () => {
 };
 
 const params = new URLSearchParams(window.location.search);
+debugLog('URL parameters checked');
 if (params.get('location')) {
+  debugLog('Location parameter found in URL');
   tempLocation = params.get('location');
   fetchData();
 } else {
+  debugLog('No location parameter, starting geolocation detection');
   detectUserLocation(); // uses geolocation
-}
-
-function initChart() {
-  const ctx = document.getElementById('tempChart').getContext('2d');
-
-  chart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      datasets: [
-        {
-          label: 'Trend',
-          type: 'line',
-          data: [],
-          backgroundColor: trendColour,
-          borderColor: trendColour,
-          fill: false,
-          pointRadius: 0,
-          borderWidth: 5,
-          opacity: 1,
-          hidden: !showTrend
-        },
-        {
-          label: `Temperature in ${tempLocation} on ${friendlyDate}`,
-          type: 'bar',
-          data: [],
-          backgroundColor: barColour,
-          borderWidth: 0,
-          barPercentage: 0.9,
-          categoryPercentage: 1.0
-        }
-      ]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      layout: {
-        padding: {
-          left: window.innerWidth < 500 ? 5 : 10,
-          right: window.innerWidth < 500 ? 5 : 10
-        }
-      },
-      plugins: {
-        legend: { display: false },
-        annotation: {
-          annotations: {
-            averageLine: {
-              type: 'line',
-              yMin: startYear - 1,
-              yMax: currentYear + 1,
-              xMin: 0,
-              xMax: 0,
-              borderColor: avgColour,
-              borderWidth: 2,
-              label: {
-                display: true,
-                content: 'Average',
-                position: 'start',
-                font: {
-                  size: 12
-                }
-              }
-            }
-          }
-        },
-        tooltip: {
-          callbacks: {
-            title: function(context) {
-              return `${context[0].parsed.y.toString()}: ${context[0].parsed.x}°C`
-            },
-            label: function() {
-              return ''
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: 'Temperature (°C)',
-            font: {
-              size: 12
-            }
-          },
-          ticks: {
-            font: {
-              size: 11
-            },
-            stepSize: 2,
-            callback: function(value) {
-              // Only show even numbers
-              return value % 2 === 0 ? value : '';
-            }
-          }
-        },
-        y: {
-          reverse: false,
-          type: 'linear',
-          min: startYear,
-          max: currentYear,
-          ticks: {
-            stepSize: 5,
-            callback: val => val.toString(),
-            font: {
-              size: 11
-            }
-          },
-          title: {
-            display: false,
-            text: 'Year'
-          },
-          grid: {
-            display: false
-          }
-        }
-      },
-      elements: {
-        bar: {
-          minBarLength: 30,
-          maxBarThickness: 50
-        }
-      }
-    }
-  });
 }
 
 async function updateAverageLine() {
@@ -442,6 +521,11 @@ function showChart() {
   loadingEl.style.display = 'none';
   canvasEl.style.display = 'block';
   chartVisible = true;
+  
+  // Force a chart update if it exists
+  if (chart) {
+    chart.update('none'); // 'none' means don't animate
+  }
 }
 
 function hideChart() {
@@ -451,4 +535,76 @@ function hideChart() {
   canvasEl.style.display = 'none';
   chartVisible = false;
   updateLoadingMessage(); // Initial message
+}
+
+// Modify the detectUserLocation function to use cookies
+async function detectUserLocation() {
+  debugLog('Starting location detection...');
+  
+  // Check for cached location first
+  const cachedLocation = getLocationCookie();
+  if (cachedLocation) {
+    debugLog('Using cached location:', cachedLocation);
+    tempLocation = cachedLocation;
+    fetchData();
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    console.warn('Geolocation is not supported by this browser.');
+    debugLog('Geolocation not supported, falling back to default location');
+    fetchData(); // fallback
+    return;
+  }
+
+  // Set a timeout for geolocation
+  const geolocationTimeout = setTimeout(() => {
+    debugLog('Geolocation request timed out after 10 seconds');
+    console.warn('Geolocation request timed out, falling back to default location');
+    fetchData(); // fallback to default location
+  }, 10000); // 10 second timeout
+
+  debugLog('Requesting geolocation...');
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      clearTimeout(geolocationTimeout);
+      debugLog('Geolocation received:', position.coords);
+      const { latitude, longitude } = position.coords;
+      debugLog('Fetching city name from coordinates...');
+      try {
+        tempLocation = await getCityFromCoords(latitude, longitude);
+        console.log(`Detected location: ${tempLocation}`);
+        debugLog('Location detection complete, starting data fetch');
+        // Cache the location
+        setLocationCookie(tempLocation);
+        fetchData();
+      } catch (error) {
+        console.warn('Error getting city name:', error);
+        debugLog('Failed to get city name, falling back to default location');
+        fetchData();
+      }
+    },
+    (error) => {
+      clearTimeout(geolocationTimeout);
+      console.warn('Geolocation error:', error.message);
+      debugLog('Geolocation failed:', error.code, error.message);
+      switch(error.code) {
+        case error.TIMEOUT:
+          debugLog('Geolocation timed out');
+          break;
+        case error.POSITION_UNAVAILABLE:
+          debugLog('Location information is unavailable');
+          break;
+        case error.PERMISSION_DENIED:
+          debugLog('Location permission denied');
+          break;
+      }
+      fetchData(); // fallback
+    },
+    {
+      enableHighAccuracy: false, // Don't wait for GPS
+      timeout: 5000, // 5 second timeout
+      maximumAge: 60000 // Accept cached location up to 1 minute old
+    }
+  );
 }
