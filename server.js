@@ -1,6 +1,7 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
+const apiBase = 'https://api.temphist.com';
 
 // Add CORS headers middleware
 app.use((req, res, next) => {
@@ -15,7 +16,7 @@ app.use(express.static('./'));
 
 // Proxy all /api requests to the actual API
 app.use('/api', createProxyMiddleware({
-  target: 'https://api.temphist.com',
+  target: apiBase,
   changeOrigin: true,
   pathRewrite: {
     '^/api': '', // remove /api prefix when forwarding

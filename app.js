@@ -1,6 +1,7 @@
 Chart.register(window['chartjs-plugin-annotation']);
 
 const apiBase = 'https://api.temphist.com';
+const localApiBase = 'http://localhost:3000/api';
 const DEBUGGING = true;
 
 const now = new Date();
@@ -78,8 +79,14 @@ function debugTimeEnd(label) {
 
 // Helper function to handle API URLs
 function getApiUrl(path) {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return `http://localhost:3000/api${path}`;
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocalhost) {
+    if (DEBUGGING) {
+      const dataNotice = document.getElementById('dataNotice');
+      dataNotice.textContent = `Debug: Using local API at ${localApiBase}${path}`;
+      dataNotice.style.color = '#666';
+    }
+    return `${localApiBase}${path}`;
   }
   return apiBase + path;
 }
@@ -113,10 +120,7 @@ let chartVisible;
 
 // set up the chart
 let chart;
-let chartInitialized = false;
-let baseTemp = null;
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
 
 // display the date
@@ -168,7 +172,6 @@ const fetchHistoricalData = async () => {
 
   if (validResults.length) {
     debugTime('Chart initialization');
-    baseTemp = validResults[0].temp;
     initChart();
     debugTimeEnd('Chart initialization');
 
@@ -374,8 +377,6 @@ function initChart() {
       }
     }
   });
-
-  chartInitialized = true;
 }
 
 async function updateAverageLine() {
