@@ -199,8 +199,7 @@ const fetchHistoricalData = async () => {
         
         // Calculate available height for bars
         const numBars = currentYear - startYear + 1;
-        const isMobile = window.innerWidth < 500;
-        const targetBarHeight = isMobile ? 50 : 25;
+        const targetBarHeight = 35; // Consistent bar thickness
         const totalBarHeight = numBars * targetBarHeight;
         const containerEl = canvasEl.parentElement;
         const containerHeight = containerEl.clientHeight;
@@ -208,7 +207,6 @@ const fetchHistoricalData = async () => {
         
         debugLog('Initial chart setup:', {
           windowWidth: window.innerWidth,
-          isMobile,
           targetBarHeight,
           numBars,
           totalBarHeight,
@@ -250,42 +248,10 @@ const fetchHistoricalData = async () => {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            resizeDelay: 100,
-            onResize: (chart, size) => {
-              const isMobile = window.innerWidth < 500;
-              const newThickness = isMobile ? 50 : 25;
-              const containerEl = chart.canvas.parentElement;
-              const containerHeight = containerEl.clientHeight;
-              
-              debugLog('Chart resized:', {
-                windowWidth: window.innerWidth,
-                isMobile,
-                newThickness,
-                currentThickness: chart.options.elements.bar.maxBarThickness,
-                containerHeight,
-                chartWidth: size.width,
-                chartHeight: size.height
-              });
-
-              // Force update bar thickness
-              chart.options.elements.bar.maxBarThickness = newThickness;
-              chart.options.elements.bar.barThickness = newThickness;
-              
-              // Update padding
-              chart.options.layout.padding = {
-                left: isMobile ? 5 : 10,
-                right: isMobile ? 5 : 10,
-                top: 10,
-                bottom: 10
-              };
-
-              // Force a complete update
-              chart.update('none');
-            },
             layout: {
               padding: {
-                left: isMobile ? 5 : 10,
-                right: isMobile ? 5 : 10,
+                left: 10,
+                right: 10,
                 top: 10,
                 bottom: 10
               }
@@ -371,10 +337,10 @@ const fetchHistoricalData = async () => {
             elements: {
               bar: {
                 minBarLength: 30,
-                maxBarThickness: targetBarHeight,
-                barThickness: targetBarHeight,
-                categoryPercentage: 1.0,
-                barPercentage: 0.9
+                maxBarThickness: 35,
+                barThickness: 35,
+                categoryPercentage: 0.8,
+                barPercentage: 0.8
               }
             }
           }
