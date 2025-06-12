@@ -196,6 +196,27 @@ const fetchHistoricalData = async () => {
         
         // Create initial chart
         const ctx = document.getElementById('tempChart').getContext('2d');
+        
+        // Calculate available height for bars
+        const numBars = currentYear - startYear + 1;
+        const isMobile = window.innerWidth < 500;
+        const targetBarHeight = isMobile ? 50 : 25;
+        const totalBarHeight = numBars * targetBarHeight;
+        const containerEl = canvasEl.parentElement;
+        const containerHeight = containerEl.clientHeight;
+        const availableHeight = containerHeight - 40; // Subtract some padding for axes
+        
+        debugLog('Initial chart setup:', {
+          windowWidth: window.innerWidth,
+          isMobile,
+          targetBarHeight,
+          numBars,
+          totalBarHeight,
+          containerHeight,
+          availableHeight,
+          canvasHeight: canvasEl.clientHeight
+        });
+
         chart = new Chart(ctx, {
           type: 'bar',
           data: {
@@ -229,10 +250,44 @@ const fetchHistoricalData = async () => {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            resizeDelay: 100,
+            onResize: (chart, size) => {
+              const isMobile = window.innerWidth < 500;
+              const newThickness = isMobile ? 50 : 25;
+              const containerEl = chart.canvas.parentElement;
+              const containerHeight = containerEl.clientHeight;
+              
+              debugLog('Chart resized:', {
+                windowWidth: window.innerWidth,
+                isMobile,
+                newThickness,
+                currentThickness: chart.options.elements.bar.maxBarThickness,
+                containerHeight,
+                chartWidth: size.width,
+                chartHeight: size.height
+              });
+
+              // Force update bar thickness
+              chart.options.elements.bar.maxBarThickness = newThickness;
+              chart.options.elements.bar.barThickness = newThickness;
+              
+              // Update padding
+              chart.options.layout.padding = {
+                left: isMobile ? 5 : 10,
+                right: isMobile ? 5 : 10,
+                top: 10,
+                bottom: 10
+              };
+
+              // Force a complete update
+              chart.update('none');
+            },
             layout: {
               padding: {
-                left: window.innerWidth < 500 ? 5 : 10,
-                right: window.innerWidth < 500 ? 5 : 10
+                left: isMobile ? 5 : 10,
+                right: isMobile ? 5 : 10,
+                top: 10,
+                bottom: 10
               }
             },
             plugins: {
@@ -316,7 +371,10 @@ const fetchHistoricalData = async () => {
             elements: {
               bar: {
                 minBarLength: 30,
-                maxBarThickness: 50
+                maxBarThickness: targetBarHeight,
+                barThickness: targetBarHeight,
+                categoryPercentage: 1.0,
+                barPercentage: 0.9
               }
             }
           }

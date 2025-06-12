@@ -1,7 +1,9 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
-const apiBase = 'https://api.temphist.com';
+const apiBase = process.env.NODE_ENV === 'production' 
+  ? 'https://api.temphist.com'
+  : 'http://localhost:8000';
 
 // Add CORS headers middleware
 app.use((req, res, next) => {
@@ -23,10 +25,12 @@ app.use('/api', createProxyMiddleware({
   },
   onProxyRes: function(proxyRes, req, res) {
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-  }
+  },
+  logLevel: 'debug' // Add debug logging
 }));
 
 const port = 3000;
 app.listen(port, () => {
   console.log(`Development server running at http://localhost:${port}`);
+  console.log(`Proxying /api requests to ${apiBase}`);
 }); 

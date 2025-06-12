@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TempHist – the temperature on this day each year</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
@@ -27,7 +28,7 @@
         <div class="spinner"></div>
         <p id="loadingText">Loading temperature data...</p>
       </div>
-      <div class="chart-container">
+      <div class="chart-container" style="min-height: 2100px;">
         <canvas id="tempChart" style="display:none;"></canvas>
       </div>
       <div id="trendText"></div>
