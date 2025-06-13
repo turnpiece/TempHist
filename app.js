@@ -60,7 +60,7 @@ const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
 const barColour = 'rgba(186, 0, 0, 1)';
 const thisYearColour = 'rgba(32, 186, 0, 0.8)';
-const showTrend = false;
+const showTrend = true;
 const trendColour = '#999900';
 const avgColour = '#009999';
 const barData = [];
@@ -199,7 +199,7 @@ const fetchHistoricalData = async () => {
         
         // Calculate available height for bars
         const numBars = currentYear - startYear + 1;
-        const targetBarHeight = 35; // Consistent bar thickness
+        const targetBarHeight = 3; // Reduced from 35 to 3
         const totalBarHeight = numBars * targetBarHeight;
         const containerEl = canvasEl.parentElement;
         const containerHeight = containerEl.clientHeight;
@@ -227,7 +227,7 @@ const fetchHistoricalData = async () => {
                 borderColor: trendColour,
                 fill: false,
                 pointRadius: 0,
-                borderWidth: 5,
+                borderWidth: 2,
                 opacity: 1,
                 hidden: !showTrend
               },
@@ -238,9 +238,7 @@ const fetchHistoricalData = async () => {
                 backgroundColor: barData.map(point => 
                   point.y === currentYear ? thisYearColour : barColour
                 ),
-                borderWidth: 0,
-                barPercentage: 0.9,
-                categoryPercentage: 1.0
+                borderWidth: 0
               }
             ]
           },
@@ -250,10 +248,10 @@ const fetchHistoricalData = async () => {
             maintainAspectRatio: false,
             layout: {
               padding: {
-                left: 10,
-                right: 10,
-                top: 10,
-                bottom: 10
+                left: 0,
+                right: 0,
+                top: 15,
+                bottom: 15
               }
             },
             plugins: {
@@ -319,7 +317,7 @@ const fetchHistoricalData = async () => {
                 min: startYear,
                 max: currentYear,
                 ticks: {
-                  stepSize: 5,
+                  stepSize: 1,
                   callback: val => val.toString(),
                   font: {
                     size: 11
@@ -331,16 +329,16 @@ const fetchHistoricalData = async () => {
                 },
                 grid: {
                   display: false
-                }
+                },
+                offset: true
               }
             },
             elements: {
               bar: {
                 minBarLength: 30,
-                maxBarThickness: 35,
-                barThickness: 35,
-                categoryPercentage: 0.8,
-                barPercentage: 0.8
+                maxBarThickness: 30,
+                categoryPercentage: 0.1,
+                barPercentage: 1.0
               }
             }
           }
@@ -476,7 +474,7 @@ debugLog('URL parameters checked');
 if (params.get('location')) {
   debugLog('Location parameter found in URL');
   tempLocation = params.get('location');
-  fetchData();
+  displayLocationAndFetchData();
 } else {
   debugLog('No location parameter, starting geolocation detection');
   detectUserLocation(); // uses geolocation
@@ -528,6 +526,12 @@ function getOrdinal(n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
+function displayLocationAndFetchData() {
+  document.getElementById('locationText').textContent = tempLocation;
+  setLocationCookie(tempLocation);
+  fetchData();
+}
+
 function fetchData() {
   fetchHistoricalData();
   fetchSummary();
@@ -570,14 +574,14 @@ async function detectUserLocation() {
   if (cachedLocation) {
     debugLog('Using cached location:', cachedLocation);
     tempLocation = cachedLocation;
-    fetchData();
+    displayLocationAndFetchData();
     return;
   }
 
   if (!navigator.geolocation) {
     console.warn('Geolocation is not supported by this browser.');
     debugLog('Geolocation not supported, falling back to default location');
-    fetchData(); // fallback
+    displayLocationAndFetchData(); // fallback
     return;
   }
 
@@ -585,7 +589,7 @@ async function detectUserLocation() {
   const geolocationTimeout = setTimeout(() => {
     debugLog('Geolocation request timed out after 10 seconds');
     console.warn('Geolocation request timed out, falling back to default location');
-    fetchData(); // fallback to default location
+    displayLocationAndFetchData(); // fallback to default location
   }, 10000); // 10 second timeout
 
   debugLog('Requesting geolocation...');
@@ -598,15 +602,13 @@ async function detectUserLocation() {
       try {
         tempLocation = await getCityFromCoords(latitude, longitude);
         console.log(`Detected location: ${tempLocation}`);
-        debugLog('Location detection complete, starting data fetch');
-        // Cache the location
-        setLocationCookie(tempLocation);
-        fetchData();
+        debugLog('Location detection complete');
       } catch (error) {
         console.warn('Error getting city name:', error);
         debugLog('Failed to get city name, falling back to default location');
-        fetchData();
       }
+      
+      displayLocationAndFetchData();
     },
     (error) => {
       clearTimeout(geolocationTimeout);
@@ -623,7 +625,7 @@ async function detectUserLocation() {
           debugLog('Location permission denied');
           break;
       }
-      fetchData(); // fallback
+      displayLocationAndFetchData();
     },
     {
       enableHighAccuracy: false, // Don't wait for GPS

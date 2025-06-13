@@ -50,6 +50,7 @@ a {
 #header {
   height: 60px;
   border-bottom: 1px solid;
+  margin-bottom: 2em;
 }
 
 #header h1 {
@@ -66,18 +67,27 @@ a {
 
 /* Footer */
 #footer {
+  margin-top: 3em;
   border-top: 1px solid;
   font-size: 0.9em; 
 }
 
+#footer a {
+  text-decoration: none;
+}
+
 /* Content */
-#dateText {
-  font-size: 1.2em;
-  margin-bottom: 1em;
+.standard-text {
+  font-size: 1em;
+  padding: .4em 0;
 }
 
 #avgText {
   color: #009999;
+}
+
+#trendText {
+  color: #999900;
 }
 
 /* Loading state */
@@ -109,6 +119,5 @@ a {
   margin: 0;
   color: #666;
   font-size: 1.1rem;
-  max-width: 400px;
   line-height: 1.4;
 } 
