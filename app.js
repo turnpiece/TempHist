@@ -74,6 +74,16 @@ const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en
 // display the date
 document.getElementById('dateText').textContent = friendlyDate;
 
+// Apply colors to text elements
+function applyTextColors() {
+  document.getElementById('summaryText').style.color = thisYearColour;
+  document.getElementById('avgText').style.color = avgColour;
+  document.getElementById('trendText').style.color = trendColour;
+}
+
+// Apply colors when the page loads
+applyTextColors();
+
 debugLog('DOM elements and variables initialized');
 
 // Add loading state management

@@ -82,14 +82,6 @@ a {
   padding: .4em 0;
 }
 
-#avgText {
-  color: #009999;
-}
-
-#trendText {
-  color: #999900;
-}
-
 /* Loading state */
 #loading {
   display: flex;
