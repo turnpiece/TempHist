@@ -41,12 +41,6 @@ a {
 }
 
 /* Header */
-#header, 
-#footer,
-#footer a {
-  color: #ba0000;
-}
-
 #header {
   height: 60px;
   border-bottom: 1px solid;
