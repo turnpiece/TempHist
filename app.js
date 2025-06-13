@@ -58,8 +58,8 @@ debugLog('Date components prepared:', { day, month, currentYear });
 const startYear = currentYear - 50;
 const loadingEl = document.getElementById('loading');
 const canvasEl = document.getElementById('tempChart');
-const barColour = 'rgba(186, 0, 0, 1)';
-const thisYearColour = 'rgba(32, 136, 0, 1)';
+const barColour = '#ba0000';
+const thisYearColour = '#309900';
 const showTrend = true;
 const trendColour = '#999900';
 const avgColour = '#009999';
@@ -76,9 +76,20 @@ document.getElementById('dateText').textContent = friendlyDate;
 
 // Apply colors to text elements
 function applyTextColors() {
+  // Text colors
   document.getElementById('summaryText').style.color = thisYearColour;
   document.getElementById('avgText').style.color = avgColour;
   document.getElementById('trendText').style.color = trendColour;
+  
+  // Header and footer colors
+  document.getElementById('header').style.color = barColour;
+  document.getElementById('footer').style.color = barColour;
+  document.querySelector('#footer a').style.color = barColour;
+  
+  // Spinner colors
+  const spinner = document.querySelector('.spinner');
+  spinner.style.borderColor = `${barColour}33`; // 20% opacity
+  spinner.style.borderTopColor = barColour;
 }
 
 // Apply colors when the page loads
@@ -469,7 +480,7 @@ const fetchTrend = async () => {
 
     if (typeof data.slope === 'number' && data.units) {
       const direction = data.slope > 0 ? 'rising' : data.slope < 0 ? 'falling' : 'stable';
-      const formatted = `Trend: ${direction} at ${Math.abs(data.slope).toFixed(3)} ${data.units}`;
+      const formatted = `Trend: ${direction} at ${Math.abs(data.slope).toFixed(2)} ${data.units}`;
       document.getElementById('trendText').textContent = formatted;
     } else {
       document.getElementById('trendText').textContent = 'No trend data available.';
