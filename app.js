@@ -28,9 +28,52 @@ const API_TOKEN = 'testing'; // For testing - Ideally, inject via server or obfu
 async function apiFetch(url, options = {}) {
   const headers = {
     'X-API-Token': API_TOKEN,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
     ...options.headers
   };
-  return fetch(url, { ...options, headers });
+
+  console.log('Making API request:', {
+    url,
+    method: options.method || 'GET',
+    headers
+  });
+
+  try {
+    // First try a simple fetch without any special options
+    const response = await fetch(url, { 
+      method: options.method || 'GET',
+      headers
+    });
+
+    console.log('Response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        url,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: errorText
+      });
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Fetch error:', {
+      url,
+      error: error.message,
+      headers,
+      stack: error.stack
+    });
+    throw error;
+  }
 }
 
 // Wait for Chart.js to be available
@@ -471,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     debugTimeEnd('Total fetch time');
 
-    if (showTrend) {
+    if (showTrend && chart) {
       const trendData = calculateTrendLine(barData.map(d => ({ x: d.y, y: d.x })), startYear - 0.5, currentYear + 0.5);
       chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x })); // swap back for chart
       chart.update();

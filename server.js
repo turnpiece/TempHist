@@ -7,9 +7,19 @@ const apiBase = process.env.NODE_ENV === 'production'
 
 // Add CORS headers middleware
 app.use((req, res, next) => {
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Token, Accept');
+    res.header('Access-Control-Max-Age', '600');
+    return res.sendStatus(200);
+  }
+
+  // Handle regular requests
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Token, Accept');
   next();
 });
 
@@ -25,6 +35,7 @@ app.use('/api', createProxyMiddleware({
   },
   onProxyRes: function(proxyRes, req, res) {
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-API-Token, Accept';
   },
   logLevel: 'debug' // Add debug logging
 }));
