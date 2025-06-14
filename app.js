@@ -22,6 +22,17 @@ function debugTimeEnd(label) {
 
 debugLog('Script starting...');
 
+const API_TOKEN = 'testing'; // For testing - Ideally, inject via server or obfuscate if needed
+
+// Wrapper function for API fetches that adds the API token
+async function apiFetch(url, options = {}) {
+  const headers = {
+    'X-API-Token': API_TOKEN,
+    ...options.headers
+  };
+  return fetch(url, { ...options, headers });
+}
+
 // Wait for Chart.js to be available
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof Chart === 'undefined') {
@@ -190,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const url = getApiUrl(`/weather/${tempLocation}/${date}`);
           try {
             const startTime = DEBUGGING ? performance.now() : 0;
-            const response = await fetch(url);
+            const response = await apiFetch(url);
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -470,7 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const fetchSummary = async () => {
     const url = getApiUrl(`/summary/${tempLocation}/${month}-${day}`);
     try {
-      const response = await fetch(url);
+      const response = await apiFetch(url);
       const data = await response.json();
       document.getElementById('summaryText').textContent = data.summary || 'No summary available.';
     } catch (error) {
@@ -481,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const fetchTrend = async () => {
     const url = getApiUrl(`/trend/${tempLocation}/${month}-${day}`);
     try {
-      const response = await fetch(url);
+      const response = await apiFetch(url);
       const data = await response.json();
 
       if (typeof data.slope === 'number' && data.units) {
@@ -510,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function updateAverageLine() {
     try {
       const url = getApiUrl(`/average/${tempLocation}/${month}-${day}`);
-      const response = await fetch(url);
+      const response = await apiFetch(url);
       const data = await response.json();
       
       if (typeof data.average === 'number') {
