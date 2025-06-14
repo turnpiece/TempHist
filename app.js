@@ -33,23 +33,11 @@ async function apiFetch(url, options = {}) {
     ...options.headers
   };
 
-  console.log('Making API request:', {
-    url,
-    method: options.method || 'GET',
-    headers
-  });
-
   try {
     // First try a simple fetch without any special options
     const response = await fetch(url, { 
       method: options.method || 'GET',
       headers
-    });
-
-    console.log('Response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
     });
 
     if (!response.ok) {
