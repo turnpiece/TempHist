@@ -1,9 +1,15 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
-const apiBase = process.env.NODE_ENV === 'production' 
+
+// Load environment variables
+require('dotenv').config();
+
+// Configuration from environment variables with defaults
+const apiBase = process.env.API_BASE || (process.env.NODE_ENV === 'production' 
   ? 'https://api.temphist.com'
-  : 'http://localhost:8000';
+  : 'http://localhost:8000');
+const port = process.env.PORT || 3000;
 
 // Add CORS headers middleware
 app.use((req, res, next) => {
@@ -40,8 +46,7 @@ app.use('/api', createProxyMiddleware({
   logLevel: 'debug' // Add debug logging
 }));
 
-const port = 3000;
 app.listen(port, () => {
-  console.log(`Development server running at http://localhost:${port}`);
+  console.log(`Server running at http://localhost:${port}`);
   console.log(`Proxying /api requests to ${apiBase}`);
 }); 

@@ -74,7 +74,9 @@ document.addEventListener('DOMContentLoaded', () => {
   Chart.register(window['chartjs-plugin-annotation']);
 
   const apiBase = 'https://api.temphist.com';
-  const localApiBase = 'http://localhost:3000/api';
+  const localApiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000/api'
+    : apiBase;
 
   debugLog('Constants initialized');
 
@@ -112,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const showTrend = true;
   const trendColour = '#aaaa00';
   const avgColour = '#4dabf7';
-  const barData = [];
 
   // whether or not to show the chart
   let chart;
@@ -212,330 +213,217 @@ document.addEventListener('DOMContentLoaded', () => {
     debugTime('Total fetch time');
     hideChart();
 
-    const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
-    debugLog(`Fetching data for ${years.length} years...`);
+    try {
+      const url = getApiUrl(`/data/${tempLocation}/${month}-${day}`);
+      const response = await apiFetch(url);
+      const data = await response.json();
 
-    // Batch the years into groups of 10 for parallel processing
-    const batchSize = 10;
-    const batches = [];
-    for (let i = 0; i < years.length; i += batchSize) {
-      batches.push(years.slice(i, i + batchSize));
-    }
+      if (!data.series?.data) {
+        throw new Error('Invalid data format received');
+      }
 
-    const results = [];
-    let firstBatchReceived = false;
+      // Update the chart with the series data
+      const chartData = data.series.data.map(point => ({ x: point.y, y: point.x }));
+      
+      // Create or update chart
+      if (!chart) {
+        debugTime('Chart initialization');
+        const ctx = document.getElementById('tempChart').getContext('2d');
+        
+        // Calculate available height for bars
+        const numBars = currentYear - startYear + 1;
+        const targetBarHeight = 3;
+        const totalBarHeight = numBars * targetBarHeight;
+        const containerEl = canvasEl.parentElement;
+        const containerHeight = containerEl.clientHeight;
+        const availableHeight = containerHeight - 40;
+        
+        debugLog('Initial chart setup:', {
+          windowWidth: window.innerWidth,
+          targetBarHeight,
+          numBars,
+          totalBarHeight,
+          containerHeight,
+          availableHeight,
+          canvasHeight: canvasEl.clientHeight
+        });
 
-    for (const batch of batches) {
-      const batchResults = await Promise.allSettled(
-        batch.map(async year => {
-          const date = `${year}-${month}-${day}`;
-          const url = getApiUrl(`/weather/${tempLocation}/${date}`);
-          try {
-            const startTime = DEBUGGING ? performance.now() : 0;
-            const response = await apiFetch(url);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            if (DEBUGGING) {
-              const endTime = performance.now();
-              debugLog(`Year ${year} fetch took ${(endTime - startTime).toFixed(2)}ms`);
-            }
-            const temp = data.days?.[0]?.temp;
-            return { year, temp };
-          } catch (e) {
-            console.warn(`Fetch failed for ${year}:`, e.message);
-            return { year, temp: null };
-          }
-        })
-      );
-      results.push(...batchResults);
-
-      // After first batch, initialize and show chart
-      if (!firstBatchReceived) {
-        const validResults = results
-          .filter(r => r.status === 'fulfilled' && r.value.temp !== null)
-          .map(r => r.value)
-          .sort((a, b) => a.year - b.year);
-
-        if (validResults.length) {
-          debugTime('Chart initialization');
-          const initialData = validResults.map(({ year, temp }) => ({ x: temp, y: year }));
-          barData.push(...initialData);
-          
-          // Create initial chart
-          const ctx = document.getElementById('tempChart').getContext('2d');
-          
-          // Calculate available height for bars
-          const numBars = currentYear - startYear + 1;
-          const targetBarHeight = 3; // Reduced from 35 to 3
-          const totalBarHeight = numBars * targetBarHeight;
-          const containerEl = canvasEl.parentElement;
-          const containerHeight = containerEl.clientHeight;
-          const availableHeight = containerHeight - 40; // Subtract some padding for axes
-          
-          debugLog('Initial chart setup:', {
-            windowWidth: window.innerWidth,
-            targetBarHeight,
-            numBars,
-            totalBarHeight,
-            containerHeight,
-            availableHeight,
-            canvasHeight: canvasEl.clientHeight
-          });
-
-          chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-              datasets: [
-                {
-                  label: 'Trend',
-                  type: 'line',
-                  data: [],
-                  backgroundColor: trendColour,
-                  borderColor: trendColour,
-                  fill: false,
-                  pointRadius: 0,
-                  borderWidth: 2,
-                  opacity: 1,
-                  hidden: !showTrend
-                },
-                {
-                  label: `Temperature in ${tempLocation} on ${friendlyDate}`,
-                  type: 'bar',
-                  data: barData,
-                  backgroundColor: barData.map(point => 
-                    point.y === currentYear ? thisYearColour : barColour
-                  ),
-                  borderWidth: 0
-                }
-              ]
-            },
-            options: {
-              indexAxis: 'y',
-              responsive: true,
-              maintainAspectRatio: false,
-              layout: {
-                padding: {
-                  left: 0,
-                  right: 0,
-                  top: 15,
-                  bottom: 15
-                }
+        chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            datasets: [
+              {
+                label: 'Trend',
+                type: 'line',
+                data: [],
+                backgroundColor: trendColour,
+                borderColor: trendColour,
+                fill: false,
+                pointRadius: 0,
+                borderWidth: 2,
+                opacity: 1,
+                hidden: !showTrend
               },
-              plugins: {
-                legend: { display: false },
-                annotation: {
-                  annotations: {
-                    averageLine: {
-                      type: 'line',
-                      yMin: startYear - 1,
-                      yMax: currentYear + 1,
-                      xMin: 0,
-                      xMax: 0,
-                      borderColor: avgColour,
-                      borderWidth: 2,
-                      label: {
-                        display: true,
-                        content: 'Average',
-                        position: 'start',
-                        font: {
-                          size: 12
-                        }
+              {
+                label: `Temperature in ${tempLocation} on ${friendlyDate}`,
+                type: 'bar',
+                data: chartData,
+                backgroundColor: chartData.map(point => 
+                  point.y === currentYear ? thisYearColour : barColour
+                ),
+                borderWidth: 0
+              }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+              padding: {
+                left: 0,
+                right: 0,
+                top: 15,
+                bottom: 15
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              annotation: {
+                annotations: {
+                  averageLine: {
+                    type: 'line',
+                    yMin: startYear - 1,
+                    yMax: currentYear + 1,
+                    xMin: data.average.temperature,
+                    xMax: data.average.temperature,
+                    borderColor: avgColour,
+                    borderWidth: 2,
+                    label: {
+                      display: true,
+                      content: `Average: ${data.average.temperature.toFixed(1)}°C`,
+                      position: 'start',
+                      font: {
+                        size: 12
                       }
                     }
                   }
-                },
-                tooltip: {
-                  callbacks: {
-                    title: function(context) {
-                      return `${context[0].parsed.y.toString()}: ${context[0].parsed.x}°C`
-                    },
-                    label: function() {
-                      return ''
-                    }
-                  }
                 }
               },
-              scales: {
-                x: {
-                  type: 'linear',
-                  title: {
-                    display: true,
-                    text: 'Temperature (°C)',
-                    font: {
-                      size: 12
-                    }
+              tooltip: {
+                callbacks: {
+                  title: function(context) {
+                    return `${context[0].parsed.y.toString()}: ${context[0].parsed.x}°C`
                   },
-                  min: Math.floor(Math.min(...barData.map(p => p.x)) - 1),
-                  max: Math.ceil(Math.max(...barData.map(p => p.x)) + 1),
-                  ticks: {
-                    font: {
-                      size: 11
-                    },
-                    stepSize: 2,
-                    callback: function(value) {
-                      // Only show even numbers
-                      return value % 2 === 0 ? value : '';
-                    }
+                  label: function() {
+                    return ''
                   }
-                },
-                y: {
-                  reverse: false,
-                  type: 'linear',
-                  min: startYear,
-                  max: currentYear,
-                  ticks: {
-                    stepSize: 1,
-                    callback: val => val.toString(),
-                    font: {
-                      size: 11
-                    }
-                  },
-                  title: {
-                    display: false,
-                    text: 'Year'
-                  },
-                  grid: {
-                    display: false
-                  },
-                  offset: true
-                }
-              },
-              elements: {
-                bar: {
-                  minBarLength: 30,
-                  maxBarThickness: 30,
-                  categoryPercentage: 0.1,
-                  barPercentage: 1.0
                 }
               }
+            },
+            scales: {
+              x: {
+                type: 'linear',
+                title: {
+                  display: true,
+                  text: 'Temperature (°C)',
+                  font: {
+                    size: 12
+                  }
+                },
+                min: Math.floor(Math.min(...chartData.map(p => p.x)) - 1),
+                max: Math.ceil(Math.max(...chartData.map(p => p.x)) + 1),
+                ticks: {
+                  font: {
+                    size: 11
+                  },
+                  stepSize: 2,
+                  callback: function(value) {
+                    return value % 2 === 0 ? value : '';
+                  }
+                }
+              },
+              y: {
+                reverse: false,
+                type: 'linear',
+                min: startYear,
+                max: currentYear,
+                ticks: {
+                  stepSize: 1,
+                  callback: val => val.toString(),
+                  font: {
+                    size: 11
+                  }
+                },
+                title: {
+                  display: false,
+                  text: 'Year'
+                },
+                grid: {
+                  display: false
+                },
+                offset: true
+              }
+            },
+            elements: {
+              bar: {
+                minBarLength: 30,
+                maxBarThickness: 30,
+                categoryPercentage: 0.1,
+                barPercentage: 1.0
+              }
             }
-          });
-          
-          debugLog('Initial chart created with data:', barData);
-          debugLog('Initial x-axis config:', chart.options.scales.x);
-          
-          debugTimeEnd('Chart initialization');
-          showChart();
-          firstBatchReceived = true;
-        }
+          }
+        });
+        
+        debugTimeEnd('Chart initialization');
+      } else {
+        // Update existing chart
+        chart.data.datasets[1].data = chartData;
+        chart.data.datasets[1].backgroundColor = chartData.map(point => 
+          point.y === currentYear ? thisYearColour : barColour
+        );
+
+        // Update x-axis range
+        const temps = chartData.map(p => p.x);
+        const minTemp = Math.min(...temps);
+        const maxTemp = Math.max(...temps);
+        const min = Math.floor(minTemp - 1);
+        const max = Math.ceil(maxTemp + 1);
+        const evenMin = min % 2 === 0 ? min : min - 1;
+        const evenMax = max % 2 === 0 ? max : max + 1;
+
+        chart.options.scales.x.min = evenMin;
+        chart.options.scales.x.max = evenMax;
       }
-    }
 
-    const validResults = results
-      .filter(r => r.status === 'fulfilled' && r.value.temp !== null)
-      .map(r => r.value)
-      .sort((a, b) => a.year - b.year);
+      // Update trend line if enabled
+      if (showTrend && chart) {
+        const trendData = calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
+          startYear - 0.5, currentYear + 0.5);
+        chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x }));
+      }
 
-    if (validResults.length) {
-      debugTime('Adding data points');
-      // Collect all data points
-      const allData = validResults.map(({ year, temp }) => ({ x: temp, y: year }));
-      barData.length = 0; // Clear existing data
-      barData.push(...allData);
+      // Update text elements
+      document.getElementById('summaryText').textContent = data.summary || 'No summary available.';
+      document.getElementById('avgText').textContent = `Average: ${data.average.temperature.toFixed(1)}°C`;
       
-      debugLog('Updating chart with data:', barData);
-      debugLog('Current x-axis config before update:', chart.options.scales.x);
-      
-      // Update existing chart instead of recreating it
-      chart.data.datasets[1].data = [...barData];
-      chart.data.datasets[1].backgroundColor = barData.map(point => 
-        point.y === currentYear ? thisYearColour : barColour
-      );
+      if (data.trend) {
+        const direction = data.trend.slope > 0 ? 'rising' : data.trend.slope < 0 ? 'falling' : 'stable';
+        const formatted = `Trend: ${direction} at ${Math.abs(data.trend.slope).toFixed(2)} ${data.trend.units}`;
+        document.getElementById('trendText').textContent = formatted;
+      }
 
-      // Update x-axis range
-      const temps = barData.map(p => p.x);
-      const minTemp = Math.min(...temps);
-      const maxTemp = Math.max(...temps);
-
-      // Ensure min and max are even numbers
-      const min = Math.floor(minTemp - 1);
-      const max = Math.ceil(maxTemp + 1);
-      const evenMin = min % 2 === 0 ? min : min - 1;
-      const evenMax = max % 2 === 0 ? max : max + 1;
-
-      // Completely reset the x-axis configuration
-      chart.options.scales.x = {
-        type: 'linear',
-        title: {
-          display: true,
-          text: 'Temperature (°C)',
-          font: {
-            size: 12
-          }
-        },
-        min: evenMin,
-        max: evenMax,
-        ticks: {
-          font: {
-            size: 11
-          },
-          stepSize: 2,
-          callback: function(value) {
-            // Only show even numbers
-            return value % 2 === 0 ? value : '';
-          }
-        }
-      };
-
-      debugLog('New x-axis config:', chart.options.scales.x);
-
-      // Force a complete update with animation disabled
+      // Show the chart
+      showChart();
       chart.update('none');
-      
-      debugLog('Chart updated. Current x-axis config:', chart.options.scales.x);
-      debugLog('Chart dimensions:', {
-        width: chart.width,
-        height: chart.height,
-        canvasWidth: chart.canvas.width,
-        canvasHeight: chart.canvas.height
-      });
 
-      debugTimeEnd('Adding data points');
-
-      // Get average from API
-      debugTime('Average line update');
-      await updateAverageLine();
-      debugTimeEnd('Average line update');
+    } catch (error) {
+      console.error('Error fetching historical data:', error);
+      hideChart();
     }
 
     debugTimeEnd('Total fetch time');
-
-    if (showTrend && chart) {
-      const trendData = calculateTrendLine(barData.map(d => ({ x: d.y, y: d.x })), startYear - 0.5, currentYear + 0.5);
-      chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x })); // swap back for chart
-      chart.update();
-    }
-  };
-
-  const fetchSummary = async () => {
-    const url = getApiUrl(`/summary/${tempLocation}/${month}-${day}`);
-    try {
-      const response = await apiFetch(url);
-      const data = await response.json();
-      document.getElementById('summaryText').textContent = data.summary || 'No summary available.';
-    } catch (error) {
-      console.warn(`Summary fetch error: ${error.message}`);
-    }
-  };
-
-  const fetchTrend = async () => {
-    const url = getApiUrl(`/trend/${tempLocation}/${month}-${day}`);
-    try {
-      const response = await apiFetch(url);
-      const data = await response.json();
-
-      if (typeof data.slope === 'number' && data.units) {
-        const direction = data.slope > 0 ? 'rising' : data.slope < 0 ? 'falling' : 'stable';
-        const formatted = `Trend: ${direction} at ${Math.abs(data.slope).toFixed(2)} ${data.units}`;
-        document.getElementById('trendText').textContent = formatted;
-      } else {
-        document.getElementById('trendText').textContent = 'No trend data available.';
-      }
-    } catch (error) {
-      console.warn(`Trend fetch error: ${error.message}`);
-    }
   };
 
   const params = new URLSearchParams(window.location.search);
@@ -547,27 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     debugLog('No location parameter, starting geolocation detection');
     detectUserLocation(); // uses geolocation
-  }
-
-  async function updateAverageLine() {
-    try {
-      const url = getApiUrl(`/average/${tempLocation}/${month}-${day}`);
-      const response = await apiFetch(url);
-      const data = await response.json();
-      
-      if (typeof data.average === 'number') {
-        const annotation = chart.options.plugins.annotation.annotations.averageLine;
-        annotation.xMin = data.average;
-        annotation.xMax = data.average;
-        annotation.label.content = `Average: ${data.average.toFixed(1)}°C`;
-        chart.update();
-
-        // display average temperature
-        document.getElementById('avgText').textContent = `Average: ${data.average.toFixed(1)}°C`;
-      }
-    } catch (error) {
-      console.warn('Average fetch error:', error);
-    }
   }
 
   function calculateTrendLine(points, startX, endX) {
@@ -603,10 +470,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function fetchData() {
     fetchHistoricalData();
-    fetchSummary();
-    if (showTrend) {
-      fetchTrend();
-    }
   }
 
   function showChart() {
