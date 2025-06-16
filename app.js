@@ -1,5 +1,5 @@
 // Constants and configuration
-const DEBUGGING = true;
+const DEBUGGING = false;
 
 // Helper function for debug logging
 function debugLog(...args) {
