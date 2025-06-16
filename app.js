@@ -238,6 +238,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const containerHeight = containerEl.clientHeight;
         const availableHeight = containerHeight - 40;
         
+        // Calculate temperature range
+        const temps = chartData.map(p => p.x);
+        const minTemp = Math.floor(Math.min(...temps) - 1);
+        const maxTemp = Math.ceil(Math.max(...temps) + 1);
+        
         debugLog('Initial chart setup:', {
           windowWidth: window.innerWidth,
           targetBarHeight,
@@ -245,7 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
           totalBarHeight,
           containerHeight,
           availableHeight,
-          canvasHeight: canvasEl.clientHeight
+          canvasHeight: canvasEl.clientHeight,
+          minTemp,
+          maxTemp
         });
 
         chart = new Chart(ctx, {
@@ -271,7 +278,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 backgroundColor: chartData.map(point => 
                   point.y === currentYear ? thisYearColour : barColour
                 ),
-                borderWidth: 0
+                borderWidth: 0,
+                base: minTemp
               }
             ]
           },
@@ -331,8 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     size: 12
                   }
                 },
-                min: Math.floor(Math.min(...chartData.map(p => p.x)) - 1),
-                max: Math.ceil(Math.max(...chartData.map(p => p.x)) + 1),
+                min: minTemp,
+                max: maxTemp,
                 ticks: {
                   font: {
                     size: 11
@@ -379,22 +387,19 @@ document.addEventListener('DOMContentLoaded', () => {
         debugTimeEnd('Chart initialization');
       } else {
         // Update existing chart
+        const temps = chartData.map(p => p.x);
+        const minTemp = Math.floor(Math.min(...temps) - 1);
+        const maxTemp = Math.ceil(Math.max(...temps) + 1);
+        
         chart.data.datasets[1].data = chartData;
         chart.data.datasets[1].backgroundColor = chartData.map(point => 
           point.y === currentYear ? thisYearColour : barColour
         );
+        chart.data.datasets[1].base = minTemp;
 
         // Update x-axis range
-        const temps = chartData.map(p => p.x);
-        const minTemp = Math.min(...temps);
-        const maxTemp = Math.max(...temps);
-        const min = Math.floor(minTemp - 1);
-        const max = Math.ceil(maxTemp + 1);
-        const evenMin = min % 2 === 0 ? min : min - 1;
-        const evenMax = max % 2 === 0 ? max : max + 1;
-
-        chart.options.scales.x.min = evenMin;
-        chart.options.scales.x.max = evenMax;
+        chart.options.scales.x.min = minTemp;
+        chart.options.scales.x.max = maxTemp;
       }
 
       // Update trend line if enabled
