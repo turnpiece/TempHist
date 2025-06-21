@@ -161,9 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (elapsedSeconds < 30) {
       loadingText.textContent = 'Still loading... This might take a moment.';
     } else if (elapsedSeconds < 60) {
-      loadingText.textContent = 'Taking longer than usual... The server is waking up.';
+      loadingText.textContent = 'Taking longer than a moment...';
     } else {
-      loadingText.textContent = 'The server is taking a while to respond. This is normal for the first request after inactivity.';
+      loadingText.textContent = 'The server is taking a while to respond.';
     }
   }
 
@@ -218,12 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await apiFetch(url);
       const data = await response.json();
 
-      if (!data.series?.data) {
-        throw new Error('Invalid data format received');
+      if (!data.weather?.data) {
+        throw new Error('Invalid data format received from '+url);
       }
 
-      // Update the chart with the series data
-      const chartData = data.series.data.map(point => ({ x: point.y, y: point.x }));
+      // Update the chart with the weather data
+      const chartData = data.weather.data.map(point => ({ x: point.y, y: point.x }));
       
       // Create or update chart
       if (!chart) {
@@ -303,13 +303,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'line',
                     yMin: startYear - 1,
                     yMax: currentYear + 1,
-                    xMin: data.average.temperature,
-                    xMax: data.average.temperature,
+                    xMin: data.average.average,
+                    xMax: data.average.average,
                     borderColor: avgColour,
                     borderWidth: 2,
                     label: {
                       display: true,
-                      content: `Average: ${data.average.temperature.toFixed(1)}°C`,
+                      content: `Average: ${data.average.average.toFixed(1)}°C`,
                       position: 'start',
                       font: {
                         size: 12
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Update text elements
       document.getElementById('summaryText').textContent = data.summary || 'No summary available.';
-      document.getElementById('avgText').textContent = `Average: ${data.average.temperature.toFixed(1)}°C`;
+      document.getElementById('avgText').textContent = `Average: ${data.average.average.toFixed(1)}°C`;
       
       if (data.trend) {
         const direction = data.trend.slope > 0 ? 'rising' : data.trend.slope < 0 ? 'falling' : 'stable';
