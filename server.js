@@ -17,7 +17,7 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Token, Accept');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Token, Accept, Authorization');
     res.header('Access-Control-Max-Age', '600');
     return res.sendStatus(200);
   }
@@ -25,7 +25,7 @@ app.use((req, res, next) => {
   // Handle regular requests
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Token, Accept');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Token, Accept, Authorization');
   next();
 });
 
@@ -41,7 +41,7 @@ app.use('/api', createProxyMiddleware({
   },
   onProxyRes: function(proxyRes, req, res) {
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-    proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-API-Token, Accept';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-API-Token, Accept, Authorization';
   },
   logLevel: 'debug' // Add debug logging
 }));
