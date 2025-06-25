@@ -525,22 +525,48 @@ function startAppWithFirebaseUser(user) {
         loadingCheckInterval = null;
       }
       loadingStartTime = null;
-      loadingEl.style.display = 'none';
-      canvasEl.style.display = 'block';
-      
-      // Force a chart update if it exists
+
+      loadingEl.classList.add('hidden');
+      loadingEl.classList.remove('visible');
+
+      const skeleton = document.getElementById('skeletonLoader');
+      skeleton.classList.add('hidden');
+      skeleton.classList.remove('visible');
+
+      canvasEl.classList.add('visible');
+      canvasEl.classList.remove('hidden');
       if (chart) {
-        chart.update('none'); // 'none' means don't animate
+        chart.update('none');
       }
     }
 
     function hideChart() {
       loadingStartTime = Date.now();
       loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
-      loadingEl.style.display = 'block';
-      canvasEl.style.display = 'none';
-      updateLoadingMessage(); // Initial message
+
+      loadingEl.classList.add('visible');
+      loadingEl.classList.remove('hidden');
+
+      const skeleton = document.getElementById('skeletonLoader');
+      skeleton.classList.remove('hidden');
+      skeleton.classList.add('visible');
+
+      canvasEl.classList.remove('visible');
+      canvasEl.classList.add('hidden');
+      updateLoadingMessage();
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadingEl.classList.add('visible');
+      loadingEl.classList.remove('hidden');
+
+      const skeleton = document.getElementById('skeletonLoader');
+      skeleton.classList.remove('hidden');
+      skeleton.classList.add('visible');
+
+      canvasEl.classList.remove('visible');
+      canvasEl.classList.add('hidden');
+    });
 
     // Modify the detectUserLocation function to use cookies
     async function detectUserLocation() {

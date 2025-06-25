@@ -7,6 +7,12 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js" defer></script>
   <link rel="dns-prefetch" href="https://api.temphist.com" />
+  <style>
+    body { background-color: #242456; padding: 20px; }
+    #header { height: 60px; border-bottom: 1px solid; }
+    #content { min-height: 1200px }
+  </style>
+  <script type="module" src="/@vite/client"></script>
 </head>
 <body>
   <div id="header">
@@ -25,12 +31,13 @@
       <div id="dateText" class="standard-text"></div>
       <div id="locationText" class="standard-text"></div>
       <div id="summaryText" class="standard-text"></div>
-      <div id="loading">
-        <div class="spinner"></div>
-        <p id="loadingText">Loading temperature data...</p>
-      </div>
-      <div class="chart-container" style="min-height: 800px;">
-        <canvas id="tempChart" style="display:none;"></canvas>
+      <div class="chart-container">
+        <div id="loading">
+          <div class="spinner"></div>
+          <p id="loadingText">Loading temperature data...</p>
+        </div>
+        <div class="skeleton" id="skeletonLoader"></div>
+        <canvas id="tempChart"></canvas>
       </div>
       <div id="avgText" class="standard-text"></div>
       <div id="trendText" class="standard-text"></div>
