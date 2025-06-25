@@ -15,9 +15,8 @@
     "url": "git+https://github.com/turnpiece/TempHist.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Paul Jenkins",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/turnpiece/TempHist/issues"
   },
