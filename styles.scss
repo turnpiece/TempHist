@@ -1,15 +1,16 @@
 /* TempHist styles */
 
 // Colours
+$colour-primary: #ff6b6b;
 $colour-bg: #242456;
 $colour-bg-bottom: #343499;
 $colour-text: #ececec;
 $colour-link: $colour-text;
-$colour-border: $colour-text;
+$colour-border: $colour-primary;
 $colour-loading-text: #51cf66;
 $colour-spinner: $colour-loading-text;
 $colour-spinner-bg: rgba(186, 0, 0, 0.2);
-$colour-error: #ff6b6b;
+$colour-error: $colour-primary;
 
 body {
   background-color: $colour-bg;
