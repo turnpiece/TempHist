@@ -1,59 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TempHist &ndash; the temperature on this day each year</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js" defer></script>
-  <link rel="dns-prefetch" href="https://api.temphist.com" />
-  <style>
-    body { background-color: #242456; padding: 20px; }
-    #header { height: 60px; border-bottom: 1px solid; }
-    #content { min-height: 1200px }
-  </style>
-</head>
-<body>
-  <div id="header">
-    <div class="container">
-      <div id="logo">
-        <object data="assets/logo.svg" type="image/svg+xml" title="TempHist">
-          <img src="assets/logo.png" alt="TempHist logo" width="50" height="50" />
-        </object>
-      </div>
-      <h1>TempHist</h1>
-    </div>
-  </div>
-
-  <div id="content">
-    <div class="container">
-      <div id="dateText" class="standard-text"></div>
-      <div id="locationText" class="standard-text"></div>
-      <div id="summaryText" class="standard-text"></div>
-      <div class="chart-container">
-        <div id="loading">
-          <div class="spinner"></div>
-          <p id="loadingText">Loading temperature data...</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TempHist &ndash; the temperature on this day each year</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"
+      defer
+    ></script>
+    <link rel="dns-prefetch" href="https://api.temphist.com" />
+    <style>
+      body {
+        background-color: #242456;
+        padding: 20px;
+      }
+      #header {
+        height: 60px;
+        border-bottom: 1px solid;
+      }
+      #content {
+        min-height: 1200px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="header">
+      <div class="container">
+        <div id="logo">
+          <object data="assets/logo.svg" type="image/svg+xml" title="TempHist">
+            <img
+              src="assets/logo.png"
+              alt="TempHist logo"
+              width="50"
+              height="50"
+            />
+          </object>
         </div>
-        <div class="skeleton" id="skeletonLoader"></div>
-        <canvas id="tempChart"></canvas>
+        <h1>TempHist</h1>
       </div>
-      <div id="avgText" class="standard-text"></div>
-      <div id="trendText" class="standard-text"></div>
-      <p id="dataNotice"></p>
     </div>
-  </div>
 
-  <div id="footer">
-    <div class="container">
-      <a href="https://turnpiece.com" class="tp-link" title="Turnpiece">
-        <object data="assets/tp-logo-white-transparent-fixed.svg" type="image/svg+xml" title="Turnpiece" class="tp-logo">
-          <img src="assets/tp-logo-white-transparent-fixed.png" alt="Turnpiece logo" width="25" height="25" />
-        </object>
-      </a>
+    <div id="content">
+      <div class="container">
+        <div id="dateText" class="standard-text"></div>
+        <div id="locationText" class="standard-text"></div>
+        <div id="summaryText" class="standard-text"></div>
+        <div class="chart-container">
+          <div id="loading">
+            <div class="spinner"></div>
+            <p id="loadingText">Loading temperature data...</p>
+          </div>
+          <div class="skeleton" id="skeletonLoader"></div>
+          <div id="errorContainer" style="display: none;">
+            <div id="errorMessage"></div>
+            <button id="reloadButton">Reload</button>
+          </div>
+          <canvas id="tempChart"></canvas>
+        </div>
+        <div id="avgText" class="standard-text"></div>
+        <div id="trendText" class="standard-text"></div>
+        <p id="dataNotice"></p>
+      </div>
     </div>
-  </div>
-  <script type="module" src="/app.js"></script>
-</body>
+
+    <div id="footer">
+      <div class="container">
+        <a href="https://turnpiece.com" class="tp-link" title="Turnpiece">
+          <object
+            data="assets/tp-logo-white-transparent-fixed.svg"
+            type="image/svg+xml"
+            title="Turnpiece"
+            class="tp-logo"
+          >
+            <img
+              src="assets/tp-logo-white-transparent-fixed.png"
+              alt="Turnpiece logo"
+              width="25"
+              height="25"
+            />
+          </object>
+        </a>
+      </div>
+    </div>
+    <script type="module" src="/app.js"></script>
+  </body>
 </html>
-

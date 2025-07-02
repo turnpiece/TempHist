@@ -62,7 +62,7 @@ The application will be available at `http://localhost:5173`
 
    This outputs static files to the `dist/` directory.
 
-2. Deploy the contents of `dist/` to your web root (e.g., `public_html` on SiteGround).
+2. Deploy the contents of `dist/` to your web root.
 
 ## SPA Deployment and .htaccess
 
@@ -105,7 +105,7 @@ This ensures all routes are handled by your SPA.
 1. The application will automatically try to detect your location
 2. Alternatively, you can specify a location using the URL parameter:
    ```
-   https://yourdomain.com?location=London
+   https://temphist.com?location=London
    ```
 3. The chart will display temperature data for the current date (or yesterday if before 1 AM)
 4. Hover over bars to see exact temperatures for each year

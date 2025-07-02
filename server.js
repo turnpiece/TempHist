@@ -40,8 +40,8 @@ app.use('/api', createProxyMiddleware({
     '^/api': '', // remove /api prefix when forwarding
   },
   onProxyRes: function(proxyRes, req, res) {
-    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-    proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-API-Token, Accept, Authorization';
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Token, Accept, Authorization');
   },
   logLevel: 'debug' // Add debug logging
 }));

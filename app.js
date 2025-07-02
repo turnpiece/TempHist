@@ -200,10 +200,14 @@ function startAppWithFirebaseUser(user) {
       
       if (elapsedSeconds < 10) {
         loadingText.textContent = 'Loading temperature data...';
-      } else if (elapsedSeconds < 30) {
-        loadingText.textContent = 'Still loading... This might take a moment.';
+      } else if (elapsedSeconds < 25) {
+        loadingText.textContent = 'Getting temperatures on '+friendlyDate+' over the past 50 years.';
+      } else if (elapsedSeconds < 45) {
+        loadingText.textContent = 'Is today warmer than average in '+tempLocation+'?';
       } else if (elapsedSeconds < 60) {
-        loadingText.textContent = 'Taking longer than a moment...';
+        loadingText.textContent = 'Once we have the data we\'ll know.';
+      } else if (elapsedSeconds < 80) {
+        loadingText.textContent = 'Please be patient. It shouldn\'t be much longer.';
       } else {
         loadingText.textContent = 'The server is taking a while to respond.';
       }
@@ -250,10 +254,35 @@ function startAppWithFirebaseUser(user) {
       return null;
     }
 
+    // Utility functions for error UI
+    function showError(message) {
+      const errorContainer = document.getElementById('errorContainer');
+      const errorMessage = document.getElementById('errorMessage');
+      if (!errorContainer || !errorMessage) {
+        console.warn('Error UI elements not found in DOM when showError called');
+        return;
+      }
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('loading').classList.remove('visible');
+      document.getElementById('skeletonLoader').classList.add('hidden');
+      document.getElementById('skeletonLoader').classList.remove('visible');
+      document.getElementById('tempChart').classList.remove('visible');
+      document.getElementById('tempChart').classList.add('hidden');
+      errorMessage.textContent = message;
+      errorContainer.style.display = 'block';
+    }
+
+    function hideError() {
+      const errorContainer = document.getElementById('errorContainer');
+      errorContainer.style.display = 'none';
+      document.getElementById('errorMessage').textContent = '';
+    }
+
     // Modify the fetchHistoricalData function to handle timeouts better
     const fetchHistoricalData = async () => {
       debugTime('Total fetch time');
       hideChart();
+      hideError();
 
       try {
         const url = getApiUrl(`/data/${tempLocation}/${month}-${day}`);
@@ -468,6 +497,7 @@ function startAppWithFirebaseUser(user) {
       } catch (error) {
         console.error('Error fetching historical data:', error);
         hideChart();
+        showError('Sorry, there was a problem connecting to the temperature data server. Please check your connection or try again later.');
       }
 
       debugTimeEnd('Total fetch time');
@@ -556,17 +586,13 @@ function startAppWithFirebaseUser(user) {
       updateLoadingMessage();
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      loadingEl.classList.add('visible');
-      loadingEl.classList.remove('hidden');
-
-      const skeleton = document.getElementById('skeletonLoader');
-      skeleton.classList.remove('hidden');
-      skeleton.classList.add('visible');
-
-      canvasEl.classList.remove('visible');
-      canvasEl.classList.add('hidden');
-    });
+    // Add reload button handler (moved outside DOMContentLoaded)
+    const reloadButton = document.getElementById('reloadButton');
+    if (reloadButton) {
+      reloadButton.addEventListener('click', () => {
+        window.location.reload();
+      });
+    }
 
     // Modify the detectUserLocation function to use cookies
     async function detectUserLocation() {
@@ -639,6 +665,7 @@ function startAppWithFirebaseUser(user) {
     }
   }
 
+  // Ensure mainAppLogic always runs after DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', mainAppLogic);
   } else {
