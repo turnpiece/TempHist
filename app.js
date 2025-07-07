@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyC8CgPOwaXkGgCRgAtEn1VIGCxEHI-brjg",
   authDomain: "temphist-2c787.firebaseapp.com",
   projectId: "temphist-2c787",
-  storageBucket: "temphist-2c787.firebasestorage.app",
+  storageBucket: "temphist-2c787.appspot.com",
   messagingSenderId: "355243461054",
   appId: "1:355243461054:web:d3471deb717abb569a51ef",
   measurementId: "G-117YTQEW98"
@@ -233,7 +233,8 @@ function startAppWithFirebaseUser(user) {
     async function getCityFromCoords(lat, lon) {
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
       const data = await response.json();
-      return data.address.city || data.address.town || data.address.village || tempLocation;
+      const address = data.address || {};
+      return address.city || address.town || address.village || tempLocation;
     }
 
     // Add these functions near the top with other utility functions
