@@ -30,6 +30,9 @@ yarn-error.log*
 dist/
 build/
 
+# Source maps (generated during compilation)
+*.map
+
 config.js
 webhook.php
 __pycache__/

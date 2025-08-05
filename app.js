@@ -37,7 +37,7 @@ onAuthStateChanged(auth, (user) => {
 // Move your main code into a function:
 function startAppWithFirebaseUser(user) {
   // Constants and configuration
-  const DEBUGGING = true;
+  const DEBUGGING = false;
 
   // Helper function for debug logging
   function debugLog(...args) {
@@ -168,19 +168,29 @@ function startAppWithFirebaseUser(user) {
     // Apply colors to text elements
     function applyTextColors() {
       // Text colors
-      document.getElementById('summaryText').style.color = thisYearColour;
-      document.getElementById('avgText').style.color = avgColour;
-      document.getElementById('trendText').style.color = trendColour;
+      const summaryText = document.getElementById('summaryText');
+      const avgText = document.getElementById('avgText');
+      const trendText = document.getElementById('trendText');
+      const header = document.getElementById('header');
+      const footer = document.getElementById('footer');
+      const footerLink = document.querySelector('#footer a');
+      const spinner = document.querySelector('.spinner');
+      
+      // Apply colors only if elements exist
+      if (summaryText) summaryText.style.color = thisYearColour;
+      if (avgText) avgText.style.color = avgColour;
+      if (trendText) trendText.style.color = trendColour;
       
       // Header and footer colors
-      document.getElementById('header').style.color = barColour;
-      document.getElementById('footer').style.color = barColour;
-      document.querySelector('#footer a').style.color = barColour;
+      if (header) header.style.color = barColour;
+      if (footer) footer.style.color = barColour;
+      if (footerLink) footerLink.style.color = barColour;
       
       // Spinner colors
-      const spinner = document.querySelector('.spinner');
-      spinner.style.borderColor = `${barColour}33`; // 20% opacity
-      spinner.style.borderTopColor = barColour;
+      if (spinner) {
+        spinner.style.borderColor = `${barColour}33`; // 20% opacity
+        spinner.style.borderTopColor = barColour;
+      }
     }
 
     // Apply colors when the page loads
@@ -214,7 +224,7 @@ function startAppWithFirebaseUser(user) {
     }
 
     // get the location
-    let tempLocation = 'London'; // default
+    let tempLocation = 'London, UK'; // default
 
     // Helper function to handle API URLs
     function getApiUrl(path) {
@@ -233,7 +243,116 @@ function startAppWithFirebaseUser(user) {
     async function getCityFromCoords(lat, lon) {
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
       const data = await response.json();
-      return data.address.city || data.address.town || data.address.village || tempLocation;
+      
+      // Get city name
+      const city = data.address.city || data.address.town || data.address.village;
+      
+      // Get country code
+      const country = data.address.country_code;
+      
+      if (city && country) {
+        // Convert country code to country name for better readability
+        const countryNames = {
+          'gb': 'UK',
+          'us': 'US',
+          'ca': 'Canada',
+          'au': 'Australia',
+          'de': 'Germany',
+          'fr': 'France',
+          'it': 'Italy',
+          'es': 'Spain',
+          'nl': 'Netherlands',
+          'be': 'Belgium',
+          'ch': 'Switzerland',
+          'at': 'Austria',
+          'se': 'Sweden',
+          'no': 'Norway',
+          'dk': 'Denmark',
+          'fi': 'Finland',
+          'pl': 'Poland',
+          'cz': 'Czech Republic',
+          'hu': 'Hungary',
+          'ro': 'Romania',
+          'bg': 'Bulgaria',
+          'hr': 'Croatia',
+          'si': 'Slovenia',
+          'sk': 'Slovakia',
+          'lt': 'Lithuania',
+          'lv': 'Latvia',
+          'ee': 'Estonia',
+          'ie': 'Ireland',
+          'pt': 'Portugal',
+          'gr': 'Greece',
+          'cy': 'Cyprus',
+          'mt': 'Malta',
+          'lu': 'Luxembourg',
+          'is': 'Iceland',
+          'jp': 'Japan',
+          'kr': 'South Korea',
+          'cn': 'China',
+          'in': 'India',
+          'br': 'Brazil',
+          'mx': 'Mexico',
+          'ar': 'Argentina',
+          'cl': 'Chile',
+          'pe': 'Peru',
+          'co': 'Colombia',
+          've': 'Venezuela',
+          'uy': 'Uruguay',
+          'py': 'Paraguay',
+          'bo': 'Bolivia',
+          'ec': 'Ecuador',
+          'nz': 'New Zealand',
+          'za': 'South Africa',
+          'eg': 'Egypt',
+          'ma': 'Morocco',
+          'tn': 'Tunisia',
+          'dz': 'Algeria',
+          'ly': 'Libya',
+          'sd': 'Sudan',
+          'et': 'Ethiopia',
+          'ke': 'Kenya',
+          'ng': 'Nigeria',
+          'gh': 'Ghana',
+          'ci': 'Ivory Coast',
+          'sn': 'Senegal',
+          'ml': 'Mali',
+          'bf': 'Burkina Faso',
+          'ne': 'Niger',
+          'td': 'Chad',
+          'cm': 'Cameroon',
+          'cf': 'Central African Republic',
+          'cg': 'Congo',
+          'cd': 'DR Congo',
+          'ao': 'Angola',
+          'zm': 'Zambia',
+          'zw': 'Zimbabwe',
+          'bw': 'Botswana',
+          'na': 'Namibia',
+          'sz': 'Eswatini',
+          'ls': 'Lesotho',
+          'mg': 'Madagascar',
+          'mu': 'Mauritius',
+          'sc': 'Seychelles',
+          'km': 'Comoros',
+          'dj': 'Djibouti',
+          'so': 'Somalia',
+          'er': 'Eritrea',
+          'ss': 'South Sudan',
+          'ug': 'Uganda',
+          'rw': 'Rwanda',
+          'bi': 'Burundi',
+          'tz': 'Tanzania',
+          'mw': 'Malawi',
+          'mz': 'Mozambique'
+        };
+        
+        const countryName = countryNames[country.toLowerCase()] || country.toUpperCase();
+        return `${city}, ${countryName}`;
+      }
+      
+      // Fallback to just city name if no country info
+      return city || tempLocation;
     }
 
     // Add these functions near the top with other utility functions
@@ -296,6 +415,9 @@ function startAppWithFirebaseUser(user) {
         // Update the chart with the weather data
         const chartData = data.weather.data.map(point => ({ x: point.y, y: point.x }));
         
+        debugLog('Raw weather data:', data.weather.data);
+        debugLog('Processed chart data:', chartData);
+        
         // Create or update chart
         if (!chart) {
           debugTime('Chart initialization');
@@ -313,6 +435,13 @@ function startAppWithFirebaseUser(user) {
           const temps = chartData.map(p => p.x);
           const minTemp = Math.floor(Math.min(...temps) - 1);
           const maxTemp = Math.ceil(Math.max(...temps) + 1);
+          
+          debugLog('Temperature range calculation:', {
+            temps,
+            minTemp,
+            maxTemp,
+            chartDataLength: chartData.length
+          });
           
           debugLog('Initial chart setup:', {
             windowWidth: window.innerWidth,
@@ -361,7 +490,7 @@ function startAppWithFirebaseUser(user) {
               layout: {
                 padding: {
                   left: 0,
-                  right: 0,
+                  right: 20,
                   top: 15,
                   bottom: 15
                 }
@@ -408,7 +537,8 @@ function startAppWithFirebaseUser(user) {
                     text: 'Temperature (°C)',
                     font: {
                       size: 12
-                    }
+                    },
+                    color: '#ECECEC'
                   },
                   min: minTemp,
                   max: maxTemp,
@@ -416,14 +546,15 @@ function startAppWithFirebaseUser(user) {
                     font: {
                       size: 11
                     },
+                    color: '#ECECEC',
                     stepSize: 2,
                     callback: function(value) {
-                      return value % 2 === 0 ? value : '';
+                      debugLog('X-axis tick callback:', value);
+                      return value; // Show all temperature values
                     }
                   }
                 },
                 y: {
-                  reverse: false,
                   type: 'linear',
                   min: startYear,
                   max: currentYear,
@@ -432,7 +563,8 @@ function startAppWithFirebaseUser(user) {
                     callback: val => val.toString(),
                     font: {
                       size: 11
-                    }
+                    },
+                    color: '#ECECEC'
                   },
                   title: {
                     display: false,
@@ -468,7 +600,7 @@ function startAppWithFirebaseUser(user) {
           );
           chart.data.datasets[1].base = minTemp;
 
-          // Update x-axis range
+          // Update x-axis range (temperature axis)
           chart.options.scales.x.min = minTemp;
           chart.options.scales.x.max = maxTemp;
         }
