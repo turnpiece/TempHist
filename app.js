@@ -224,7 +224,7 @@ function startAppWithFirebaseUser(user) {
     }
 
     // get the location
-    let tempLocation = 'London, UK'; // default
+    let tempLocation = 'London, England'; // default
 
     // Helper function to handle API URLs
     function getApiUrl(path) {
@@ -244,111 +244,26 @@ function startAppWithFirebaseUser(user) {
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
       const data = await response.json();
       
+      debugLog('OpenStreetMap address data:', data.address);
+      
       // Get city name
       const city = data.address.city || data.address.town || data.address.village;
+      
+      // Get state/province information
+      const state = data.address.state || data.address.province || data.address.county;
       
       // Get country code
       const country = data.address.country_code;
       
+      debugLog('Location components:', { city, state, country });
+      
       if (city && country) {
-        // Convert country code to country name for better readability
-        const countryNames = {
-          'gb': 'UK',
-          'us': 'US',
-          'ca': 'Canada',
-          'au': 'Australia',
-          'de': 'Germany',
-          'fr': 'France',
-          'it': 'Italy',
-          'es': 'Spain',
-          'nl': 'Netherlands',
-          'be': 'Belgium',
-          'ch': 'Switzerland',
-          'at': 'Austria',
-          'se': 'Sweden',
-          'no': 'Norway',
-          'dk': 'Denmark',
-          'fi': 'Finland',
-          'pl': 'Poland',
-          'cz': 'Czech Republic',
-          'hu': 'Hungary',
-          'ro': 'Romania',
-          'bg': 'Bulgaria',
-          'hr': 'Croatia',
-          'si': 'Slovenia',
-          'sk': 'Slovakia',
-          'lt': 'Lithuania',
-          'lv': 'Latvia',
-          'ee': 'Estonia',
-          'ie': 'Ireland',
-          'pt': 'Portugal',
-          'gr': 'Greece',
-          'cy': 'Cyprus',
-          'mt': 'Malta',
-          'lu': 'Luxembourg',
-          'is': 'Iceland',
-          'jp': 'Japan',
-          'kr': 'South Korea',
-          'cn': 'China',
-          'in': 'India',
-          'br': 'Brazil',
-          'mx': 'Mexico',
-          'ar': 'Argentina',
-          'cl': 'Chile',
-          'pe': 'Peru',
-          'co': 'Colombia',
-          've': 'Venezuela',
-          'uy': 'Uruguay',
-          'py': 'Paraguay',
-          'bo': 'Bolivia',
-          'ec': 'Ecuador',
-          'nz': 'New Zealand',
-          'za': 'South Africa',
-          'eg': 'Egypt',
-          'ma': 'Morocco',
-          'tn': 'Tunisia',
-          'dz': 'Algeria',
-          'ly': 'Libya',
-          'sd': 'Sudan',
-          'et': 'Ethiopia',
-          'ke': 'Kenya',
-          'ng': 'Nigeria',
-          'gh': 'Ghana',
-          'ci': 'Ivory Coast',
-          'sn': 'Senegal',
-          'ml': 'Mali',
-          'bf': 'Burkina Faso',
-          'ne': 'Niger',
-          'td': 'Chad',
-          'cm': 'Cameroon',
-          'cf': 'Central African Republic',
-          'cg': 'Congo',
-          'cd': 'DR Congo',
-          'ao': 'Angola',
-          'zm': 'Zambia',
-          'zw': 'Zimbabwe',
-          'bw': 'Botswana',
-          'na': 'Namibia',
-          'sz': 'Eswatini',
-          'ls': 'Lesotho',
-          'mg': 'Madagascar',
-          'mu': 'Mauritius',
-          'sc': 'Seychelles',
-          'km': 'Comoros',
-          'dj': 'Djibouti',
-          'so': 'Somalia',
-          'er': 'Eritrea',
-          'ss': 'South Sudan',
-          'ug': 'Uganda',
-          'rw': 'Rwanda',
-          'bi': 'Burundi',
-          'tz': 'Tanzania',
-          'mw': 'Malawi',
-          'mz': 'Mozambique'
-        };
-        
-        const countryName = countryNames[country.toLowerCase()] || country.toUpperCase();
-        return `${city}, ${countryName}`;
+        // Build location string with state/province if available
+        if (state) {
+          return `${city}, ${state}`;
+        } else {
+          return city;
+        }
       }
       
       // Fallback to just city name if no country info
