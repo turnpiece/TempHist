@@ -164,6 +164,13 @@ function startAppWithFirebaseUser(user) {
 
     // display the date
     document.getElementById('dateText').textContent = friendlyDate;
+    
+    // Show initial status message
+    const dataNotice = document.getElementById('dataNotice');
+    if (dataNotice) {
+      dataNotice.textContent = 'Determining your location...';
+      dataNotice.style.color = '#666';
+    }
 
     // Apply colors to text elements
     function applyTextColors() {
@@ -196,6 +203,15 @@ function startAppWithFirebaseUser(user) {
     // Apply colors when the page loads
     applyTextColors();
 
+    // Ensure loading state is hidden initially
+    loadingEl.classList.add('hidden');
+    loadingEl.classList.remove('visible');
+    const skeleton = document.getElementById('skeletonLoader');
+    if (skeleton) {
+      skeleton.classList.add('hidden');
+      skeleton.classList.remove('visible');
+    }
+
     debugLog('DOM elements and variables initialized');
 
     // Add loading state management
@@ -213,7 +229,8 @@ function startAppWithFirebaseUser(user) {
       } else if (elapsedSeconds < 25) {
         loadingText.textContent = 'Getting temperatures on '+friendlyDate+' over the past 50 years.';
       } else if (elapsedSeconds < 45) {
-        loadingText.textContent = 'Is today warmer than average in '+tempLocation+'?';
+        const displayCity = tempLocation ? getDisplayCity(tempLocation) : 'your location';
+        loadingText.textContent = 'Is today warmer than average in '+displayCity+'?';
       } else if (elapsedSeconds < 60) {
         loadingText.textContent = 'Once we have the data we\'ll know.';
       } else if (elapsedSeconds < 80) {
@@ -223,8 +240,26 @@ function startAppWithFirebaseUser(user) {
       }
     }
 
+    // Show initial loading state (only after date and location are known)
+    function showInitialLoadingState() {
+      loadingStartTime = Date.now();
+      loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
+
+      loadingEl.classList.add('visible');
+      loadingEl.classList.remove('hidden');
+
+      const skeleton = document.getElementById('skeletonLoader');
+      skeleton.classList.remove('hidden');
+      skeleton.classList.add('visible');
+
+      canvasEl.classList.remove('visible');
+      canvasEl.classList.add('hidden');
+      
+      updateLoadingMessage();
+    }
+
     // get the location
-    let tempLocation = 'London, England'; // default
+    let tempLocation = 'London, England, United Kingdom'; // default
 
     // Helper function to handle API URLs
     function getApiUrl(path) {
@@ -240,6 +275,36 @@ function startAppWithFirebaseUser(user) {
       return apiBase + path;
     }
 
+    // Helper function to get display-friendly location (without country)
+    function getDisplayLocation(fullLocation) {
+      if (!fullLocation) return fullLocation;
+      
+      // Split by commas and remove the last part (country)
+      const parts = fullLocation.split(',').map(part => part.trim());
+      
+      // If we have 3 or more parts, remove the last one (country)
+      if (parts.length >= 3) {
+        return parts.slice(0, -1).join(', ');
+      }
+      
+      // If we have 2 parts, assume it's city, country, so remove country
+      if (parts.length === 2) {
+        return parts[0];
+      }
+      
+      // If only 1 part, return as is
+      return fullLocation;
+    }
+
+    // Helper function to get just the city name (first location component)
+    function getDisplayCity(fullLocation) {
+      if (!fullLocation) return fullLocation;
+      
+      // Split by commas and get the first part (city)
+      const parts = fullLocation.split(',').map(part => part.trim());
+      return parts[0];
+    }
+
     async function getCityFromCoords(lat, lon) {
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
       const data = await response.json();
@@ -252,17 +317,17 @@ function startAppWithFirebaseUser(user) {
       // Get state/province information
       const state = data.address.state || data.address.province || data.address.county;
       
-      // Get country code
-      const country = data.address.country_code;
+      // Get country name (prefer full name over code for better API compatibility)
+      const country = data.address.country || data.address.country_code;
       
       debugLog('Location components:', { city, state, country });
       
       if (city && country) {
-        // Build location string with state/province if available
+        // Build location string with state/province and country
         if (state) {
-          return `${city}, ${state}`;
+          return `${city}, ${state}, ${country}`;
         } else {
-          return city;
+          return `${city}, ${country}`;
         }
       }
       
@@ -315,7 +380,7 @@ function startAppWithFirebaseUser(user) {
     // Modify the fetchHistoricalData function to handle timeouts better
     const fetchHistoricalData = async () => {
       debugTime('Total fetch time');
-      hideChart();
+      showInitialLoadingState();
       hideError();
 
       try {
@@ -387,7 +452,7 @@ function startAppWithFirebaseUser(user) {
                   hidden: !showTrend
                 },
                 {
-                  label: `Temperature in ${tempLocation} on ${friendlyDate}`,
+                  label: `Temperature in ${getDisplayLocation(tempLocation)} on ${friendlyDate}`,
                   type: 'bar',
                   data: chartData,
                   backgroundColor: chartData.map(point => 
@@ -587,7 +652,14 @@ function startAppWithFirebaseUser(user) {
     }
 
     function displayLocationAndFetchData() {
-      document.getElementById('locationText').textContent = tempLocation;
+      document.getElementById('locationText').textContent = getDisplayLocation(tempLocation);
+      
+      // Clear the initial status message
+      const dataNotice = document.getElementById('dataNotice');
+      if (dataNotice) {
+        dataNotice.textContent = '';
+      }
+      
       setLocationCookie(tempLocation);
       fetchData();
     }
@@ -618,19 +690,11 @@ function startAppWithFirebaseUser(user) {
     }
 
     function hideChart() {
-      loadingStartTime = Date.now();
-      loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
-
-      loadingEl.classList.add('visible');
-      loadingEl.classList.remove('hidden');
-
-      const skeleton = document.getElementById('skeletonLoader');
-      skeleton.classList.remove('hidden');
-      skeleton.classList.add('visible');
-
+      // This function is now only called when we're about to fetch data
+      // The loading state should already be shown by showInitialLoadingState()
+      // Just ensure the chart is hidden
       canvasEl.classList.remove('visible');
       canvasEl.classList.add('hidden');
-      updateLoadingMessage();
     }
 
     // Add reload button handler (moved outside DOMContentLoaded)
@@ -638,6 +702,49 @@ function startAppWithFirebaseUser(user) {
     if (reloadButton) {
       reloadButton.addEventListener('click', () => {
         window.location.reload();
+      });
+    }
+
+    // Add manual location input functionality
+    function addManualLocationInput() {
+      const dataNotice = document.getElementById('dataNotice');
+      if (!dataNotice) return;
+      
+      // Create manual location input
+      const locationInput = document.createElement('div');
+      locationInput.innerHTML = `
+        <div style="margin: 10px 0; padding: 10px; background: rgba(255,107,107,0.1); border-radius: 5px;">
+          <p style="margin: 0 0 10px 0; color: #ff6b6b;">Location not detected automatically</p>
+          <input type="text" id="manualLocation" placeholder="Enter your city (e.g., Manchester, England, United Kingdom)" 
+                 style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 3px; margin-right: 10px;">
+          <button id="setLocationBtn" style="padding: 8px 16px; background: #ff6b6b; color: white; border: none; border-radius: 3px; cursor: pointer;">
+            Set Location
+          </button>
+        </div>
+      `;
+      
+      dataNotice.appendChild(locationInput);
+      
+      // Add event listeners
+      const setLocationBtn = document.getElementById('setLocationBtn');
+      const manualLocationInput = document.getElementById('manualLocation');
+      
+      setLocationBtn.addEventListener('click', () => {
+        const location = manualLocationInput.value.trim();
+        if (location) {
+          tempLocation = location;
+          setLocationCookie(location);
+          displayLocationAndFetchData();
+          // Remove the manual input
+          locationInput.remove();
+        }
+      });
+      
+      // Allow Enter key to submit
+      manualLocationInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          setLocationBtn.click();
+        }
       });
     }
 
@@ -661,12 +768,40 @@ function startAppWithFirebaseUser(user) {
         return;
       }
 
-      // Set a timeout for geolocation
+      // Check if geolocation permission is already denied
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permission = await navigator.permissions.query({ name: 'geolocation' });
+          if (permission.state === 'denied') {
+            console.warn('Geolocation permission already denied');
+            debugLog('Geolocation permission denied, falling back to default location');
+            displayLocationAndFetchData();
+            return;
+          }
+        } catch (e) {
+          debugLog('Could not check geolocation permission:', e);
+        }
+      }
+
+      // Set a shorter timeout for mobile devices
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const geolocationTimeout = setTimeout(() => {
-        debugLog('Geolocation request timed out after 10 seconds');
+        debugLog('Geolocation request timed out after ' + (isMobile ? '5' : '10') + ' seconds');
         console.warn('Geolocation request timed out, falling back to default location');
+        
+        // For mobile devices, show manual location input
+        if (isMobile) {
+          const dataNotice = document.getElementById('dataNotice');
+          if (dataNotice) {
+            dataNotice.textContent = 'Location detection timed out. Using default location.';
+            dataNotice.style.color = '#ff6b6b';
+            // Add manual location input for mobile users
+            setTimeout(() => addManualLocationInput(), 1000);
+          }
+        }
+        
         displayLocationAndFetchData(); // fallback to default location
-      }, 10000); // 10 second timeout
+      }, isMobile ? 5000 : 10000); // 5 seconds for mobile, 10 for desktop
 
       debugLog('Requesting geolocation...');
       navigator.geolocation.getCurrentPosition(
@@ -677,7 +812,7 @@ function startAppWithFirebaseUser(user) {
           debugLog('Fetching city name from coordinates...');
           try {
             tempLocation = await getCityFromCoords(latitude, longitude);
-            console.log(`Detected location: ${tempLocation}`);
+            console.log(`Detected location: ${tempLocation} (display: ${getDisplayLocation(tempLocation)}, city: ${getDisplayCity(tempLocation)})`);
             debugLog('Location detection complete');
           } catch (error) {
             console.warn('Error getting city name:', error);
@@ -690,22 +825,52 @@ function startAppWithFirebaseUser(user) {
           clearTimeout(geolocationTimeout);
           console.warn('Geolocation error:', error.message);
           debugLog('Geolocation failed:', error.code, error.message);
+          
+          // More specific error handling for mobile
           switch(error.code) {
             case error.TIMEOUT:
               debugLog('Geolocation timed out');
+              if (isMobile) {
+                console.warn('Mobile device geolocation timed out - this is common on mobile');
+              }
               break;
             case error.POSITION_UNAVAILABLE:
               debugLog('Location information is unavailable');
               break;
             case error.PERMISSION_DENIED:
               debugLog('Location permission denied');
+              if (isMobile) {
+                console.warn('Mobile device denied location permission - check browser settings');
+              }
               break;
           }
+          
+          // For mobile devices, show a more helpful message and manual input
+          if (isMobile) {
+            if (error.code === error.PERMISSION_DENIED) {
+              const dataNotice = document.getElementById('dataNotice');
+              if (dataNotice) {
+                dataNotice.textContent = 'Location access denied. Using default location.';
+                dataNotice.style.color = '#ff6b6b';
+                // Add manual location input for mobile users
+                setTimeout(() => addManualLocationInput(), 1000);
+              }
+            } else if (error.code === error.TIMEOUT) {
+              const dataNotice = document.getElementById('dataNotice');
+              if (dataNotice) {
+                dataNotice.textContent = 'Location detection timed out. Using default location.';
+                dataNotice.style.color = '#ff6b6b';
+                // Add manual location input for mobile users
+                setTimeout(() => addManualLocationInput(), 1000);
+              }
+            }
+          }
+          
           displayLocationAndFetchData();
         },
         {
           enableHighAccuracy: false, // Don't wait for GPS
-          timeout: 5000, // 5 second timeout
+          timeout: isMobile ? 8000 : 5000, // 8 seconds for mobile, 5 for desktop
           maximumAge: 60000 // Accept cached location up to 1 minute old
         }
       );
