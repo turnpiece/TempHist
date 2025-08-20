@@ -171,6 +171,26 @@ function startAppWithFirebaseUser(user) {
       dataNotice.textContent = 'Determining your location...';
       dataNotice.style.color = '#666';
     }
+    
+    // Add a simple progress indicator for location detection
+    let locationProgressInterval;
+    function startLocationProgress() {
+      let dots = 0;
+      locationProgressInterval = setInterval(() => {
+        dots = (dots + 1) % 4;
+        const progressText = 'Determining your location' + '.'.repeat(dots);
+        if (dataNotice) {
+          dataNotice.textContent = progressText;
+        }
+      }, 500);
+    }
+    
+    function stopLocationProgress() {
+      if (locationProgressInterval) {
+        clearInterval(locationProgressInterval);
+        locationProgressInterval = null;
+      }
+    }
 
     // Apply colors to text elements
     function applyTextColors() {
@@ -306,33 +326,57 @@ function startAppWithFirebaseUser(user) {
     }
 
     async function getCityFromCoords(lat, lon) {
-      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
-      const data = await response.json();
-      
-      debugLog('OpenStreetMap address data:', data.address);
-      
-      // Get city name
-      const city = data.address.city || data.address.town || data.address.village;
-      
-      // Get state/province information
-      const state = data.address.state || data.address.province || data.address.county;
-      
-      // Get country name (prefer full name over code for better API compatibility)
-      const country = data.address.country || data.address.country_code;
-      
-      debugLog('Location components:', { city, state, country });
-      
-      if (city && country) {
-        // Build location string with state/province and country
-        if (state) {
-          return `${city}, ${state}, ${country}`;
-        } else {
-          return `${city}, ${country}`;
+      try {
+        // Add timeout to the OpenStreetMap API call
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`, {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`OpenStreetMap API error: ${response.status}`);
         }
+        
+        const data = await response.json();
+        
+        debugLog('OpenStreetMap address data:', data.address);
+        
+        // Get city name
+        const city = data.address.city || data.address.town || data.address.village;
+        
+        // Get state/province information
+        const state = data.address.state || data.address.province || data.address.county;
+        
+        // Get country name (prefer full name over code for better API compatibility)
+        const country = data.address.country || data.address.country_code;
+        
+        debugLog('Location components:', { city, state, country });
+        
+        if (city && country) {
+          // Build location string with state/province and country
+          if (state) {
+            return `${city}, ${state}, ${country}`;
+          } else {
+            return `${city}, ${country}`;
+          }
+        }
+        
+        // Fallback to just city name if no country info
+        return city || tempLocation;
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.warn('OpenStreetMap API call timed out after 10 seconds');
+          debugLog('OpenStreetMap API timeout');
+        } else {
+          console.warn('OpenStreetMap API error:', error);
+          debugLog('OpenStreetMap API error:', error.message);
+        }
+        throw error;
       }
-      
-      // Fallback to just city name if no country info
-      return city || tempLocation;
     }
 
     // Add these functions near the top with other utility functions
@@ -652,6 +696,7 @@ function startAppWithFirebaseUser(user) {
     }
 
     function displayLocationAndFetchData() {
+      stopLocationProgress();
       document.getElementById('locationText').textContent = getDisplayLocation(tempLocation);
       
       // Clear the initial status message
@@ -751,11 +796,13 @@ function startAppWithFirebaseUser(user) {
     // Modify the detectUserLocation function to use cookies
     async function detectUserLocation() {
       debugLog('Starting location detection...');
+      startLocationProgress();
       
       // Check for cached location first
       const cachedLocation = getLocationCookie();
       if (cachedLocation) {
         debugLog('Using cached location:', cachedLocation);
+        stopLocationProgress();
         tempLocation = cachedLocation;
         displayLocationAndFetchData();
         return;
@@ -783,11 +830,13 @@ function startAppWithFirebaseUser(user) {
         }
       }
 
-      // Set a shorter timeout for mobile devices
+      // Set a timeout that accounts for both geolocation and OpenStreetMap API call
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const totalTimeout = isMobile ? 15000 : 20000; // 15 seconds for mobile, 20 for desktop
       const geolocationTimeout = setTimeout(() => {
-        debugLog('Geolocation request timed out after ' + (isMobile ? '5' : '10') + ' seconds');
-        console.warn('Geolocation request timed out, falling back to default location');
+        stopLocationProgress();
+        debugLog('Total location detection timed out after ' + totalTimeout/1000 + ' seconds');
+        console.warn('Location detection timed out, falling back to default location');
         
         // For mobile devices, show manual location input
         if (isMobile) {
@@ -801,15 +850,23 @@ function startAppWithFirebaseUser(user) {
         }
         
         displayLocationAndFetchData(); // fallback to default location
-      }, isMobile ? 5000 : 10000); // 5 seconds for mobile, 10 for desktop
+      }, totalTimeout);
 
       debugLog('Requesting geolocation...');
+      console.log('Geolocation options:', {
+        enableHighAccuracy: false,
+        timeout: isMobile ? 12000 : 15000,
+        maximumAge: 60000,
+        isMobile
+      });
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           clearTimeout(geolocationTimeout);
+          stopLocationProgress();
           debugLog('Geolocation received:', position.coords);
           const { latitude, longitude } = position.coords;
           debugLog('Fetching city name from coordinates...');
+          
           try {
             tempLocation = await getCityFromCoords(latitude, longitude);
             console.log(`Detected location: ${tempLocation} (display: ${getDisplayLocation(tempLocation)}, city: ${getDisplayCity(tempLocation)})`);
@@ -817,12 +874,24 @@ function startAppWithFirebaseUser(user) {
           } catch (error) {
             console.warn('Error getting city name:', error);
             debugLog('Failed to get city name, falling back to default location');
+            
+            // Show error message to user on mobile
+            if (isMobile) {
+              const dataNotice = document.getElementById('dataNotice');
+              if (dataNotice) {
+                dataNotice.textContent = 'Location lookup failed. Using default location.';
+                dataNotice.style.color = '#ff6b6b';
+                // Add manual location input for mobile users
+                setTimeout(() => addManualLocationInput(), 1000);
+              }
+            }
           }
           
           displayLocationAndFetchData();
         },
         (error) => {
           clearTimeout(geolocationTimeout);
+          stopLocationProgress();
           console.warn('Geolocation error:', error.message);
           debugLog('Geolocation failed:', error.code, error.message);
           
@@ -870,7 +939,7 @@ function startAppWithFirebaseUser(user) {
         },
         {
           enableHighAccuracy: false, // Don't wait for GPS
-          timeout: isMobile ? 8000 : 5000, // 8 seconds for mobile, 5 for desktop
+          timeout: isMobile ? 12000 : 15000, // 12 seconds for mobile, 15 for desktop
           maximumAge: 60000 // Accept cached location up to 1 minute old
         }
       );
