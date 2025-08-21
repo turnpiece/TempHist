@@ -295,26 +295,7 @@ function startAppWithFirebaseUser(user) {
       return apiBase + path;
     }
 
-    // Helper function to get display-friendly location (without country)
-    function getDisplayLocation(fullLocation) {
-      if (!fullLocation) return fullLocation;
-      
-      // Split by commas and remove the last part (country)
-      const parts = fullLocation.split(',').map(part => part.trim());
-      
-      // If we have 3 or more parts, remove the last one (country)
-      if (parts.length >= 3) {
-        return parts.slice(0, -1).join(', ');
-      }
-      
-      // If we have 2 parts, assume it's city, country, so remove country
-      if (parts.length === 2) {
-        return parts[0];
-      }
-      
-      // If only 1 part, return as is
-      return fullLocation;
-    }
+
 
     // Helper function to get just the city name (first location component)
     function getDisplayCity(fullLocation) {
@@ -496,7 +477,7 @@ function startAppWithFirebaseUser(user) {
                   hidden: !showTrend
                 },
                 {
-                  label: `Temperature in ${getDisplayLocation(tempLocation)} on ${friendlyDate}`,
+                  label: `Temperature in ${getDisplayCity(tempLocation)} on ${friendlyDate}`,
                   type: 'bar',
                   data: chartData,
                   backgroundColor: chartData.map(point => 
@@ -697,7 +678,7 @@ function startAppWithFirebaseUser(user) {
 
     function displayLocationAndFetchData() {
       stopLocationProgress();
-      document.getElementById('locationText').textContent = getDisplayLocation(tempLocation);
+      document.getElementById('locationText').textContent = getDisplayCity(tempLocation);
       
       // Clear the initial status message
       const dataNotice = document.getElementById('dataNotice');
@@ -869,7 +850,7 @@ function startAppWithFirebaseUser(user) {
           
           try {
             tempLocation = await getCityFromCoords(latitude, longitude);
-            console.log(`Detected location: ${tempLocation} (display: ${getDisplayLocation(tempLocation)}, city: ${getDisplayCity(tempLocation)})`);
+            console.log(`Detected location: ${tempLocation} (city: ${getDisplayCity(tempLocation)})`);
             debugLog('Location detection complete');
           } catch (error) {
             console.warn('Error getting city name:', error);
