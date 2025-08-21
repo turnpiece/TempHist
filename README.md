@@ -15,13 +15,13 @@ A web application that visualizes historical temperature data for any location, 
 
 ## Tech Stack
 
-- Frontend: Vanilla JavaScript with Chart.js for visualization
-- Build Tool: [Vite](https://vitejs.dev/) (for fast dev/build and modern ES modules)
-- Styles: SCSS (with hot reload and code splitting via Vite)
-- Authentication: Firebase Anonymous Auth
-- Backend: Node.js with Express (for API/proxy)
-- Data Source: Historical weather data API
-- Hosting: Static site (e.g., SiteGround, Netlify, Vercel, or any Apache/Nginx host)
+- **Frontend**: Vanilla JavaScript with Chart.js for visualization
+- **Build Tool**: [Vite](https://vitejs.dev/) (for fast dev/build and modern ES modules)
+- **Styles**: SCSS (with hot reload and code splitting via Vite)
+- **Authentication**: Firebase Anonymous Auth
+- **Backend**: Node.js with Express (for API/proxy and development mock data)
+- **Data Source**: Historical weather data API (with fallback mock data for development)
+- **Hosting**: Static site (e.g., SiteGround, Netlify, Vercel, or any Apache/Nginx host)
 
 ## Setup
 
@@ -38,11 +38,12 @@ A web application that visualizes historical temperature data for any location, 
    npm install
    ```
 
-3. Create a `.env` file in the root directory with your configuration (if needed):
+3. Create a `.env` file in the root directory with your configuration:
 
    ```
    PORT=3000
-   # Add any other environment variables needed
+   NODE_ENV=development
+   API_BASE=https://api.temphist.com
    ```
 
 4. Start the development server with Vite:
@@ -63,6 +64,14 @@ The application will be available at `http://localhost:5173`
    This outputs static files to the `dist/` directory.
 
 2. Deploy the contents of `dist/` to your web root.
+
+3. Set environment variables for production:
+
+   ```bash
+   NODE_ENV=production
+   API_BASE=https://api.temphist.com
+   PORT=3000
+   ```
 
 ## SPA Deployment and .htaccess
 
@@ -114,14 +123,57 @@ This ensures all routes are handled by your SPA.
 
 ## Development
 
-- `app.js`: Main frontend application code (ES modules, Vite, SCSS imports)
-- `server.js`: Backend server implementation (API/proxy)
+- `app.js`: Main frontend application code (ES modules, Vite, SCSS imports, Firebase auth)
+- `server.js`: Backend server implementation (API/proxy, development mock data, CORS handling)
 - `package.json`: Project dependencies and scripts
 - `styles.scss`: Main SCSS file (imported in JS)
+- `.env`: Environment configuration (API endpoints, ports, environment mode)
 
 ## License
 
-[Your chosen license]
+MIT License
+
+Copyright (c) 2025 [Turnpiece](https://turnpiece.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Current Issues & Limitations
+
+### Known Issues
+
+- **Mobile Geolocation**: Some mobile devices experience timeouts or permission issues with location detection
+- **Firebase Configuration**: Firebase config is currently hardcoded in `app.js` (should be moved to environment variables)
+- **Error Handling**: Limited fallback options when the weather API is unavailable
+- **Mobile Debug Mode**: Debug overlay appears on mobile devices and may interfere with UI
+
+### Technical Debt
+
+- **Hardcoded Values**: Firebase config and API endpoints should be configurable
+- **Mock Data**: Development mode uses static mock data instead of realistic historical data
+- **Error Recovery**: Limited retry logic for failed API calls
+- **Mobile Optimization**: Some mobile-specific optimizations could be improved
+
+### Browser Compatibility
+
+- **Modern Browsers**: Requires ES6+ support (Chrome 60+, Firefox 55+, Safari 12+)
+- **Mobile Browsers**: iOS Safari 12+, Chrome Mobile 60+
+- **Geolocation**: Requires HTTPS in production for location detection
 
 ## Contributing
 
