@@ -37,7 +37,7 @@ onAuthStateChanged(auth, (user) => {
 // Move your main code into a function:
 function startAppWithFirebaseUser(user) {
   // Constants and configuration
-  const DEBUGGING = false;
+  const DEBUGGING = true;
 
   // Helper function for debug logging
   function debugLog(...args) {
@@ -56,6 +56,46 @@ function startAppWithFirebaseUser(user) {
     if (DEBUGGING) {
       console.timeEnd(label);
     }
+  }
+
+  // Enhanced mobile detection function
+  function isMobileDevice() {
+    // Check multiple indicators for mobile devices
+    const userAgent = navigator.userAgent;
+    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+    const isMobileUA = mobileRegex.test(userAgent);
+    
+    // Additional checks for mobile devices
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+    const isPortrait = window.innerHeight > window.innerWidth;
+    
+    // Check for mobile-specific features
+    const hasMobileFeatures = 'connection' in navigator || 
+                             'deviceMemory' in navigator || 
+                             'hardwareConcurrency' in navigator;
+    
+    const mobileScore = (isMobileUA ? 3 : 0) + 
+                       (isTouchDevice ? 2 : 0) + 
+                       (isSmallScreen ? 1 : 0) + 
+                       (hasMobileFeatures ? 1 : 0);
+    
+    const isMobile = mobileScore >= 3;
+    
+    if (DEBUGGING) {
+      console.log('Mobile detection:', {
+        userAgent: userAgent,
+        isMobileUA,
+        isTouchDevice,
+        isSmallScreen,
+        isPortrait,
+        hasMobileFeatures,
+        mobileScore,
+        isMobile
+      });
+    }
+    
+    return isMobile;
   }
 
   debugLog('Script starting...');
@@ -115,12 +155,44 @@ function startAppWithFirebaseUser(user) {
 
     Chart.register(window['chartjs-plugin-annotation']);
 
-    const apiBase = 'https://api.temphist.com';
-    const localApiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:3000/api'
-      : apiBase;
+    const apiBase = (() => {
+      // Development (local)
+      if (import.meta.env.DEV) {
+        return '/api'; // Vite proxy
+      }
+      // Production
+      return 'https://api.temphist.com';
+    })();
 
     debugLog('Constants initialized');
+    
+    // Add visual debugging for mobile testing
+    if (isMobileDevice()) {
+      const debugDiv = document.createElement('div');
+      debugDiv.id = 'mobileDebug';
+      debugDiv.style.cssText = 'background: rgba(0,0,0,0.9); color: white; padding: 15px; margin: 10px 0; border-radius: 8px; font-family: monospace; font-size: 12px; line-height: 1.4; border: 2px solid #ff6b6b; position: fixed; top: 10px; right: 10px; max-width: 300px; z-index: 1000;';
+      debugDiv.innerHTML = `
+        <strong>🔧 MOBILE DEBUG:</strong><br>
+        <strong>Device:</strong> ${navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Mobile'}<br>
+        <strong>API Base:</strong> ${apiBase}<br>
+        <strong>Protocol:</strong> ${window.location.protocol}<br>
+        <strong>Status:</strong> <span id="debugStatus">Starting...</span><br>
+        <hr style="border-color: #666;">
+        <button onclick="document.getElementById('mobileDebug').remove()" style="background: #ff6b6b; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Close</button>
+      `;
+      
+      document.body.appendChild(debugDiv);
+      
+      // Update status function
+      window.updateDebugStatus = function(status) {
+        const statusEl = document.getElementById('debugStatus');
+        if (statusEl) {
+          statusEl.textContent = status;
+          statusEl.style.color = status.includes('Error') ? '#ff6b6b' : status.includes('Success') ? '#51cf66' : '#4dabf7';
+        }
+      };
+    }
+
 
     const now = new Date();
     const useYesterday = now.getHours() < 1;
@@ -276,6 +348,11 @@ function startAppWithFirebaseUser(user) {
       canvasEl.classList.add('hidden');
       
       updateLoadingMessage();
+      
+      // Ensure the loading area is visible
+      setTimeout(() => {
+        ensureChartVisibility();
+      }, 100);
     }
 
     // get the location
@@ -283,16 +360,18 @@ function startAppWithFirebaseUser(user) {
 
     // Helper function to handle API URLs
     function getApiUrl(path) {
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      if (isLocalhost) {
-        if (DEBUGGING) {
-          const dataNotice = document.getElementById('dataNotice');
-          dataNotice.textContent = `Debug: Using local API at ${localApiBase}${path}`;
-          dataNotice.style.color = '#666';
-        }
-        return `${localApiBase}${path}`;
+      const fullUrl = `${apiBase}${path}`;
+      
+      if (DEBUGGING) {
+        console.log('🔗 API URL Debug:', {
+          apiBase,
+          path,
+          fullUrl,
+          hostname: window.location.hostname
+        });
       }
-      return apiBase + path;
+      
+      return fullUrl;
     }
 
     // Helper function to get display-friendly location (without country)
@@ -327,12 +406,21 @@ function startAppWithFirebaseUser(user) {
 
     async function getCityFromCoords(lat, lon) {
       try {
-        // Add timeout to the OpenStreetMap API call
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        // Add timeout to the OpenStreetMap API call - longer timeout for mobile
+        const isMobile = isMobileDevice();
+        const timeoutMs = isMobile ? 15000 : 10000; // 15 seconds for mobile, 10 for desktop
         
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`, {
-          signal: controller.signal
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        
+        debugLog(`Fetching location data with ${timeoutMs}ms timeout, mobile: ${isMobile}`);
+        
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TempHist/1.0'
+          }
         });
         
         clearTimeout(timeoutId);
@@ -345,16 +433,24 @@ function startAppWithFirebaseUser(user) {
         
         debugLog('OpenStreetMap address data:', data.address);
         
-        // Get city name
-        const city = data.address.city || data.address.town || data.address.village;
+        // Get city name with multiple fallbacks
+        const city = data.address.city || 
+                    data.address.town || 
+                    data.address.village || 
+                    data.address.hamlet ||
+                    data.address.suburb ||
+                    data.address.neighbourhood;
         
-        // Get state/province information
-        const state = data.address.state || data.address.province || data.address.county;
+        // Get state/province information with multiple fallbacks
+        const state = data.address.state || 
+                     data.address.province || 
+                     data.address.county || 
+                     data.address.region;
         
         // Get country name (prefer full name over code for better API compatibility)
         const country = data.address.country || data.address.country_code;
         
-        debugLog('Location components:', { city, state, country });
+        debugLog('Location components:', { city, state, country, rawAddress: data.address });
         
         if (city && country) {
           // Build location string with state/province and country
@@ -365,11 +461,34 @@ function startAppWithFirebaseUser(user) {
           }
         }
         
+        // If we have city but no country, try to get country from display_name
+        if (city && !country && data.display_name) {
+          const displayParts = data.display_name.split(',').map(part => part.trim());
+          const lastPart = displayParts[displayParts.length - 1];
+          if (lastPart && lastPart !== city) {
+            return `${city}, ${lastPart}`;
+          }
+        }
+        
         // Fallback to just city name if no country info
-        return city || tempLocation;
+        if (city) {
+          return city;
+        }
+        
+        // Last resort: use display_name if available
+        if (data.display_name) {
+          const displayParts = data.display_name.split(',').map(part => part.trim());
+          if (displayParts.length >= 2) {
+            return `${displayParts[0]}, ${displayParts[displayParts.length - 1]}`;
+          }
+          return displayParts[0];
+        }
+        
+        // Ultimate fallback
+        return tempLocation;
       } catch (error) {
         if (error.name === 'AbortError') {
-          console.warn('OpenStreetMap API call timed out after 10 seconds');
+          console.warn(`OpenStreetMap API call timed out after ${isMobile ? '15' : '10'} seconds`);
           debugLog('OpenStreetMap API timeout');
         } else {
           console.warn('OpenStreetMap API error:', error);
@@ -430,14 +549,32 @@ function startAppWithFirebaseUser(user) {
       try {
         const url = getApiUrl(`/data/${tempLocation}/${month}-${day}`);
         const response = await apiFetch(url);
-        const data = await response.json();
+        
+        // Log the raw response for debugging
+        const responseText = await response.text();
+        console.log('🔍 Raw API Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: responseText
+        });
+        
+        // Try to parse as JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('❌ JSON Parse Error:', parseError);
+          console.error('❌ Response was not valid JSON:', responseText);
+          throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
+        }
 
         if (!data.weather?.data) {
           throw new Error('Invalid data format received from '+url);
         }
 
         // Update the chart with the weather data
-        const chartData = data.weather.data.map(point => ({ x: point.y, y: point.x }));
+        const chartData = data.weather.data.map(point => ({ x: point.x, y: point.y }));
         
         debugLog('Raw weather data:', data.weather.data);
         debugLog('Processed chart data:', chartData);
@@ -699,13 +836,25 @@ function startAppWithFirebaseUser(user) {
       stopLocationProgress();
       document.getElementById('locationText').textContent = getDisplayLocation(tempLocation);
       
-      // Clear the initial status message
+      // Clear the initial status message and show location confirmation
       const dataNotice = document.getElementById('dataNotice');
       if (dataNotice) {
-        dataNotice.textContent = '';
+        dataNotice.innerHTML = `<div style="text-align: center; padding: 15px; color: #51cf66; background: rgba(81,207,102,0.1); border-radius: 6px; border: 1px solid rgba(81,207,102,0.3);">
+          <p style="margin: 0; font-weight: 500;">📍 Location set to: <strong>${getDisplayLocation(tempLocation)}</strong></p>
+          <p style="margin: 5px 0 0 0; font-size: 14px;">Loading temperature data...</p>
+        </div>`;
       }
       
       setLocationCookie(tempLocation);
+      
+      // Scroll to show the chart area
+      const chartContainer = document.getElementById('tempChart')?.parentElement;
+      if (chartContainer) {
+        setTimeout(() => {
+          chartContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 500);
+      }
+      
       fetchData();
     }
 
@@ -729,9 +878,27 @@ function startAppWithFirebaseUser(user) {
 
       canvasEl.classList.add('visible');
       canvasEl.classList.remove('hidden');
+      
+      // Clear the data notice and show success message
+      const dataNotice = document.getElementById('dataNotice');
+      if (dataNotice) {
+        dataNotice.innerHTML = `<div style="text-align: center; padding: 15px; color: #51cf66; background: rgba(81,207,102,0.1); border-radius: 6px; border: 1px solid rgba(81,207,102,0.3);">
+          <p style="margin: 0; font-weight: 500;">✅ Temperature data loaded successfully!</p>
+          <p style="margin: 5px 0 0 0; font-size: 14px;">Showing data for ${getDisplayLocation(tempLocation)}</p>
+        </div>`;
+      }
+      
       if (chart) {
         chart.update('none');
       }
+      
+      // Ensure the chart is visible by scrolling to it
+      setTimeout(() => {
+        const chartContainer = document.getElementById('tempChart')?.parentElement;
+        if (chartContainer) {
+          chartContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
     }
 
     function hideChart() {
@@ -742,7 +909,29 @@ function startAppWithFirebaseUser(user) {
       canvasEl.classList.add('hidden');
     }
 
-    // Add reload button handler (moved outside DOMContentLoaded)
+    // Helper function to ensure chart visibility
+    function ensureChartVisibility() {
+      const chartContainer = document.getElementById('tempChart')?.parentElement;
+      const loadingEl = document.getElementById('loading');
+      const skeleton = document.getElementById('skeletonLoader');
+      
+      if (chartContainer) {
+        // If chart is visible, scroll to it
+        if (canvasEl.classList.contains('visible')) {
+          chartContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        // If loading, scroll to loading area
+        else if (loadingEl && loadingEl.classList.contains('visible')) {
+          loadingEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        // If skeleton is visible, scroll to it
+        else if (skeleton && skeleton.classList.contains('visible')) {
+          skeleton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+
+    // Add reload button handler
     const reloadButton = document.getElementById('reloadButton');
     if (reloadButton) {
       reloadButton.addEventListener('click', () => {
@@ -755,16 +944,41 @@ function startAppWithFirebaseUser(user) {
       const dataNotice = document.getElementById('dataNotice');
       if (!dataNotice) return;
       
-      // Create manual location input
+      // Create manual location input with mobile-friendly styling
       const locationInput = document.createElement('div');
       locationInput.innerHTML = `
-        <div style="margin: 10px 0; padding: 10px; background: rgba(255,107,107,0.1); border-radius: 5px;">
-          <p style="margin: 0 0 10px 0; color: #ff6b6b;">Location not detected automatically</p>
-          <input type="text" id="manualLocation" placeholder="Enter your city (e.g., Manchester, England, United Kingdom)" 
-                 style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 3px; margin-right: 10px;">
-          <button id="setLocationBtn" style="padding: 8px 16px; background: #ff6b6b; color: white; border: none; border-radius: 3px; cursor: pointer;">
-            Set Location
+        <div style="margin: 15px 0; padding: 20px; background: rgba(255,107,107,0.15); border-radius: 8px; border: 2px solid rgba(255,107,107,0.4); box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <p style="margin: 0 0 15px 0; color: #ff6b6b; font-weight: 600; font-size: 16px; text-align: center;">
+            📍 Location Required
+          </p>
+          <p style="margin: 0 0 15px 0; color: #666; font-size: 14px; text-align: center;">
+            Please enter your city to see temperature data
+          </p>
+          <div style="margin-bottom: 15px;">
+            <input type="text" id="manualLocation" 
+                   placeholder="Enter your city (e.g., Manchester, England, United Kingdom)" 
+                   style="width: 100%; padding: 15px; border: 2px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; text-align: center; color: white; background-color: #333;">
+          </div>
+          <button id="setLocationBtn" 
+                  style="width: 100%; padding: 15px 16px; background: #ff6b6b; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            🌡️ Show Temperature Data
           </button>
+          <p style="margin: 10px 0 0 0; font-size: 12px; color: #ccc; text-align: center;">
+            Tip: Include country for better accuracy
+          </p>
+          <details style="margin-top: 15px; font-size: 12px; color: #666;">
+            <summary style="cursor: pointer; color: #ff6b6b; font-weight: 500; text-align: center;">Why didn't location detection work?</summary>
+            <div style="margin-top: 10px; padding: 15px; background: rgba(0,0,0,0.05); border-radius: 6px; font-size: 12px; line-height: 1.4;">
+              <p><strong>Common mobile issues:</strong></p>
+              <ul style="margin: 8px 0; padding-left: 20px;">
+                <li>Location permission denied in browser settings</li>
+                <li>GPS/Location services turned off on device</li>
+                <li>Poor network connection or slow GPS lock</li>
+                <li>Browser privacy settings blocking location access</li>
+              </ul>
+              <p><strong>To fix:</strong> Check your device's location settings and browser permissions, then refresh the page.</p>
+            </div>
+          </details>
         </div>
       `;
       
@@ -774,14 +988,43 @@ function startAppWithFirebaseUser(user) {
       const setLocationBtn = document.getElementById('setLocationBtn');
       const manualLocationInput = document.getElementById('manualLocation');
       
+      // Focus the input for better mobile UX
+      setTimeout(() => {
+        if (manualLocationInput) {
+          manualLocationInput.focus();
+          // Scroll to make sure the input is visible
+          locationInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+      
       setLocationBtn.addEventListener('click', () => {
         const location = manualLocationInput.value.trim();
         if (location) {
+          debugLog('Manual location set:', location);
           tempLocation = location;
           setLocationCookie(location);
-          displayLocationAndFetchData();
+          
+          // Show loading state immediately
+          const dataNotice = document.getElementById('dataNotice');
+          if (dataNotice) {
+            dataNotice.innerHTML = '<div style="text-align: center; padding: 20px; color: #51cf66;"><p>📍 Location set to: <strong>' + location + '</strong></p><p>Loading temperature data...</p></div>';
+          }
+          
           // Remove the manual input
           locationInput.remove();
+          
+          // Start fetching data
+          displayLocationAndFetchData();
+        } else {
+          // Show validation message
+          manualLocationInput.style.borderColor = '#ff6b6b';
+          manualLocationInput.placeholder = 'Please enter a location';
+          manualLocationInput.style.backgroundColor = 'rgba(255,107,107,0.1)';
+          setTimeout(() => {
+            manualLocationInput.style.borderColor = '#ccc';
+            manualLocationInput.style.backgroundColor = 'white';
+            manualLocationInput.placeholder = 'Enter your city (e.g., Manchester, England, United Kingdom)';
+          }, 2000);
         }
       });
       
@@ -791,11 +1034,91 @@ function startAppWithFirebaseUser(user) {
           setLocationBtn.click();
         }
       });
+      
+      // Add input validation feedback
+      manualLocationInput.addEventListener('input', () => {
+        if (manualLocationInput.value.trim()) {
+          manualLocationInput.style.borderColor = '#51cf66';
+          manualLocationInput.style.backgroundColor = 'rgba(81,207,102,0.2)';
+        } else {
+          manualLocationInput.style.borderColor = '#ccc';
+          manualLocationInput.style.backgroundColor = '#333';
+        }
+      });
+      
+      // Add CSS for placeholder visibility
+      const style = document.createElement('style');
+      style.textContent = `
+        #manualLocation::placeholder {
+          color: #aaa !important;
+          opacity: 1;
+        }
+        #manualLocation {
+          color: white !important;
+        }
+      `;
+      document.head.appendChild(style);
     }
 
     // Modify the detectUserLocation function to use cookies
     async function detectUserLocation() {
       debugLog('Starting location detection...');
+      
+      // Update debug status
+      if (window.updateDebugStatus) {
+        window.updateDebugStatus('Starting location detection...');
+      }
+      
+      // Log device and environment information for debugging
+      const deviceInfo = {
+        userAgent: navigator.userAgent,
+        isMobile: isMobileDevice(),
+        isSecure: window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+        protocol: window.location.protocol,
+        hostname: window.location.hostname,
+        hasGeolocation: !!navigator.geolocation,
+        hasPermissions: !!navigator.permissions,
+        connection: navigator.connection ? {
+          effectiveType: navigator.connection.effectiveType,
+          downlink: navigator.connection.downlink,
+          rtt: navigator.connection.rtt
+        } : 'Not available',
+        screenSize: `${window.innerWidth}x${window.innerHeight}`,
+        orientation: window.innerHeight > window.innerWidth ? 'Portrait' : 'Landscape'
+      };
+      
+      debugLog('Device and environment info:', deviceInfo);
+      console.log('Location detection environment:', deviceInfo);
+      
+      // Add more specific debugging for mobile location issues
+      if (deviceInfo.isMobile) {
+        console.log('🔍 MOBILE LOCATION DEBUG INFO:');
+        console.log('- HTTPS:', deviceInfo.isSecure);
+        console.log('- Geolocation available:', deviceInfo.hasGeolocation);
+        console.log('- Permissions available:', deviceInfo.hasPermissions);
+        console.log('- Current protocol:', deviceInfo.protocol);
+        console.log('- Current hostname:', deviceInfo.hostname);
+        console.log('- User agent:', deviceInfo.userAgent);
+        
+        // Add visual debugging to the page
+        const debugInfo = document.createElement('div');
+        debugInfo.style.cssText = 'background: rgba(0,0,0,0.8); color: white; padding: 15px; margin: 10px 0; border-radius: 8px; font-family: monospace; font-size: 12px; line-height: 1.4;';
+        debugInfo.innerHTML = `
+          <strong>🔍 Mobile Location Debug Info:</strong><br>
+          HTTPS: ${deviceInfo.isSecure ? '✅ Yes' : '❌ No'}<br>
+          Geolocation: ${deviceInfo.hasGeolocation ? '✅ Available' : '❌ Not Available'}<br>
+          Permissions: ${deviceInfo.hasPermissions ? '✅ Available' : '❌ Not Available'}<br>
+          Protocol: ${deviceInfo.protocol}<br>
+          Hostname: ${deviceInfo.hostname}<br>
+          User Agent: ${deviceInfo.userAgent.substring(0, 50)}...
+        `;
+        
+        const dataNotice = document.getElementById('dataNotice');
+        if (dataNotice) {
+          dataNotice.appendChild(debugInfo);
+        }
+      }
+      
       startLocationProgress();
       
       // Check for cached location first
@@ -808,6 +1131,32 @@ function startAppWithFirebaseUser(user) {
         return;
       }
 
+      // Check if we're on HTTPS (required for geolocation on mobile)
+      const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (!isSecure) {
+        console.warn('Geolocation requires HTTPS on mobile devices');
+        debugLog('Not on HTTPS, showing manual location input');
+        
+        // Update debug status
+        if (window.updateDebugStatus) {
+          window.updateDebugStatus('HTTP detected - showing manual input');
+        }
+        
+        const dataNotice = document.getElementById('dataNotice');
+        if (dataNotice) {
+          dataNotice.innerHTML = `
+            <div style="text-align: center; padding: 15px; color: #ff6b6b; background: rgba(255,107,107,0.1); border-radius: 6px; border: 1px solid rgba(255,107,107,0.3);">
+              <p style="margin: 0; font-weight: 500;">📍 Location Access</p>
+              <p style="margin: 5px 0 0 0; font-size: 14px;">Mobile browsers require HTTPS for automatic location detection. Please enter your location manually below.</p>
+            </div>
+          `;
+        }
+        
+        // Show manual input immediately for mobile
+        setTimeout(() => addManualLocationInput(), 500);
+        return;
+      }
+
       if (!navigator.geolocation) {
         console.warn('Geolocation is not supported by this browser.');
         debugLog('Geolocation not supported, falling back to default location');
@@ -816,23 +1165,31 @@ function startAppWithFirebaseUser(user) {
       }
 
       // Check if geolocation permission is already denied
+      let permissionState = 'unknown';
       if (navigator.permissions && navigator.permissions.query) {
         try {
           const permission = await navigator.permissions.query({ name: 'geolocation' });
+          permissionState = permission.state;
           if (permission.state === 'denied') {
             console.warn('Geolocation permission already denied');
-            debugLog('Geolocation permission denied, falling back to default location');
-            displayLocationAndFetchData();
+            debugLog('Geolocation permission denied, showing manual location input');
+            const dataNotice = document.getElementById('dataNotice');
+            if (dataNotice) {
+              dataNotice.textContent = 'Location access denied. Please enter your location manually.';
+              dataNotice.style.color = '#ff6b6b';
+            }
+            setTimeout(() => addManualLocationInput(), 1000);
             return;
           }
         } catch (e) {
           debugLog('Could not check geolocation permission:', e);
+          // Continue anyway - some browsers don't support permissions API
         }
       }
 
       // Set a timeout that accounts for both geolocation and OpenStreetMap API call
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const totalTimeout = isMobile ? 15000 : 20000; // 15 seconds for mobile, 20 for desktop
+      const isMobile = isMobileDevice();
+      const totalTimeout = isMobile ? 25000 : 30000; // 25 seconds for mobile, 30 for desktop
       const geolocationTimeout = setTimeout(() => {
         stopLocationProgress();
         debugLog('Total location detection timed out after ' + totalTimeout/1000 + ' seconds');
@@ -842,7 +1199,7 @@ function startAppWithFirebaseUser(user) {
         if (isMobile) {
           const dataNotice = document.getElementById('dataNotice');
           if (dataNotice) {
-            dataNotice.textContent = 'Location detection timed out. Using default location.';
+            dataNotice.textContent = 'Location detection timed out. Please enter your location manually.';
             dataNotice.style.color = '#ff6b6b';
             // Add manual location input for mobile users
             setTimeout(() => addManualLocationInput(), 1000);
@@ -853,17 +1210,32 @@ function startAppWithFirebaseUser(user) {
       }, totalTimeout);
 
       debugLog('Requesting geolocation...');
+      
+      // Update debug status
+      if (window.updateDebugStatus) {
+        window.updateDebugStatus('Requesting geolocation...');
+      }
+      
       console.log('Geolocation options:', {
         enableHighAccuracy: false,
-        timeout: isMobile ? 12000 : 15000,
-        maximumAge: 60000,
-        isMobile
+        timeout: isMobile ? 20000 : 25000, // 20 seconds for mobile, 25 for desktop
+        maximumAge: 300000, // Accept cached location up to 5 minutes old
+        isMobile,
+        permissionState,
+        isSecure
       });
+      
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           clearTimeout(geolocationTimeout);
           stopLocationProgress();
           debugLog('Geolocation received:', position.coords);
+          
+          // Update debug status
+          if (window.updateDebugStatus) {
+            window.updateDebugStatus('Geolocation received, fetching city...');
+          }
+          
           const { latitude, longitude } = position.coords;
           debugLog('Fetching city name from coordinates...');
           
@@ -871,6 +1243,11 @@ function startAppWithFirebaseUser(user) {
             tempLocation = await getCityFromCoords(latitude, longitude);
             console.log(`Detected location: ${tempLocation} (display: ${getDisplayLocation(tempLocation)}, city: ${getDisplayCity(tempLocation)})`);
             debugLog('Location detection complete');
+            
+            // Update debug status
+            if (window.updateDebugStatus) {
+              window.updateDebugStatus('Success: Location detected');
+            }
           } catch (error) {
             console.warn('Error getting city name:', error);
             debugLog('Failed to get city name, falling back to default location');
@@ -879,7 +1256,7 @@ function startAppWithFirebaseUser(user) {
             if (isMobile) {
               const dataNotice = document.getElementById('dataNotice');
               if (dataNotice) {
-                dataNotice.textContent = 'Location lookup failed. Using default location.';
+                dataNotice.textContent = 'Location lookup failed. Please enter your location manually.';
                 dataNotice.style.color = '#ff6b6b';
                 // Add manual location input for mobile users
                 setTimeout(() => addManualLocationInput(), 1000);
@@ -895,43 +1272,48 @@ function startAppWithFirebaseUser(user) {
           console.warn('Geolocation error:', error.message);
           debugLog('Geolocation failed:', error.code, error.message);
           
+          // Update debug status
+          if (window.updateDebugStatus) {
+            window.updateDebugStatus(`Error: ${error.message}`);
+          }
+          
           // More specific error handling for mobile
+          let errorMessage = 'Location detection failed. Using default location.';
+          let showManualInput = false;
+          
           switch(error.code) {
             case error.TIMEOUT:
               debugLog('Geolocation timed out');
+              errorMessage = 'Location detection timed out. Please enter your location manually.';
+              showManualInput = true;
               if (isMobile) {
                 console.warn('Mobile device geolocation timed out - this is common on mobile');
               }
               break;
             case error.POSITION_UNAVAILABLE:
               debugLog('Location information is unavailable');
+              errorMessage = 'Location information unavailable. Please enter your location manually.';
+              showManualInput = true;
               break;
             case error.PERMISSION_DENIED:
               debugLog('Location permission denied');
+              errorMessage = 'Location access denied. Please enter your location manually.';
+              showManualInput = true;
               if (isMobile) {
                 console.warn('Mobile device denied location permission - check browser settings');
               }
               break;
           }
           
-          // For mobile devices, show a more helpful message and manual input
-          if (isMobile) {
-            if (error.code === error.PERMISSION_DENIED) {
-              const dataNotice = document.getElementById('dataNotice');
-              if (dataNotice) {
-                dataNotice.textContent = 'Location access denied. Using default location.';
-                dataNotice.style.color = '#ff6b6b';
-                // Add manual location input for mobile users
-                setTimeout(() => addManualLocationInput(), 1000);
-              }
-            } else if (error.code === error.TIMEOUT) {
-              const dataNotice = document.getElementById('dataNotice');
-              if (dataNotice) {
-                dataNotice.textContent = 'Location detection timed out. Using default location.';
-                dataNotice.style.color = '#ff6b6b';
-                // Add manual location input for mobile users
-                setTimeout(() => addManualLocationInput(), 1000);
-              }
+          // Show error message and manual input if needed
+          const dataNotice = document.getElementById('dataNotice');
+          if (dataNotice) {
+            dataNotice.textContent = errorMessage;
+            dataNotice.style.color = '#ff6b6b';
+            
+            if (showManualInput) {
+              // Add manual location input for mobile users or when geolocation fails
+              setTimeout(() => addManualLocationInput(), 1000);
             }
           }
           
@@ -939,8 +1321,8 @@ function startAppWithFirebaseUser(user) {
         },
         {
           enableHighAccuracy: false, // Don't wait for GPS
-          timeout: isMobile ? 12000 : 15000, // 12 seconds for mobile, 15 for desktop
-          maximumAge: 60000 // Accept cached location up to 1 minute old
+          timeout: isMobile ? 20000 : 25000, // 20 seconds for mobile, 25 for desktop
+          maximumAge: 300000 // Accept cached location up to 5 minutes old
         }
       );
     }
