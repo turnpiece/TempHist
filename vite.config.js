@@ -4,7 +4,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Allow external connections
     port: 5174, // Keep the configured port
-    https: true, // Enable HTTPS with default self-signed cert
+    https: false, // Disable HTTPS for local development
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

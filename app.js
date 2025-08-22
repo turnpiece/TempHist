@@ -602,10 +602,17 @@ onAuthStateChanged(auth, (user) => {
         }
 
         // Update the chart with the weather data
-        const chartData = data.weather.data.map(point => ({ x: point.x, y: point.y }));
+        // API already returns {x: temperature, y: year} - perfect for horizontal bars!
+        const chartData = data.weather.data;
         
         debugLog('Raw weather data:', data.weather.data);
-        debugLog('Processed chart data:', chartData);
+        debugLog('Chart data (API format is already correct):', chartData);
+        debugLog('Data structure:', {
+          'API format': 'x: temperature, y: year (already correct!)',
+          'Sample point': chartData[0],
+          'Temperature values (p.x)': chartData.map(p => p.x),
+          'Year values (p.y)': chartData.map(p => p.y)
+        });
         
         // Create or update chart
         if (!chart) {
@@ -621,7 +628,7 @@ onAuthStateChanged(auth, (user) => {
           const availableHeight = containerHeight - 40;
           
           // Calculate temperature range
-          const temps = chartData.map(p => p.x);
+          const temps = chartData.map(p => p.x); // p.x is temperature in {x: temperature, y: year}
           const minTemp = Math.floor(Math.min(...temps) - 1);
           const maxTemp = Math.ceil(Math.max(...temps) + 1);
           
@@ -629,7 +636,10 @@ onAuthStateChanged(auth, (user) => {
             temps,
             minTemp,
             maxTemp,
-            chartDataLength: chartData.length
+            chartDataLength: chartData.length,
+            'data structure': 'x: temperature, y: year (API format)',
+            'sample temps': temps.slice(0, 5),
+            'sample years': chartData.map(p => p.y).slice(0, 5)
           });
           
           debugLog('Initial chart setup:', {
@@ -779,13 +789,13 @@ onAuthStateChanged(auth, (user) => {
           debugTimeEnd('Chart initialization');
         } else {
           // Update existing chart
-          const temps = chartData.map(p => p.x);
+          const temps = chartData.map(p => p.x); // p.x is temperature in {x: temperature, y: year}
           const minTemp = Math.floor(Math.min(...temps) - 1);
           const maxTemp = Math.ceil(Math.max(...temps) + 1);
           
           chart.data.datasets[1].data = chartData;
           chart.data.datasets[1].backgroundColor = chartData.map(point => 
-            point.y === currentYear ? thisYearColour : barColour
+            point.y === currentYear ? thisYearColour : barColour // point.y is year in {x: temperature, y: year}
           );
           chart.data.datasets[1].base = minTemp;
 
@@ -796,9 +806,10 @@ onAuthStateChanged(auth, (user) => {
 
         // Update trend line if enabled
         if (showTrend && chart) {
+          // chartData is {x: temperature, y: year}, but calculateTrendLine expects {x: year, y: temperature}
           const trendData = calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
             startYear - 0.5, currentYear + 0.5);
-          chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x }));
+          chart.data.datasets[0].data = trendData.points;
         }
 
         // Update text elements
