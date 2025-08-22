@@ -398,16 +398,23 @@ onAuthStateChanged(auth, (user) => {
     // get the location
     let tempLocation = 'London, England, United Kingdom'; // default
 
-    // Helper function to handle API URLs
+    // Helper function to handle API URLs with proper encoding
     function getApiUrl(path) {
-      const fullUrl = `${apiBase}${path}`;
+      // Ensure the path is properly encoded for the API
+      // encodeURI handles most cases, but we can be more specific if needed
+      const encodedPath = encodeURI(path);
+      const fullUrl = `${apiBase}${encodedPath}`;
       
       if (DEBUGGING) {
         console.log('🔗 API URL Debug:', {
           apiBase,
           path,
+          encodedPath,
           fullUrl,
-          hostname: window.location.hostname
+          hostname: window.location.hostname,
+          // Show what the encoding does
+          'spaces become': path.includes(' ') ? '%20' : 'none',
+          'commas become': path.includes(',') ? '%2C' : 'none'
         });
       }
       
