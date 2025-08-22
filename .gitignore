@@ -37,3 +37,7 @@ config.js
 webhook.php
 __pycache__/
 weather_cache/
+
+# Deployment scripts (contain sensitive server information)
+deploy.sh
+deploy-dev.sh
