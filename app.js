@@ -389,10 +389,7 @@ onAuthStateChanged(auth, (user) => {
       
       updateLoadingMessage();
       
-      // Ensure the loading area is visible
-      setTimeout(() => {
-        ensureChartVisibility();
-      }, 100);
+      // Loading area is now visible - user can scroll naturally
     }
 
     // get the location
@@ -881,13 +878,7 @@ onAuthStateChanged(auth, (user) => {
       
       setLocationCookie(tempLocation);
       
-      // Scroll to show the chart area
-      const chartContainer = document.getElementById('tempChart')?.parentElement;
-      if (chartContainer) {
-        setTimeout(() => {
-          chartContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 500);
-      }
+      // Chart area is ready - user can scroll naturally
       
       fetchData();
     }
@@ -926,13 +917,7 @@ onAuthStateChanged(auth, (user) => {
         chart.update('none');
       }
       
-      // Ensure the chart is visible by scrolling to it
-      setTimeout(() => {
-        const chartContainer = document.getElementById('tempChart')?.parentElement;
-        if (chartContainer) {
-          chartContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 300);
+      // Chart is now visible - user can scroll naturally
     }
 
     function hideChart() {
@@ -943,27 +928,7 @@ onAuthStateChanged(auth, (user) => {
       canvasEl.classList.add('hidden');
     }
 
-    // Helper function to ensure chart visibility
-    function ensureChartVisibility() {
-      const chartContainer = document.getElementById('tempChart')?.parentElement;
-      const loadingEl = document.getElementById('loading');
-      const skeleton = document.getElementById('skeletonLoader');
-      
-      if (chartContainer) {
-        // If chart is visible, scroll to it
-        if (canvasEl.classList.contains('visible')) {
-          chartContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        // If loading, scroll to loading area
-        else if (loadingEl && loadingEl.classList.contains('visible')) {
-          loadingEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        // If skeleton is visible, scroll to it
-        else if (skeleton && skeleton.classList.contains('visible')) {
-          skeleton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
-    }
+    // Chart visibility is handled naturally by the user
 
     // Add reload button handler
     const reloadButton = document.getElementById('reloadButton');
