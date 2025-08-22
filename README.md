@@ -2,6 +2,17 @@
 
 A web application that visualizes historical temperature data for any location, showing how temperatures have changed over the past 50 years for a specific date.
 
+## Security & Privacy
+
+**Location Access Required**: This application requires location permissions to function. Manual location entry is disabled to prevent API abuse and ensure data accuracy. Users can only access temperature data for their actual GPS location.
+
+**Data Protection**:
+
+- No location data is stored permanently
+- Location cookies expire after 1 hour
+- All API requests are authenticated via Firebase
+- Manual location input is disabled for security
+
 ## Features
 
 - Visualizes 50 years of temperature data in an interactive chart
@@ -73,6 +84,66 @@ The application will be available at `http://localhost:5173`
    PORT=3000
    ```
 
+## Deployment
+
+### Automated Deployment (Recommended)
+
+The project uses GitHub webhooks for automated deployment:
+
+- **Production**: Push to `main` branch → automatically deploys to production
+- **Development**: Push to `develop` branch → automatically deploys to dev environment
+
+#### Webhook Setup
+
+1. **Create webhook in GitHub:**
+
+   - Go to your repository → Settings → Webhooks
+   - Add webhook: `https://yourdomain.com/webhook.php`
+   - Set content type to `application/json`
+   - Add your webhook secret
+
+2. **Server Requirements:**
+   - PHP 7.4+ with `exec()` enabled
+   - SSH access for git operations
+   - Node.js and npm for building
+   - Proper file permissions
+
+#### Manual Deployment
+
+If you need to deploy manually:
+
+```bash
+# Production
+git checkout main
+git pull origin main
+npm install
+npm run build
+# Copy dist/ contents to web root
+
+# Development
+git checkout develop
+git pull origin develop
+npm install
+npm run build
+# Copy dist/ contents to dev web root
+```
+
+### Deployment Scripts
+
+The project includes deployment scripts (not committed to Git for security):
+
+- `deploy.sh` - Production deployment script
+- `deploy-dev.sh` - Development deployment script
+
+These scripts handle:
+
+- Git operations with SSH keys
+- Dependency installation
+- Build process
+- File copying to web directories
+
+**Note**: Deployment scripts contain server-specific paths and should not be committed to version control.
+
 ## SPA Deployment and .htaccess
 
 If you are deploying to Apache (e.g., SiteGround) and using client-side routing, add a `.htaccess` file to your web root:
@@ -100,7 +171,7 @@ This ensures all routes are handled by your SPA.
 ## Lighthouse/CLS Optimization
 
 - The app uses a skeleton loader and reserves space for all dynamic content to achieve a CLS (Cumulative Layout Shift) score near zero.
-- A background color and gradient are set inline in the `<head>` to prevent FOUC (Flash of Unstyled Content).
+- A background colour and gradient are set inline in the `<head>` to prevent FOUC (Flash of Unstyled Content).
 - All images and SVGs have explicit width/height attributes.
 - Responsive min-heights are set for text elements to prevent layout shift on mobile.
 
@@ -112,14 +183,10 @@ This ensures all routes are handled by your SPA.
 ## Usage
 
 1. The application will automatically try to detect your location
-2. Alternatively, you can specify a location using the URL parameter:
-   ```
-   https://temphist.com?location=London
-   ```
-3. The chart will display temperature data for the current date (or yesterday if before 1 AM)
-4. Hover over bars to see exact temperatures for each year
-5. The average temperature is shown as a vertical line
-6. The current year's temperature is highlighted in green
+2. The chart will display temperature data for the current date (or yesterday if before 1 AM)
+3. Hover over bars to see exact temperatures for each year
+4. The average temperature is shown as a vertical line
+5. The current year's temperature is highlighted in green
 
 ## Development
 

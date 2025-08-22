@@ -34,10 +34,14 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// Move your main code into a function:
-function startAppWithFirebaseUser(user) {
-  // Constants and configuration
-  const DEBUGGING = true;
+  // Move your main code into a function:
+  function startAppWithFirebaseUser(user) {
+    // Constants and configuration
+    const DEBUGGING = true;
+    
+    // SECURITY NOTE: Manual location input is disabled to prevent API abuse.
+    // Users must enable location permissions to access the service.
+    // This ensures users can only access data for their actual location.
 
   // Helper function for debug logging
   function debugLog(...args) {
@@ -58,44 +62,76 @@ function startAppWithFirebaseUser(user) {
     }
   }
 
-  // Enhanced mobile detection function
-  function isMobileDevice() {
-    // Check multiple indicators for mobile devices
+  // Enhanced device and platform detection
+  function detectDeviceAndPlatform() {
     const userAgent = navigator.userAgent;
-    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-    const isMobileUA = mobileRegex.test(userAgent);
     
-    // Additional checks for mobile devices
+    // OS Detection
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+    const isAndroid = /Android/.test(userAgent);
+    const isWindows = /Windows/.test(userAgent);
+    const isMac = /Mac/.test(userAgent);
+    const isLinux = /Linux/.test(userAgent);
+    
+    // Browser Detection
+    const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+    const isChrome = /Chrome/.test(userAgent);
+    const isFirefox = /Firefox/.test(userAgent);
+    const isEdge = /Edg/.test(userAgent);
+    
+    // Device Type Detection
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    const isTablet = /iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/.test(userAgent);
+    const isDesktop = !isMobile && !isTablet;
+    
+    // Additional mobile indicators
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     const isSmallScreen = window.innerWidth <= 768;
     const isPortrait = window.innerHeight > window.innerWidth;
     
-    // Check for mobile-specific features
+    // Mobile-specific features
     const hasMobileFeatures = 'connection' in navigator || 
                              'deviceMemory' in navigator || 
                              'hardwareConcurrency' in navigator;
     
-    const mobileScore = (isMobileUA ? 3 : 0) + 
+    // Enhanced mobile detection with scoring
+    const mobileScore = (isMobile ? 3 : 0) + 
                        (isTouchDevice ? 2 : 0) + 
                        (isSmallScreen ? 1 : 0) + 
                        (hasMobileFeatures ? 1 : 0);
     
-    const isMobile = mobileScore >= 3;
+    const isMobileDevice = mobileScore >= 3;
+    
+    // Platform-specific details
+    const platform = {
+      os: isIOS ? 'iOS' : isAndroid ? 'Android' : isWindows ? 'Windows' : isMac ? 'macOS' : isLinux ? 'Linux' : 'Unknown',
+      browser: isSafari ? 'Safari' : isChrome ? 'Chrome' : isFirefox ? 'Firefox' : isEdge ? 'Edge' : 'Unknown',
+      deviceType: isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop',
+      isMobile: isMobileDevice,
+      isIOS,
+      isAndroid,
+      isSafari,
+      isChrome
+    };
     
     if (DEBUGGING) {
-      console.log('Mobile detection:', {
+      console.log('Device and platform detection:', {
         userAgent: userAgent,
-        isMobileUA,
+        platform,
+        mobileScore,
         isTouchDevice,
         isSmallScreen,
         isPortrait,
-        hasMobileFeatures,
-        mobileScore,
-        isMobile
+        hasMobileFeatures
       });
     }
     
-    return isMobile;
+    return platform;
+  }
+
+  // Enhanced mobile detection function (backward compatibility)
+  function isMobileDevice() {
+    return detectDeviceAndPlatform().isMobile;
   }
 
   debugLog('Script starting...');
@@ -166,16 +202,20 @@ function startAppWithFirebaseUser(user) {
 
     debugLog('Constants initialized');
     
-    // Add visual debugging for mobile testing
-    if (isMobileDevice()) {
+    // Add visual debugging for platform detection
+    const platform = detectDeviceAndPlatform();
+    if (platform.isMobile) {
       const debugDiv = document.createElement('div');
       debugDiv.id = 'mobileDebug';
-      debugDiv.style.cssText = 'background: rgba(0,0,0,0.9); color: white; padding: 15px; margin: 10px 0; border-radius: 8px; font-family: monospace; font-size: 12px; line-height: 1.4; border: 2px solid #ff6b6b; position: fixed; top: 10px; right: 10px; max-width: 300px; z-index: 1000;';
+      debugDiv.style.cssText = 'background: rgba(0,0,0,0.9); color: white; padding: 15px; margin: 10px 0; border-radius: 8px; font-family: monospace; font-size: 12px; line-height: 1.4; border: 2px solid #ff6b6b; position: fixed; top: 10px; right: 10px; max-width: 350px; z-index: 1000;';
       debugDiv.innerHTML = `
-        <strong>🔧 MOBILE DEBUG:</strong><br>
-        <strong>Device:</strong> ${navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Mobile'}<br>
+        <strong>🔧 PLATFORM DEBUG:</strong><br>
+        <strong>OS:</strong> ${platform.os}<br>
+        <strong>Browser:</strong> ${platform.browser}<br>
+        <strong>Device:</strong> ${platform.deviceType}<br>
         <strong>API Base:</strong> ${apiBase}<br>
         <strong>Protocol:</strong> ${window.location.protocol}<br>
+        <strong>Security:</strong> 🔒 Manual input disabled<br>
         <strong>Status:</strong> <span id="debugStatus">Starting...</span><br>
         <hr style="border-color: #666;">
         <button onclick="document.getElementById('mobileDebug').remove()" style="background: #ff6b6b; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Close</button>
@@ -388,13 +428,13 @@ function startAppWithFirebaseUser(user) {
     async function getCityFromCoords(lat, lon) {
       try {
         // Add timeout to the OpenStreetMap API call - longer timeout for mobile
-        const isMobile = isMobileDevice();
-        const timeoutMs = isMobile ? 15000 : 10000; // 15 seconds for mobile, 10 for desktop
+        const platform = detectDeviceAndPlatform();
+        const timeoutMs = platform.isMobile ? 15000 : 10000; // 15 seconds for mobile, 10 for desktop
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         
-        debugLog(`Fetching location data with ${timeoutMs}ms timeout, mobile: ${isMobile}`);
+        debugLog(`Fetching location data with ${timeoutMs}ms timeout, mobile: ${platform.isMobile}`);
         
         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`, {
           signal: controller.signal,
@@ -469,7 +509,7 @@ function startAppWithFirebaseUser(user) {
         return tempLocation;
       } catch (error) {
         if (error.name === 'AbortError') {
-          console.warn(`OpenStreetMap API call timed out after ${isMobile ? '15' : '10'} seconds`);
+          console.warn(`OpenStreetMap API call timed out after ${platform.isMobile ? '15' : '10'} seconds`);
           debugLog('OpenStreetMap API timeout');
         } else {
           console.warn('OpenStreetMap API error:', error);
@@ -777,16 +817,11 @@ function startAppWithFirebaseUser(user) {
       debugTimeEnd('Total fetch time');
     };
 
-    const params = new URLSearchParams(window.location.search);
-    debugLog('URL parameters checked');
-    if (params.get('location')) {
-      debugLog('Location parameter found in URL');
-      tempLocation = params.get('location');
-      displayLocationAndFetchData();
-    } else {
-      debugLog('No location parameter, starting geolocation detection');
-      detectUserLocation(); // uses geolocation
-    }
+    // SECURITY: Location query string parameter removed to prevent API abuse
+    // Users must enable location permissions to access the service
+    // This ensures users can only access data for their actual location
+    debugLog('Starting geolocation detection');
+    detectUserLocation(); // uses geolocation
 
     function calculateTrendLine(points, startX, endX) {
       const n = points.length;
@@ -920,125 +955,121 @@ function startAppWithFirebaseUser(user) {
       });
     }
 
-    // Add manual location input functionality
+    // Manual location input is disabled to prevent API abuse
     function addManualLocationInput() {
+      // This function is disabled to prevent API abuse
+      // Users must enable location permissions to access the service
       const dataNotice = document.getElementById('dataNotice');
       if (!dataNotice) return;
       
-      // Create manual location input with mobile-friendly styling
-      const locationInput = document.createElement('div');
-      locationInput.innerHTML = `
-        <div style="margin: 15px 0; padding: 20px; background: rgba(255,107,107,0.15); border-radius: 8px; border: 2px solid rgba(255,107,107,0.4); box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-          <p style="margin: 0 0 15px 0; color: #ff6b6b; font-weight: 600; font-size: 16px; text-align: center;">
-            📍 Location Required
-          </p>
-          <p style="margin: 0 0 15px 0; color: #666; font-size: 14px; text-align: center;">
-            Please enter your city to see temperature data
-          </p>
-          <div style="margin-bottom: 15px;">
-            <input type="text" id="manualLocation" 
-                   placeholder="Enter your city (e.g., Manchester, England, United Kingdom)" 
-                   style="width: 100%; padding: 15px; border: 2px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; text-align: center; color: white; background-color: #333;">
-          </div>
-          <button id="setLocationBtn" 
-                  style="width: 100%; padding: 15px 16px; background: #ff6b6b; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-            🌡️ Show Temperature Data
-          </button>
-          <p style="margin: 10px 0 0 0; font-size: 12px; color: #ccc; text-align: center;">
-            Tip: Include country for better accuracy
-          </p>
-          <details style="margin-top: 15px; font-size: 12px; color: #666;">
-            <summary style="cursor: pointer; color: #ff6b6b; font-weight: 500; text-align: center;">Why didn't location detection work?</summary>
-            <div style="margin-top: 10px; padding: 15px; background: rgba(0,0,0,0.05); border-radius: 6px; font-size: 12px; line-height: 1.4;">
-              <p><strong>Common mobile issues:</strong></p>
-              <ul style="margin: 8px 0; padding-left: 20px;">
-                <li>Location permission denied in browser settings</li>
-                <li>GPS/Location services turned off on device</li>
-                <li>Poor network connection or slow GPS lock</li>
-                <li>Browser privacy settings blocking location access</li>
-              </ul>
-              <p><strong>To fix:</strong> Check your device's location settings and browser permissions, then refresh the page.</p>
-            </div>
-          </details>
+      dataNotice.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: #ff6b6b; background: rgba(255,107,107,0.1); border-radius: 8px; border: 2px solid rgba(255,107,107,0.3);">
+          <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 16px;">🔒 Manual Location Input Disabled</p>
+          <p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">To protect against API abuse, manual location entry is not available. Please enable location permissions in your browser settings to use this service.</p>
+          <p style="margin: 0; font-size: 12px; color: #888;">This ensures users can only access data for their actual location.</p>
         </div>
       `;
+    }
+
+    // Pre-check geolocation permission state
+    async function checkGeolocationPermission() {
+      if (!navigator.permissions || !navigator.permissions.query) {
+        return 'unknown'; // Can't check, will try anyway
+      }
       
-      dataNotice.appendChild(locationInput);
+      try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+        return permission.state;
+      } catch (e) {
+        debugLog('Could not check geolocation permission:', e);
+        return 'unknown';
+      }
+    }
+
+    // Show permission instructions based on current state and platform
+    function showPermissionInstructions(permissionState, isMobile) {
+      const dataNotice = document.getElementById('dataNotice');
+      if (!dataNotice) return;
       
-      // Add event listeners
-      const setLocationBtn = document.getElementById('setLocationBtn');
-      const manualLocationInput = document.getElementById('manualLocation');
+      const platform = detectDeviceAndPlatform();
+      let instructions = '';
       
-      // Focus the input for better mobile UX
-      setTimeout(() => {
-        if (manualLocationInput) {
-          manualLocationInput.focus();
-          // Scroll to make sure the input is visible
-          locationInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
+      if (permissionState === 'denied') {
+        instructions = `
+          <div style="text-align: center; padding: 20px; color: #ff6b6b; background: rgba(255,107,107,0.1); border-radius: 8px; border: 2px solid rgba(255,107,107,0.3);">
+            <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 16px;">📍 Location Access Required</p>
+            <p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">To show temperature data for your exact location, please enable location access:</p>
+            ${getPlatformSpecificInstructions(platform)}
+            <button onclick="window.location.reload()" style="background: #ff6b6b; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; margin-top: 10px;">
+              🔄 Refresh Page After Changing Settings
+            </button>
+          </div>
+        `;
+      } else if (permissionState === 'prompt') {
+        instructions = `
+          <div style="text-align: center; padding: 20px; color: #4dabf7; background: rgba(77,171,247,0.1); border-radius: 8px; border: 2px solid rgba(77,171,247,0.3);">
+            <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 16px;">📍 Location Permission Request</p>
+            <p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">Your browser will ask for location access. Please click <strong>"Allow"</strong> to see temperature data for your exact location.</p>
+            <p style="margin: 0; font-size: 12px; color: #888;">If you don't see a prompt, check your browser's address bar for a location icon.</p>
+          </div>
+        `;
+      }
       
-      setLocationBtn.addEventListener('click', () => {
-        const location = manualLocationInput.value.trim();
-        if (location) {
-          debugLog('Manual location set:', location);
-          tempLocation = location;
-          setLocationCookie(location);
-          
-          // Show loading state immediately
-          const dataNotice = document.getElementById('dataNotice');
-          if (dataNotice) {
-            dataNotice.innerHTML = '<div style="text-align: center; padding: 20px; color: #51cf66;"><p>📍 Location set to: <strong>' + location + '</strong></p><p>Loading temperature data...</p></div>';
-          }
-          
-          // Remove the manual input
-          locationInput.remove();
-          
-          // Start fetching data
-          displayLocationAndFetchData();
-        } else {
-          // Show validation message
-          manualLocationInput.style.borderColor = '#ff6b6b';
-          manualLocationInput.placeholder = 'Please enter a location';
-          manualLocationInput.style.backgroundColor = 'rgba(255,107,107,0.1)';
-          setTimeout(() => {
-            manualLocationInput.style.borderColor = '#ccc';
-            manualLocationInput.style.backgroundColor = 'white';
-            manualLocationInput.placeholder = 'Enter your city (e.g., Manchester, England, United Kingdom)';
-          }, 2000);
-        }
-      });
-      
-      // Allow Enter key to submit
-      manualLocationInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          setLocationBtn.click();
-        }
-      });
-      
-      // Add input validation feedback
-      manualLocationInput.addEventListener('input', () => {
-        if (manualLocationInput.value.trim()) {
-          manualLocationInput.style.borderColor = '#51cf66';
-          manualLocationInput.style.backgroundColor = 'rgba(81,207,102,0.2)';
-        } else {
-          manualLocationInput.style.borderColor = '#ccc';
-          manualLocationInput.style.backgroundColor = '#333';
-        }
-      });
-      
-      // Add CSS for placeholder visibility
-      const style = document.createElement('style');
-      style.textContent = `
-        #manualLocation::placeholder {
-          color: #aaa !important;
-          opacity: 1;
-        }
-        #manualLocation {
-          color: white !important;
-        }
-      `;
-      document.head.appendChild(style);
+      if (instructions) {
+        dataNotice.innerHTML = instructions;
+      }
+    }
+
+    // Get platform-specific location permission instructions
+    function getPlatformSpecificInstructions(platform) {
+      if (platform.isIOS) {
+        return `
+          <div style="text-align: left; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 13px;">
+            <p style="margin: 0 0 10px 0; font-weight: 600;">🍎 On ${platform.os} (${platform.browser}):</p>
+            <ol style="margin: 0; padding-left: 20px; line-height: 1.6;">
+              <li>Go to <strong>Settings > Privacy & Security > Location Services</strong></li>
+              <li>Find <strong>${platform.browser}</strong> in the list</li>
+              <li>Change it to <strong>"Ask Next Time"</strong> or <strong>"While Using"</strong></li>
+              <li>Refresh this page</li>
+            </ol>
+          </div>
+        `;
+      } else if (platform.isAndroid) {
+        return `
+          <div style="text-align: left; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 13px;">
+            <p style="margin: 0 0 10px 0; font-weight: 600;">🤖 On ${platform.os} (${platform.browser}):</p>
+            <ol style="margin: 0; padding-left: 20px; line-height: 1.6;">
+              <li>Tap the <strong>⋮</strong> menu in ${platform.browser}</li>
+              <li>Go to <strong>Settings > Site Settings > Location</strong></li>
+              <li>Change to <strong>"Ask before accessing"</strong></li>
+              <li>Refresh this page</li>
+            </ol>
+          </div>
+        `;
+      } else if (platform.isMobile) {
+        return `
+          <div style="text-align: left; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 13px;">
+            <p style="margin: 0 0 10px 0; font-weight: 600;">📱 On ${platform.os} (${platform.browser}):</p>
+            <ol style="margin: 0; padding-left: 20px; line-height: 1.6;">
+              <li>Check your browser's location settings</li>
+              <li>Look for location permission options</li>
+              <li>Enable location access for this site</li>
+              <li>Refresh this page</li>
+            </ol>
+          </div>
+        `;
+      } else {
+        return `
+          <div style="text-align: left; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 13px;">
+            <p style="margin: 0 0 10px 0; font-weight: 600;">💻 On ${platform.os} (${platform.browser}):</p>
+            <ol style="margin: 0; padding-left: 20px; line-height: 1.6;">
+              <li>Look for the location permission prompt in your browser</li>
+              <li>Click <strong>"Allow"</strong> when prompted</li>
+              <li>If no prompt appears, check your browser's location settings</li>
+            </ol>
+          </div>
+        `;
+      }
     }
 
     // Modify the detectUserLocation function to use cookies
@@ -1051,9 +1082,11 @@ function startAppWithFirebaseUser(user) {
       }
       
       // Log device and environment information for debugging
+      const platform = detectDeviceAndPlatform();
       const deviceInfo = {
         userAgent: navigator.userAgent,
-        isMobile: isMobileDevice(),
+        platform: platform,
+        isMobile: platform.isMobile,
         isSecure: window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
         protocol: window.location.protocol,
         hostname: window.location.hostname,
@@ -1072,7 +1105,7 @@ function startAppWithFirebaseUser(user) {
       console.log('Location detection environment:', deviceInfo);
       
       // Add more specific debugging for mobile location issues
-      if (deviceInfo.isMobile) {
+      if (platform.isMobile) {
         console.log('🔍 MOBILE LOCATION DEBUG INFO:');
         console.log('- HTTPS:', deviceInfo.isSecure);
         console.log('- Geolocation available:', deviceInfo.hasGeolocation);
@@ -1126,15 +1159,15 @@ function startAppWithFirebaseUser(user) {
         const dataNotice = document.getElementById('dataNotice');
         if (dataNotice) {
           dataNotice.innerHTML = `
-            <div style="text-align: center; padding: 15px; color: #ff6b6b; background: rgba(255,107,107,0.1); border-radius: 6px; border: 1px solid rgba(255,107,107,0.3);">
+            <div style="text-align: center; padding: 15px; color: #ff6b6b; background: rgba(255,107,107,0.1); border-radius: 6px; border: 2px solid rgba(255,107,107,0.3);">
               <p style="margin: 0; font-weight: 500;">📍 Location Access</p>
               <p style="margin: 5px 0 0 0; font-size: 14px;">Mobile browsers require HTTPS for automatic location detection. Please enter your location manually below.</p>
             </div>
           `;
         }
         
-        // Show manual input immediately for mobile
-        setTimeout(() => addManualLocationInput(), 500);
+        // Show permission instructions for mobile
+        showPermissionInstructions('denied', true);
         return;
       }
 
@@ -1145,45 +1178,45 @@ function startAppWithFirebaseUser(user) {
         return;
       }
 
-      // Check if geolocation permission is already denied
-      let permissionState = 'unknown';
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const permission = await navigator.permissions.query({ name: 'geolocation' });
-          permissionState = permission.state;
-          if (permission.state === 'denied') {
-            console.warn('Geolocation permission already denied');
-            debugLog('Geolocation permission denied, showing manual location input');
-            const dataNotice = document.getElementById('dataNotice');
-            if (dataNotice) {
-              dataNotice.textContent = 'Location access denied. Please enter your location manually.';
-              dataNotice.style.color = '#ff6b6b';
-            }
-            setTimeout(() => addManualLocationInput(), 1000);
-            return;
-          }
-        } catch (e) {
-          debugLog('Could not check geolocation permission:', e);
-          // Continue anyway - some browsers don't support permissions API
+      // Pre-check geolocation permission state
+      const permissionState = await checkGeolocationPermission();
+      debugLog('Geolocation permission state:', permissionState);
+      
+      if (permissionState === 'denied') {
+        console.warn('Geolocation permission already denied');
+        debugLog('Geolocation permission denied, showing instructions');
+        stopLocationProgress();
+        
+        // Update debug status
+        if (window.updateDebugStatus) {
+          window.updateDebugStatus('Permission denied - showing instructions');
         }
+        
+        showPermissionInstructions('denied', deviceInfo.isMobile);
+        return;
+      }
+      
+      // Show instructions if permission state is 'prompt'
+      if (permissionState === 'prompt') {
+        showPermissionInstructions('prompt', deviceInfo.isMobile);
       }
 
       // Set a timeout that accounts for both geolocation and OpenStreetMap API call
-      const isMobile = isMobileDevice();
-      const totalTimeout = isMobile ? 25000 : 30000; // 25 seconds for mobile, 30 for desktop
+      const devicePlatform = detectDeviceAndPlatform();
+      const totalTimeout = devicePlatform.isMobile ? 25000 : 30000; // 25 seconds for mobile, 30 for desktop
       const geolocationTimeout = setTimeout(() => {
         stopLocationProgress();
         debugLog('Total location detection timed out after ' + totalTimeout/1000 + ' seconds');
         console.warn('Location detection timed out, falling back to default location');
         
-        // For mobile devices, show manual location input
-        if (isMobile) {
+        // For mobile devices, show permission instructions
+        if (devicePlatform.isMobile) {
           const dataNotice = document.getElementById('dataNotice');
           if (dataNotice) {
-            dataNotice.textContent = 'Location detection timed out. Please enter your location manually.';
+            dataNotice.textContent = 'Location detection timed out. Please enable location permissions to use this service.';
             dataNotice.style.color = '#ff6b6b';
-            // Add manual location input for mobile users
-            setTimeout(() => addManualLocationInput(), 1000);
+            // Show permission instructions for mobile users
+            showPermissionInstructions('denied', true);
           }
         }
         
@@ -1199,9 +1232,9 @@ function startAppWithFirebaseUser(user) {
       
       console.log('Geolocation options:', {
         enableHighAccuracy: false,
-        timeout: isMobile ? 20000 : 25000, // 20 seconds for mobile, 25 for desktop
+        timeout: devicePlatform.isMobile ? 20000 : 25000, // 20 seconds for mobile, 25 for desktop
         maximumAge: 300000, // Accept cached location up to 5 minutes old
-        isMobile,
+        isMobile: devicePlatform.isMobile,
         permissionState,
         isSecure
       });
@@ -1237,10 +1270,10 @@ function startAppWithFirebaseUser(user) {
             if (isMobile) {
               const dataNotice = document.getElementById('dataNotice');
               if (dataNotice) {
-                dataNotice.textContent = 'Location lookup failed. Please enter your location manually.';
+                dataNotice.textContent = 'Location lookup failed. Please enable location permissions to use this service.';
                 dataNotice.style.color = '#ff6b6b';
-                // Add manual location input for mobile users
-                setTimeout(() => addManualLocationInput(), 1000);
+                // Show permission instructions for mobile users
+                setTimeout(() => showPermissionInstructions('denied', true), 1000);
               }
             }
           }
@@ -1265,36 +1298,36 @@ function startAppWithFirebaseUser(user) {
           switch(error.code) {
             case error.TIMEOUT:
               debugLog('Geolocation timed out');
-              errorMessage = 'Location detection timed out. Please enter your location manually.';
+              errorMessage = 'Location detection timed out. Please enable location permissions to use this service.';
               showManualInput = true;
-              if (isMobile) {
+              if (devicePlatform.isMobile) {
                 console.warn('Mobile device geolocation timed out - this is common on mobile');
               }
               break;
             case error.POSITION_UNAVAILABLE:
               debugLog('Location information is unavailable');
-              errorMessage = 'Location information unavailable. Please enter your location manually.';
+              errorMessage = 'Location information unavailable. Please enable location permissions to use this service.';
               showManualInput = true;
               break;
             case error.PERMISSION_DENIED:
               debugLog('Location permission denied');
-              errorMessage = 'Location access denied. Please enter your location manually.';
+              errorMessage = 'Location access denied. Please enable location permissions to use this service.';
               showManualInput = true;
-              if (isMobile) {
+              if (devicePlatform.isMobile) {
                 console.warn('Mobile device denied location permission - check browser settings');
               }
               break;
           }
           
-          // Show error message and manual input if needed
+          // Show error message and permission instructions if needed
           const dataNotice = document.getElementById('dataNotice');
           if (dataNotice) {
-            dataNotice.textContent = errorMessage;
-            dataNotice.style.color = '#ff6b6b';
-            
             if (showManualInput) {
-              // Add manual location input for mobile users or when geolocation fails
-              setTimeout(() => addManualLocationInput(), 1000);
+              // Show permission instructions instead of manual input
+              showPermissionInstructions('denied', deviceInfo.isMobile);
+            } else {
+              dataNotice.textContent = errorMessage;
+              dataNotice.style.color = '#ff6b6b';
             }
           }
           
@@ -1302,7 +1335,7 @@ function startAppWithFirebaseUser(user) {
         },
         {
           enableHighAccuracy: false, // Don't wait for GPS
-          timeout: isMobile ? 20000 : 25000, // 20 seconds for mobile, 25 for desktop
+          timeout: devicePlatform.isMobile ? 20000 : 25000, // 20 seconds for mobile, 25 for desktop
           maximumAge: 300000 // Accept cached location up to 5 minutes old
         }
       );
