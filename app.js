@@ -856,7 +856,7 @@ onAuthStateChanged(auth, (user) => {
       const dataNotice = document.getElementById('dataNotice');
       if (dataNotice) {
         dataNotice.innerHTML = `<div style="text-align: center; padding: 15px; color: #51cf66; background: rgba(81,207,102,0.1); border-radius: 6px; border: 1px solid rgba(81,207,102,0.3);">
-          <p style="margin: 0; font-weight: 500;">📍 Location set to: <strong>${getDisplayLocation(tempLocation)}</strong></p>
+          <p style="margin: 0; font-weight: 500;">📍 Location set to: <strong>${getDisplayCity(tempLocation)}</strong></p>
           <p style="margin: 5px 0 0 0; font-size: 14px;">Loading temperature data...</p>
         </div>`;
       }
@@ -900,7 +900,7 @@ onAuthStateChanged(auth, (user) => {
       if (dataNotice) {
         dataNotice.innerHTML = `<div style="text-align: center; padding: 15px; color: #51cf66; background: rgba(81,207,102,0.1); border-radius: 6px; border: 1px solid rgba(81,207,102,0.3);">
           <p style="margin: 0; font-weight: 500;">✅ Temperature data loaded successfully!</p>
-          <p style="margin: 5px 0 0 0; font-size: 14px;">Showing data for ${getDisplayLocation(tempLocation)}</p>
+          <p style="margin: 5px 0 0 0; font-size: 14px;">Showing data for ${getDisplayCity(tempLocation)}</p>
         </div>`;
       }
       
