@@ -194,7 +194,7 @@ onAuthStateChanged(auth, (user) => {
     const apiBase = (() => {
       // Development (local)
       if (import.meta.env.DEV) {
-        return '/api'; // Vite proxy
+        return 'http://localhost:3000'; // Point to server.js
       }
       // Production
       return 'https://api.temphist.com';
@@ -408,17 +408,12 @@ onAuthStateChanged(auth, (user) => {
           path,
           encodedPath,
           fullUrl,
-          hostname: window.location.hostname,
-          // Show what the encoding does
-          'spaces become': path.includes(' ') ? '%20' : 'none',
-          'commas become': path.includes(',') ? '%2C' : 'none'
+          hostname: window.location.hostname
         });
       }
       
       return fullUrl;
     }
-
-
 
     // Helper function to get just the city name (first location component)
     function getDisplayCity(fullLocation) {
@@ -599,16 +594,27 @@ onAuthStateChanged(auth, (user) => {
         }
 
         // Update the chart with the weather data
-        // API already returns {x: temperature, y: year} - perfect for horizontal bars!
-        const chartData = data.weather.data;
+        // Transform API data from {x: year, y: temperature} to {x: temperature, y: year} for horizontal bars
+        const chartData = data.weather.data.map(point => ({ x: point.y, y: point.x }));
         
         debugLog('Raw weather data:', data.weather.data);
-        debugLog('Chart data (API format is already correct):', chartData);
+        debugLog('Chart data:', chartData);
         debugLog('Data structure:', {
-          'API format': 'x: temperature, y: year (already correct!)',
+          'Expected format': 'x: temperature, y: year',
           'Sample point': chartData[0],
           'Temperature values (p.x)': chartData.map(p => p.x),
           'Year values (p.y)': chartData.map(p => p.y)
+        });
+        
+        // Additional debugging for data format issues
+        console.log('🔍 DEBUG: Data format check');
+        console.log('First data point:', chartData[0]);
+        console.log('All data points:', chartData);
+        console.log('X values (should be temperatures):', chartData.map(p => p.x));
+        console.log('Y values (should be years):', chartData.map(p => p.y));
+        console.log('Data types:', {
+          'x type': typeof chartData[0]?.x,
+          'y type': typeof chartData[0]?.y
         });
         
         // Create or update chart
@@ -803,10 +809,10 @@ onAuthStateChanged(auth, (user) => {
 
         // Update trend line if enabled
         if (showTrend && chart) {
-          // chartData is {x: temperature, y: year}, but calculateTrendLine expects {x: year, y: temperature}
+          // chartData is now {x: temperature, y: year} (after transformation), but calculateTrendLine expects {x: year, y: temperature}
           const trendData = calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
             startYear - 0.5, currentYear + 0.5);
-          chart.data.datasets[0].data = trendData.points;
+          chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x }));
         }
 
         // Update text elements
