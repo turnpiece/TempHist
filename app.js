@@ -37,7 +37,7 @@ onAuthStateChanged(auth, (user) => {
   // Move your main code into a function:
   function startAppWithFirebaseUser(user) {
     // Constants and configuration
-    const DEBUGGING = true;
+    const DEBUGGING = false;
     
     // SECURITY NOTE: Manual location input is disabled to prevent API abuse.
     // Users must enable location permissions to access the service.
@@ -244,6 +244,9 @@ onAuthStateChanged(auth, (user) => {
       dateToUse.setDate(dateToUse.getDate() - 1);
       debugLog('Using yesterday\'s date');
     }
+    
+    // Update loading message for date stage
+    updateLoadingMessageByStage('date');
 
     // Handle 29 Feb fallback to 28 Feb if not a leap year in comparison range
     const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
@@ -295,6 +298,29 @@ onAuthStateChanged(auth, (user) => {
           dataNotice.textContent = progressText;
         }
       }, 500);
+    }
+    
+    // Function to update loading message based on current stage
+    function updateLoadingMessage(stage) {
+      const loadingText = document.getElementById('loadingText');
+      if (!loadingText) return;
+      
+      switch(stage) {
+        case 'date':
+          loadingText.textContent = 'Determining date...';
+          break;
+        case 'location':
+          loadingText.textContent = 'Determining your location...';
+          break;
+        case 'permission':
+          loadingText.textContent = 'Requesting location permission...';
+          break;
+        case 'fetching':
+          loadingText.textContent = 'Loading temperature data...';
+          break;
+        default:
+          loadingText.textContent = '';
+      }
     }
     
     function stopLocationProgress() {
@@ -371,6 +397,29 @@ onAuthStateChanged(auth, (user) => {
         loadingText.textContent = 'The server is taking a while to respond.';
       }
     }
+    
+    // Function to update loading message based on current stage (for initial stages)
+    function updateLoadingMessageByStage(stage) {
+      const loadingText = document.getElementById('loadingText');
+      if (!loadingText) return;
+      
+      switch(stage) {
+        case 'date':
+          loadingText.textContent = 'Determining date...';
+          break;
+        case 'location':
+          loadingText.textContent = 'Determining your location...';
+          break;
+        case 'permission':
+          loadingText.textContent = 'Requesting location permission...';
+          break;
+        case 'fetching':
+          loadingText.textContent = 'Loading temperature data...';
+          break;
+        default:
+          loadingText.textContent = '';
+      }
+    }
 
     // Show initial loading state (only after date and location are known)
     function showInitialLoadingState() {
@@ -387,7 +436,8 @@ onAuthStateChanged(auth, (user) => {
       canvasEl.classList.remove('visible');
       canvasEl.classList.add('hidden');
       
-      updateLoadingMessage();
+      // Update loading message for fetching stage
+      updateLoadingMessageByStage('fetching');
       
       // Loading area is now visible - user can scroll naturally
     }
@@ -1122,6 +1172,8 @@ onAuthStateChanged(auth, (user) => {
         }
       }
       
+      // Update loading message for location stage
+      updateLoadingMessageByStage('location');
       startLocationProgress();
       
       // Check for cached location first
@@ -1213,6 +1265,9 @@ onAuthStateChanged(auth, (user) => {
       }, totalTimeout);
 
       debugLog('Requesting geolocation...');
+      
+      // Update loading message for permission stage
+      updateLoadingMessageByStage('permission');
       
       // Update debug status
       if (window.updateDebugStatus) {
