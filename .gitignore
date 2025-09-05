@@ -41,3 +41,6 @@ weather_cache/
 # Deployment scripts (contain sensitive server information)
 deploy.sh
 deploy-dev.sh
+
+# Override global gitignore for this project
+!.htaccess
