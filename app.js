@@ -960,15 +960,13 @@ onAuthStateChanged(auth, (user) => {
       canvasEl.classList.add('visible');
       canvasEl.classList.remove('hidden');
       
-      if (DEBUGGING) {
-        // Clear the data notice and show success message
-        const dataNotice = document.getElementById('dataNotice');
-        if (dataNotice) {
-          dataNotice.innerHTML = `<div style="text-align: center; padding: 15px; color: #51cf66; background: rgba(81,207,102,0.1); border-radius: 6px; border: 1px solid rgba(81,207,102,0.3);">
-            <p style="margin: 0; font-weight: 500;">✅ Temperature data loaded successfully!</p>
-            <p style="margin: 5px 0 0 0; font-size: 14px;">Showing data for ${getDisplayCity(tempLocation)}</p>
-          </div>`;
-        }
+      // Clear the data notice and show success message if debugging
+      const dataNotice = document.getElementById('dataNotice');
+      if (dataNotice) {
+        dataNotice.innerHTML = DEBUGGING ? `<div style="text-align: center; padding: 15px; color: #51cf66; background: rgba(81,207,102,0.1); border-radius: 6px; border: 1px solid rgba(81,207,102,0.3);">
+          <p style="margin: 0; font-weight: 500;">✅ Temperature data loaded successfully!</p>
+          <p style="margin: 5px 0 0 0; font-size: 14px;">Showing data for ${getDisplayCity(tempLocation)}</p>
+        </div>` : '';
       }
       
       if (chart) {
