@@ -144,22 +144,28 @@ These scripts handle:
 
 **Note**: Deployment scripts contain server-specific paths and should not be committed to version control.
 
-## SPA Deployment and .htaccess
+## Static Site Deployment and .htaccess
 
-If you are deploying to Apache (e.g., SiteGround) and using client-side routing, add a `.htaccess` file to your web root:
+If you are deploying to Apache (e.g., SiteGround) and want clean URLs for static pages, add a `.htaccess` file to your web root:
 
 ```apache
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /index.html [L]
-</IfModule>
+RewriteEngine On
+
+# Remove .html extension from URLs
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^([^\.]+)$ $1.html [NC,L]
+
+# Redirect .html to clean URLs (optional - removes .html from browser address bar)
+RewriteCond %{THE_REQUEST} /([^.]+)\.html [NC]
+RewriteRule ^ /%1 [NC,L,R=301]
 ```
 
-This ensures all routes are handled by your SPA.
+This allows:
+
+- `https://yoursite.com/privacy` → serves `privacy.html`
+- `https://yoursite.com/privacy.html` → redirects to `/privacy`
+- Clean URLs for all static pages
 
 ## Firebase Setup
 
