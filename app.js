@@ -474,6 +474,53 @@ onAuthStateChanged(auth, (user) => {
       return parts[0];
     }
 
+    // Helper function to build record API paths
+    function getRecordPath(period, location, identifier) {
+      return `/v1/records/${period}/${encodeURIComponent(location)}/${identifier}`;
+    }
+
+    // Fetch average data from records API
+    async function fetchAverageData() {
+      try {
+        const path = `${getRecordPath('daily', tempLocation, `${month}-${day}`)}/average`;
+        const url = getApiUrl(path);
+        const response = await apiFetch(url);
+        const data = await response.json();
+        return data.average; // { temp, tempmax, tempmin }
+      } catch (error) {
+        console.error('Error fetching average data:', error);
+        throw error;
+      }
+    }
+
+    // Fetch trend data from records API
+    async function fetchTrendData() {
+      try {
+        const path = `${getRecordPath('daily', tempLocation, `${month}-${day}`)}/trend`;
+        const url = getApiUrl(path);
+        const response = await apiFetch(url);
+        const data = await response.json();
+        return data.trend; // { slope, units }
+      } catch (error) {
+        console.error('Error fetching trend data:', error);
+        throw error;
+      }
+    }
+
+    // Fetch summary data from records API
+    async function fetchSummaryData() {
+      try {
+        const path = `${getRecordPath('daily', tempLocation, `${month}-${day}`)}/summary`;
+        const url = getApiUrl(path);
+        const response = await apiFetch(url);
+        const data = await response.json();
+        return data.summary; // string
+      } catch (error) {
+        console.error('Error fetching summary data:', error);
+        throw error;
+      }
+    }
+
     async function getCityFromCoords(lat, lon) {
       try {
         // Add timeout to the OpenStreetMap API call - longer timeout for mobile
@@ -610,44 +657,53 @@ onAuthStateChanged(auth, (user) => {
       document.getElementById('errorMessage').textContent = '';
     }
 
-    // Modify the fetchHistoricalData function to handle timeouts better
+    // Modified fetchHistoricalData function to use new records API
     const fetchHistoricalData = async () => {
       debugTime('Total fetch time');
       showInitialLoadingState();
       hideError();
 
       try {
-        const url = getApiUrl(`/data/${tempLocation}/${month}-${day}`);
-        const response = await apiFetch(url);
+        // Fetch weather data using new records API
+        const weatherPath = getRecordPath('daily', tempLocation, `${month}-${day}`);
+        const weatherUrl = getApiUrl(weatherPath);
+        const weatherResponse = await apiFetch(weatherUrl);
         
         // Log the raw response for debugging
-        const responseText = await response.text();
-        console.log('🔍 Raw API Response:', {
-          status: response.status,
-          statusText: response.statusText,
-          headers: Object.fromEntries(response.headers.entries()),
+        const responseText = await weatherResponse.text();
+        console.log('🔍 Raw Weather API Response:', {
+          status: weatherResponse.status,
+          statusText: weatherResponse.statusText,
+          headers: Object.fromEntries(weatherResponse.headers.entries()),
           body: responseText
         });
         
         // Try to parse as JSON
-        let data;
+        let weatherData;
         try {
-          data = JSON.parse(responseText);
+          weatherData = JSON.parse(responseText);
         } catch (parseError) {
           console.error('❌ JSON Parse Error:', parseError);
           console.error('❌ Response was not valid JSON:', responseText);
           throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
         }
 
-        if (!data.weather?.data) {
-          throw new Error('Invalid data format received from '+url);
+        if (!weatherData.data) {
+          throw new Error('Invalid data format received from '+weatherUrl);
         }
+
+        // Fetch additional data from records API in parallel
+        const [averageData, trendData, summaryData] = await Promise.all([
+          fetchAverageData(),
+          fetchTrendData(),
+          fetchSummaryData()
+        ]);
 
         // Update the chart with the weather data
         // Transform API data from {x: year, y: temperature} to {x: temperature, y: year} for horizontal bars
-        const chartData = data.weather.data.map(point => ({ x: point.y, y: point.x }));
+        const chartData = weatherData.data.map(point => ({ x: point.y, y: point.x }));
         
-        debugLog('Raw weather data:', data.weather.data);
+        debugLog('Raw weather data:', weatherData.data);
         debugLog('Chart data:', chartData);
         debugLog('Data structure:', {
           'Expected format': 'x: temperature, y: year',
@@ -755,13 +811,13 @@ onAuthStateChanged(auth, (user) => {
                       type: 'line',
                       yMin: startYear - 1,
                       yMax: currentYear + 1,
-                      xMin: data.average.average,
-                      xMax: data.average.average,
+                      xMin: averageData.temp,
+                      xMax: averageData.temp,
                       borderColor: avgColour,
                       borderWidth: 2,
                       label: {
                         display: true,
-                        content: `Average: ${data.average.average.toFixed(1)}°C`,
+                        content: `Average: ${averageData.temp.toFixed(1)}°C`,
                         position: 'start',
                         font: {
                           size: 12
@@ -865,13 +921,13 @@ onAuthStateChanged(auth, (user) => {
           chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x }));
         }
 
-        // Update text elements
-        document.getElementById('summaryText').textContent = data.summary || 'No summary available.';
-        document.getElementById('avgText').textContent = `Average: ${data.average.average.toFixed(1)}°C`;
+        // Update text elements with new API data
+        document.getElementById('summaryText').textContent = summaryData || 'No summary available.';
+        document.getElementById('avgText').textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
         
-        if (data.trend) {
-          const direction = data.trend.slope > 0 ? 'rising' : data.trend.slope < 0 ? 'falling' : 'stable';
-          const formatted = `Trend: ${direction} at ${Math.abs(data.trend.slope).toFixed(2)} ${data.trend.units}`;
+        if (trendData) {
+          const direction = trendData.slope > 0 ? 'rising' : trendData.slope < 0 ? 'falling' : 'stable';
+          const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(2)} ${trendData.units}`;
           document.getElementById('trendText').textContent = formatted;
         }
 
