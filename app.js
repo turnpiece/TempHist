@@ -479,47 +479,7 @@ onAuthStateChanged(auth, (user) => {
       return `/v1/records/${period}/${encodeURIComponent(location)}/${identifier}`;
     }
 
-    // Fetch average data from records API
-    async function fetchAverageData() {
-      try {
-        const path = `${getRecordPath('daily', tempLocation, `${month}-${day}`)}/average`;
-        const url = getApiUrl(path);
-        const response = await apiFetch(url);
-        const data = await response.json();
-        return data.average; // { temp, tempmax, tempmin }
-      } catch (error) {
-        console.error('Error fetching average data:', error);
-        throw error;
-      }
-    }
 
-    // Fetch trend data from records API
-    async function fetchTrendData() {
-      try {
-        const path = `${getRecordPath('daily', tempLocation, `${month}-${day}`)}/trend`;
-        const url = getApiUrl(path);
-        const response = await apiFetch(url);
-        const data = await response.json();
-        return data.trend; // { slope, units }
-      } catch (error) {
-        console.error('Error fetching trend data:', error);
-        throw error;
-      }
-    }
-
-    // Fetch summary data from records API
-    async function fetchSummaryData() {
-      try {
-        const path = `${getRecordPath('daily', tempLocation, `${month}-${day}`)}/summary`;
-        const url = getApiUrl(path);
-        const response = await apiFetch(url);
-        const data = await response.json();
-        return data.summary; // string
-      } catch (error) {
-        console.error('Error fetching summary data:', error);
-        throw error;
-      }
-    }
 
     async function getCityFromCoords(lat, lon) {
       try {
@@ -688,22 +648,26 @@ onAuthStateChanged(auth, (user) => {
           throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
         }
 
-        if (!weatherData.data) {
-          throw new Error('Invalid data format received from '+weatherUrl);
+        // Log the full response structure for debugging
+        console.log('🔍 Full API Response Structure:', weatherData);
+        
+        // The new v1/records API structure - temperature data is in 'values' array
+        if (!weatherData.values || !Array.isArray(weatherData.values)) {
+          console.error('❌ Unexpected API response structure:', weatherData);
+          throw new Error('Invalid data format received from '+weatherUrl + '. Expected values array.');
         }
 
-        // Fetch additional data from records API in parallel
-        const [averageData, trendData, summaryData] = await Promise.all([
-          fetchAverageData(),
-          fetchTrendData(),
-          fetchSummaryData()
-        ]);
+        // Extract all data directly from the single response
+        const temperatureData = weatherData.values;
+        const averageData = { temp: weatherData.average.mean };
+        const trendData = weatherData.trend;
+        const summaryData = weatherData.summary;
 
         // Update the chart with the weather data
-        // Transform API data from {x: year, y: temperature} to {x: temperature, y: year} for horizontal bars
-        const chartData = weatherData.data.map(point => ({ x: point.y, y: point.x }));
+        // API returns data in {year, temperature} format, transform to {x: temperature, y: year} for horizontal bars
+        const chartData = temperatureData.map(point => ({ x: point.temperature, y: point.year }));
         
-        debugLog('Raw weather data:', weatherData.data);
+        debugLog('Raw weather data:', temperatureData);
         debugLog('Chart data:', chartData);
         debugLog('Data structure:', {
           'Expected format': 'x: temperature, y: year',
@@ -927,7 +891,7 @@ onAuthStateChanged(auth, (user) => {
         
         if (trendData) {
           const direction = trendData.slope > 0 ? 'rising' : trendData.slope < 0 ? 'falling' : 'stable';
-          const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(2)} ${trendData.units}`;
+          const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)} ${trendData.unit}`;
           document.getElementById('trendText').textContent = formatted;
         }
 
