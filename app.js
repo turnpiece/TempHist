@@ -511,6 +511,26 @@ onAuthStateChanged(auth, (user) => {
       return `/v1/records/${period}/${encodeURIComponent(location)}/${identifier}`;
     }
 
+    // Idle-callback (safe) for background work
+    const ric = window.requestIdleCallback || function (cb) {
+      return setTimeout(() => cb({ timeRemaining: () => 0, didTimeout: true }), 150);
+    };
+
+    // Build rolling-bundle path with query
+    function getRollingBundlePath(location, anchorISO, qs = '') {
+      const base = `/v1/records/rolling-bundle/${encodeURIComponent(location)}/${anchorISO}`;
+      return qs ? `${base}?${qs}` : base;
+    }
+
+    // Format MM-DD for "yesterday/previous" given a base Date
+    function mmddFrom(anchorDate, offsetDays = 0) {
+      const d = new Date(anchorDate);
+      d.setDate(d.getDate() - offsetDays);
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${m}-${day}`;
+    }
+
 
 
     async function getCityFromCoords(lat, lon) {
@@ -657,6 +677,81 @@ onAuthStateChanged(auth, (user) => {
       const errorContainer = document.getElementById('errorContainer');
       errorContainer.style.display = 'none';
       document.getElementById('errorMessage').textContent = '';
+    }
+
+    // Prefetch scheduler for background data loading
+    function schedulePrefetchAfterDaily(location, anchorDateISO, unitGroup = 'metric', monthMode = 'rolling1m') {
+      // Daily: yesterday / two days ago / three days ago
+      const idD1 = mmddFrom(dateToUse, 1);
+      const idD2 = mmddFrom(dateToUse, 2);
+      const idD3 = mmddFrom(dateToUse, 3);
+
+      ric(async () => {
+        try {
+          const p = `${getRecordPath('daily', location, idD1)}?include=series,average,trend,summary`;
+          const idToken = await currentUser.getIdToken();
+          await fetch(getApiUrl(p), {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+        } catch (e) {
+          // Silently ignore prefetch errors
+        }
+      });
+      ric(async () => {
+        try {
+          const p = `${getRecordPath('daily', location, idD2)}?include=series,average,trend,summary`;
+          const idToken = await currentUser.getIdToken();
+          await fetch(getApiUrl(p), {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+        } catch (e) {
+          // Silently ignore prefetch errors
+        }
+      });
+      ric(async () => {
+        try {
+          const p = `${getRecordPath('daily', location, idD3)}?include=series,average,trend,summary`;
+          const idToken = await currentUser.getIdToken();
+          await fetch(getApiUrl(p), {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+        } catch (e) {
+          // Silently ignore prefetch errors
+        }
+      });
+
+      // Rolling: week, month, year (exclude daily parts to save bandwidth)
+      ric(async () => {
+        try {
+          const qs = new URLSearchParams({
+            include: 'week,month,year',
+            unit_group: unitGroup,
+            month_mode: monthMode
+          }).toString();
+          const idToken = await currentUser.getIdToken();
+          await fetch(getApiUrl(getRollingBundlePath(location, anchorDateISO, qs)), {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+        } catch (e) {
+          // Silently ignore prefetch errors
+        }
+      });
     }
 
     // Modified fetchHistoricalData function to use new records API
@@ -950,6 +1045,10 @@ onAuthStateChanged(auth, (user) => {
         // Show the chart
         showChart();
         chart.update('none');
+
+        // Schedule background prefetching after daily chart renders successfully
+        const anchorISO = `${currentYear}-${month}-${day}`; // e.g. "2025-09-24"
+        schedulePrefetchAfterDaily(tempLocation, anchorISO, 'metric', 'rolling1m');
 
       } catch (error) {
         // Don't show error if request was aborted
