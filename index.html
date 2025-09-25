@@ -10,64 +10,80 @@
       defer
     ></script>
     <link rel="dns-prefetch" href="https://api.temphist.com" />
-    <style>
-      body {
-        background-color: #242456;
-        padding: 20px;
-      }
-      #header {
-        height: 60px;
-        border-bottom: 1px solid;
-      }
-      #content {
-        min-height: 1200px;
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div id="header">
-      <div class="container">
-        <div id="logo">
-          <object data="assets/logo.svg" type="image/svg+xml" title="TempHist">
-            <img
-              src="assets/logo.png"
-              alt="TempHist logo"
-              width="50"
-              height="50"
-            />
-          </object>
-        </div>
-        <h1>TempHist</h1>
+    <header id="header">
+      <div class="header-left">
+        <a href="#/today">
+          <div id="logo">
+            <object data="assets/logo.svg" type="image/svg+xml" title="TempHist">
+              <img
+                src="assets/logo.png"
+                alt="TempHist logo"
+                width="50"
+                height="50"
+              />
+            </object>
+          </div>
+          <h1>TempHist</h1>
+        </a>
       </div>
+      <button id="burgerBtn" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">☰</button>
+    </header>
+
+    <div id="appShell">
+      <nav id="sidebar" aria-label="Primary">
+        <ul>
+          <li><a href="#/today" data-route="/today">Today</a></li>
+          <li><a href="#/week" data-route="/week">Past week</a></li>
+          <li><a href="#/month" data-route="/month">Past month</a></li>
+          <li><a href="#/year" data-route="/year">Past year</a></li>
+          <li><a href="/about" data-route="/about">About</a></li>
+          <li><a href="/privacy" data-route="/privacy">Privacy</a></li>
+        </ul>
+      </nav>
+
+      <main id="viewOutlet" role="main">
+        <!-- Default view (Today) keeps your existing chart DOM -->
+        <section id="todayView" data-view="today">
+          <div class="container">
+            <div id="dataNotice" class="notice"></div>
+            <div id="dateText" class="standard-text"></div>
+            <div id="locationText" class="standard-text"></div>
+            <div id="summaryText" class="standard-text"></div>
+            
+            <div class="chart-container">
+              <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p id="loadingText">Loading temperature data…</p>
+              </div>
+              
+              <div id="errorContainer" style="display: none;">
+                <div id="errorMessage"></div>
+                <button id="reloadButton">Reload</button>
+              </div>
+              
+              <canvas id="tempChart"></canvas>
+            </div>
+            
+            <div id="avgText" class="standard-text"></div>
+            <div id="trendText" class="standard-text"></div>
+          </div>
+        </section>
+
+        <!-- Placeholders for other pages (rendered dynamically) -->
+        <section id="weekView" data-view="week" hidden></section>
+        <section id="monthView" data-view="month" hidden></section>
+        <section id="yearView" data-view="year" hidden></section>
+      </main>
     </div>
 
-    <div id="content">
-      <div class="container">
-        <div id="dateText" class="standard-text"></div>
-        <div id="locationText" class="standard-text"></div>
-        <div id="summaryText" class="standard-text"></div>
-        <div class="chart-container">
-          <div id="loading">
-            <div class="spinner"></div>
-            <p id="loadingText"></p>
-          </div>
-          <div class="skeleton" id="skeletonLoader"></div>
-          <div id="errorContainer" style="display: none;">
-            <div id="errorMessage"></div>
-            <button id="reloadButton">Reload</button>
-          </div>
-          <canvas id="tempChart"></canvas>
-        </div>
-        <div id="avgText" class="standard-text"></div>
-        <div id="trendText" class="standard-text"></div>
-        <p id="dataNotice"></p>
-      </div>
-    </div>
+    <footer id="footer">
+      <small>© TempHist • <a href="/privacy">Privacy</a></small>
+    </footer>
 
-    <div id="footer">
-      <div class="container">
-      </div>
-    </div>
-    <script type="module" src="/app.js"></script>
+    <script type="module" src="/app.js" defer></script>
+    <script src="router.js" defer></script>
   </body>
 </html>

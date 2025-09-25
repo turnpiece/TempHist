@@ -462,8 +462,10 @@ onAuthStateChanged(auth, (user) => {
       loadingEl.classList.remove('hidden');
 
       const skeleton = document.getElementById('skeletonLoader');
-      skeleton.classList.remove('hidden');
-      skeleton.classList.add('visible');
+      if (skeleton) {
+        skeleton.classList.remove('hidden');
+        skeleton.classList.add('visible');
+      }
 
       canvasEl.classList.remove('visible');
       canvasEl.classList.add('hidden');
@@ -663,20 +665,38 @@ onAuthStateChanged(auth, (user) => {
         console.warn('Error UI elements not found in DOM when showError called');
         return;
       }
-      document.getElementById('loading').classList.add('hidden');
-      document.getElementById('loading').classList.remove('visible');
-      document.getElementById('skeletonLoader').classList.add('hidden');
-      document.getElementById('skeletonLoader').classList.remove('visible');
-      document.getElementById('tempChart').classList.remove('visible');
-      document.getElementById('tempChart').classList.add('hidden');
+      
+      const loadingEl = document.getElementById('loading');
+      if (loadingEl) {
+        loadingEl.classList.add('hidden');
+        loadingEl.classList.remove('visible');
+      }
+      
+      const skeleton = document.getElementById('skeletonLoader');
+      if (skeleton) {
+        skeleton.classList.add('hidden');
+        skeleton.classList.remove('visible');
+      }
+      
+      const tempChart = document.getElementById('tempChart');
+      if (tempChart) {
+        tempChart.classList.remove('visible');
+        tempChart.classList.add('hidden');
+      }
+      
       errorMessage.textContent = message;
       errorContainer.style.display = 'block';
     }
 
     function hideError() {
       const errorContainer = document.getElementById('errorContainer');
-      errorContainer.style.display = 'none';
-      document.getElementById('errorMessage').textContent = '';
+      if (errorContainer) {
+        errorContainer.style.display = 'none';
+        const errorMessage = document.getElementById('errorMessage');
+        if (errorMessage) {
+          errorMessage.textContent = '';
+        }
+      }
     }
 
     // Prefetch scheduler for background data loading
@@ -1131,8 +1151,10 @@ onAuthStateChanged(auth, (user) => {
       loadingEl.classList.remove('visible');
 
       const skeleton = document.getElementById('skeletonLoader');
-      skeleton.classList.add('hidden');
-      skeleton.classList.remove('visible');
+      if (skeleton) {
+        skeleton.classList.add('hidden');
+        skeleton.classList.remove('visible');
+      }
 
       canvasEl.classList.add('visible');
       canvasEl.classList.remove('hidden');
@@ -1576,4 +1598,16 @@ onAuthStateChanged(auth, (user) => {
   } else {
     mainAppLogic();
   }
+
+  // Expose the today view render function to the router
+  window.TempHistViews = window.TempHistViews || {};
+  window.TempHistViews.today = {
+    render: function() {
+      // The today view is already rendered by the main app logic
+      // This function can be used to trigger re-rendering if needed
+      if (typeof fetchData === 'function') {
+        fetchData();
+      }
+    }
+  };
 }
