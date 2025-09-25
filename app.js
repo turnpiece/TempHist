@@ -139,8 +139,30 @@ onAuthStateChanged(auth, (user) => {
   // Store the Firebase user for use in apiFetch
   let currentUser = user;
 
+  // Global AbortController to cancel in-flight requests
+  let inFlightController = null;
+
+  // Cleanup function to cancel any pending requests
+  function cleanupRequests() {
+    if (inFlightController) {
+      inFlightController.abort();
+      inFlightController = null;
+    }
+  }
+
+  // Clean up requests when page is unloaded
+  window.addEventListener('beforeunload', cleanupRequests);
+
   // Wrapper function for API fetches that adds the Firebase ID token
   async function apiFetch(url, options = {}) {
+    // Cancel any existing in-flight request
+    if (inFlightController) {
+      inFlightController.abort();
+    }
+    
+    // Create new AbortController for this request
+    inFlightController = new AbortController();
+    
     // Get the Firebase ID token for the current user
     const idToken = await currentUser.getIdToken();
 
@@ -155,7 +177,8 @@ onAuthStateChanged(auth, (user) => {
       // First try a simple fetch without any special options
       const response = await fetch(url, { 
         method: options.method || 'GET',
-        headers
+        headers,
+        signal: inFlightController.signal
       });
 
       if (!response.ok) {
@@ -172,6 +195,12 @@ onAuthStateChanged(auth, (user) => {
 
       return response;
     } catch (error) {
+      // Don't log errors if the request was aborted
+      if (error.name === 'AbortError') {
+        console.log('Request aborted:', url);
+        throw error;
+      }
+      
       console.error('Fetch error:', {
         url,
         error: error.message,
@@ -179,6 +208,9 @@ onAuthStateChanged(auth, (user) => {
         stack: error.stack
       });
       throw error;
+    } finally {
+      // Clear the controller after request completes (success or failure)
+      inFlightController = null;
     }
   }
 
@@ -483,17 +515,24 @@ onAuthStateChanged(auth, (user) => {
 
     async function getCityFromCoords(lat, lon) {
       try {
+        // Cancel any existing in-flight request
+        if (inFlightController) {
+          inFlightController.abort();
+        }
+        
+        // Create new AbortController for this request
+        inFlightController = new AbortController();
+        
         // Add timeout to the OpenStreetMap API call - longer timeout for mobile
         const platform = detectDeviceAndPlatform();
         const timeoutMs = platform.isMobile ? 15000 : 10000; // 15 seconds for mobile, 10 for desktop
         
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        const timeoutId = setTimeout(() => inFlightController.abort(), timeoutMs);
         
         debugLog(`Fetching location data with ${timeoutMs}ms timeout, mobile: ${platform.isMobile}`);
         
         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`, {
-          signal: controller.signal,
+          signal: inFlightController.signal,
           headers: {
             'Accept': 'application/json',
             'User-Agent': 'TempHist/1.0'
@@ -565,13 +604,16 @@ onAuthStateChanged(auth, (user) => {
         return tempLocation;
       } catch (error) {
         if (error.name === 'AbortError') {
-          console.warn(`OpenStreetMap API call timed out after ${platform.isMobile ? '15' : '10'} seconds`);
-          debugLog('OpenStreetMap API timeout');
+          console.log('OpenStreetMap API call aborted');
+          debugLog('OpenStreetMap API aborted');
         } else {
           console.warn('OpenStreetMap API error:', error);
           debugLog('OpenStreetMap API error:', error.message);
         }
         throw error;
+      } finally {
+        // Clear the controller after request completes (success or failure)
+        inFlightController = null;
       }
     }
 
@@ -620,6 +662,13 @@ onAuthStateChanged(auth, (user) => {
     // Modified fetchHistoricalData function to use new records API
     const fetchHistoricalData = async () => {
       debugTime('Total fetch time');
+      
+      // Cancel any existing in-flight requests
+      if (inFlightController) {
+        inFlightController.abort();
+        inFlightController = null;
+      }
+      
       showInitialLoadingState();
       hideError();
 
@@ -759,6 +808,9 @@ onAuthStateChanged(auth, (user) => {
               indexAxis: 'y',
               responsive: true,
               maintainAspectRatio: false,
+              parsing: false,         // we feed {x,y} directly
+              animation: false,       // instant updates
+              normalized: true,       // faster parsing if large arrays
               layout: {
                 padding: {
                   left: 0,
@@ -900,6 +952,12 @@ onAuthStateChanged(auth, (user) => {
         chart.update('none');
 
       } catch (error) {
+        // Don't show error if request was aborted
+        if (error.name === 'AbortError') {
+          console.log('Historical data fetch aborted');
+          return;
+        }
+        
         console.error('Error fetching historical data:', error);
         hideChart();
         showError('Sorry, there was a problem connecting to the temperature data server. Please check your connection or try again later.');
@@ -1010,6 +1068,7 @@ onAuthStateChanged(auth, (user) => {
     const reloadButton = document.getElementById('reloadButton');
     if (reloadButton) {
       reloadButton.addEventListener('click', () => {
+        cleanupRequests();
         window.location.reload();
       });
     }
@@ -1134,6 +1193,12 @@ onAuthStateChanged(auth, (user) => {
     // Modify the detectUserLocation function to use cookies
     async function detectUserLocation() {
       debugLog('Starting location detection...');
+      
+      // Cancel any existing in-flight requests
+      if (inFlightController) {
+        inFlightController.abort();
+        inFlightController = null;
+      }
       
       // Update debug status
       if (window.updateDebugStatus) {
