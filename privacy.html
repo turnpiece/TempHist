@@ -43,22 +43,39 @@
       #content {
         min-height: 800px;
       }
+      
+      /* Header styling to match main app */
+      #header {
+        color: #ff6b6b;
+      }
+      
+      /* Make logo and title clickable */
+      #header a {
+        text-decoration: none;
+        color: inherit;
+      }
+      
+      #header a:hover {
+        opacity: 0.8;
+      }
     </style>
     </head>
     <body>
       <div id="header">
         <div class="container">
-          <div id="logo">
-            <object data="assets/logo.svg" type="image/svg+xml" title="TempHist">
-              <img
-                src="assets/logo.png"
-                alt="TempHist logo"
-                width="50"
-                height="50"
-              />
-            </object>
-          </div>
-          <h1>TempHist</h1>
+          <a href="index.html">
+            <div id="logo">
+              <object data="assets/logo.svg" type="image/svg+xml" title="TempHist">
+                <img
+                  src="assets/logo.png"
+                  alt="TempHist logo"
+                  width="50"
+                  height="50"
+                />
+              </object>
+            </div>
+            <h1>TempHist</h1>
+          </a>
         </div>
       </div>
 
