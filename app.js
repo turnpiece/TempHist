@@ -2,6 +2,17 @@ import './styles.scss';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
+// Global namespace and cache
+window.TempHist = window.TempHist || {};
+TempHist.cache = TempHist.cache || {
+  prefetch: {
+    // example shape expected:
+    // week: { location: 'London', startISO: '2025-09-19', endISO: '2025-09-25', series: [...] }
+    // month: { ... }, year: { ... }
+  }
+};
+window.TempHistViews = window.TempHistViews || {};
+
 // Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyC8CgPOwaXkGgCRgAtEn1VIGCxEHI-brjg",
@@ -33,6 +44,51 @@ onAuthStateChanged(auth, (user) => {
     // User is signed out
   }
 });
+
+  // Helper function to render simple content pages
+  function setSectionHTML(sectionId, html) {
+    const sec = document.getElementById(sectionId);
+    if (!sec) return;
+    sec.innerHTML = html;
+  }
+
+  // Global helper functions for view renderers
+  window.getApiUrl = function(path) {
+    // Get API base URL
+    const apiBase = (() => {
+      // Development (local)
+      if (import.meta.env.DEV) {
+        return 'http://localhost:3000'; // Point to server.js
+      }
+      // Production
+      return 'https://api.temphist.com';
+    })();
+    
+    // Ensure the path is properly encoded for the API
+    const encodedPath = encodeURI(path);
+    const fullUrl = `${apiBase}${encodedPath}`;
+    
+    return fullUrl;
+  };
+
+  window.getCurrentLocation = function() {
+    // This will be set by the main app logic
+    return window.tempLocation || 'London, England, United Kingdom';
+  };
+
+  window.getOrdinal = function(n) {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  window.getDisplayCity = function(fullLocation) {
+    if (!fullLocation) return fullLocation;
+    
+    // Split by commas and get the first part (city)
+    const parts = fullLocation.split(',').map(part => part.trim());
+    return parts[0];
+  };
 
   // Move your main code into a function:
   function startAppWithFirebaseUser(user) {
@@ -478,6 +534,7 @@ onAuthStateChanged(auth, (user) => {
 
     // get the location
     let tempLocation = 'London, England, United Kingdom'; // default
+    window.tempLocation = tempLocation; // Make it globally accessible
 
     // Helper function to handle API URLs with proper encoding
     function getApiUrl(path) {
@@ -752,22 +809,120 @@ onAuthStateChanged(auth, (user) => {
         }
       });
 
-      // Rolling: week, month, year (exclude daily parts to save bandwidth)
-      ric(async () => {
+      // Prefetch using bundle endpoint (more efficient)
+      const bundlePrefetchPromise = (async () => {
         try {
           const qs = new URLSearchParams({
-            include: 'week,month,year',
+            include: 'weekly,monthly,yearly',
             unit_group: unitGroup,
             month_mode: monthMode
           }).toString();
           const idToken = await currentUser.getIdToken();
-          await fetch(getApiUrl(getRollingBundlePath(location, anchorDateISO, qs)), {
+          const bundleUrl = getApiUrl(getRollingBundlePath(location, anchorDateISO, qs));
+          console.log('🔍 Bundle prefetch URL:', bundleUrl);
+          
+          const response = await fetch(bundleUrl, {
             headers: {
               'Authorization': `Bearer ${idToken}`,
               'Content-Type': 'application/json',
               'Accept': 'application/json'
             }
           });
+          
+          console.log('🔍 Bundle prefetch response:', response.status, response.statusText);
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log('🔍 Bundle prefetch data:', data);
+            // Populate cache with prefetched data from bundle
+            if (data.weekly) {
+              TempHist.cache.prefetch.week = data.weekly;
+              console.log('✅ Cached weekly data');
+            }
+            if (data.monthly) {
+              TempHist.cache.prefetch.month = data.monthly;
+              console.log('✅ Cached monthly data');
+            }
+            if (data.yearly) {
+              TempHist.cache.prefetch.year = data.yearly;
+              console.log('✅ Cached yearly data');
+            }
+          } else {
+            console.warn('Bundle prefetch failed:', response.status, response.statusText);
+          }
+        } catch (e) {
+          console.error('Bundle prefetch error:', e);
+        }
+      })();
+      
+      // Store the promise so other parts can wait for it
+      TempHist.cache.prefetchPromise = bundlePrefetchPromise;
+      
+      ric(() => bundlePrefetchPromise);
+
+      // Fallback: prefetch individual period endpoints if bundle fails
+      ric(async () => {
+        try {
+          const idToken = await currentUser.getIdToken();
+          const weeklyUrl = getApiUrl(`/v1/records/weekly/${encodeURIComponent(location)}/${month}-${day}`);
+          console.log('🔍 Weekly fallback URL:', weeklyUrl);
+          
+          const response = await fetch(weeklyUrl, {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+          
+          console.log('🔍 Weekly fallback response:', response.status, response.statusText);
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log('🔍 Weekly fallback data:', data);
+            TempHist.cache.prefetch.week = data;
+            console.log('✅ Cached weekly data (fallback)');
+          }
+        } catch (e) {
+          console.error('Weekly fallback error:', e);
+        }
+      });
+
+      ric(async () => {
+        try {
+          const idToken = await currentUser.getIdToken();
+          const response = await fetch(getApiUrl(`/v1/records/monthly/${encodeURIComponent(location)}/${month}-${day}`), {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            TempHist.cache.prefetch.month = data;
+          }
+        } catch (e) {
+          // Silently ignore prefetch errors
+        }
+      });
+
+      ric(async () => {
+        try {
+          const idToken = await currentUser.getIdToken();
+          const response = await fetch(getApiUrl(`/v1/records/yearly/${encodeURIComponent(location)}/${month}-${day}`), {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            TempHist.cache.prefetch.year = data;
+          }
         } catch (e) {
           // Silently ignore prefetch errors
         }
@@ -1388,6 +1543,7 @@ onAuthStateChanged(auth, (user) => {
         debugLog('Using cached location:', cachedLocation);
         stopLocationProgress();
         tempLocation = cachedLocation;
+        window.tempLocation = tempLocation; // Update global location
         displayLocationAndFetchData();
         return;
       }
@@ -1505,6 +1661,7 @@ onAuthStateChanged(auth, (user) => {
           
           try {
             tempLocation = await getCityFromCoords(latitude, longitude);
+            window.tempLocation = tempLocation; // Update global location
             console.log(`Detected location: ${tempLocation} (city: ${getDisplayCity(tempLocation)})`);
             debugLog('Location detection complete');
             
@@ -1599,15 +1756,389 @@ onAuthStateChanged(auth, (user) => {
     mainAppLogic();
   }
 
-  // Expose the today view render function to the router
-  window.TempHistViews = window.TempHistViews || {};
+  // Activate router after DOM is ready
+  if (window.TempHistRouter && typeof window.TempHistRouter.handleRoute === 'function') {
+    window.TempHistRouter.handleRoute();
+  }
+
+  // Register view renderers
   window.TempHistViews.today = {
-    render: function() {
-      // The today view is already rendered by the main app logic
-      // This function can be used to trigger re-rendering if needed
+    render() {
+      // This uses your existing displayLocationAndFetchData() path.
+      // It assumes DOM elements (dateText, locationText, tempChart, etc.) already exist.
+      // No-op here because app.js already triggers the "today" fetch on load.
+      // If you need a re-trigger when navigating back to Today:
       if (typeof fetchData === 'function') {
         fetchData();
       }
     }
   };
+
+  window.TempHistViews.about = {
+    async render() {
+      setSectionHTML('aboutView', `
+        <h2>About TempHist</h2>
+        <p>TempHist shows how temperatures on a specific calendar day have varied over the past 50 years for your location.</p>
+        <p>Data source: Visual Crossing (via a fast cached API). Built with Chart.js and Flutter (iOS).</p>
+        <p>Prefetching ensures other views load quickly when you navigate.</p>
+      `);
+    }
+  };
+
+  window.TempHistViews.privacy = {
+    async render() {
+      setSectionHTML('privacyView', `
+        <h2>Privacy</h2>
+        <p>We use browser geolocation (if permitted) to detect your nearest city. Location can also be passed via the URL.</p>
+        <p>No personal data is stored on the server. See the full policy on this page.</p>
+      `);
+    }
+  };
+
+  // Helper function to render period views (week/month/year)
+  async function renderPeriod(sectionId, periodKey, title) {
+    const sec = document.getElementById(sectionId);
+    if (!sec) return;
+
+    // Get current date for display
+    const now = new Date();
+    const useYesterday = now.getHours() < 1;
+    const dateToUse = new Date(now);
+    if (useYesterday) {
+      dateToUse.setDate(dateToUse.getDate() - 1);
+    }
+    
+    // Handle 29 Feb fallback to 28 Feb if not a leap year
+    const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
+    if (isLeapDay) {
+      dateToUse.setDate(28);
+    }
+    
+    const day = dateToUse.getDate();
+    const monthName = dateToUse.toLocaleString('en-GB', { month: 'long' });
+    const friendlyDate = `${getOrdinal(day)} ${monthName}`;
+    
+    // Basic shell - match Today page layout exactly
+    sec.innerHTML = `
+      <h1 id="${periodKey}DateText">${title} ending ${friendlyDate}</h1>
+      <p id="${periodKey}LocationText">…</p>
+      <div class="loading" id="${periodKey}Loading"><div class="spinner"></div><p>Loading…</p></div>
+      <div id="${periodKey}ChartWrap" style="position:relative;height:60vh;"><canvas id="${periodKey}Chart"></canvas></div>
+      <div class="metrics">
+        <p id="${periodKey}SummaryText"></p>
+        <p id="${periodKey}AvgText"></p>
+        <p id="${periodKey}TrendText"></p>
+      </div>
+    `;
+
+    const loadingEl = document.getElementById(`${periodKey}Loading`);
+    const canvas = document.getElementById(`${periodKey}Chart`);
+    const ctx = canvas.getContext('2d');
+
+    function showLoading(v) { loadingEl.style.display = v ? 'flex' : 'none'; }
+
+    showLoading(true);
+
+    let payload = TempHist.cache.prefetch[periodKey];
+    
+    console.log('Cache check for', periodKey, ':', payload);
+    console.log('Full cache:', TempHist.cache.prefetch);
+
+    if (!payload) {
+      // Check if prefetch is in progress and wait for it
+      const prefetchPromise = TempHist.cache.prefetchPromise;
+      if (prefetchPromise) {
+        console.log('Waiting for prefetch to complete...');
+        try {
+          await prefetchPromise;
+          payload = TempHist.cache.prefetch[periodKey];
+          console.log('Prefetch completed, cache now has:', payload);
+        } catch (e) {
+          console.log('Prefetch failed, proceeding with direct API call');
+        }
+      } else {
+        // No prefetch in progress, trigger it now for this specific period
+        console.log('No prefetch in progress, triggering immediate prefetch for', periodKey);
+        try {
+          const currentLocation = window.getCurrentLocation();
+          const now = new Date();
+          const useYesterday = now.getHours() < 1;
+          const dateToUse = new Date(now);
+          if (useYesterday) {
+            dateToUse.setDate(dateToUse.getDate() - 1);
+          }
+          
+          // Handle 29 Feb fallback to 28 Feb if not a leap year
+          const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
+          if (isLeapDay) {
+            dateToUse.setDate(28);
+          }
+          
+          const day = String(dateToUse.getDate()).padStart(2, '0');
+          const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
+          const identifier = `${month}-${day}`;
+          const anchorISO = `${dateToUse.getFullYear()}-${month}-${day}`;
+          
+          // Trigger immediate prefetch for this period
+          const immediatePrefetchUrl = window.getApiUrl(`/v1/records/${periodKey}ly/${currentLocation}/${identifier}`);
+          console.log('🔍 Immediate prefetch URL for', periodKey, ':', immediatePrefetchUrl);
+          
+          const res = await apiFetch(immediatePrefetchUrl);
+          if (res.ok) {
+            payload = await res.json();
+            console.log('✅ Immediate prefetch successful for', periodKey);
+            // Cache the result for future use
+            TempHist.cache.prefetch[periodKey] = payload;
+          } else {
+            console.warn('Immediate prefetch failed for', periodKey, ':', res.status);
+          }
+        } catch (e) {
+          console.log('Immediate prefetch failed, proceeding with direct API call:', e);
+        }
+      }
+    }
+
+    if (!payload) {
+      // Use global functions for API calls
+      const currentLocation = window.getCurrentLocation();
+      
+      // Get current date for the identifier
+      const now = new Date();
+      const useYesterday = now.getHours() < 1;
+      const dateToUse = new Date(now);
+      if (useYesterday) {
+        dateToUse.setDate(dateToUse.getDate() - 1);
+      }
+      
+      // Handle 29 Feb fallback to 28 Feb if not a leap year
+      const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
+      if (isLeapDay) {
+        dateToUse.setDate(28);
+      }
+      
+      const day = String(dateToUse.getDate()).padStart(2, '0');
+      const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
+      const identifier = `${month}-${day}`;
+      
+      const url = window.getApiUrl(`/v1/records/${periodKey}ly/${currentLocation}/${identifier}`);
+      console.log('🔍 API URL for', periodKey, ':', url);
+      
+      try {
+        // Use the same authenticated fetch as the main app
+        const res = await apiFetch(url);
+        console.log('🔍 API Response for', periodKey, ':', res.status, res.statusText);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        payload = await res.json();
+        console.log('🔍 API Payload for', periodKey, ':', payload);
+      } catch (e) {
+        console.error('API Error for', periodKey, ':', e);
+        sec.innerHTML = `<p>Failed to load ${title.toLowerCase()}. ${e.message}</p>`;
+        return;
+      }
+    } else {
+      console.log('Using cached data for', periodKey, ':', payload);
+    }
+
+    // Expected payload shape (adjust mapping as needed):
+    // { series: [{ date: '2025-09-19', temperature: 18.2 }, ...], location: 'London' }
+    const currentLocation = window.getCurrentLocation();
+    const displayLocation = payload.location ? window.getDisplayCity(payload.location) : window.getDisplayCity(currentLocation);
+    document.getElementById(`${periodKey}LocationText`).textContent = displayLocation;
+    
+    // Apply colors to match Today page
+    const dateText = document.getElementById(`${periodKey}DateText`);
+    const locationText = document.getElementById(`${periodKey}LocationText`);
+    const summaryText = document.getElementById(`${periodKey}SummaryText`);
+    const avgText = document.getElementById(`${periodKey}AvgText`);
+    const trendText = document.getElementById(`${periodKey}TrendText`);
+    
+    if (dateText) dateText.style.color = '#ff6b6b'; // barColour
+    if (locationText) locationText.style.color = '#666';
+    if (summaryText) summaryText.style.color = '#51cf66'; // thisYearColour
+    if (avgText) avgText.style.color = '#4dabf7'; // avgColour
+    if (trendText) trendText.style.color = '#aaaa00'; // trendColour
+
+    // Transform data to horizontal bar format: {x: temperature, y: year}
+    // The API returns data in 'values' array, not 'series'
+    const seriesData = payload.values || payload.series || [];
+    const chartData = seriesData.map(point => ({ 
+      x: point.temperature, 
+      y: new Date(point.date).getFullYear() 
+    }));
+
+    // Debug logging
+    console.log('Chart data for', periodKey, ':', chartData);
+    console.log('Payload values:', payload.values);
+    console.log('Payload series:', payload.series);
+    console.log('Using series data:', seriesData);
+
+    // Calculate temperature range
+    const tempValues = chartData.map(p => p.x);
+    const minTemp = Math.floor(Math.min(...tempValues) - 1);
+    const maxTemp = Math.ceil(Math.max(...tempValues) + 1);
+    
+    // Get year range
+    const years = chartData.map(p => p.y);
+    const minYear = Math.min(...years);
+    const maxYear = Math.max(...years);
+
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        datasets: [
+          {
+            label: 'Trend',
+            type: 'line',
+            data: [],
+            backgroundColor: '#aaaa00',
+            borderColor: '#aaaa00',
+            fill: false,
+            pointRadius: 0,
+            borderWidth: 2,
+            opacity: 1,
+            hidden: true // Hide trend line for period views initially
+          },
+          {
+            label: `${title} temperature (°C)`,
+            data: chartData,
+            backgroundColor: chartData.map(point => '#ff6b6b'), // barColour for all bars
+            borderWidth: 0,
+            base: minTemp
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        parsing: false,
+        animation: false,
+        normalized: true,
+        layout: {
+          padding: {
+            left: 0,
+            right: 20,
+            top: 15,
+            bottom: 15
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          annotation: {
+            annotations: {
+              averageLine: {
+                type: 'line',
+                yMin: minYear - 1,
+                yMax: maxYear + 1,
+                xMin: payload.average?.mean || 0,
+                xMax: payload.average?.mean || 0,
+                borderColor: '#4dabf7',
+                borderWidth: 2,
+                label: {
+                  display: true,
+                  content: `Average: ${(payload.average?.mean || 0).toFixed(1)}°C`,
+                  position: 'start',
+                  font: {
+                    size: 12
+                  }
+                }
+              }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              title: function(context) {
+                return `${context[0].parsed.y.toString()}: ${context[0].parsed.x}°C`
+              },
+              label: function() {
+                return ''
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Temperature (°C)',
+              font: {
+                size: 12
+              },
+              color: '#ECECEC'
+            },
+            min: minTemp,
+            max: maxTemp,
+            ticks: {
+              font: {
+                size: 11
+              },
+              color: '#ECECEC',
+              stepSize: 2
+            }
+          },
+          y: {
+            type: 'linear',
+            min: minYear,
+            max: maxYear,
+            ticks: {
+              maxTicksLimit: 20,
+              callback: val => val.toString(),
+              font: {
+                size: 11
+              },
+              color: '#ECECEC'
+            },
+            title: {
+              display: false,
+              text: 'Year'
+            },
+            grid: {
+              display: false
+            },
+            offset: true
+          }
+        },
+        elements: {
+          bar: {
+            minBarLength: 30,
+            maxBarThickness: 30,
+            categoryPercentage: 0.1,
+            barPercentage: 1.0
+          }
+        }
+      }
+    });
+
+    // Update text elements with API data (like Today page)
+    const summaryEl = document.getElementById(`${periodKey}SummaryText`);
+    const avgEl = document.getElementById(`${periodKey}AvgText`);
+    const trendEl = document.getElementById(`${periodKey}TrendText`);
+    
+    // Summary text
+    if (summaryEl) {
+      summaryEl.textContent = payload.summary || `Temperature data for ${title.toLowerCase()} ending ${friendlyDate}`;
+    }
+    
+    // Average text
+    if (avgEl && payload.average) {
+      avgEl.textContent = `Average: ${payload.average.mean.toFixed(1)}°C`;
+    }
+    
+    // Trend text
+    if (trendEl && payload.trend) {
+      const direction = payload.trend.slope > 0 ? 'rising' : payload.trend.slope < 0 ? 'falling' : 'stable';
+      const formatted = `Trend: ${direction} at ${Math.abs(payload.trend.slope).toFixed(1)} ${payload.trend.unit}`;
+      trendEl.textContent = formatted;
+    }
+
+    showLoading(false);
+    
+    // Force chart update
+    chart.update('none');
+  }
+
+  window.TempHistViews.week = { render: () => renderPeriod('weekView', 'week', 'Week') };
+  window.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 'Month') };
+  window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
 }
