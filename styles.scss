@@ -80,6 +80,12 @@ a {
     transition: opacity 0.4s;
     pointer-events: auto;
 
+    &.visible {
+      display: flex;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     &.hidden {
       opacity: 0;
       pointer-events: none;

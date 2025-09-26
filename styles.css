@@ -66,6 +66,11 @@ a {
   transition: opacity 0.4s;
   pointer-events: auto;
 }
+.chart-container .loading.visible {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+}
 .chart-container .loading.hidden {
   opacity: 0;
   pointer-events: none;

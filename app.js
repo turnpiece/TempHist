@@ -2,16 +2,138 @@ import './styles.scss';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
-// Global namespace and cache
-window.TempHist = window.TempHist || {};
-TempHist.cache = TempHist.cache || {
-  prefetch: {
-    // example shape expected:
-    // week: { location: 'London', startISO: '2025-09-19', endISO: '2025-09-25', series: [...] }
-    // month: { ... }, year: { ... }
+  // Global namespace and cache
+  window.TempHist = window.TempHist || {};
+  TempHist.cache = TempHist.cache || {
+    prefetch: {
+      // example shape expected:
+      // week: { location: 'London', startISO: '2025-09-19', endISO: '2025-09-25', series: [...] }
+      // month: { ... }, year: { ... }
+    }
+  };
+  window.TempHistViews = window.TempHistViews || {};
+
+  // Error monitoring and analytics
+  TempHist.analytics = TempHist.analytics || {
+    errors: [],
+    apiCalls: 0,
+    apiFailures: 0,
+    retryAttempts: 0,
+    locationFailures: 0,
+    startTime: Date.now()
+  };
+
+  // Error logging function
+  function logError(error, context = {}) {
+    const errorData = {
+      timestamp: new Date().toISOString(),
+      error: error.message || error.toString(),
+      stack: error.stack,
+      context,
+      userAgent: navigator.userAgent,
+      url: window.location.href
+    };
+    
+    TempHist.analytics.errors.push(errorData);
+    
+    // Keep only last 50 errors to prevent memory issues
+    if (TempHist.analytics.errors.length > 50) {
+      TempHist.analytics.errors = TempHist.analytics.errors.slice(-50);
+    }
+    
+    // Log to console in development
+    if (import.meta.env.DEV) {
+      console.error('TempHist Error:', errorData);
+    }
   }
-};
-window.TempHistViews = window.TempHistViews || {};
+
+  // Analytics reporting function
+  function reportAnalytics() {
+    const analytics = TempHist.analytics;
+    const sessionDuration = Date.now() - analytics.startTime;
+    
+    return {
+      sessionDuration: Math.round(sessionDuration / 1000), // seconds
+      apiCalls: analytics.apiCalls,
+      apiFailureRate: analytics.apiCalls > 0 ? (analytics.apiFailures / analytics.apiCalls * 100).toFixed(1) + '%' : '0%',
+      retryAttempts: analytics.retryAttempts,
+      locationFailures: analytics.locationFailures,
+      errorCount: analytics.errors.length,
+      recentErrors: analytics.errors.slice(-5) // Last 5 errors
+    };
+  }
+
+  // Send analytics to server
+  async function sendAnalytics() {
+    try {
+      const analyticsData = reportAnalytics();
+      const payload = {
+        session_duration: analyticsData.sessionDuration,
+        api_calls: analyticsData.apiCalls,
+        api_failure_rate: analyticsData.apiFailureRate,
+        retry_attempts: analyticsData.retryAttempts,
+        location_failures: analyticsData.locationFailures,
+        error_count: analyticsData.errorCount,
+        recent_errors: analyticsData.recentErrors,
+        app_version: "1.0.0",
+        platform: "web"
+      };
+
+      const response = await fetch(getApiUrl('/analytics'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        console.warn('Analytics reporting failed:', response.status);
+      }
+    } catch (error) {
+      // Silently fail analytics reporting to not impact user experience
+      console.warn('Analytics reporting error:', error);
+    }
+  }
+
+  // Send analytics on page unload and periodically
+  function setupAnalyticsReporting() {
+    // Send analytics when page is about to unload
+    window.addEventListener('beforeunload', () => {
+      // Use sendBeacon for reliable delivery on page unload
+      if (navigator.sendBeacon) {
+        const analyticsData = reportAnalytics();
+        const payload = {
+          session_duration: analyticsData.sessionDuration,
+          api_calls: analyticsData.apiCalls,
+          api_failure_rate: analyticsData.apiFailureRate,
+          retry_attempts: analyticsData.retryAttempts,
+          location_failures: analyticsData.locationFailures,
+          error_count: analyticsData.errorCount,
+          recent_errors: analyticsData.recentErrors,
+          app_version: "1.0.0",
+          platform: "web"
+        };
+        
+        navigator.sendBeacon(getApiUrl('/analytics'), JSON.stringify(payload));
+      } else {
+        // Fallback for browsers without sendBeacon
+        sendAnalytics();
+      }
+    });
+
+    // Send analytics periodically (every 5 minutes) for long sessions
+    setInterval(() => {
+      if (TempHist.analytics.apiCalls > 0 || TempHist.analytics.errors.length > 0) {
+        sendAnalytics();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+
+  // Make analytics available globally for debugging
+  window.TempHistAnalytics = reportAnalytics;
+  window.TempHistSendAnalytics = sendAnalytics;
 
 // Firebase config
 const firebaseConfig = {
@@ -64,10 +186,8 @@ onAuthStateChanged(auth, (user) => {
       return 'https://api.temphist.com';
     })();
     
-    console.log('🔍 getApiUrl input path:', path);
     // Don't encode the path here - individual components should be encoded by their builders
     const fullUrl = `${apiBase}${path}`;
-    console.log('🔍 getApiUrl output URL:', fullUrl);
     
     return fullUrl;
   };
@@ -98,6 +218,9 @@ onAuthStateChanged(auth, (user) => {
   function startAppWithFirebaseUser(user) {
     // Constants and configuration
     const DEBUGGING = false;
+    
+    // Initialize analytics reporting
+    setupAnalyticsReporting();
     
     // SECURITY NOTE: Manual location input is disabled to prevent API abuse.
     // Users must enable location permissions to access the service.
@@ -214,6 +337,22 @@ onAuthStateChanged(auth, (user) => {
   // Clean up requests when page is unloaded
   window.addEventListener('beforeunload', cleanupRequests);
 
+  // API health check function
+  async function checkApiHealth() {
+    try {
+      const healthUrl = getApiUrl('/health');
+      const response = await fetch(healthUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  }
+
   // Wrapper function for API fetches that adds the Firebase ID token
   async function apiFetch(url, options = {}) {
     // Cancel any existing in-flight request
@@ -258,7 +397,6 @@ onAuthStateChanged(auth, (user) => {
     } catch (error) {
       // Don't log errors if the request was aborted
       if (error.name === 'AbortError') {
-        console.log('Request aborted:', url);
         throw error;
       }
       
@@ -295,45 +433,6 @@ onAuthStateChanged(auth, (user) => {
 
     debugLog('Constants initialized');
     
-    // Add visual debugging for platform detection
-    const platform = detectDeviceAndPlatform();
-    if (platform.isMobile) {
-      const debugDiv = document.createElement('div');
-      debugDiv.id = 'mobileDebug';
-      debugDiv.style.cssText = 'background: rgba(0,0,0,0.9); color: white; padding: 15px; margin: 10px 0; border-radius: 8px; font-family: monospace; font-size: 12px; line-height: 1.4; border: 2px solid #ff6b6b; position: fixed; top: 10px; right: 10px; max-width: 350px; z-index: 1000;';
-      debugDiv.innerHTML = `
-        <strong>🔧 PLATFORM DEBUG:</strong><br>
-        <strong>OS:</strong> ${platform.os}<br>
-        <strong>Browser:</strong> ${platform.browser}<br>
-        <strong>Device:</strong> ${platform.deviceType}<br>
-        <strong>API Base:</strong> ${apiBase}<br>
-        <strong>Protocol:</strong> ${window.location.protocol}<br>
-        <strong>Security:</strong> 🔒 Manual input disabled<br>
-        <strong>Status:</strong> <span id="debugStatus">Starting...</span><br>
-        <hr style="border-color: #666;">
-        <button onclick="document.getElementById('mobileDebug').remove()" style="background: #ff6b6b; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Close</button>
-      `;
-      
-      document.body.appendChild(debugDiv);
-      
-      // Update status function
-      window.updateDebugStatus = function(status) {
-        const statusEl = document.getElementById('debugStatus');
-        if (statusEl) {
-          statusEl.textContent = status;
-          // Remove existing status classes
-          statusEl.classList.remove('status-error', 'status-success', 'status-info');
-          // Add appropriate status class
-          if (status.includes('Error')) {
-            statusEl.classList.add('status-error');
-          } else if (status.includes('Success')) {
-            statusEl.classList.add('status-success');
-          } else {
-            statusEl.classList.add('status-info');
-          }
-        }
-      };
-    }
 
 
     const now = new Date();
@@ -551,14 +650,6 @@ onAuthStateChanged(auth, (user) => {
       // Don't encode the path here - individual components should be encoded by their builders
       const fullUrl = `${apiBase}${path}`;
       
-      if (DEBUGGING) {
-        console.log('🔗 API URL Debug:', {
-          apiBase,
-          path,
-          fullUrl,
-          hostname: window.location.hostname
-        });
-      }
       
       return fullUrl;
     }
@@ -587,11 +678,8 @@ onAuthStateChanged(auth, (user) => {
 
     // Build rolling-bundle path with query
     function getRollingBundlePath(location, anchorISO, qs = '') {
-      console.log('🔍 getRollingBundlePath input location:', location);
       const encodedLocation = encodeURIComponent(location);
-      console.log('🔍 getRollingBundlePath encoded location:', encodedLocation);
       const base = `/v1/records/rolling-bundle/${encodedLocation}/${anchorISO}`;
-      console.log('🔍 getRollingBundlePath base path:', base);
       return qs ? `${base}?${qs}` : base;
     }
 
@@ -697,7 +785,6 @@ onAuthStateChanged(auth, (user) => {
         return tempLocation;
       } catch (error) {
         if (error.name === 'AbortError') {
-          console.log('OpenStreetMap API call aborted');
           debugLog('OpenStreetMap API aborted');
         } else {
           console.warn('OpenStreetMap API error:', error);
@@ -774,7 +861,6 @@ onAuthStateChanged(auth, (user) => {
     function schedulePrefetchAfterDaily(location, anchorDateISO, unitGroup = 'celsius', monthMode = 'rolling1m') {
       // Don't run prefetch on standalone pages
       if (window.location.pathname.includes('/about') || window.location.pathname.includes('/privacy')) {
-        console.log('Skipping prefetch on standalone page');
         return;
       }
       // Daily: yesterday / two days ago / three days ago
@@ -833,7 +919,6 @@ onAuthStateChanged(auth, (user) => {
         try {
           // Check if we have a valid user and location before making the request
           if (!currentUser || !location) {
-            console.log('Skipping bundle prefetch - user or location not ready');
             return;
           }
           
@@ -844,8 +929,6 @@ onAuthStateChanged(auth, (user) => {
           }).toString();
           const idToken = await currentUser.getIdToken();
           const bundleUrl = getApiUrl(getRollingBundlePath(location, anchorDateISO, qs));
-          console.log('🔍 Bundle prefetch URL:', bundleUrl);
-          console.log('🔍 Bundle prefetch params:', { location, anchorDateISO, qs, idToken: idToken ? 'present' : 'missing' });
           
           const response = await fetch(bundleUrl, {
             headers: {
@@ -855,29 +938,21 @@ onAuthStateChanged(auth, (user) => {
             }
           });
           
-          console.log('🔍 Bundle prefetch response:', response.status, response.statusText);
-          
           if (response.ok) {
             const data = await response.json();
-            console.log('🔍 Bundle prefetch data:', data);
             // Populate cache with prefetched data from bundle
             if (data.weekly) {
               TempHist.cache.prefetch.week = data.weekly;
-              console.log('✅ Cached weekly data');
             }
             if (data.monthly) {
               TempHist.cache.prefetch.month = data.monthly;
-              console.log('✅ Cached monthly data');
             }
             if (data.yearly) {
               TempHist.cache.prefetch.year = data.yearly;
-              console.log('✅ Cached yearly data');
             }
-          } else {
-            console.warn('Bundle prefetch failed:', response.status, response.statusText);
           }
         } catch (e) {
-          console.error('Bundle prefetch error:', e);
+          // Silently ignore prefetch errors
         }
       })();
       
@@ -891,7 +966,6 @@ onAuthStateChanged(auth, (user) => {
         try {
           const idToken = await currentUser.getIdToken();
           const weeklyUrl = getApiUrl(`/v1/records/weekly/${encodeURIComponent(location)}/${month}-${day}`);
-          console.log('🔍 Weekly fallback URL:', weeklyUrl);
           
           const response = await fetch(weeklyUrl, {
             headers: {
@@ -901,16 +975,12 @@ onAuthStateChanged(auth, (user) => {
             }
           });
           
-          console.log('🔍 Weekly fallback response:', response.status, response.statusText);
-          
           if (response.ok) {
             const data = await response.json();
-            console.log('🔍 Weekly fallback data:', data);
             TempHist.cache.prefetch.week = data;
-            console.log('✅ Cached weekly data (fallback)');
           }
         } catch (e) {
-          console.error('Weekly fallback error:', e);
+          // Silently ignore prefetch errors
         }
       });
 
@@ -955,6 +1025,47 @@ onAuthStateChanged(auth, (user) => {
       });
     }
 
+    // Retry mechanism for API calls
+    async function fetchWithRetry(url, maxRetries = 3, delay = 1000) {
+      TempHist.analytics.apiCalls++;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await apiFetch(url);
+          return response;
+        } catch (error) {
+          if (attempt === maxRetries) {
+            TempHist.analytics.apiFailures++;
+            logError(error, { 
+              url, 
+              attempt, 
+              maxRetries, 
+              type: 'api_final_failure' 
+            });
+            throw error; // Final attempt failed
+          }
+          
+          TempHist.analytics.retryAttempts++;
+          logError(error, { 
+            url, 
+            attempt, 
+            maxRetries, 
+            type: 'api_retry' 
+          });
+          
+          // Wait before retrying (exponential backoff)
+          const retryDelay = delay * Math.pow(2, attempt - 1);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          
+          // Update loading message for retry
+          const loadingText = document.getElementById('loadingText');
+          if (loadingText) {
+            loadingText.textContent = `Retrying... (attempt ${attempt + 1}/${maxRetries})`;
+          }
+        }
+      }
+    }
+
     // Modified fetchHistoricalData function to use new records API
     const fetchHistoricalData = async () => {
       debugTime('Total fetch time');
@@ -969,36 +1080,28 @@ onAuthStateChanged(auth, (user) => {
       hideError();
 
       try {
-        // Fetch weather data using new records API
+        // Check API health first
+        const isApiHealthy = await checkApiHealth();
+        if (!isApiHealthy) {
+          throw new Error('API service is currently unavailable. Please try again later.');
+        }
+
+        // Fetch weather data using new records API with retry
         const weatherPath = getRecordPath('daily', tempLocation, `${month}-${day}`);
         const weatherUrl = getApiUrl(weatherPath);
-        const weatherResponse = await apiFetch(weatherUrl);
+        const weatherResponse = await fetchWithRetry(weatherUrl);
         
-        // Log the raw response for debugging
+        // Parse the response
         const responseText = await weatherResponse.text();
-        console.log('🔍 Raw Weather API Response:', {
-          status: weatherResponse.status,
-          statusText: weatherResponse.statusText,
-          headers: Object.fromEntries(weatherResponse.headers.entries()),
-          body: responseText
-        });
-        
-        // Try to parse as JSON
         let weatherData;
         try {
           weatherData = JSON.parse(responseText);
         } catch (parseError) {
-          console.error('❌ JSON Parse Error:', parseError);
-          console.error('❌ Response was not valid JSON:', responseText);
           throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
         }
-
-        // Log the full response structure for debugging
-        console.log('🔍 Full API Response Structure:', weatherData);
         
         // The new v1/records API structure - temperature data is in 'values' array
         if (!weatherData.values || !Array.isArray(weatherData.values)) {
-          console.error('❌ Unexpected API response structure:', weatherData);
           throw new Error('Invalid data format received from '+weatherUrl + '. Expected values array.');
         }
 
@@ -1021,16 +1124,6 @@ onAuthStateChanged(auth, (user) => {
           'Year values (p.y)': chartData.map(p => p.y)
         });
         
-        // Additional debugging for data format issues
-        console.log('🔍 DEBUG: Data format check');
-        console.log('First data point:', chartData[0]);
-        console.log('All data points:', chartData);
-        console.log('X values (should be temperatures):', chartData.map(p => p.x));
-        console.log('Y values (should be years):', chartData.map(p => p.y));
-        console.log('Data types:', {
-          'x type': typeof chartData[0]?.x,
-          'y type': typeof chartData[0]?.y
-        });
         
         // Create or update chart
         if (!chart) {
@@ -1249,17 +1342,22 @@ onAuthStateChanged(auth, (user) => {
 
         // Schedule background prefetching after daily chart renders successfully
         const anchorISO = `${currentYear}-${month}-${day}`; // e.g. "2025-09-24"
-        console.log('🔍 Scheduling prefetch with location:', tempLocation, 'anchorISO:', anchorISO);
-        console.log('🔍 Location type:', typeof tempLocation, 'length:', tempLocation?.length);
-        console.log('🔍 Location encoded check:', tempLocation?.includes('%'));
         schedulePrefetchAfterDaily(tempLocation, anchorISO, 'celsius', 'rolling1m');
+        
+        // Send analytics after successful data load
+        sendAnalytics();
 
       } catch (error) {
         // Don't show error if request was aborted
         if (error.name === 'AbortError') {
-          console.log('Historical data fetch aborted');
           return;
         }
+        
+        logError(error, { 
+          type: 'data_fetch_failure',
+          location: tempLocation,
+          date: `${month}-${day}`
+        });
         
         console.error('Error fetching historical data:', error);
         hideChart();
@@ -1305,13 +1403,24 @@ onAuthStateChanged(auth, (user) => {
 
     function displayLocationAndFetchData() {
       stopLocationProgress();
-      document.getElementById('locationText').textContent = getDisplayCity(tempLocation);
+      
+      // Check if using default fallback location
+      const isDefaultLocation = tempLocation === 'London, England, United Kingdom';
+      const locationDisplay = isDefaultLocation ? 
+        `${getDisplayCity(tempLocation)} (default location)` : 
+        getDisplayCity(tempLocation);
+      
+      document.getElementById('locationText').textContent = locationDisplay;
       
       // Clear the initial status message and show location confirmation
       const dataNotice = document.getElementById('dataNotice');
       if (dataNotice) {
+        const locationMessage = isDefaultLocation ? 
+          `📍 Using default location: <strong>${getDisplayCity(tempLocation)}</strong><br><small>Enable location permissions for your actual location</small>` :
+          `📍 Location set to: <strong>${getDisplayCity(tempLocation)}</strong>`;
+          
         dataNotice.innerHTML = `<div style="text-align: center; padding: 15px; color: #51cf66; background: rgba(81,207,102,0.1); border-radius: 6px; border: 1px solid rgba(81,207,102,0.3);">
-          <p style="margin: 0; font-weight: 500;">📍 Location set to: <strong>${getDisplayCity(tempLocation)}</strong></p>
+          <p style="margin: 0; font-weight: 500;">${locationMessage}</p>
           <p style="margin: 5px 0 0 0; font-size: 14px;">Loading temperature data...</p>
         </div>`;
       }
@@ -1508,10 +1617,6 @@ onAuthStateChanged(auth, (user) => {
         inFlightController = null;
       }
       
-      // Update debug status
-      if (window.updateDebugStatus) {
-        window.updateDebugStatus('Starting location detection...');
-      }
       
       // Log device and environment information for debugging
       const platform = detectDeviceAndPlatform();
@@ -1534,36 +1639,6 @@ onAuthStateChanged(auth, (user) => {
       };
       
       debugLog('Device and environment info:', deviceInfo);
-      console.log('Location detection environment:', deviceInfo);
-      
-      // Add more specific debugging for mobile location issues
-      if (platform.isMobile) {
-        console.log('🔍 MOBILE LOCATION DEBUG INFO:');
-        console.log('- HTTPS:', deviceInfo.isSecure);
-        console.log('- Geolocation available:', deviceInfo.hasGeolocation);
-        console.log('- Permissions available:', deviceInfo.hasPermissions);
-        console.log('- Current protocol:', deviceInfo.protocol);
-        console.log('- Current hostname:', deviceInfo.hostname);
-        console.log('- User agent:', deviceInfo.userAgent);
-        
-        // Add visual debugging to the page
-        const debugInfo = document.createElement('div');
-        debugInfo.style.cssText = 'background: rgba(0,0,0,0.8); color: white; padding: 15px; margin: 10px 0; border-radius: 8px; font-family: monospace; font-size: 12px; line-height: 1.4;';
-        debugInfo.innerHTML = `
-          <strong>🔍 Mobile Location Debug Info:</strong><br>
-          HTTPS: ${deviceInfo.isSecure ? '✅ Yes' : '❌ No'}<br>
-          Geolocation: ${deviceInfo.hasGeolocation ? '✅ Available' : '❌ Not Available'}<br>
-          Permissions: ${deviceInfo.hasPermissions ? '✅ Available' : '❌ Not Available'}<br>
-          Protocol: ${deviceInfo.protocol}<br>
-          Hostname: ${deviceInfo.hostname}<br>
-          User Agent: ${deviceInfo.userAgent.substring(0, 50)}...
-        `;
-        
-        const dataNotice = document.getElementById('dataNotice');
-        if (dataNotice) {
-          dataNotice.appendChild(debugInfo);
-        }
-      }
       
       // Update loading message for location stage
       updateLoadingMessageByStage('location');
@@ -1586,10 +1661,6 @@ onAuthStateChanged(auth, (user) => {
         console.warn('Geolocation requires HTTPS on mobile devices');
         debugLog('Not on HTTPS, showing manual location input');
         
-        // Update debug status
-        if (window.updateDebugStatus) {
-          window.updateDebugStatus('HTTP detected - showing manual input');
-        }
         
         const dataNotice = document.getElementById('dataNotice');
         if (dataNotice) {
@@ -1622,10 +1693,6 @@ onAuthStateChanged(auth, (user) => {
         debugLog('Geolocation permission denied, showing instructions');
         stopLocationProgress();
         
-        // Update debug status
-        if (window.updateDebugStatus) {
-          window.updateDebugStatus('Permission denied - showing instructions');
-        }
         
         showPermissionInstructions('denied', deviceInfo.isMobile);
         return;
@@ -1664,19 +1731,7 @@ onAuthStateChanged(auth, (user) => {
       // Update loading message for permission stage
       updateLoadingMessageByStage('permission');
       
-      // Update debug status
-      if (window.updateDebugStatus) {
-        window.updateDebugStatus('Requesting geolocation...');
-      }
       
-      console.log('Geolocation options:', {
-        enableHighAccuracy: false,
-        timeout: devicePlatform.isMobile ? 20000 : 25000, // 20 seconds for mobile, 25 for desktop
-        maximumAge: 300000, // Accept cached location up to 5 minutes old
-        isMobile: devicePlatform.isMobile,
-        permissionState,
-        isSecure
-      });
       
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -1684,10 +1739,6 @@ onAuthStateChanged(auth, (user) => {
           stopLocationProgress();
           debugLog('Geolocation received:', position.coords);
           
-          // Update debug status
-          if (window.updateDebugStatus) {
-            window.updateDebugStatus('Geolocation received, fetching city...');
-          }
           
           const { latitude, longitude } = position.coords;
           debugLog('Fetching city name from coordinates...');
@@ -1695,14 +1746,15 @@ onAuthStateChanged(auth, (user) => {
           try {
             tempLocation = await getCityFromCoords(latitude, longitude);
             window.tempLocation = tempLocation; // Update global location
-            console.log(`Detected location: ${tempLocation} (city: ${getDisplayCity(tempLocation)})`);
             debugLog('Location detection complete');
             
-            // Update debug status
-            if (window.updateDebugStatus) {
-              window.updateDebugStatus('Success: Location detected');
-            }
           } catch (error) {
+            TempHist.analytics.locationFailures++;
+            logError(error, { 
+              type: 'location_lookup_failure',
+              coordinates: { latitude, longitude }
+            });
+            
             console.warn('Error getting city name:', error);
             debugLog('Failed to get city name, falling back to default location');
             
@@ -1727,10 +1779,6 @@ onAuthStateChanged(auth, (user) => {
           console.warn('Geolocation error:', error.message);
           debugLog('Geolocation failed:', error.code, error.message);
           
-          // Update debug status
-          if (window.updateDebugStatus) {
-            window.updateDebugStatus(`Error: ${error.message}`);
-          }
           
           // More specific error handling for mobile
           let errorMessage = 'Location detection failed. Using default location.';
@@ -1834,23 +1882,17 @@ onAuthStateChanged(auth, (user) => {
 
     // Check if the app is properly initialized
     if (!window.tempLocation) {
-      console.log('App not initialized yet, waiting for location...');
       // Wait a bit for the app to initialize
       await new Promise(resolve => setTimeout(resolve, 100));
       if (!window.tempLocation) {
-        console.warn('App still not initialized, using default location');
         window.tempLocation = 'London, England, United Kingdom';
       }
     }
 
     // Check if Firebase auth is ready
     if (!window.currentUser) {
-      console.log('Firebase auth not ready yet, waiting...');
       // Wait for Firebase auth to be ready
       await new Promise(resolve => setTimeout(resolve, 500));
-      if (!window.currentUser) {
-        console.warn('Firebase auth still not ready, this may cause API errors');
-      }
     }
 
     // Get current date for display
@@ -1902,7 +1944,53 @@ onAuthStateChanged(auth, (user) => {
     const canvas = document.getElementById(`${periodKey}Chart`);
     const ctx = canvas.getContext('2d');
 
-    function showLoading(v) { loadingEl.style.display = v ? 'flex' : 'none'; }
+    // Enhanced loading system for period pages (like Today page)
+    let loadingStartTime = null;
+    let loadingCheckInterval = null;
+
+    function updateLoadingMessage() {
+      if (!loadingStartTime) return;
+      
+      const elapsedSeconds = Math.floor((Date.now() - loadingStartTime) / 1000);
+      const loadingText = document.getElementById(`${periodKey}LoadingText`);
+      
+      if (elapsedSeconds < 5) {
+        loadingText.textContent = 'Loading temperature data...';
+      } else if (elapsedSeconds < 15) {
+        const displayCity = window.tempLocation ? window.getDisplayCity(window.tempLocation) : 'your location';
+        loadingText.textContent = `Getting temperatures in ${displayCity} over the past 50 years.`;
+      } else if (elapsedSeconds < 30) {
+        const displayCity = window.tempLocation ? window.getDisplayCity(window.tempLocation) : 'your location';
+        loadingText.textContent = `Was this past ${title.toLowerCase()} warmer than average in ${displayCity}?`;
+      } else if (elapsedSeconds < 45) {
+        loadingText.textContent = 'Once we have the data we\'ll know.';
+      } else if (elapsedSeconds < 60) {
+        loadingText.textContent = 'Please be patient. It shouldn\'t be much longer.';
+      } else {
+        loadingText.textContent = 'The server is taking a while to respond.';
+      }
+    }
+
+    function showLoading(v) { 
+      if (v) {
+        loadingStartTime = Date.now();
+        loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
+        loadingEl.classList.add('visible');
+        loadingEl.classList.remove('hidden');
+        canvas.classList.remove('visible');
+        canvas.classList.add('hidden');
+      } else {
+        if (loadingCheckInterval) {
+          clearInterval(loadingCheckInterval);
+          loadingCheckInterval = null;
+        }
+        loadingStartTime = null;
+        loadingEl.classList.add('hidden');
+        loadingEl.classList.remove('visible');
+        canvas.classList.add('visible');
+        canvas.classList.remove('hidden');
+      }
+    }
 
     // Set the date text to match Today page format
     document.getElementById(`${periodKey}DateText`).textContent = `${title} ending ${friendlyDate}`;
@@ -1910,25 +1998,19 @@ onAuthStateChanged(auth, (user) => {
     showLoading(true);
 
     let payload = TempHist.cache.prefetch[periodKey];
-    
-    console.log('Cache check for', periodKey, ':', payload);
-    console.log('Full cache:', TempHist.cache.prefetch);
 
     if (!payload) {
       // Check if prefetch is in progress and wait for it
       const prefetchPromise = TempHist.cache.prefetchPromise;
       if (prefetchPromise) {
-        console.log('Waiting for prefetch to complete...');
         try {
           await prefetchPromise;
           payload = TempHist.cache.prefetch[periodKey];
-          console.log('Prefetch completed, cache now has:', payload);
         } catch (e) {
-          console.log('Prefetch failed, proceeding with direct API call');
+          // Prefetch failed, proceed with direct API call
         }
       } else {
         // No prefetch in progress, trigger it now for this specific period
-        console.log('No prefetch in progress, triggering immediate prefetch for', periodKey);
         try {
           const currentLocation = window.getCurrentLocation();
           const now = new Date();
@@ -1951,19 +2033,15 @@ onAuthStateChanged(auth, (user) => {
           
           // Trigger immediate prefetch for this period
           const immediatePrefetchUrl = window.getApiUrl(`/v1/records/${periodKey}ly/${currentLocation}/${identifier}`);
-          console.log('🔍 Immediate prefetch URL for', periodKey, ':', immediatePrefetchUrl);
           
           const res = await apiFetch(immediatePrefetchUrl);
           if (res.ok) {
             payload = await res.json();
-            console.log('✅ Immediate prefetch successful for', periodKey);
             // Cache the result for future use
             TempHist.cache.prefetch[periodKey] = payload;
-          } else {
-            console.warn('Immediate prefetch failed for', periodKey, ':', res.status);
           }
         } catch (e) {
-          console.log('Immediate prefetch failed, proceeding with direct API call:', e);
+          // Immediate prefetch failed, proceed with direct API call
         }
       }
     }
@@ -1991,22 +2069,16 @@ onAuthStateChanged(auth, (user) => {
       const identifier = `${month}-${day}`;
       
       const url = window.getApiUrl(`/v1/records/${periodKey}ly/${currentLocation}/${identifier}`);
-      console.log('🔍 API URL for', periodKey, ':', url);
       
       try {
         // Use the same authenticated fetch as the main app
         const res = await apiFetch(url);
-        console.log('🔍 API Response for', periodKey, ':', res.status, res.statusText);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         payload = await res.json();
-        console.log('🔍 API Payload for', periodKey, ':', payload);
       } catch (e) {
-        console.error('API Error for', periodKey, ':', e);
         sec.innerHTML = `<p>Failed to load ${title.toLowerCase()}. ${e.message}</p>`;
         return;
       }
-    } else {
-      console.log('Using cached data for', periodKey, ':', payload);
     }
 
     // Expected payload shape (adjust mapping as needed):
@@ -2035,11 +2107,6 @@ onAuthStateChanged(auth, (user) => {
       y: new Date(point.date).getFullYear() 
     }));
 
-    // Debug logging
-    console.log('Chart data for', periodKey, ':', chartData);
-    console.log('Payload values:', payload.values);
-    console.log('Payload series:', payload.series);
-    console.log('Using series data:', seriesData);
 
     // Calculate temperature range
     const tempValues = chartData.map(p => p.x);
@@ -2214,10 +2281,6 @@ onAuthStateChanged(auth, (user) => {
     }
 
     showLoading(false);
-    
-    // Make chart visible
-    canvas.classList.add('visible');
-    canvas.classList.remove('hidden');
     
     // Force chart update
     chart.update('none');
