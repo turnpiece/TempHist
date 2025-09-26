@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* TempHist styles */
 :root {
   --accent: #ff6b6b;
@@ -110,11 +111,11 @@ a {
 #burgerBtn {
   font-size: 1.5rem;
   background: transparent;
-  border: 1px solid #ececec;
-  border-radius: 16px;
-  color: #ececec;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  color: var(--accent);
   cursor: pointer;
-  padding: 8px 10px;
+  padding: 0;
   transition: all 0.2s ease;
   min-width: 44px;
   min-height: 44px;
@@ -124,8 +125,8 @@ a {
 }
 
 #burgerBtn:hover {
-  background: var(--avg);
-  color: #ececec;
+  color: var(--thisYear);
+  border-color: var(--thisYear);
 }
 
 #appShell {
@@ -135,7 +136,7 @@ a {
 }
 
 #sidebar {
-  border-right: 1px solid #eee;
+  border-right: 1px solid rgba(81, 207, 102, 0.1);
   padding: 16px;
 }
 
@@ -147,22 +148,36 @@ a {
   gap: 8px;
 }
 
+.menu-selected-bg, #sidebar a[aria-current=page], #sidebar a:hover, #burgerBtn:hover {
+  background: rgba(81, 207, 102, 0.1);
+}
+
 #sidebar a {
-  color: #ececec;
+  color: var(--accent);
   text-decoration: none;
   padding: 8px 10px;
   border-radius: 8px;
   display: block;
   transition: background-color 0.2s;
+  font-weight: normal;
+  position: relative;
 }
 
 #sidebar a:hover {
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--thisYear);
 }
 
 #sidebar a[aria-current=page] {
-  background: rgba(255, 255, 255, 0.2);
-  font-weight: 600;
+  color: var(--thisYear);
+  font-weight: normal;
+}
+#sidebar a[aria-current=page]::after {
+  content: "▶";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8em;
 }
 
 #viewOutlet {
@@ -265,6 +280,9 @@ h2, .date-heading {
   #burgerBtn {
     display: flex;
   }
+  #viewOutlet {
+    padding-left: 26px;
+  }
   #sidebar {
     position: fixed;
     inset: 0 auto 0 0;
@@ -274,6 +292,7 @@ h2, .date-heading {
     z-index: 1000;
     transition: transform 0.2s ease-out;
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.08);
+    padding-top: 80px;
   }
   #sidebar.open {
     transform: translateX(0);
