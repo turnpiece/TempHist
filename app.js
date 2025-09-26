@@ -321,7 +321,16 @@ onAuthStateChanged(auth, (user) => {
         const statusEl = document.getElementById('debugStatus');
         if (statusEl) {
           statusEl.textContent = status;
-          statusEl.style.color = status.includes('Error') ? '#ff6b6b' : status.includes('Success') ? '#51cf66' : '#4dabf7';
+          // Remove existing status classes
+          statusEl.classList.remove('status-error', 'status-success', 'status-info');
+          // Add appropriate status class
+          if (status.includes('Error')) {
+            statusEl.classList.add('status-error');
+          } else if (status.includes('Success')) {
+            statusEl.classList.add('status-success');
+          } else {
+            statusEl.classList.add('status-info');
+          }
         }
       };
     }
@@ -377,7 +386,7 @@ onAuthStateChanged(auth, (user) => {
     const dataNotice = document.getElementById('dataNotice');
     if (dataNotice) {
       dataNotice.textContent = 'Determining your location...';
-      dataNotice.style.color = '#666';
+      dataNotice.classList.add('status-neutral');
     }
     
     // Add a simple progress indicator for location detection
@@ -435,14 +444,14 @@ onAuthStateChanged(auth, (user) => {
       const spinner = document.querySelector('.spinner');
       
       // Apply colors only if elements exist
-      if (summaryText) summaryText.style.color = thisYearColour;
-      if (avgText) avgText.style.color = avgColour;
-      if (trendText) trendText.style.color = trendColour;
+      if (summaryText) summaryText.classList.add('summary-text');
+      if (avgText) avgText.classList.add('avg-text');
+      if (trendText) trendText.classList.add('trend-text');
       
       // Header and footer colors
-      if (header) header.style.color = barColour;
-      if (footer) footer.style.color = barColour;
-      if (footerLink) footerLink.style.color = barColour;
+      if (header) header.classList.add('header-footer');
+      if (footer) footer.classList.add('header-footer');
+      if (footerLink) footerLink.classList.add('header-footer-link');
       
       // Spinner colors
       if (spinner) {
@@ -1174,7 +1183,7 @@ onAuthStateChanged(auth, (user) => {
                   min: startYear,
                   max: currentYear,
                   ticks: {
-                    stepSize: 1,
+                    maxTicksLimit: 20,
                     callback: val => val.toString(),
                     font: {
                       size: 11
@@ -1644,7 +1653,8 @@ onAuthStateChanged(auth, (user) => {
           const dataNotice = document.getElementById('dataNotice');
           if (dataNotice) {
             dataNotice.textContent = 'Location detection timed out. Please enable location permissions to use this service.';
-            dataNotice.style.color = '#ff6b6b';
+            dataNotice.classList.remove('status-neutral');
+            dataNotice.classList.add('status-error');
             // Show permission instructions for mobile users
             showPermissionInstructions('denied', true);
           }
@@ -1705,7 +1715,8 @@ onAuthStateChanged(auth, (user) => {
               const dataNotice = document.getElementById('dataNotice');
               if (dataNotice) {
                 dataNotice.textContent = 'Location lookup failed. Please enable location permissions to use this service.';
-                dataNotice.style.color = '#ff6b6b';
+                dataNotice.classList.remove('status-neutral');
+                dataNotice.classList.add('status-error');
                 // Show permission instructions for mobile users
                 setTimeout(() => showPermissionInstructions('denied', true), 1000);
               }
@@ -1761,7 +1772,8 @@ onAuthStateChanged(auth, (user) => {
               showPermissionInstructions('denied', deviceInfo.isMobile);
             } else {
               dataNotice.textContent = errorMessage;
-              dataNotice.style.color = '#ff6b6b';
+              dataNotice.classList.remove('status-neutral');
+              dataNotice.classList.add('status-error');
             }
           }
           
@@ -2015,9 +2027,9 @@ onAuthStateChanged(auth, (user) => {
     const trendText = document.getElementById(`${periodKey}TrendText`);
     
     // Don't set colors for dateText and locationText - let them inherit white from body
-    if (summaryText) summaryText.style.color = '#51cf66'; // thisYearColour
-    if (avgText) avgText.style.color = '#4dabf7'; // avgColour
-    if (trendText) trendText.style.color = '#aaaa00'; // trendColour
+    if (summaryText) summaryText.classList.add('summary-text');
+    if (avgText) avgText.classList.add('avg-text');
+    if (trendText) trendText.classList.add('trend-text');
 
     // Transform data to horizontal bar format: {x: temperature, y: year}
     // The API returns data in 'values' array, not 'series'
@@ -2206,6 +2218,10 @@ onAuthStateChanged(auth, (user) => {
     }
 
     showLoading(false);
+    
+    // Make chart visible
+    canvas.classList.add('visible');
+    canvas.classList.remove('hidden');
     
     // Force chart update
     chart.update('none');

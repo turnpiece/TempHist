@@ -36,7 +36,7 @@ a {
 .container {
   position: relative;
   max-width: 800px;
-  margin: 1em auto;
+  margin: 0 auto 1em;
 }
 
 .chart-container {
@@ -51,6 +51,39 @@ a {
     width: 100%;
     height: 100%;
     min-width: 300px;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.4s;
+    display: block;
+    
+    &.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  .loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: 350px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8rem;
+    text-align: left;
+    z-index: 3;
+    opacity: 1;
+    transition: opacity 0.4s;
+    pointer-events: auto;
+
+    &.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
   }
 }
 
@@ -196,11 +229,60 @@ a {
   font-size: 1em;
   padding: .4em 0;
   min-height: 2.2em; /* desktop default, enough for one line + padding */
+  max-width: 450px;
+}
+
+.summary-text {
+  color: #51cf66; /* thisYearColour */
+  min-height: 2.5em; /* Ensure consistent chart positioning */
+}
+
+.avg-text {
+  color: #4dabf7; /* avgColour */
+}
+
+.trend-text {
+  color: #aaaa00; /* trendColour */
+}
+
+// Status and notification colors
+.status-error {
+  color: #ff6b6b;
+}
+
+.status-success {
+  color: #51cf66;
+}
+
+.status-info {
+  color: #4dabf7;
+}
+
+.status-neutral {
+  color: #666;
+}
+
+// Header and footer colors
+.header-footer {
+  color: var(--accent);
+}
+
+.header-footer-link {
+  color: var(--accent);
+}
+
+.notice {
+  color: #666;
+  margin-bottom: 8px;
 } 
 
 @media (max-width: 600px) {
-  #summaryText.standard-text {
+  .standard-text {
     min-height: 3.2em; /* enough for two lines + padding on mobile */
+  }
+  
+  .summary-text {
+    min-height: 3.5em; /* slightly more space for longer summaries on mobile */
   }
 }
 
