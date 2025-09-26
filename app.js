@@ -64,9 +64,10 @@ onAuthStateChanged(auth, (user) => {
       return 'https://api.temphist.com';
     })();
     
-    // Ensure the path is properly encoded for the API
-    const encodedPath = encodeURI(path);
-    const fullUrl = `${apiBase}${encodedPath}`;
+    console.log('🔍 getApiUrl input path:', path);
+    // Don't encode the path here - individual components should be encoded by their builders
+    const fullUrl = `${apiBase}${path}`;
+    console.log('🔍 getApiUrl output URL:', fullUrl);
     
     return fullUrl;
   };
@@ -85,8 +86,11 @@ onAuthStateChanged(auth, (user) => {
   window.getDisplayCity = function(fullLocation) {
     if (!fullLocation) return fullLocation;
     
+    // Decode URL-encoded location first
+    const decodedLocation = decodeURIComponent(fullLocation);
+    
     // Split by commas and get the first part (city)
-    const parts = fullLocation.split(',').map(part => part.trim());
+    const parts = decodedLocation.split(',').map(part => part.trim());
     return parts[0];
   };
 
@@ -194,6 +198,7 @@ onAuthStateChanged(auth, (user) => {
 
   // Store the Firebase user for use in apiFetch
   let currentUser = user;
+  window.currentUser = currentUser; // Make it globally available
 
   // Global AbortController to cancel in-flight requests
   let inFlightController = null;
@@ -538,16 +543,13 @@ onAuthStateChanged(auth, (user) => {
 
     // Helper function to handle API URLs with proper encoding
     function getApiUrl(path) {
-      // Ensure the path is properly encoded for the API
-      // encodeURI handles most cases, but we can be more specific if needed
-      const encodedPath = encodeURI(path);
-      const fullUrl = `${apiBase}${encodedPath}`;
+      // Don't encode the path here - individual components should be encoded by their builders
+      const fullUrl = `${apiBase}${path}`;
       
       if (DEBUGGING) {
         console.log('🔗 API URL Debug:', {
           apiBase,
           path,
-          encodedPath,
           fullUrl,
           hostname: window.location.hostname
         });
@@ -560,8 +562,11 @@ onAuthStateChanged(auth, (user) => {
     function getDisplayCity(fullLocation) {
       if (!fullLocation) return fullLocation;
       
+      // Decode URL-encoded location first
+      const decodedLocation = decodeURIComponent(fullLocation);
+      
       // Split by commas and get the first part (city)
-      const parts = fullLocation.split(',').map(part => part.trim());
+      const parts = decodedLocation.split(',').map(part => part.trim());
       return parts[0];
     }
 
@@ -577,7 +582,11 @@ onAuthStateChanged(auth, (user) => {
 
     // Build rolling-bundle path with query
     function getRollingBundlePath(location, anchorISO, qs = '') {
-      const base = `/v1/records/rolling-bundle/${encodeURIComponent(location)}/${anchorISO}`;
+      console.log('🔍 getRollingBundlePath input location:', location);
+      const encodedLocation = encodeURIComponent(location);
+      console.log('🔍 getRollingBundlePath encoded location:', encodedLocation);
+      const base = `/v1/records/rolling-bundle/${encodedLocation}/${anchorISO}`;
+      console.log('🔍 getRollingBundlePath base path:', base);
       return qs ? `${base}?${qs}` : base;
     }
 
@@ -757,7 +766,12 @@ onAuthStateChanged(auth, (user) => {
     }
 
     // Prefetch scheduler for background data loading
-    function schedulePrefetchAfterDaily(location, anchorDateISO, unitGroup = 'metric', monthMode = 'rolling1m') {
+    function schedulePrefetchAfterDaily(location, anchorDateISO, unitGroup = 'celsius', monthMode = 'rolling1m') {
+      // Don't run prefetch on standalone pages
+      if (window.location.pathname.includes('/about') || window.location.pathname.includes('/privacy')) {
+        console.log('Skipping prefetch on standalone page');
+        return;
+      }
       // Daily: yesterday / two days ago / three days ago
       const idD1 = mmddFrom(dateToUse, 1);
       const idD2 = mmddFrom(dateToUse, 2);
@@ -812,6 +826,12 @@ onAuthStateChanged(auth, (user) => {
       // Prefetch using bundle endpoint (more efficient)
       const bundlePrefetchPromise = (async () => {
         try {
+          // Check if we have a valid user and location before making the request
+          if (!currentUser || !location) {
+            console.log('Skipping bundle prefetch - user or location not ready');
+            return;
+          }
+          
           const qs = new URLSearchParams({
             include: 'weekly,monthly,yearly',
             unit_group: unitGroup,
@@ -820,6 +840,7 @@ onAuthStateChanged(auth, (user) => {
           const idToken = await currentUser.getIdToken();
           const bundleUrl = getApiUrl(getRollingBundlePath(location, anchorDateISO, qs));
           console.log('🔍 Bundle prefetch URL:', bundleUrl);
+          console.log('🔍 Bundle prefetch params:', { location, anchorDateISO, qs, idToken: idToken ? 'present' : 'missing' });
           
           const response = await fetch(bundleUrl, {
             headers: {
@@ -1223,7 +1244,10 @@ onAuthStateChanged(auth, (user) => {
 
         // Schedule background prefetching after daily chart renders successfully
         const anchorISO = `${currentYear}-${month}-${day}`; // e.g. "2025-09-24"
-        schedulePrefetchAfterDaily(tempLocation, anchorISO, 'metric', 'rolling1m');
+        console.log('🔍 Scheduling prefetch with location:', tempLocation, 'anchorISO:', anchorISO);
+        console.log('🔍 Location type:', typeof tempLocation, 'length:', tempLocation?.length);
+        console.log('🔍 Location encoded check:', tempLocation?.includes('%'));
+        schedulePrefetchAfterDaily(tempLocation, anchorISO, 'celsius', 'rolling1m');
 
       } catch (error) {
         // Don't show error if request was aborted
@@ -1264,6 +1288,9 @@ onAuthStateChanged(auth, (user) => {
         slope
       };
     }
+
+    // Make calculateTrendLine globally available for period views
+    window.calculateTrendLine = calculateTrendLine;
 
     function getOrdinal(n) {
       const s = ["th", "st", "nd", "rd"];
@@ -1756,10 +1783,7 @@ onAuthStateChanged(auth, (user) => {
     mainAppLogic();
   }
 
-  // Activate router after DOM is ready
-  if (window.TempHistRouter && typeof window.TempHistRouter.handleRoute === 'function') {
-    window.TempHistRouter.handleRoute();
-  }
+  // Router will be activated after view registrations
 
   // Register view renderers
   window.TempHistViews.today = {
@@ -1800,6 +1824,27 @@ onAuthStateChanged(auth, (user) => {
     const sec = document.getElementById(sectionId);
     if (!sec) return;
 
+    // Check if the app is properly initialized
+    if (!window.tempLocation) {
+      console.log('App not initialized yet, waiting for location...');
+      // Wait a bit for the app to initialize
+      await new Promise(resolve => setTimeout(resolve, 100));
+      if (!window.tempLocation) {
+        console.warn('App still not initialized, using default location');
+        window.tempLocation = 'London, England, United Kingdom';
+      }
+    }
+
+    // Check if Firebase auth is ready
+    if (!window.currentUser) {
+      console.log('Firebase auth not ready yet, waiting...');
+      // Wait for Firebase auth to be ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!window.currentUser) {
+        console.warn('Firebase auth still not ready, this may cause API errors');
+      }
+    }
+
     // Get current date for display
     const now = new Date();
     const useYesterday = now.getHours() < 1;
@@ -1818,16 +1863,30 @@ onAuthStateChanged(auth, (user) => {
     const monthName = dateToUse.toLocaleString('en-GB', { month: 'long' });
     const friendlyDate = `${getOrdinal(day)} ${monthName}`;
     
-    // Basic shell - match Today page layout exactly
+    // Match Today page layout exactly
     sec.innerHTML = `
-      <h1 id="${periodKey}DateText">${title} ending ${friendlyDate}</h1>
-      <p id="${periodKey}LocationText">…</p>
-      <div class="loading" id="${periodKey}Loading"><div class="spinner"></div><p>Loading…</p></div>
-      <div id="${periodKey}ChartWrap" style="position:relative;height:60vh;"><canvas id="${periodKey}Chart"></canvas></div>
-      <div class="metrics">
-        <p id="${periodKey}SummaryText"></p>
-        <p id="${periodKey}AvgText"></p>
-        <p id="${periodKey}TrendText"></p>
+      <div class="container">
+        <div id="${periodKey}DataNotice" class="notice"></div>
+        <div id="${periodKey}DateText" class="standard-text"></div>
+        <div id="${periodKey}LocationText" class="standard-text"></div>
+        <div id="${periodKey}SummaryText" class="standard-text"></div>
+        
+        <div class="chart-container">
+          <div id="${periodKey}Loading" class="loading">
+            <div class="spinner"></div>
+            <p id="${periodKey}LoadingText">Loading temperature data…</p>
+          </div>
+          
+          <div id="${periodKey}ErrorContainer" style="display: none;">
+            <div id="${periodKey}ErrorMessage"></div>
+            <button id="${periodKey}ReloadButton">Reload</button>
+          </div>
+          
+          <canvas id="${periodKey}Chart"></canvas>
+        </div>
+        
+        <div id="${periodKey}AvgText" class="standard-text"></div>
+        <div id="${periodKey}TrendText" class="standard-text"></div>
       </div>
     `;
 
@@ -1837,6 +1896,9 @@ onAuthStateChanged(auth, (user) => {
 
     function showLoading(v) { loadingEl.style.display = v ? 'flex' : 'none'; }
 
+    // Set the date text to match Today page format
+    document.getElementById(`${periodKey}DateText`).textContent = `${title} ending ${friendlyDate}`;
+    
     showLoading(true);
 
     let payload = TempHist.cache.prefetch[periodKey];
@@ -1952,8 +2014,7 @@ onAuthStateChanged(auth, (user) => {
     const avgText = document.getElementById(`${periodKey}AvgText`);
     const trendText = document.getElementById(`${periodKey}TrendText`);
     
-    if (dateText) dateText.style.color = '#ff6b6b'; // barColour
-    if (locationText) locationText.style.color = '#666';
+    // Don't set colors for dateText and locationText - let them inherit white from body
     if (summaryText) summaryText.style.color = '#51cf66'; // thisYearColour
     if (avgText) avgText.style.color = '#4dabf7'; // avgColour
     if (trendText) trendText.style.color = '#aaaa00'; // trendColour
@@ -1996,12 +2057,16 @@ onAuthStateChanged(auth, (user) => {
             pointRadius: 0,
             borderWidth: 2,
             opacity: 1,
-            hidden: true // Hide trend line for period views initially
+            hidden: false // Show trend line for period views
           },
           {
             label: `${title} temperature (°C)`,
             data: chartData,
-            backgroundColor: chartData.map(point => '#ff6b6b'), // barColour for all bars
+            backgroundColor: chartData.map(point => {
+              // Make current period (most recent year) green, others red
+              const currentYear = new Date().getFullYear();
+              return point.y === currentYear ? '#51cf66' : '#ff6b6b';
+            }),
             borderWidth: 0,
             base: minTemp
           }
@@ -2132,6 +2197,14 @@ onAuthStateChanged(auth, (user) => {
       trendEl.textContent = formatted;
     }
 
+    // Calculate and add trend line
+    if (payload.trend && chartData.length > 1) {
+      // Transform data for trend calculation: {x: year, y: temperature}
+      const trendData = window.calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
+        minYear - 0.5, maxYear + 0.5);
+      chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x }));
+    }
+
     showLoading(false);
     
     // Force chart update
@@ -2141,4 +2214,9 @@ onAuthStateChanged(auth, (user) => {
   window.TempHistViews.week = { render: () => renderPeriod('weekView', 'week', 'Week') };
   window.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 'Month') };
   window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
+
+  // Now activate the router after all views are registered
+  if (window.TempHistRouter && typeof window.TempHistRouter.handleRoute === 'function') {
+    window.TempHistRouter.handleRoute();
+  }
 }
