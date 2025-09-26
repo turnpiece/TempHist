@@ -48,9 +48,9 @@
         <!-- Default view (Today) keeps your existing chart DOM -->
         <section id="todayView" data-view="today">
           <div class="container">
-            <div id="dataNotice" class="notice"></div>
-            <div id="dateText" class="standard-text"></div>
+            <h2 id="dateText" class="date-heading"></h2>
             <div id="locationText" class="standard-text"></div>
+            <div id="dataNotice" class="notice"></div>
             <div id="summaryText" class="standard-text"></div>
             
             <div class="chart-container">
@@ -79,9 +79,6 @@
       </main>
     </div>
 
-    <footer id="footer">
-      <small>© TempHist • <a href="/privacy">Privacy</a></small>
-    </footer>
 
     <script type="module" src="/app.js" defer></script>
     <script src="router.js" defer></script>

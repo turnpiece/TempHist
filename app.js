@@ -439,8 +439,6 @@ onAuthStateChanged(auth, (user) => {
       const avgText = document.getElementById('avgText');
       const trendText = document.getElementById('trendText');
       const header = document.getElementById('header');
-      const footer = document.getElementById('footer');
-      const footerLink = document.querySelector('#footer a');
       const spinner = document.querySelector('.spinner');
       
       // Apply colors only if elements exist
@@ -448,10 +446,8 @@ onAuthStateChanged(auth, (user) => {
       if (avgText) avgText.classList.add('avg-text');
       if (trendText) trendText.classList.add('trend-text');
       
-      // Header and footer colors
-      if (header) header.classList.add('header-footer');
-      if (footer) footer.classList.add('header-footer');
-      if (footerLink) footerLink.classList.add('header-footer-link');
+      // Header colors
+      if (header) header.style.color = barColour;
       
       // Spinner colors
       if (spinner) {
@@ -1878,9 +1874,9 @@ onAuthStateChanged(auth, (user) => {
     // Match Today page layout exactly
     sec.innerHTML = `
       <div class="container">
-        <div id="${periodKey}DataNotice" class="notice"></div>
-        <div id="${periodKey}DateText" class="standard-text"></div>
+        <h2 id="${periodKey}DateText" class="date-heading"></h2>
         <div id="${periodKey}LocationText" class="standard-text"></div>
+        <div id="${periodKey}DataNotice" class="notice"></div>
         <div id="${periodKey}SummaryText" class="standard-text"></div>
         
         <div class="chart-container">
