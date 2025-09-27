@@ -1331,7 +1331,9 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('avgText').textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
         
         if (trendData) {
-          const direction = trendData.slope > 0 ? 'rising' : trendData.slope < 0 ? 'falling' : 'stable';
+          // Use actual slope value for direction determination, not rounded display value
+          const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
+                           trendData.slope > 0 ? 'rising' : 'falling';
           const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)} ${trendData.unit}`;
           document.getElementById('trendText').textContent = formatted;
         }
@@ -2267,7 +2269,9 @@ onAuthStateChanged(auth, (user) => {
     
     // Trend text
     if (trendEl && payload.trend) {
-      const direction = payload.trend.slope > 0 ? 'rising' : payload.trend.slope < 0 ? 'falling' : 'stable';
+      // Use actual slope value for direction determination, not rounded display value
+      const direction = Math.abs(payload.trend.slope) < 0.05 ? 'stable' : 
+                       payload.trend.slope > 0 ? 'rising' : 'falling';
       const formatted = `Trend: ${direction} at ${Math.abs(payload.trend.slope).toFixed(1)} ${payload.trend.unit}`;
       trendEl.textContent = formatted;
     }
