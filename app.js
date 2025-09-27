@@ -178,10 +178,21 @@ onAuthStateChanged(auth, (user) => {
   window.getApiUrl = function(path) {
     // Get API base URL
     const apiBase = (() => {
+      // Check for environment-specific API URL first
+      if (import.meta.env.VITE_API_BASE) {
+        return import.meta.env.VITE_API_BASE;
+      }
+      
       // Development (local)
       if (import.meta.env.DEV) {
         return 'http://localhost:3000'; // Point to server.js
       }
+      
+      // Dev site also uses production API
+      if (window.location.hostname === 'dev.temphist.com') {
+        return 'https://api.temphist.com'; // Use production API for dev site
+      }
+      
       // Production
       return 'https://api.temphist.com';
     })();
@@ -423,10 +434,21 @@ onAuthStateChanged(auth, (user) => {
     Chart.register(window['chartjs-plugin-annotation']);
 
     const apiBase = (() => {
+      // Check for environment-specific API URL first
+      if (import.meta.env.VITE_API_BASE) {
+        return import.meta.env.VITE_API_BASE;
+      }
+      
       // Development (local)
       if (import.meta.env.DEV) {
         return 'http://localhost:3000'; // Point to server.js
       }
+      
+      // Dev site also uses production API
+      if (window.location.hostname === 'dev.temphist.com') {
+        return 'https://api.temphist.com'; // Use production API for dev site
+      }
+      
       // Production
       return 'https://api.temphist.com';
     })();
@@ -636,11 +658,8 @@ onAuthStateChanged(auth, (user) => {
 
     // Helper function to handle API URLs with proper encoding
     function getApiUrl(path) {
-      // Don't encode the path here - individual components should be encoded by their builders
-      const fullUrl = `${apiBase}${path}`;
-      
-      
-      return fullUrl;
+      // Use the global getApiUrl function for consistency
+      return window.getApiUrl(path);
     }
 
     // Helper function to get just the city name (first location component)
