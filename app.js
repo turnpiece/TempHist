@@ -1404,9 +1404,9 @@ onAuthStateChanged(auth, (user) => {
           `📍 Using default location: <strong>${getDisplayCity(tempLocation)}</strong><br><small>Enable location permissions for your actual location</small>` :
           `📍 Location set to: <strong>${getDisplayCity(tempLocation)}</strong>`;
           
-        dataNotice.innerHTML = `<div style="text-align: center; padding: 15px; color: #51cf66; background: rgba(81,207,102,0.1); border-radius: 6px; border: 1px solid rgba(81,207,102,0.3);">
-          <p style="margin: 0; font-weight: 500;">${locationMessage}</p>
-          <p style="margin: 5px 0 0 0; font-size: 14px;">Loading temperature data...</p>
+        dataNotice.innerHTML = `<div class="notice-content success">
+          <p class="notice-title">${locationMessage}</p>
+          <p class="notice-subtitle">Loading temperature data...</p>
         </div>`;
       }
       
@@ -1437,9 +1437,9 @@ onAuthStateChanged(auth, (user) => {
       // Clear the data notice and show success message if debugging
       const dataNotice = document.getElementById('dataNotice');
       if (dataNotice) {
-        dataNotice.innerHTML = DEBUGGING ? `<div style="text-align: center; padding: 15px; color: #51cf66; background: rgba(81,207,102,0.1); border-radius: 6px; border: 1px solid rgba(81,207,102,0.3);">
-          <p style="margin: 0; font-weight: 500;">✅ Temperature data loaded successfully!</p>
-          <p style="margin: 5px 0 0 0; font-size: 14px;">Showing data for ${getDisplayCity(tempLocation)}</p>
+        dataNotice.innerHTML = DEBUGGING ? `<div class="notice-content success">
+          <p class="notice-title">✅ Temperature data loaded successfully!</p>
+          <p class="notice-subtitle">Showing data for ${getDisplayCity(tempLocation)}</p>
         </div>` : '';
       }
       
@@ -1477,9 +1477,9 @@ onAuthStateChanged(auth, (user) => {
       if (!dataNotice) return;
       
       dataNotice.innerHTML = `
-        <div style="text-align: center; padding: 20px; color: #ff6b6b; background: rgba(255,107,107,0.1); border-radius: 8px; border: 2px solid rgba(255,107,107,0.3);">
-          <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 16px;">🔒 Manual Location Input Disabled</p>
-          <p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">To protect against API abuse, manual location entry is not available. Please enable location permissions in your browser settings to use this service.</p>
+        <div class="notice-content warning">
+          <p class="notice-title large">🔒 Manual Location Input Disabled</p>
+          <p class="notice-subtitle secondary">To protect against API abuse, manual location entry is not available. Please enable location permissions in your browser settings to use this service.</p>
           <p style="margin: 0; font-size: 12px; color: #888;">This ensures users can only access data for their actual location.</p>
         </div>
       `;
@@ -1644,9 +1644,9 @@ onAuthStateChanged(auth, (user) => {
         const dataNotice = document.getElementById('dataNotice');
         if (dataNotice) {
           dataNotice.innerHTML = `
-            <div style="text-align: center; padding: 15px; color: #ff6b6b; background: rgba(255,107,107,0.1); border-radius: 6px; border: 2px solid rgba(255,107,107,0.3);">
-              <p style="margin: 0; font-weight: 500;">📍 Location Access</p>
-              <p style="margin: 5px 0 0 0; font-size: 14px;">Mobile browsers require HTTPS for automatic location detection. Please enter your location manually below.</p>
+            <div class="notice-content error">
+              <p class="notice-title">📍 Location Access</p>
+              <p class="notice-subtitle">Mobile browsers require HTTPS for automatic location detection. Please enter your location manually below.</p>
             </div>
           `;
         }

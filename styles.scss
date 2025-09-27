@@ -282,6 +282,55 @@ a {
   &:empty {
     display: none;
   }
+  
+  .notice-content {
+    text-align: center;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid;
+    
+    &.success {
+      color: #51cf66;
+      background: rgba(81,207,102,0.1);
+      border-color: rgba(81,207,102,0.3);
+    }
+    
+    &.error {
+      color: #ff6b6b;
+      background: rgba(255,107,107,0.1);
+      border-color: rgba(255,107,107,0.3);
+    }
+    
+    &.warning {
+      color: #ff6b6b;
+      background: rgba(255,107,107,0.1);
+      border-color: rgba(255,107,107,0.3);
+      padding: 20px;
+      border-radius: 8px;
+      border-width: 2px;
+    }
+  }
+  
+  .notice-title {
+    margin: 0;
+    font-weight: 500;
+    
+    &.large {
+      margin: 0 0 15px 0;
+      font-weight: 600;
+      font-size: 16px;
+    }
+  }
+  
+  .notice-subtitle {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    
+    &.secondary {
+      margin: 0 0 15px 0;
+      color: #666;
+    }
+  }
 }
 
 h2, .date-heading {
@@ -427,18 +476,24 @@ h2, .date-heading {
 #errorContainer, 
 [id$="ErrorContainer"] {
   margin-top: 20px;
-  max-width: 350px;
-  padding: 20px;
+  width: 100%;
+  padding: 15px;
   background-color: rgba(255, 107, 107, 0.1);
-  border: 2px solid $colour-error;
-  border-radius: 8px;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 6px;
   text-align: center;
+  color: $colour-error;
 
   #errorMessage,
   [id$="ErrorMessage"] {
     color: $colour-error;
-    font-size: 1.2em;
+    font-size: 1.1em;
     margin-bottom: 10px;
+    
+    &::before {
+      content: "⚠️ ";
+      margin-right: 8px;
+    }
   }
 
   #reloadButton,

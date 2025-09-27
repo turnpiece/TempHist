@@ -17,6 +17,10 @@ export default defineConfig({
       writeBundle() {
         // Copy privacy.html
         copyFileSync('privacy.html', 'dist/privacy.html')
+        // Copy about.html
+        copyFileSync('about.html', 'dist/about.html')
+        // Copy router.js
+        copyFileSync('router.js', 'dist/router.js')
         // Copy .htaccess
         copyFileSync('.htaccess', 'dist/.htaccess')
         // Copy stylesheets

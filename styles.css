@@ -261,6 +261,47 @@ a {
 .notice:empty {
   display: none;
 }
+.notice .notice-content {
+  text-align: center;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid;
+}
+.notice .notice-content.success {
+  color: #51cf66;
+  background: rgba(81, 207, 102, 0.1);
+  border-color: rgba(81, 207, 102, 0.3);
+}
+.notice .notice-content.error {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.3);
+}
+.notice .notice-content.warning {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.3);
+  padding: 20px;
+  border-radius: 8px;
+  border-width: 2px;
+}
+.notice .notice-title {
+  margin: 0;
+  font-weight: 500;
+}
+.notice .notice-title.large {
+  margin: 0 0 15px 0;
+  font-weight: 600;
+  font-size: 16px;
+}
+.notice .notice-subtitle {
+  margin: 5px 0 0 0;
+  font-size: 14px;
+}
+.notice .notice-subtitle.secondary {
+  margin: 0 0 15px 0;
+  color: #666;
+}
 
 h2, .date-heading {
   color: var(--accent);
@@ -409,20 +450,28 @@ h2, .date-heading {
 #errorContainer,
 [id$=ErrorContainer] {
   margin-top: 20px;
-  max-width: 350px;
-  padding: 20px;
+  width: 100%;
+  padding: 15px;
   background-color: rgba(255, 107, 107, 0.1);
-  border: 2px solid #ff6b6b;
-  border-radius: 8px;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 6px;
   text-align: center;
+  color: #ff6b6b;
 }
 #errorContainer #errorMessage,
 #errorContainer [id$=ErrorMessage],
 [id$=ErrorContainer] #errorMessage,
 [id$=ErrorContainer] [id$=ErrorMessage] {
   color: #ff6b6b;
-  font-size: 1.2em;
+  font-size: 1.1em;
   margin-bottom: 10px;
+}
+#errorContainer #errorMessage::before,
+#errorContainer [id$=ErrorMessage]::before,
+[id$=ErrorContainer] #errorMessage::before,
+[id$=ErrorContainer] [id$=ErrorMessage]::before {
+  content: "⚠️ ";
+  margin-right: 8px;
 }
 #errorContainer #reloadButton,
 #errorContainer [id$=ReloadButton],
