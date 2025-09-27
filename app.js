@@ -1063,10 +1063,10 @@ onAuthStateChanged(auth, (user) => {
       hideError();
 
       try {
-        // Check API health first
+        // Check temperature data server health first
         const isApiHealthy = await checkApiHealth();
         if (!isApiHealthy) {
-          throw new Error('API service is currently unavailable. Please try again later.');
+          throw new Error('Temperature data server is currently unavailable. Please try again later.');
         }
 
         // Fetch weather data using new records API with retry
@@ -2055,12 +2055,58 @@ onAuthStateChanged(auth, (user) => {
       const url = window.getApiUrl(`/v1/records/${periodKey}ly/${currentLocation}/${identifier}`);
       
       try {
+        // Check temperature data server health first (same as Today page)
+        const isApiHealthy = await checkApiHealth();
+        if (!isApiHealthy) {
+          throw new Error('The temperature data server is currently unavailable. Please try again later.');
+        }
+        
         // Use the same authenticated fetch as the main app
         const res = await apiFetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         payload = await res.json();
       } catch (e) {
-        sec.innerHTML = `<p>Failed to load ${title.toLowerCase()}. ${e.message}</p>`;
+        // Show error in error container instead of replacing entire content
+        const errorContainer = document.getElementById(`${periodKey}ErrorContainer`);
+        const errorMessage = document.getElementById(`${periodKey}ErrorMessage`);
+        const loadingEl = document.getElementById(`${periodKey}Loading`);
+        
+        if (errorContainer && errorMessage) {
+          // Show the specific error message from the API or health check
+          const errorText = e.message || 'Unknown error occurred';
+          errorMessage.textContent = errorText;
+          errorContainer.style.display = 'block';
+        }
+        
+        if (loadingEl) {
+          loadingEl.classList.add('hidden');
+          loadingEl.classList.remove('visible');
+        }
+        
+        const canvas = document.getElementById(`${periodKey}Chart`);
+        if (canvas) {
+          canvas.classList.remove('visible');
+          canvas.classList.add('hidden');
+        }
+        
+        // Add reload button handler for error case
+        const reloadButton = document.getElementById(`${periodKey}ReloadButton`);
+        if (reloadButton) {
+          // Remove any existing event listeners
+          reloadButton.replaceWith(reloadButton.cloneNode(true));
+          const newReloadButton = document.getElementById(`${periodKey}ReloadButton`);
+          
+          newReloadButton.addEventListener('click', () => {
+            // Hide error and retry loading
+            if (errorContainer) {
+              errorContainer.style.display = 'none';
+            }
+            showLoading(true);
+            // Re-trigger the render function
+            window.TempHistViews[periodKey]?.render?.();
+          });
+        }
+        
         return;
       }
     }

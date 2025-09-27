@@ -424,17 +424,25 @@ h2, .date-heading {
   padding: 0;
 }
 
-#errorContainer {
+#errorContainer, 
+[id$="ErrorContainer"] {
   margin-top: 20px;
   max-width: 350px;
+  padding: 20px;
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 2px solid $colour-error;
+  border-radius: 8px;
+  text-align: center;
 
-  #errorMessage {
+  #errorMessage,
+  [id$="ErrorMessage"] {
     color: $colour-error;
     font-size: 1.2em;
     margin-bottom: 10px;
   }
 
-  #reloadButton {
+  #reloadButton,
+  [id$="ReloadButton"] {
     background: $colour-error;
     color: $colour-text;
     border: none;
