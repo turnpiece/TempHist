@@ -261,23 +261,23 @@ a {
 .notice:empty {
   display: none;
 }
-.notice .notice-content {
-  text-align: center;
-  padding: 15px;
+.notice .notice-content, .notice .error-container .error-content, .error-container .notice .error-content {
+  text-align: left;
+  padding: 15px 30px;
   border-radius: 6px;
   border: 1px solid;
 }
-.notice .notice-content.success {
+.notice .notice-content.success, .notice .error-container .success.error-content, .error-container .notice .success.error-content {
   color: #51cf66;
   background: rgba(81, 207, 102, 0.1);
   border-color: rgba(81, 207, 102, 0.3);
 }
-.notice .notice-content.error {
+.notice .notice-content.error, .notice .error-container .error-content, .error-container .notice .error-content {
   color: #ff6b6b;
   background: rgba(255, 107, 107, 0.1);
   border-color: rgba(255, 107, 107, 0.3);
 }
-.notice .notice-content.warning {
+.notice .notice-content.warning, .notice .error-container .warning.error-content, .error-container .notice .warning.error-content {
   color: #ff6b6b;
   background: rgba(255, 107, 107, 0.1);
   border-color: rgba(255, 107, 107, 0.3);
@@ -447,35 +447,20 @@ h2, .date-heading {
   padding: 0;
 }
 
-#errorContainer,
-[id$=ErrorContainer] {
+.error-container {
   margin-top: 20px;
-  padding: 15px;
-  background-color: rgba(255, 107, 107, 0.1);
-  border: 1px solid rgba(255, 107, 107, 0.3);
-  border-radius: 6px;
-  text-align: center;
-  color: #ff6b6b;
+  width: 100%;
 }
-#errorContainer #errorMessage,
-#errorContainer [id$=ErrorMessage],
-[id$=ErrorContainer] #errorMessage,
-[id$=ErrorContainer] [id$=ErrorMessage] {
+.error-container .error-content .error-message {
   color: #ff6b6b;
   font-size: 1.1em;
   margin-bottom: 10px;
 }
-#errorContainer #errorMessage::before,
-#errorContainer [id$=ErrorMessage]::before,
-[id$=ErrorContainer] #errorMessage::before,
-[id$=ErrorContainer] [id$=ErrorMessage]::before {
+.error-container .error-content .error-message::before {
   content: "⚠️ ";
   margin-right: 8px;
 }
-#errorContainer #reloadButton,
-#errorContainer [id$=ReloadButton],
-[id$=ErrorContainer] #reloadButton,
-[id$=ErrorContainer] [id$=ReloadButton] {
+.error-container .error-content .reload-button {
   background: #ff6b6b;
   color: #ececec;
   border: none;
@@ -483,6 +468,9 @@ h2, .date-heading {
   border-radius: 5px;
   cursor: pointer;
   font-size: 1em;
+}
+.error-container .error-content .reload-button:hover {
+  background: #ff3838;
 }
 
 .visible {
