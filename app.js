@@ -1082,10 +1082,17 @@ onAuthStateChanged(auth, (user) => {
       hideError();
 
       try {
-        // Check temperature data server health first
-        const isApiHealthy = await checkApiHealth();
+        // Check temperature data server health first (with timeout)
+        const isApiHealthy = await Promise.race([
+          checkApiHealth(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Health check timeout')), 5000))
+        ]).catch(() => {
+          console.warn('Health check failed or timed out, proceeding anyway...');
+          return true; // Proceed anyway if health check fails
+        });
+        
         if (!isApiHealthy) {
-          throw new Error('Temperature data server is currently unavailable. Please try again later.');
+          console.warn('API health check failed, but proceeding with data fetch...');
         }
 
         // Fetch weather data using new records API with retry
@@ -2076,10 +2083,17 @@ onAuthStateChanged(auth, (user) => {
       const url = window.getApiUrl(`/v1/records/${periodKey}ly/${currentLocation}/${identifier}`);
       
       try {
-        // Check temperature data server health first (same as Today page)
-        const isApiHealthy = await checkApiHealth();
+        // Check temperature data server health first (with timeout)
+        const isApiHealthy = await Promise.race([
+          checkApiHealth(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Health check timeout')), 5000))
+        ]).catch(() => {
+          console.warn('Health check failed or timed out, proceeding anyway...');
+          return true; // Proceed anyway if health check fails
+        });
+        
         if (!isApiHealthy) {
-          throw new Error('The temperature data server is currently unavailable. Please try again later.');
+          console.warn('API health check failed, but proceeding with data fetch...');
         }
         
         // Use the same authenticated fetch as the main app
