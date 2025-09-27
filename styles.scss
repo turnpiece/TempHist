@@ -479,8 +479,13 @@ h2, .date-heading {
   width: 100%;
   
   .error-content {
-    @extend .notice-content;
-    @extend .notice-content, .error;
+    text-align: left;
+    padding: 15px 30px;
+    border-radius: 6px;
+    border: 1px solid;
+    color: #ff6b6b;
+    background: rgba(255,107,107,0.1);
+    border-color: rgba(255,107,107,0.3);
     
     .error-message {
       color: $colour-error;

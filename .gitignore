@@ -42,5 +42,8 @@ weather_cache/
 deploy.sh
 deploy-dev.sh
 
+# Build styles script
+build-styles.sh
+
 # Override global gitignore for this project
 !.htaccess

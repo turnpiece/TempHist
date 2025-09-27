@@ -261,23 +261,23 @@ a {
 .notice:empty {
   display: none;
 }
-.notice .notice-content, .notice .error-container .error-content, .error-container .notice .error-content {
+.notice .notice-content {
   text-align: left;
   padding: 15px 30px;
   border-radius: 6px;
   border: 1px solid;
 }
-.notice .notice-content.success, .notice .error-container .success.error-content, .error-container .notice .success.error-content {
+.notice .notice-content.success {
   color: #51cf66;
   background: rgba(81, 207, 102, 0.1);
   border-color: rgba(81, 207, 102, 0.3);
 }
-.notice .notice-content.error, .notice .error-container .error-content, .error-container .notice .error-content {
+.notice .notice-content.error {
   color: #ff6b6b;
   background: rgba(255, 107, 107, 0.1);
   border-color: rgba(255, 107, 107, 0.3);
 }
-.notice .notice-content.warning, .notice .error-container .warning.error-content, .error-container .notice .warning.error-content {
+.notice .notice-content.warning {
   color: #ff6b6b;
   background: rgba(255, 107, 107, 0.1);
   border-color: rgba(255, 107, 107, 0.3);
@@ -450,6 +450,15 @@ h2, .date-heading {
 .error-container {
   margin-top: 20px;
   width: 100%;
+}
+.error-container .error-content {
+  text-align: left;
+  padding: 15px 30px;
+  border-radius: 6px;
+  border: 1px solid;
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.3);
 }
 .error-container .error-content .error-message {
   color: #ff6b6b;
