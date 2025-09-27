@@ -6,7 +6,8 @@
   const burgerBtn = document.getElementById("burgerBtn");
 
   // Check if this is a standalone page (not the main SPA)
-  const isStandalonePage = !outlet || !outlet.querySelector('section[data-view]');
+  // We're on a standalone page if we don't have the main app structure
+  const isStandalonePage = !outlet || !document.querySelector('#todayView');
 
   function setActiveLink(path) {
     if (isStandalonePage) {
@@ -41,9 +42,17 @@
   }
 
   function showView(id) {
-    if (!outlet) return;
-    outlet.querySelectorAll('section[data-view]').forEach(sec => {
-      sec.hidden = sec.id !== id;
+    console.log('Router: showing view:', id);
+    if (!outlet) {
+      console.log('Router: no outlet found');
+      return;
+    }
+    const sections = outlet.querySelectorAll('section[data-view]');
+    console.log('Router: found sections:', sections.length, Array.from(sections).map(s => s.id));
+    sections.forEach(sec => {
+      const shouldShow = sec.id === id;
+      sec.hidden = !shouldShow;
+      console.log(`Router: section ${sec.id} hidden: ${!shouldShow}`);
     });
   }
 
@@ -56,6 +65,7 @@
 
   async function handleRoute() {
     const path = currentPath();
+    console.log('Router: handling path:', path, 'isStandalonePage:', isStandalonePage);
     setActiveLink(path);
     
     // Don't try to show views on standalone pages
