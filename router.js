@@ -1,6 +1,6 @@
 // router.js
 (() => {
-  const routes = ["/today", "/week", "/month", "/year"];
+  const routes = ["/today", "/week", "/month", "/year", "/about", "/privacy"];
   const outlet = document.getElementById("viewOutlet");
   const sidebar = document.getElementById("sidebar");
   const burgerBtn = document.getElementById("burgerBtn");
@@ -81,6 +81,14 @@
         showView("yearView");
         await window.TempHistViews?.year?.render?.();
         break;
+      case "/about":
+        showView("aboutView");
+        await window.TempHistViews?.about?.render?.();
+        break;
+      case "/privacy":
+        showView("privacyView");
+        await window.TempHistViews?.privacy?.render?.();
+        break;
     }
     closeMenu();
   }
@@ -111,16 +119,15 @@
         return; // Don't prevent default, let the link work
       }
       
-      // Only prevent default for SPA routes, not for external links like /about and /privacy
+      // Handle all SPA routes
       const route = target.dataset.route;
-      const spaRoutes = ["/today", "/week", "/month", "/year"];
+      const spaRoutes = ["/today", "/week", "/month", "/year", "/about", "/privacy"];
       
       if (spaRoutes.includes(route)) {
         e.preventDefault();
         // Handle SPA navigation
         window.location.hash = `#${route}`;
       }
-      // Let /about and /privacy links work normally (don't prevent default)
     }
   });
 

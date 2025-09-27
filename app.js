@@ -1862,10 +1862,22 @@ onAuthStateChanged(auth, (user) => {
   window.TempHistViews.about = {
     async render() {
       setSectionHTML('aboutView', `
-        <h2>About TempHist</h2>
-        <p>TempHist shows how temperatures on a specific calendar day have varied over the past 50 years for your location.</p>
-        <p>Data source: Visual Crossing (via a fast cached API). Built with Chart.js and Flutter (iOS).</p>
-        <p>Prefetching ensures other views load quickly when you navigate.</p>
+        <div class="container">
+          <h2>About TempHist</h2>
+          <p>TempHist shows you how today's temperature compares to the same date over the past 50 years.</p>
+
+          <h3>How it works</h3>
+          <p>TempHist uses your location to fetch historical weather data and displays it in an easy-to-read chart. Each bar represents the temperature on this date in a different year, with the current year highlighted in green.</p>
+
+          <h3>Data sources</h3>
+          <p>Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted meteorological providers.</p>
+
+          <h3>Privacy</h3>
+          <p>TempHist respects your privacy. We don't collect, store, or share any personal information. Location data is used only once to fetch weather data and is never stored.</p>
+
+          <h3>Contact</h3>
+          <p>TempHist is operated by Turnpiece Ltd. For questions or feedback, please visit <a href="https://turnpiece.com">https://turnpiece.com</a>.</p>
+        </div>
       `);
     }
   };
@@ -1873,9 +1885,27 @@ onAuthStateChanged(auth, (user) => {
   window.TempHistViews.privacy = {
     async render() {
       setSectionHTML('privacyView', `
-        <h2>Privacy</h2>
-        <p>We use browser geolocation (if permitted) to detect your nearest city. Location can also be passed via the URL.</p>
-        <p>No personal data is stored on the server. See the full policy on this page.</p>
+        <div class="container">
+          <h2>Privacy Policy</h2>
+          <p>Effective date: September 2025</p>
+
+          <p>TempHist, operated by Turnpiece Ltd., respects your privacy.</p>
+
+          <h3>No personal data collected</h3>
+          <p>TempHist does not collect, store, or share any personal information.</p>
+
+          <h3>Location use</h3>
+          <p>If you grant permission, the app uses your current location once to retrieve historical weather data for your area. Location data is never stored or shared.</p>
+
+          <h3>No tracking or analytics</h3>
+          <p>The app does not include analytics, advertising, or third-party tracking.</p>
+
+          <h3>Data sources</h3>
+          <p>Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted providers. Requests are processed anonymously.</p>
+
+          <h3>Contact</h3>
+          <p>If you have questions, please contact Turnpiece Ltd. at <a href="https://turnpiece.com">https://turnpiece.com</a>.</p>
+        </div>
       `);
     }
   };
