@@ -57,14 +57,16 @@ a {
   height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8rem;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2rem;
   text-align: left;
   z-index: 3;
   opacity: 1;
   transition: opacity 0.4s;
   pointer-events: auto;
+  padding-top: 2rem;
+  padding-left: 0;
 }
 .chart-container .loading.visible {
   display: flex;
@@ -328,7 +330,7 @@ h2, .date-heading {
   opacity: 0;
   pointer-events: none;
 }
-#loading .spinner {
+#loading .loading .spinner {
   width: 40px;
   height: 40px;
   border: 4px solid rgba(186, 0, 0, 0.2);
@@ -344,10 +346,28 @@ h2, .date-heading {
     transform: rotate(360deg);
   }
 }
-#loading #loadingText {
-  margin: 3rem 0 0;
+#loading .loading .loading-text {
+  margin: 1rem 0 0;
   color: #51cf66;
   font-size: 1.1rem;
+  text-align: left;
+}
+
+/* Global loading styles */
+.loading-text {
+  margin: 1rem 0 0;
+  color: #51cf66;
+  font-size: 1.1rem;
+  text-align: left;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(186, 0, 0, 0.2);
+  border-top: 4px solid #51cf66;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 /* Skeleton loader styles */

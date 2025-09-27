@@ -71,14 +71,16 @@ a {
     height: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8rem;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 2rem;
     text-align: left;
     z-index: 3;
     opacity: 1;
     transition: opacity 0.4s;
     pointer-events: auto;
+    padding-top: 2rem;
+    padding-left: 0;
 
     &.visible {
       display: flex;
@@ -345,7 +347,7 @@ h2, .date-heading {
     pointer-events: none;
   }
 
-  .spinner {
+  .loading .spinner {
     width: 40px;
     height: 40px;
     border: 4px solid $colour-spinner-bg;
@@ -359,11 +361,29 @@ h2, .date-heading {
     100% { transform: rotate(360deg); }
   }
   
-  #loadingText {
-    margin: 3rem 0 0;
+  .loading .loading-text {
+    margin: 1rem 0 0;
     color: $colour-loading-text;
     font-size: 1.1rem;
+    text-align: left;
   }
+}
+
+/* Global loading styles */
+.loading-text {
+  margin: 1rem 0 0;
+  color: $colour-loading-text;
+  font-size: 1.1rem;
+  text-align: left;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid $colour-spinner-bg;
+  border-top: 4px solid $colour-spinner;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 /* Skeleton loader styles */

@@ -561,11 +561,6 @@ onAuthStateChanged(auth, (user) => {
     // Ensure loading state is hidden initially
     loadingEl.classList.add('hidden');
     loadingEl.classList.remove('visible');
-    const skeleton = document.getElementById('skeletonLoader');
-    if (skeleton) {
-      skeleton.classList.add('hidden');
-      skeleton.classList.remove('visible');
-    }
 
     debugLog('DOM elements and variables initialized');
 
@@ -625,12 +620,6 @@ onAuthStateChanged(auth, (user) => {
 
       loadingEl.classList.add('visible');
       loadingEl.classList.remove('hidden');
-
-      const skeleton = document.getElementById('skeletonLoader');
-      if (skeleton) {
-        skeleton.classList.remove('hidden');
-        skeleton.classList.add('visible');
-      }
 
       canvasEl.classList.remove('visible');
       canvasEl.classList.add('hidden');
@@ -828,12 +817,6 @@ onAuthStateChanged(auth, (user) => {
       if (loadingEl) {
         loadingEl.classList.add('hidden');
         loadingEl.classList.remove('visible');
-      }
-      
-      const skeleton = document.getElementById('skeletonLoader');
-      if (skeleton) {
-        skeleton.classList.add('hidden');
-        skeleton.classList.remove('visible');
       }
       
       const tempChart = document.getElementById('tempChart');
@@ -1448,12 +1431,6 @@ onAuthStateChanged(auth, (user) => {
       loadingEl.classList.add('hidden');
       loadingEl.classList.remove('visible');
 
-      const skeleton = document.getElementById('skeletonLoader');
-      if (skeleton) {
-        skeleton.classList.add('hidden');
-        skeleton.classList.remove('visible');
-      }
-
       canvasEl.classList.add('visible');
       canvasEl.classList.remove('hidden');
       
@@ -1926,7 +1903,7 @@ onAuthStateChanged(auth, (user) => {
         <div class="chart-container">
           <div id="${periodKey}Loading" class="loading">
             <div class="spinner"></div>
-            <p id="${periodKey}LoadingText">Loading temperature data…</p>
+            <p id="${periodKey}LoadingText" class="loading-text">Loading temperature data…</p>
           </div>
           
           <div id="${periodKey}ErrorContainer" style="display: none;">
@@ -1996,6 +1973,11 @@ onAuthStateChanged(auth, (user) => {
 
     // Set the date text to match Today page format
     document.getElementById(`${periodKey}DateText`).textContent = `${title} ending ${friendlyDate}`;
+    
+    // Set location text early to prevent layout shifts
+    const currentLocation = window.getCurrentLocation();
+    const displayLocation = window.getDisplayCity(currentLocation);
+    document.getElementById(`${periodKey}LocationText`).textContent = displayLocation;
     
     showLoading(true);
 
@@ -2085,9 +2067,11 @@ onAuthStateChanged(auth, (user) => {
 
     // Expected payload shape (adjust mapping as needed):
     // { series: [{ date: '2025-09-19', temperature: 18.2 }, ...], location: 'London' }
-    const currentLocation = window.getCurrentLocation();
-    const displayLocation = payload.location ? window.getDisplayCity(payload.location) : window.getDisplayCity(currentLocation);
-    document.getElementById(`${periodKey}LocationText`).textContent = displayLocation;
+    // Update location text with actual API location if available
+    if (payload.location) {
+      const displayLocation = window.getDisplayCity(payload.location);
+      document.getElementById(`${periodKey}LocationText`).textContent = displayLocation;
+    }
     
     // Apply colors to match Today page
     const dateText = document.getElementById(`${periodKey}DateText`);
