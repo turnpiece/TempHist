@@ -1906,9 +1906,11 @@ onAuthStateChanged(auth, (user) => {
             <p id="${periodKey}LoadingText" class="loading-text">Loading temperature data…</p>
           </div>
           
-          <div id="${periodKey}ErrorContainer" style="display: none;">
-            <div id="${periodKey}ErrorMessage"></div>
-            <button id="${periodKey}ReloadButton">Reload</button>
+          <div id="${periodKey}ErrorContainer" class="error-container" style="display: none;">
+            <div class="error-content">
+              <div id="${periodKey}ErrorMessage" class="error-message"></div>
+              <button id="${periodKey}ReloadButton" class="reload-button">Reload</button>
+            </div>
           </div>
           
           <canvas id="${periodKey}Chart"></canvas>
