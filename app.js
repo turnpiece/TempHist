@@ -685,10 +685,11 @@ onAuthStateChanged(auth, (user) => {
     };
 
     // Build rolling-bundle path with query
-    function getRollingBundlePath(location, anchorISO, qs = '') {
+    function getRollingBundlePath(location, anchorISO, qs = '', pathElement = '') {
       const encodedLocation = encodeURIComponent(location);
       const base = `/v1/records/rolling-bundle/${encodedLocation}/${anchorISO}`;
-      return qs ? `${base}?${qs}` : base;
+      const path = pathElement ? `${base}/${pathElement}` : base;
+      return qs ? `${path}?${qs}` : path;
     }
 
     // Format MM-DD for "yesterday/previous" given a base Date
@@ -699,8 +700,6 @@ onAuthStateChanged(auth, (user) => {
       const day = String(d.getDate()).padStart(2, '0');
       return `${m}-${day}`;
     }
-
-
 
     async function getCityFromCoords(lat, lon) {
       try {
@@ -924,13 +923,8 @@ onAuthStateChanged(auth, (user) => {
             return;
           }
           
-          const qs = new URLSearchParams({
-            include: 'weekly,monthly,yearly',
-            unit_group: unitGroup,
-            month_mode: monthMode
-          }).toString();
           const idToken = await currentUser.getIdToken();
-          const bundleUrl = getApiUrl(getRollingBundlePath(location, anchorDateISO, qs));
+          const bundleUrl = getApiUrl(getRollingBundlePath(location, anchorDateISO, '', 'preload'));
           
           const response = await fetch(bundleUrl, {
             headers: {
