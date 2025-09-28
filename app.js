@@ -1432,7 +1432,7 @@ onAuthStateChanged(auth, (user) => {
           
         dataNotice.innerHTML = `<div class="notice-content success">
           <p class="notice-title">${locationMessage}</p>
-          <p class="notice-subtitle">Loading temperature data...</p>
+          ${DEBUGGING ? '<p class="notice-subtitle">Loading temperature data...</p>' : ''}
         </div>`;
       }
       
