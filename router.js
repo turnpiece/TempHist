@@ -57,6 +57,18 @@
   }
 
   function currentPath() {
+    // On standalone pages, determine path from the actual URL
+    if (isStandalonePage) {
+      const currentPage = window.location.pathname;
+      if (currentPage.includes('/privacy')) {
+        return '/privacy';
+      } else if (currentPage.includes('/about')) {
+        return '/about';
+      }
+      return '/today'; // fallback
+    }
+    
+    // For SPA, use hash routing
     const raw = location.hash.replace(/^#/, "");
     if (!raw || raw === "/") return "/today";
     const [path] = raw.split("?"); // ignore query for now
