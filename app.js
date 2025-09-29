@@ -915,7 +915,7 @@ onAuthStateChanged(auth, (user) => {
         }
       });
 
-      // Prefetch using bundle endpoint (more efficient)
+      // Prefetch using individual endpoints (more reliable than bundle)
       const bundlePrefetchPromise = (async () => {
         try {
           // Check if we have a valid user and location before making the request
@@ -924,28 +924,35 @@ onAuthStateChanged(auth, (user) => {
           }
           
           const idToken = await currentUser.getIdToken();
-          const bundleUrl = getApiUrl(getRollingBundlePath(location, anchorDateISO, '', 'preload'));
+          const headers = {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          };
           
-          const response = await fetch(bundleUrl, {
-            headers: {
-              'Authorization': `Bearer ${idToken}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
+          // Fetch all three endpoints in parallel for better performance
+          const [weeklyResponse, monthlyResponse, yearlyResponse] = await Promise.allSettled([
+            fetch(getApiUrl(getRecordPath('weekly', location, anchorDateISO)), { headers }),
+            fetch(getApiUrl(getRecordPath('monthly', location, anchorDateISO)), { headers }),
+            fetch(getApiUrl(getRecordPath('yearly', location, anchorDateISO)), { headers })
+          ]);
           
-          if (response.ok) {
-            const data = await response.json();
-            // Populate cache with prefetched data from bundle
-            if (data.weekly) {
-              TempHist.cache.prefetch.week = data.weekly;
-            }
-            if (data.monthly) {
-              TempHist.cache.prefetch.month = data.monthly;
-            }
-            if (data.yearly) {
-              TempHist.cache.prefetch.year = data.yearly;
-            }
+          // Process weekly data
+          if (weeklyResponse.status === 'fulfilled' && weeklyResponse.value.ok) {
+            const data = await weeklyResponse.value.json();
+            TempHist.cache.prefetch.week = data;
+          }
+          
+          // Process monthly data
+          if (monthlyResponse.status === 'fulfilled' && monthlyResponse.value.ok) {
+            const data = await monthlyResponse.value.json();
+            TempHist.cache.prefetch.month = data;
+          }
+          
+          // Process yearly data
+          if (yearlyResponse.status === 'fulfilled' && yearlyResponse.value.ok) {
+            const data = await yearlyResponse.value.json();
+            TempHist.cache.prefetch.year = data;
           }
         } catch (e) {
           // Silently ignore prefetch errors

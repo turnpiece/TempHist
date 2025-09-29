@@ -207,36 +207,14 @@ a {
 }
 
 /* Page-specific styles for privacy and about pages */
-#content {
-  margin: 0 0 4em;
-  min-height: 1200px;
-  overflow: auto;
-  
-  .container {
-    max-width: 800px;
-  }
-  
+#aboutView,
+#privacyView {
   h3 {
     color: var(--thisYear);
     font-size: 1.3em;
     margin: 1.5em 0 0.5em 0;
   }
-  
-  p {
-    margin: 0.8em 0;
-    line-height: 1.6;
-  }
-  
-  a {
-    color: var(--avg);
-    text-decoration: underline;
-    
-    &:hover {
-      color: var(--thisYear);
-    }
-  }
 }
-
 
 .standard-text {
   font-size: 1em;
