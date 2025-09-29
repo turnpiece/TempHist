@@ -7,7 +7,9 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html')
+        main: resolve(__dirname, 'index.html'),
+        about: resolve(__dirname, 'about.html'),
+        privacy: resolve(__dirname, 'privacy.html')
       }
     }
   },
@@ -15,10 +17,6 @@ export default defineConfig({
     {
       name: 'copy-static-files',
       writeBundle() {
-        // Copy privacy.html
-        copyFileSync('privacy.html', 'dist/privacy.html')
-        // Copy about.html
-        copyFileSync('about.html', 'dist/about.html')
         // Copy router.js
         copyFileSync('router.js', 'dist/router.js')
         // Copy .htaccess
