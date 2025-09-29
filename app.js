@@ -930,10 +930,14 @@ onAuthStateChanged(auth, (user) => {
             'Accept': 'application/json'
           };
           
+          // Format dates correctly for each endpoint type
+          const anchorDate = new Date(anchorDateISO);
+          const mmdd = mmddFrom(anchorDate, 0); // MM-DD format for weekly/monthly
+          
           // Fetch all three endpoints in parallel for better performance
           const [weeklyResponse, monthlyResponse, yearlyResponse] = await Promise.allSettled([
-            fetch(getApiUrl(getRecordPath('weekly', location, anchorDateISO)), { headers }),
-            fetch(getApiUrl(getRecordPath('monthly', location, anchorDateISO)), { headers }),
+            fetch(getApiUrl(getRecordPath('weekly', location, mmdd)), { headers }),
+            fetch(getApiUrl(getRecordPath('monthly', location, mmdd)), { headers }),
             fetch(getApiUrl(getRecordPath('yearly', location, anchorDateISO)), { headers })
           ]);
           
