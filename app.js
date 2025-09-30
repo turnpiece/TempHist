@@ -852,6 +852,7 @@ onAuthStateChanged(auth, (user) => {
         return;
       }
       
+      const prefetchStartTime = Date.now();
       debugLog('Prefetch: Starting background data loading for', location);
 
       // Prefetch using individual endpoints (more reliable than bundle)
@@ -864,6 +865,7 @@ onAuthStateChanged(auth, (user) => {
           }
           
           debugLog('Prefetch: Starting period data prefetch');
+          const periodStartTime = Date.now();
           const idToken = await currentUser.getIdToken();
           const headers = {
             'Authorization': `Bearer ${idToken}`,
@@ -879,11 +881,29 @@ onAuthStateChanged(auth, (user) => {
           
           // Fetch all three endpoints in parallel for better performance
           debugLog('Prefetch: Fetching weekly, monthly, yearly data in parallel');
+          const fetchStartTime = Date.now();
+          
+          // Individual endpoint timing
+          const weeklyStart = Date.now();
+          const monthlyStart = Date.now();
+          const yearlyStart = Date.now();
+          
           const [weeklyResponse, monthlyResponse, yearlyResponse] = await Promise.allSettled([
-            fetch(getApiUrl(getRecordPath('weekly', location, mmdd)), { headers }),
-            fetch(getApiUrl(getRecordPath('monthly', location, mmdd)), { headers }),
-            fetch(getApiUrl(getRecordPath('yearly', location, mmdd)), { headers })
+            fetch(getApiUrl(getRecordPath('weekly', location, mmdd)), { headers }).then(res => {
+              debugLog('Prefetch: Weekly endpoint completed in', Date.now() - weeklyStart, 'ms');
+              return res;
+            }),
+            fetch(getApiUrl(getRecordPath('monthly', location, mmdd)), { headers }).then(res => {
+              debugLog('Prefetch: Monthly endpoint completed in', Date.now() - monthlyStart, 'ms');
+              return res;
+            }),
+            fetch(getApiUrl(getRecordPath('yearly', location, mmdd)), { headers }).then(res => {
+              debugLog('Prefetch: Yearly endpoint completed in', Date.now() - yearlyStart, 'ms');
+              return res;
+            })
           ]);
+          const fetchEndTime = Date.now();
+          debugLog('Prefetch: Parallel fetch completed in', fetchEndTime - fetchStartTime, 'ms');
           
           // Process weekly data
           if (weeklyResponse.status === 'fulfilled' && weeklyResponse.value.ok) {
@@ -911,6 +931,9 @@ onAuthStateChanged(auth, (user) => {
           } else {
             debugLog('Prefetch: Yearly data failed', yearlyResponse.status, yearlyResponse.value?.status);
           }
+          
+          const periodEndTime = Date.now();
+          debugLog('Prefetch: Period data prefetch completed in', periodEndTime - periodStartTime, 'ms');
         } catch (e) {
           debugLog('Prefetch: Period data prefetch error', e.message);
         }
@@ -920,7 +943,16 @@ onAuthStateChanged(auth, (user) => {
       TempHist.cache.prefetchPromise = bundlePrefetchPromise;
       
       debugLog('Prefetch: Stored prefetch promise, scheduling execution');
-      ric(() => bundlePrefetchPromise);
+      ric(() => {
+        bundlePrefetchPromise.then(() => {
+          const totalTime = Date.now() - prefetchStartTime;
+          debugLog('Prefetch: Total prefetch operation completed in', totalTime, 'ms');
+        }).catch(() => {
+          const totalTime = Date.now() - prefetchStartTime;
+          debugLog('Prefetch: Total prefetch operation failed after', totalTime, 'ms');
+        });
+        return bundlePrefetchPromise;
+      });
     }
 
     // Retry mechanism for API calls
@@ -1167,7 +1199,7 @@ onAuthStateChanged(auth, (user) => {
                     color: '#ECECEC',
                     stepSize: 2,
                     callback: function(value) {
-                      debugLog('X-axis tick callback:', value);
+                      //debugLog('X-axis tick callback:', value);
                       return value; // Show all temperature values
                     }
                   }
@@ -1899,6 +1931,9 @@ onAuthStateChanged(auth, (user) => {
       const elapsedSeconds = Math.floor((Date.now() - loadingStartTime) / 1000);
       const loadingText = document.getElementById(`${periodKey}LoadingText`);
       
+      // Only update if this is still the active loading element and it exists
+      if (!loadingText) return;
+      
       if (elapsedSeconds < 5) {
         loadingText.textContent = 'Loading temperature data...';
       } else if (elapsedSeconds < 15) {
@@ -1918,6 +1953,12 @@ onAuthStateChanged(auth, (user) => {
 
     function showLoading(v) { 
       if (v) {
+        // Clear any existing interval for this page
+        if (loadingCheckInterval) {
+          clearInterval(loadingCheckInterval);
+          loadingCheckInterval = null;
+        }
+        
         loadingStartTime = Date.now();
         loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
         loadingEl.classList.add('visible');
