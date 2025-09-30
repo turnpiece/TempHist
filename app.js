@@ -938,7 +938,7 @@ onAuthStateChanged(auth, (user) => {
           const [weeklyResponse, monthlyResponse, yearlyResponse] = await Promise.allSettled([
             fetch(getApiUrl(getRecordPath('weekly', location, mmdd)), { headers }),
             fetch(getApiUrl(getRecordPath('monthly', location, mmdd)), { headers }),
-            fetch(getApiUrl(getRecordPath('yearly', location, anchorDateISO)), { headers })
+            fetch(getApiUrl(getRecordPath('yearly', location, mmdd)), { headers })
           ]);
           
           // Process weekly data
@@ -1428,17 +1428,19 @@ onAuthStateChanged(auth, (user) => {
       
       document.getElementById('locationText').textContent = locationDisplay;
       
-      // Clear the initial status message and show location confirmation
-      const dataNotice = document.getElementById('dataNotice');
-      if (dataNotice) {
-        const locationMessage = isDefaultLocation ? 
-          `📍 Using default location: <strong>${getDisplayCity(tempLocation)}</strong><br><small>Enable location permissions for your actual location</small>` :
-          `📍 Location set to: <strong>${getDisplayCity(tempLocation)}</strong>`;
-          
-        dataNotice.innerHTML = `<div class="notice-content success">
-          <p class="notice-title">${locationMessage}</p>
-          ${DEBUGGING ? '<p class="notice-subtitle">Loading temperature data...</p>' : ''}
-        </div>`;
+      // Clear the initial status message and show location confirmation (only when debugging)
+      if (DEBUGGING) {
+        const dataNotice = document.getElementById('dataNotice');
+        if (dataNotice) {
+          const locationMessage = isDefaultLocation ? 
+            `📍 Using default location: <strong>${getDisplayCity(tempLocation)}</strong><br><small>Enable location permissions for your actual location</small>` :
+            `📍 Location set to: <strong>${getDisplayCity(tempLocation)}</strong>`;
+            
+          dataNotice.innerHTML = `<div class="notice-content success">
+            <p class="notice-title">${locationMessage}</p>
+            <p class="notice-subtitle">Loading temperature data...</p>
+          </div>`;
+        }
       }
       
       setLocationCookie(tempLocation);
