@@ -8,6 +8,14 @@
   // Check if this is a standalone page (not the main SPA)
   // We're on a standalone page if we don't have the main app structure
   const isStandalonePage = !outlet || !document.querySelector('#todayView');
+  
+  // Debug logging for standalone page detection
+  window.debugLog('Router: isStandalonePage detection:', {
+    outlet: !!outlet,
+    todayView: !!document.querySelector('#todayView'),
+    isStandalonePage: isStandalonePage,
+    currentPath: window.location.pathname
+  });
 
   function setActiveLink(path) {
     if (isStandalonePage) {
@@ -82,9 +90,12 @@
     
     // Don't try to show views on standalone pages
     if (isStandalonePage) {
+      window.debugLog('Router: Skipping view rendering on standalone page');
       closeMenu();
       return;
     }
+    
+    window.debugLog('Router: Proceeding with SPA view rendering');
     
     switch (path) {
       case "/today":
