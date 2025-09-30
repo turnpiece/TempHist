@@ -226,7 +226,7 @@ onAuthStateChanged(auth, (user) => {
   };
 
   // Global debug configuration
-  const DEBUGGING = true;
+  const DEBUGGING = false;
 
   // Helper functions for debug logging (global scope)
   function debugLog(...args) {
