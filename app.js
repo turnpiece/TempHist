@@ -225,19 +225,10 @@ onAuthStateChanged(auth, (user) => {
     return parts[0];
   };
 
-  // Move your main code into a function:
-  function startAppWithFirebaseUser(user) {
-    // Constants and configuration
-    const DEBUGGING = false;
-    
-    // Initialize analytics reporting
-    setupAnalyticsReporting();
-    
-    // SECURITY NOTE: Manual location input is disabled to prevent API abuse.
-    // Users must enable location permissions to access the service.
-    // This ensures users can only access data for their actual location.
+  // Global debug configuration
+  const DEBUGGING = true;
 
-  // Helper function for debug logging
+  // Helper functions for debug logging (global scope)
   function debugLog(...args) {
     if (DEBUGGING) {
       console.log(...args);
@@ -256,72 +247,87 @@ onAuthStateChanged(auth, (user) => {
     }
   }
 
-  // Enhanced device and platform detection
-  function detectDeviceAndPlatform() {
-    const userAgent = navigator.userAgent;
+  // Make debug functions and configuration globally available
+  window.DEBUGGING = DEBUGGING;
+  window.debugLog = debugLog;
+  window.debugTime = debugTime;
+  window.debugTimeEnd = debugTimeEnd;
+
+  // Move your main code into a function:
+  function startAppWithFirebaseUser(user) {
+    // Initialize analytics reporting
+    setupAnalyticsReporting();
     
-    // OS Detection
-    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
-    const isAndroid = /Android/.test(userAgent);
-    const isWindows = /Windows/.test(userAgent);
-    const isMac = /Mac/.test(userAgent);
-    const isLinux = /Linux/.test(userAgent);
-    
-    // Browser Detection
-    const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
-    const isChrome = /Chrome/.test(userAgent);
-    const isFirefox = /Firefox/.test(userAgent);
-    const isEdge = /Edg/.test(userAgent);
-    
-    // Device Type Detection
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    const isTablet = /iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/.test(userAgent);
-    const isDesktop = !isMobile && !isTablet;
-    
-    // Additional mobile indicators
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const isSmallScreen = window.innerWidth <= 768;
-    const isPortrait = window.innerHeight > window.innerWidth;
-    
-    // Mobile-specific features
-    const hasMobileFeatures = 'connection' in navigator || 
-                             'deviceMemory' in navigator || 
-                             'hardwareConcurrency' in navigator;
-    
-    // Enhanced mobile detection with scoring
-    const mobileScore = (isMobile ? 3 : 0) + 
-                       (isTouchDevice ? 2 : 0) + 
-                       (isSmallScreen ? 1 : 0) + 
-                       (hasMobileFeatures ? 1 : 0);
-    
-    const isMobileDevice = mobileScore >= 3;
-    
-    // Platform-specific details
-    const platform = {
-      os: isIOS ? 'iOS' : isAndroid ? 'Android' : isWindows ? 'Windows' : isMac ? 'macOS' : isLinux ? 'Linux' : 'Unknown',
-      browser: isSafari ? 'Safari' : isChrome ? 'Chrome' : isFirefox ? 'Firefox' : isEdge ? 'Edge' : 'Unknown',
-      deviceType: isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop',
-      isMobile: isMobileDevice,
-      isIOS,
-      isAndroid,
-      isSafari,
-      isChrome
-    };
-    
-    if (DEBUGGING) {
-      console.log('Device and platform detection:', {
-        userAgent: userAgent,
-        platform,
-        mobileScore,
-        isTouchDevice,
-        isSmallScreen,
-        isPortrait,
-        hasMobileFeatures
-      });
+    // SECURITY NOTE: Manual location input is disabled to prevent API abuse.
+    // Users must enable location permissions to access the service.
+    // This ensures users can only access data for their actual location.
+
+    // Enhanced device and platform detection
+    function detectDeviceAndPlatform() {
+      const userAgent = navigator.userAgent;
+      
+      // OS Detection
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+      const isAndroid = /Android/.test(userAgent);
+      const isWindows = /Windows/.test(userAgent);
+      const isMac = /Mac/.test(userAgent);
+      const isLinux = /Linux/.test(userAgent);
+      
+      // Browser Detection
+      const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+      const isChrome = /Chrome/.test(userAgent);
+      const isFirefox = /Firefox/.test(userAgent);
+      const isEdge = /Edg/.test(userAgent);
+      
+      // Device Type Detection
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+      const isTablet = /iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/.test(userAgent);
+      const isDesktop = !isMobile && !isTablet;
+      
+      // Additional mobile indicators
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isSmallScreen = window.innerWidth <= 768;
+      const isPortrait = window.innerHeight > window.innerWidth;
+      
+      // Mobile-specific features
+      const hasMobileFeatures = 'connection' in navigator || 
+                               'deviceMemory' in navigator || 
+                               'hardwareConcurrency' in navigator;
+      
+      // Enhanced mobile detection with scoring
+      const mobileScore = (isMobile ? 3 : 0) + 
+                         (isTouchDevice ? 2 : 0) + 
+                         (isSmallScreen ? 1 : 0) + 
+                         (hasMobileFeatures ? 1 : 0);
+      
+      const isMobileDevice = mobileScore >= 3;
+      
+      // Platform-specific details
+      const platform = {
+        os: isIOS ? 'iOS' : isAndroid ? 'Android' : isWindows ? 'Windows' : isMac ? 'macOS' : isLinux ? 'Linux' : 'Unknown',
+        browser: isSafari ? 'Safari' : isChrome ? 'Chrome' : isFirefox ? 'Firefox' : isEdge ? 'Edge' : 'Unknown',
+        deviceType: isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop',
+        isMobile: isMobileDevice,
+        isIOS,
+        isAndroid,
+        isSafari,
+        isChrome
+      };
+      
+      if (DEBUGGING) {
+        console.log('Device and platform detection:', {
+          userAgent: userAgent,
+          platform,
+          mobileScore,
+          isTouchDevice,
+          isSmallScreen,
+          isPortrait,
+          hasMobileFeatures
+        });
+      }
+      
+      return platform;
     }
-    
-    return platform;
-  }
 
   // Enhanced mobile detection function (backward compatibility)
   function isMobileDevice() {
@@ -432,26 +438,6 @@ onAuthStateChanged(auth, (user) => {
     }
 
     Chart.register(window['chartjs-plugin-annotation']);
-
-    const apiBase = (() => {
-      // Check for environment-specific API URL first
-      if (import.meta.env.VITE_API_BASE) {
-        return import.meta.env.VITE_API_BASE;
-      }
-      
-      // Development (local)
-      if (import.meta.env.DEV) {
-        return 'http://localhost:3000'; // Point to server.js
-      }
-      
-      // Dev site also uses production API
-      if (window.location.hostname === 'dev.temphist.com') {
-        return 'https://api.temphist.com'; // Use production API for dev site
-      }
-      
-      // Production
-      return 'https://api.temphist.com';
-    })();
 
     debugLog('Constants initialized');
     
@@ -862,67 +848,22 @@ onAuthStateChanged(auth, (user) => {
     function schedulePrefetchAfterDaily(location, anchorDateISO, unitGroup = 'celsius', monthMode = 'rolling1m') {
       // Don't run prefetch on standalone pages
       if (window.location.pathname.includes('/about') || window.location.pathname.includes('/privacy')) {
+        debugLog('Prefetch: Skipping on standalone page');
         return;
       }
-      // Daily: yesterday / two days ago / three days ago
-      const idD1 = mmddFrom(dateToUse, 1);
-      const idD2 = mmddFrom(dateToUse, 2);
-      const idD3 = mmddFrom(dateToUse, 3);
-
-      ric(async () => {
-        try {
-          const p = `${getRecordPath('daily', location, idD1)}?include=series,average,trend,summary`;
-          const idToken = await currentUser.getIdToken();
-          await fetch(getApiUrl(p), {
-            headers: {
-              'Authorization': `Bearer ${idToken}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
-        } catch (e) {
-          // Silently ignore prefetch errors
-        }
-      });
-      ric(async () => {
-        try {
-          const p = `${getRecordPath('daily', location, idD2)}?include=series,average,trend,summary`;
-          const idToken = await currentUser.getIdToken();
-          await fetch(getApiUrl(p), {
-            headers: {
-              'Authorization': `Bearer ${idToken}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
-        } catch (e) {
-          // Silently ignore prefetch errors
-        }
-      });
-      ric(async () => {
-        try {
-          const p = `${getRecordPath('daily', location, idD3)}?include=series,average,trend,summary`;
-          const idToken = await currentUser.getIdToken();
-          await fetch(getApiUrl(p), {
-            headers: {
-              'Authorization': `Bearer ${idToken}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
-        } catch (e) {
-          // Silently ignore prefetch errors
-        }
-      });
+      
+      debugLog('Prefetch: Starting background data loading for', location);
 
       // Prefetch using individual endpoints (more reliable than bundle)
       const bundlePrefetchPromise = (async () => {
         try {
           // Check if we have a valid user and location before making the request
           if (!currentUser || !location) {
+            debugLog('Prefetch: Skipping - no user or location');
             return;
           }
           
+          debugLog('Prefetch: Starting period data prefetch');
           const idToken = await currentUser.getIdToken();
           const headers = {
             'Authorization': `Bearer ${idToken}`,
@@ -934,7 +875,10 @@ onAuthStateChanged(auth, (user) => {
           const anchorDate = new Date(anchorDateISO);
           const mmdd = mmddFrom(anchorDate, 0); // MM-DD format for weekly/monthly
           
+          debugLog('Prefetch: Period data IDs prepared', { anchorDateISO, mmdd });
+          
           // Fetch all three endpoints in parallel for better performance
+          debugLog('Prefetch: Fetching weekly, monthly, yearly data in parallel');
           const [weeklyResponse, monthlyResponse, yearlyResponse] = await Promise.allSettled([
             fetch(getApiUrl(getRecordPath('weekly', location, mmdd)), { headers }),
             fetch(getApiUrl(getRecordPath('monthly', location, mmdd)), { headers }),
@@ -945,91 +889,38 @@ onAuthStateChanged(auth, (user) => {
           if (weeklyResponse.status === 'fulfilled' && weeklyResponse.value.ok) {
             const data = await weeklyResponse.value.json();
             TempHist.cache.prefetch.week = data;
+            debugLog('Prefetch: Weekly data cached successfully');
+          } else {
+            debugLog('Prefetch: Weekly data failed', weeklyResponse.status, weeklyResponse.value?.status);
           }
           
           // Process monthly data
           if (monthlyResponse.status === 'fulfilled' && monthlyResponse.value.ok) {
             const data = await monthlyResponse.value.json();
             TempHist.cache.prefetch.month = data;
+            debugLog('Prefetch: Monthly data cached successfully');
+          } else {
+            debugLog('Prefetch: Monthly data failed', monthlyResponse.status, monthlyResponse.value?.status);
           }
           
           // Process yearly data
           if (yearlyResponse.status === 'fulfilled' && yearlyResponse.value.ok) {
             const data = await yearlyResponse.value.json();
             TempHist.cache.prefetch.year = data;
+            debugLog('Prefetch: Yearly data cached successfully');
+          } else {
+            debugLog('Prefetch: Yearly data failed', yearlyResponse.status, yearlyResponse.value?.status);
           }
         } catch (e) {
-          // Silently ignore prefetch errors
+          debugLog('Prefetch: Period data prefetch error', e.message);
         }
       })();
       
       // Store the promise so other parts can wait for it
       TempHist.cache.prefetchPromise = bundlePrefetchPromise;
       
+      debugLog('Prefetch: Stored prefetch promise, scheduling execution');
       ric(() => bundlePrefetchPromise);
-
-      // Fallback: prefetch individual period endpoints if bundle fails
-      ric(async () => {
-        try {
-          const idToken = await currentUser.getIdToken();
-          const weeklyUrl = getApiUrl(`/v1/records/weekly/${encodeURIComponent(location)}/${month}-${day}`);
-          
-          const response = await fetch(weeklyUrl, {
-            headers: {
-              'Authorization': `Bearer ${idToken}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            TempHist.cache.prefetch.week = data;
-          }
-        } catch (e) {
-          // Silently ignore prefetch errors
-        }
-      });
-
-      ric(async () => {
-        try {
-          const idToken = await currentUser.getIdToken();
-          const response = await fetch(getApiUrl(`/v1/records/monthly/${encodeURIComponent(location)}/${month}-${day}`), {
-            headers: {
-              'Authorization': `Bearer ${idToken}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            TempHist.cache.prefetch.month = data;
-          }
-        } catch (e) {
-          // Silently ignore prefetch errors
-        }
-      });
-
-      ric(async () => {
-        try {
-          const idToken = await currentUser.getIdToken();
-          const response = await fetch(getApiUrl(`/v1/records/yearly/${encodeURIComponent(location)}/${month}-${day}`), {
-            headers: {
-              'Authorization': `Bearer ${idToken}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            TempHist.cache.prefetch.year = data;
-          }
-        } catch (e) {
-          // Silently ignore prefetch errors
-        }
-      });
     }
 
     // Retry mechanism for API calls
@@ -1428,10 +1319,11 @@ onAuthStateChanged(auth, (user) => {
       
       document.getElementById('locationText').textContent = locationDisplay;
       
-      // Clear the initial status message and show location confirmation (only when debugging)
-      if (DEBUGGING) {
-        const dataNotice = document.getElementById('dataNotice');
-        if (dataNotice) {
+      // Clear the initial status message
+      const dataNotice = document.getElementById('dataNotice');
+      if (dataNotice) {
+        if (DEBUGGING) {
+          // Show location confirmation when debugging
           const locationMessage = isDefaultLocation ? 
             `📍 Using default location: <strong>${getDisplayCity(tempLocation)}</strong><br><small>Enable location permissions for your actual location</small>` :
             `📍 Location set to: <strong>${getDisplayCity(tempLocation)}</strong>`;
@@ -1440,6 +1332,9 @@ onAuthStateChanged(auth, (user) => {
             <p class="notice-title">${locationMessage}</p>
             <p class="notice-subtitle">Loading temperature data...</p>
           </div>`;
+        } else {
+          // Clear the message when not debugging
+          dataNotice.textContent = '';
         }
       }
       
@@ -1467,13 +1362,19 @@ onAuthStateChanged(auth, (user) => {
       canvasEl.classList.add('visible');
       canvasEl.classList.remove('hidden');
       
-      // Clear the data notice and show success message if debugging
+      // Clear the data notice
       const dataNotice = document.getElementById('dataNotice');
       if (dataNotice) {
-        dataNotice.innerHTML = DEBUGGING ? `<div class="notice-content success">
-          <p class="notice-title">✅ Temperature data loaded successfully!</p>
-          <p class="notice-subtitle">Showing data for ${getDisplayCity(tempLocation)}</p>
-        </div>` : '';
+        if (DEBUGGING) {
+          // Show success message when debugging
+          dataNotice.innerHTML = `<div class="notice-content success">
+            <p class="notice-title">✅ Temperature data loaded successfully!</p>
+            <p class="notice-subtitle">Showing data for ${getDisplayCity(tempLocation)}</p>
+          </div>`;
+        } else {
+          // Clear the message when not debugging
+          dataNotice.textContent = '';
+        }
       }
       
       if (chart) {

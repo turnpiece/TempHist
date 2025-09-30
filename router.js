@@ -42,17 +42,17 @@
   }
 
   function showView(id) {
-    console.log('Router: showing view:', id);
+    window.debugLog('Router: showing view:', id);
     if (!outlet) {
-      console.log('Router: no outlet found');
+      window.debugLog('Router: no outlet found');
       return;
     }
     const sections = outlet.querySelectorAll('section[data-view]');
-    console.log('Router: found sections:', sections.length, Array.from(sections).map(s => s.id));
+    window.debugLog('Router: found sections:', sections.length, Array.from(sections).map(s => s.id));
     sections.forEach(sec => {
       const shouldShow = sec.id === id;
       sec.hidden = !shouldShow;
-      console.log(`Router: section ${sec.id} hidden: ${!shouldShow}`);
+      window.debugLog(`Router: section ${sec.id} hidden: ${!shouldShow}`);
     });
   }
 
@@ -77,7 +77,7 @@
 
   async function handleRoute() {
     const path = currentPath();
-    console.log('Router: handling path:', path, 'isStandalonePage:', isStandalonePage);
+    window.debugLog('Router: handling path:', path, 'isStandalonePage:', isStandalonePage);
     setActiveLink(path);
     
     // Don't try to show views on standalone pages
