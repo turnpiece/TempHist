@@ -918,6 +918,23 @@ onAuthStateChanged(auth, (user) => {
             return;
           }
           
+          // Check API health before prefetching
+          debugLog('Prefetch: Checking API health before prefetching period data');
+          const isApiHealthy = await Promise.race([
+            checkApiHealth(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Health check timeout')), 5000))
+          ]).catch(() => {
+            debugLog('Prefetch: Health check failed or timed out, skipping prefetch');
+            return false;
+          });
+          
+          if (!isApiHealthy) {
+            debugLog('Prefetch: API is not healthy, skipping period data prefetch');
+            return;
+          }
+          
+          debugLog('Prefetch: API is healthy, proceeding with period data prefetch');
+          
           debugLog('Prefetch: Starting period data prefetch');
           const periodStartTime = Date.now();
           const idToken = await currentUser.getIdToken();
@@ -2025,6 +2042,23 @@ onAuthStateChanged(auth, (user) => {
       } else {
         // No prefetch in progress, trigger it now for this specific period
         try {
+          // Check API health before attempting immediate prefetch
+          debugLog(`${periodKey}: Checking API health before immediate prefetch`);
+          const isApiHealthy = await Promise.race([
+            checkApiHealth(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Health check timeout')), 5000))
+          ]).catch(() => {
+            debugLog(`${periodKey}: Health check failed or timed out`);
+            return false;
+          });
+          
+          if (!isApiHealthy) {
+            debugLog(`${periodKey}: API is not healthy, skipping immediate prefetch`);
+            throw new Error('API health check failed');
+          }
+          
+          debugLog(`${periodKey}: API is healthy, proceeding with immediate prefetch`);
+          
           const currentLocation = window.getCurrentLocation();
           const now = new Date();
           const useYesterday = now.getHours() < 1;
@@ -2055,6 +2089,7 @@ onAuthStateChanged(auth, (user) => {
           }
         } catch (e) {
           // Immediate prefetch failed, proceed with direct API call
+          debugLog(`${periodKey}: Immediate prefetch failed:`, e.message);
         }
       }
     }
@@ -2108,9 +2143,8 @@ onAuthStateChanged(auth, (user) => {
         const loadingEl = document.getElementById(`${periodKey}Loading`);
         
         if (errorContainer && errorMessage) {
-          // Show the specific error message from the API or health check
-          const errorText = e.message || 'Unknown error occurred';
-          errorMessage.textContent = errorText;
+          // Show user-friendly error message consistent with Today page
+          errorMessage.textContent = 'Sorry, there was a problem connecting to the temperature data server. Please check your connection or try again later.';
           errorContainer.style.display = 'block';
         }
         
@@ -2124,6 +2158,10 @@ onAuthStateChanged(auth, (user) => {
           canvas.classList.remove('visible');
           canvas.classList.add('hidden');
         }
+        
+        // Log the actual error for debugging
+        console.error(`Error loading ${periodKey} data:`, e);
+        debugLog(`${periodKey} data fetch failed:`, e.message);
         
         // Add reload button handler for error case
         const reloadButton = document.getElementById(`${periodKey}ReloadButton`);
