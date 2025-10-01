@@ -284,6 +284,82 @@ a {
   margin: 0 0 15px 0;
   color: #666;
 }
+.notice .notice-extra-info {
+  margin: 0;
+  font-size: 12px;
+  color: #888;
+}
+
+.permission-box {
+  text-align: center;
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px solid;
+}
+.permission-box.denied {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.3);
+}
+.permission-box.prompt {
+  color: #4dabf7;
+  background: rgba(77, 171, 247, 0.1);
+  border-color: rgba(77, 171, 247, 0.3);
+}
+.permission-box .permission-title {
+  margin: 0 0 15px 0;
+  font-weight: 600;
+  font-size: 16px;
+}
+.permission-box .permission-text {
+  margin: 0 0 15px 0;
+  color: #666;
+  font-size: 14px;
+}
+.permission-box .permission-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #888;
+}
+
+.platform-instructions {
+  text-align: left;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+  font-size: 13px;
+}
+.platform-instructions .platform-header {
+  margin: 0 0 10px 0;
+  font-weight: 600;
+}
+.platform-instructions ol {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.refresh-button {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+.refresh-button:hover {
+  background: #ff3838;
+}
+.refresh-button.info {
+  background: #4dabf7;
+}
+.refresh-button.info:hover {
+  background: rgb(28.1935483871, 147.9677419355, 244.8064516129);
+}
 
 h2, .date-heading {
   color: var(--accent);

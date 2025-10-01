@@ -310,6 +310,96 @@ a {
       color: #666;
     }
   }
+  
+  .notice-extra-info {
+    margin: 0;
+    font-size: 12px;
+    color: #888;
+  }
+}
+
+// Permission instruction boxes
+.permission-box {
+  text-align: center;
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px solid;
+  
+  &.denied {
+    color: #ff6b6b;
+    background: rgba(255,107,107,0.1);
+    border-color: rgba(255,107,107,0.3);
+  }
+  
+  &.prompt {
+    color: #4dabf7;
+    background: rgba(77,171,247,0.1);
+    border-color: rgba(77,171,247,0.3);
+  }
+  
+  .permission-title {
+    margin: 0 0 15px 0;
+    font-weight: 600;
+    font-size: 16px;
+  }
+  
+  .permission-text {
+    margin: 0 0 15px 0;
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .permission-hint {
+    margin: 0;
+    font-size: 12px;
+    color: #888;
+  }
+}
+
+// Platform-specific instructions
+.platform-instructions {
+  text-align: left;
+  background: rgba(0,0,0,0.05);
+  padding: 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+  font-size: 13px;
+  
+  .platform-header {
+    margin: 0 0 10px 0;
+    font-weight: 600;
+  }
+  
+  ol {
+    margin: 0;
+    padding-left: 20px;
+    line-height: 1.6;
+  }
+}
+
+// Refresh button
+.refresh-button {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 10px;
+  
+  &:hover {
+    background: color.adjust(#ff6b6b, $lightness: -10%);
+  }
+  
+  &.info {
+    background: #4dabf7;
+    
+    &:hover {
+      background: color.adjust(#4dabf7, $lightness: -10%);
+    }
+  }
 }
 
 h2, .date-heading {

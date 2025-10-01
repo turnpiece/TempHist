@@ -253,6 +253,66 @@ onAuthStateChanged(auth, (user) => {
   window.debugTime = debugTime;
   window.debugTimeEnd = debugTimeEnd;
 
+  /**
+   * Utility function to update the data notice element
+   * @param {string|null} message - The message to display (null to clear)
+   * @param {object} options - Configuration options
+   * @param {string} options.type - Type of notice: 'success', 'error', 'warning', 'neutral', 'info'
+   * @param {string} options.title - Optional title for structured notices
+   * @param {string} options.subtitle - Optional subtitle for structured notices
+   * @param {boolean} options.useStructuredHtml - Whether to use structured HTML format
+   * @param {boolean} options.debugOnly - Only show this message when DEBUGGING is true
+   * @param {string} options.extraInfo - Optional extra info text
+   */
+  function updateDataNotice(message, options = {}) {
+    const dataNotice = document.getElementById('dataNotice');
+    if (!dataNotice) return;
+
+    // Handle debug-only messages
+    if (options.debugOnly && !DEBUGGING) {
+      dataNotice.textContent = '';
+      dataNotice.className = '';
+      return;
+    }
+
+    // Clear the notice
+    if (message === null || message === '') {
+      dataNotice.textContent = '';
+      dataNotice.className = '';
+      return;
+    }
+
+    // Remove old status classes
+    dataNotice.classList.remove('status-neutral', 'status-error', 'status-success', 'status-warning');
+
+    // Use structured HTML format
+    if (options.useStructuredHtml || options.title) {
+      const typeClass = options.type || 'info';
+      const title = options.title || '';
+      const subtitle = options.subtitle || message || '';
+      const extraInfo = options.extraInfo ? `<p class="notice-extra-info">${options.extraInfo}</p>` : '';
+      
+      dataNotice.innerHTML = `
+        <div class="notice-content ${typeClass}">
+          ${title ? `<p class="notice-title${options.largeTitle ? ' large' : ''}">${title}</p>` : ''}
+          ${subtitle ? `<p class="notice-subtitle${options.secondarySubtitle ? ' secondary' : ''}">${subtitle}</p>` : ''}
+          ${extraInfo}
+        </div>
+      `.trim();
+    } else {
+      // Simple text format
+      dataNotice.textContent = message;
+      
+      // Add status class if type is specified
+      if (options.type) {
+        dataNotice.classList.add(`status-${options.type}`);
+      }
+    }
+  }
+
+  // Make updateDataNotice globally available
+  window.updateDataNotice = updateDataNotice;
+
   // Move your main code into a function:
   function startAppWithFirebaseUser(user) {
     // Initialize analytics reporting
@@ -462,7 +522,7 @@ onAuthStateChanged(auth, (user) => {
 
     if (isLeapDay) {
       dateToUse.setDate(28);
-      document.getElementById('dataNotice').textContent = '29th February detected — comparing 28th Feb instead for consistency.';
+      updateDataNotice('29th February detected — comparing 28th Feb instead for consistency.');
       debugLog('Leap day detected, using 28th Feb instead');
     }
 
@@ -490,11 +550,7 @@ onAuthStateChanged(auth, (user) => {
     document.getElementById('dateText').textContent = friendlyDate;
     
     // Show initial status message
-    const dataNotice = document.getElementById('dataNotice');
-    if (dataNotice) {
-      dataNotice.textContent = 'Determining your location...';
-      dataNotice.classList.add('status-neutral');
-    }
+    updateDataNotice('Determining your location...', { type: 'neutral' });
     
     // Add a simple progress indicator for location detection
     let locationProgressInterval;
@@ -503,9 +559,7 @@ onAuthStateChanged(auth, (user) => {
       locationProgressInterval = setInterval(() => {
         dots = (dots + 1) % 4;
         const progressText = 'Determining your location' + '.'.repeat(dots);
-        if (dataNotice) {
-          dataNotice.textContent = progressText;
-        }
+        updateDataNotice(progressText, { type: 'neutral' });
       }, 500);
     }
     
@@ -1352,23 +1406,17 @@ onAuthStateChanged(auth, (user) => {
       document.getElementById('locationText').textContent = locationDisplay;
       
       // Clear the initial status message
-      const dataNotice = document.getElementById('dataNotice');
-      if (dataNotice) {
-        if (DEBUGGING) {
-          // Show location confirmation when debugging
-          const locationMessage = isDefaultLocation ? 
-            `📍 Using default location: <strong>${getDisplayCity(tempLocation)}</strong><br><small>Enable location permissions for your actual location</small>` :
-            `📍 Location set to: <strong>${getDisplayCity(tempLocation)}</strong>`;
-            
-          dataNotice.innerHTML = `<div class="notice-content success">
-            <p class="notice-title">${locationMessage}</p>
-            <p class="notice-subtitle">Loading temperature data...</p>
-          </div>`;
-        } else {
-          // Clear the message when not debugging
-          dataNotice.textContent = '';
-        }
-      }
+      const locationMessage = isDefaultLocation ? 
+        `📍 Using default location: <strong>${getDisplayCity(tempLocation)}</strong><br><small>Enable location permissions for your actual location</small>` :
+        `📍 Location set to: <strong>${getDisplayCity(tempLocation)}</strong>`;
+      
+      updateDataNotice('', {
+        debugOnly: true,
+        useStructuredHtml: true,
+        type: 'success',
+        title: locationMessage,
+        subtitle: 'Loading temperature data...'
+      });
       
       setLocationCookie(tempLocation);
       
@@ -1395,19 +1443,13 @@ onAuthStateChanged(auth, (user) => {
       canvasEl.classList.remove('hidden');
       
       // Clear the data notice
-      const dataNotice = document.getElementById('dataNotice');
-      if (dataNotice) {
-        if (DEBUGGING) {
-          // Show success message when debugging
-          dataNotice.innerHTML = `<div class="notice-content success">
-            <p class="notice-title">✅ Temperature data loaded successfully!</p>
-            <p class="notice-subtitle">Showing data for ${getDisplayCity(tempLocation)}</p>
-          </div>`;
-        } else {
-          // Clear the message when not debugging
-          dataNotice.textContent = '';
-        }
-      }
+      updateDataNotice('', {
+        debugOnly: true,
+        useStructuredHtml: true,
+        type: 'success',
+        title: '✅ Temperature data loaded successfully!',
+        subtitle: `Showing data for ${getDisplayCity(tempLocation)}`
+      });
       
       if (chart) {
         chart.update('none');
@@ -1439,16 +1481,15 @@ onAuthStateChanged(auth, (user) => {
     function addManualLocationInput() {
       // This function is disabled to prevent API abuse
       // Users must enable location permissions to access the service
-      const dataNotice = document.getElementById('dataNotice');
-      if (!dataNotice) return;
-      
-      dataNotice.innerHTML = `
-        <div class="notice-content warning">
-          <p class="notice-title large">🔒 Manual Location Input Disabled</p>
-          <p class="notice-subtitle secondary">To protect against API abuse, manual location entry is not available. Please enable location permissions in your browser settings to use this service.</p>
-          <p style="margin: 0; font-size: 12px; color: #888;">This ensures users can only access data for their actual location.</p>
-        </div>
-      `;
+      updateDataNotice('', {
+        useStructuredHtml: true,
+        type: 'warning',
+        title: '🔒 Manual Location Input Disabled',
+        subtitle: 'To protect against API abuse, manual location entry is not available. Please enable location permissions in your browser settings to use this service.',
+        largeTitle: true,
+        secondarySubtitle: true,
+        extraInfo: 'This ensures users can only access data for their actual location.'
+      });
     }
 
     // Pre-check geolocation permission state
@@ -1468,35 +1509,35 @@ onAuthStateChanged(auth, (user) => {
 
     // Show permission instructions based on current state and platform
     function showPermissionInstructions(permissionState, isMobile) {
-      const dataNotice = document.getElementById('dataNotice');
-      if (!dataNotice) return;
-      
       const platform = detectDeviceAndPlatform();
-      let instructions = '';
       
       if (permissionState === 'denied') {
-        instructions = `
-          <div style="text-align: center; padding: 20px; color: #ff6b6b; background: rgba(255,107,107,0.1); border-radius: 8px; border: 2px solid rgba(255,107,107,0.3);">
-            <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 16px;">📍 Location Access Required</p>
-            <p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">To show temperature data for your exact location, please enable location access:</p>
+        const instructions = `
+          <div class="permission-box denied">
+            <p class="permission-title">📍 Location Access Required</p>
+            <p class="permission-text">To show temperature data for your exact location, please enable location access:</p>
             ${getPlatformSpecificInstructions(platform)}
-            <button onclick="window.location.reload()" style="background: #ff6b6b; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; margin-top: 10px;">
+            <button onclick="window.location.reload()" class="refresh-button">
               🔄 Refresh Page After Changing Settings
             </button>
           </div>
         `;
+        const dataNotice = document.getElementById('dataNotice');
+        if (dataNotice) {
+          dataNotice.innerHTML = instructions;
+        }
       } else if (permissionState === 'prompt') {
-        instructions = `
-          <div style="text-align: center; padding: 20px; color: #4dabf7; background: rgba(77,171,247,0.1); border-radius: 8px; border: 2px solid rgba(77,171,247,0.3);">
-            <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 16px;">📍 Location Permission Request</p>
-            <p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">Your browser will ask for location access. Please click <strong>"Allow"</strong> to see temperature data for your exact location.</p>
-            <p style="margin: 0; font-size: 12px; color: #888;">If you don't see a prompt, check your browser's address bar for a location icon.</p>
+        const instructions = `
+          <div class="permission-box prompt">
+            <p class="permission-title">📍 Location Permission Request</p>
+            <p class="permission-text">Your browser will ask for location access. Please click <strong>"Allow"</strong> to see temperature data for your exact location.</p>
+            <p class="permission-hint">If you don't see a prompt, check your browser's address bar for a location icon.</p>
           </div>
         `;
-      }
-      
-      if (instructions) {
-        dataNotice.innerHTML = instructions;
+        const dataNotice = document.getElementById('dataNotice');
+        if (dataNotice) {
+          dataNotice.innerHTML = instructions;
+        }
       }
     }
 
@@ -1504,9 +1545,9 @@ onAuthStateChanged(auth, (user) => {
     function getPlatformSpecificInstructions(platform) {
       if (platform.isIOS) {
         return `
-          <div style="text-align: left; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 13px;">
-            <p style="margin: 0 0 10px 0; font-weight: 600;">🍎 On ${platform.os} (${platform.browser}):</p>
-            <ol style="margin: 0; padding-left: 20px; line-height: 1.6;">
+          <div class="platform-instructions">
+            <p class="platform-header">🍎 On ${platform.os} (${platform.browser}):</p>
+            <ol>
               <li>Go to <strong>Settings > Privacy & Security > Location Services</strong></li>
               <li>Find <strong>${platform.browser}</strong> in the list</li>
               <li>Change it to <strong>"Ask Next Time"</strong> or <strong>"While Using"</strong></li>
@@ -1516,9 +1557,9 @@ onAuthStateChanged(auth, (user) => {
         `;
       } else if (platform.isAndroid) {
         return `
-          <div style="text-align: left; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 13px;">
-            <p style="margin: 0 0 10px 0; font-weight: 600;">🤖 On ${platform.os} (${platform.browser}):</p>
-            <ol style="margin: 0; padding-left: 20px; line-height: 1.6;">
+          <div class="platform-instructions">
+            <p class="platform-header">🤖 On ${platform.os} (${platform.browser}):</p>
+            <ol>
               <li>Tap the <strong>⋮</strong> menu in ${platform.browser}</li>
               <li>Go to <strong>Settings > Site Settings > Location</strong></li>
               <li>Change to <strong>"Ask before accessing"</strong></li>
@@ -1528,9 +1569,9 @@ onAuthStateChanged(auth, (user) => {
         `;
       } else if (platform.isMobile) {
         return `
-          <div style="text-align: left; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 13px;">
-            <p style="margin: 0 0 10px 0; font-weight: 600;">📱 On ${platform.os} (${platform.browser}):</p>
-            <ol style="margin: 0; padding-left: 20px; line-height: 1.6;">
+          <div class="platform-instructions">
+            <p class="platform-header">📱 On ${platform.os} (${platform.browser}):</p>
+            <ol>
               <li>Check your browser's location settings</li>
               <li>Look for location permission options</li>
               <li>Enable location access for this site</li>
@@ -1540,9 +1581,9 @@ onAuthStateChanged(auth, (user) => {
         `;
       } else {
         return `
-          <div style="text-align: left; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 13px;">
-            <p style="margin: 0 0 10px 0; font-weight: 600;">💻 On ${platform.os} (${platform.browser}):</p>
-            <ol style="margin: 0; padding-left: 20px; line-height: 1.6;">
+          <div class="platform-instructions">
+            <p class="platform-header">💻 On ${platform.os} (${platform.browser}):</p>
+            <ol>
               <li>Look for the location permission prompt in your browser</li>
               <li>Click <strong>"Allow"</strong> when prompted</li>
               <li>If no prompt appears, check your browser's location settings</li>
@@ -1606,16 +1647,12 @@ onAuthStateChanged(auth, (user) => {
         console.warn('Geolocation requires HTTPS on mobile devices');
         debugLog('Not on HTTPS, showing manual location input');
         
-        
-        const dataNotice = document.getElementById('dataNotice');
-        if (dataNotice) {
-          dataNotice.innerHTML = `
-            <div class="notice-content error">
-              <p class="notice-title">📍 Location Access</p>
-              <p class="notice-subtitle">Mobile browsers require HTTPS for automatic location detection. Please enter your location manually below.</p>
-            </div>
-          `;
-        }
+        updateDataNotice('', {
+          useStructuredHtml: true,
+          type: 'error',
+          title: '📍 Location Access',
+          subtitle: 'Mobile browsers require HTTPS for automatic location detection. Please enter your location manually below.'
+        });
         
         // Show permission instructions for mobile
         showPermissionInstructions('denied', true);
@@ -1658,14 +1695,9 @@ onAuthStateChanged(auth, (user) => {
         
         // For mobile devices, show permission instructions
         if (devicePlatform.isMobile) {
-          const dataNotice = document.getElementById('dataNotice');
-          if (dataNotice) {
-            dataNotice.textContent = 'Location detection timed out. Please enable location permissions to use this service.';
-            dataNotice.classList.remove('status-neutral');
-            dataNotice.classList.add('status-error');
-            // Show permission instructions for mobile users
-            showPermissionInstructions('denied', true);
-          }
+          updateDataNotice('Location detection timed out. Please enable location permissions to use this service.', { type: 'error' });
+          // Show permission instructions for mobile users
+          showPermissionInstructions('denied', true);
         }
         
         displayLocationAndFetchData(); // fallback to default location
@@ -1705,14 +1737,9 @@ onAuthStateChanged(auth, (user) => {
             
             // Show error message to user on mobile
             if (isMobile) {
-              const dataNotice = document.getElementById('dataNotice');
-              if (dataNotice) {
-                dataNotice.textContent = 'Location lookup failed. Please enable location permissions to use this service.';
-                dataNotice.classList.remove('status-neutral');
-                dataNotice.classList.add('status-error');
-                // Show permission instructions for mobile users
-                setTimeout(() => showPermissionInstructions('denied', true), 1000);
-              }
+              updateDataNotice('Location lookup failed. Please enable location permissions to use this service.', { type: 'error' });
+              // Show permission instructions for mobile users
+              setTimeout(() => showPermissionInstructions('denied', true), 1000);
             }
           }
           
@@ -1754,16 +1781,11 @@ onAuthStateChanged(auth, (user) => {
           }
           
           // Show error message and permission instructions if needed
-          const dataNotice = document.getElementById('dataNotice');
-          if (dataNotice) {
-            if (showManualInput) {
-              // Show permission instructions instead of manual input
-              showPermissionInstructions('denied', deviceInfo.isMobile);
-            } else {
-              dataNotice.textContent = errorMessage;
-              dataNotice.classList.remove('status-neutral');
-              dataNotice.classList.add('status-error');
-            }
+          if (showManualInput) {
+            // Show permission instructions instead of manual input
+            showPermissionInstructions('denied', deviceInfo.isMobile);
+          } else {
+            updateDataNotice(errorMessage, { type: 'error' });
           }
           
           displayLocationAndFetchData();
