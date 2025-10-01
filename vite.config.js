@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import { copyFileSync } from 'fs'
+import { copyFileSync, readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 
 export default defineConfig({
@@ -27,6 +27,16 @@ export default defineConfig({
         // Copy assets directory
         const { execSync } = require('child_process')
         execSync('cp -r assets dist/', { stdio: 'inherit' })
+        
+        // Add cache-busting to router.js in HTML files
+        const timestamp = Date.now()
+        const htmlFiles = ['dist/index.html', 'dist/about.html', 'dist/privacy.html']
+        htmlFiles.forEach(file => {
+          let content = readFileSync(file, 'utf8')
+          content = content.replace(/router\.js"/g, `router.js?v=${timestamp}"`)
+          writeFileSync(file, content)
+        })
+        console.log(`✅ Added cache-busting timestamp ${timestamp} to router.js references`)
       }
     }
   ]

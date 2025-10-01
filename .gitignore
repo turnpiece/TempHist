@@ -45,5 +45,8 @@ deploy-dev.sh
 # Build styles script
 build-styles.sh
 
+# start application script
+start.sh
+
 # Override global gitignore for this project
 !.htaccess
