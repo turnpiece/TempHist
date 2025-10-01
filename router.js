@@ -17,6 +17,12 @@
     currentPath: window.location.pathname
   });
 
+  // For standalone pages, just set the active link and return
+  if (isStandalonePage) {
+    setActiveLink(window.location.pathname);
+    return;
+  }
+
   function setActiveLink(path) {
     if (isStandalonePage) {
       // On standalone pages, determine which page we're on based on the current URL
@@ -92,6 +98,29 @@
     if (isStandalonePage) {
       window.debugLog('Router: Skipping view rendering on standalone page');
       closeMenu();
+      return;
+    }
+    
+    // Check if splash screen is still visible
+    const splashScreen = document.getElementById('splashScreen');
+    if (splashScreen && splashScreen.style.display !== 'none' && !splashScreen.classList.contains('hidden')) {
+      window.debugLog('Router: Splash screen is visible, skipping view rendering');
+      return;
+    }
+    
+    // Check if user is trying to access chart pages without a location
+    const chartPages = ['/today', '/week', '/month', '/year'];
+    if (chartPages.includes(path) && !window.tempLocation) {
+      window.debugLog('Router: No location set, redirecting to splash screen');
+      // Show splash screen if it's hidden
+      if (splashScreen) {
+        splashScreen.style.display = 'flex';
+        splashScreen.classList.remove('hidden');
+      }
+      const appShell = document.getElementById('appShell');
+      if (appShell) {
+        appShell.style.display = 'none';
+      }
       return;
     }
     

@@ -32,7 +32,69 @@
       <button id="burgerBtn" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">☰</button>
     </header>
 
-    <div id="appShell">
+    <!-- Splash Screen -->
+    <div id="splashScreen" class="splash-screen">
+      <div class="splash-content">
+        <div class="splash-logo">
+          <object data="assets/logo.svg" type="image/svg+xml" title="TempHist">
+            <img
+              src="assets/logo.png"
+              alt="TempHist logo"
+              width="80"
+              height="80"
+            />
+          </object>
+        </div>
+        <h1 class="splash-title">TempHist</h1>
+        <div class="splash-intro">See how
+          <ul>
+            <li>today's temperature compares to the same date</li>
+            <li>this past week's temperature compares to the same week</li>
+            <li>this past moonth's temperature compares to the same month</li>
+            <li>this past year's temperature compares to the same year</li>
+          </ul> 
+          over the past 50 years.</div>
+
+        <div class="splash-description">
+          <p>TempHist needs your location to show you historical temperature data for your area. <a href="/privacy" target="_blank">We don't store or share your location data</a>.</p>
+        </div>
+        
+        <div class="splash-actions">
+          <button id="useLocationBtn" class="btn btn-primary">
+            📍 Use my location
+          </button>
+          <button id="chooseLocationBtn" class="btn btn-secondary">
+            🌍 Choose a location manually
+          </button>
+        </div>
+        
+        <!-- Manual location selection (initially hidden) -->
+        <div id="manualLocationSection" class="manual-location-section" style="display: none;">
+          <div class="location-dropdown-container">
+            <label for="locationSelect" class="location-label">Select your location:</label>
+            <select id="locationSelect" class="location-select">
+              <option value="">Loading locations...</option>
+            </select>
+          </div>
+          <div class="location-actions">
+            <button id="confirmLocationBtn" class="btn btn-primary" disabled>
+              Continue with selected location
+            </button>
+            <button id="backToSplashBtn" class="btn btn-secondary">
+              ← Back to options
+            </button>
+          </div>
+        </div>
+        
+        <!-- Loading state for location detection -->
+        <div id="locationLoading" class="location-loading" style="display: none;">
+          <div class="spinner"></div>
+          <p class="loading-text">Detecting your location...</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="appShell" style="display: none;">
       <nav id="sidebar" aria-label="Primary">
         <ul>
           <li><a href="#/today" data-route="/today">Today</a></li>

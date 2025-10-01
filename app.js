@@ -313,92 +313,95 @@ onAuthStateChanged(auth, (user) => {
   // Make updateDataNotice globally available
   window.updateDataNotice = updateDataNotice;
 
-  // Move your main code into a function:
-  function startAppWithFirebaseUser(user) {
-    // Initialize analytics reporting
-    setupAnalyticsReporting();
+  // Enhanced device and platform detection (moved to global scope)
+  function detectDeviceAndPlatform() {
+    const userAgent = navigator.userAgent;
     
-    // SECURITY NOTE: Manual location input is disabled to prevent API abuse.
-    // Users must enable location permissions to access the service.
-    // This ensures users can only access data for their actual location.
-
-    // Enhanced device and platform detection
-    function detectDeviceAndPlatform() {
-      const userAgent = navigator.userAgent;
-      
-      // OS Detection
-      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
-      const isAndroid = /Android/.test(userAgent);
-      const isWindows = /Windows/.test(userAgent);
-      const isMac = /Mac/.test(userAgent);
-      const isLinux = /Linux/.test(userAgent);
-      
-      // Browser Detection
-      const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
-      const isChrome = /Chrome/.test(userAgent);
-      const isFirefox = /Firefox/.test(userAgent);
-      const isEdge = /Edg/.test(userAgent);
-      
-      // Device Type Detection
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-      const isTablet = /iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/.test(userAgent);
-      const isDesktop = !isMobile && !isTablet;
-      
-      // Additional mobile indicators
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const isSmallScreen = window.innerWidth <= 768;
-      const isPortrait = window.innerHeight > window.innerWidth;
-      
-      // Mobile-specific features
-      const hasMobileFeatures = 'connection' in navigator || 
-                               'deviceMemory' in navigator || 
-                               'hardwareConcurrency' in navigator;
-      
-      // Enhanced mobile detection with scoring
-      const mobileScore = (isMobile ? 3 : 0) + 
-                         (isTouchDevice ? 2 : 0) + 
-                         (isSmallScreen ? 1 : 0) + 
-                         (hasMobileFeatures ? 1 : 0);
-      
-      const isMobileDevice = mobileScore >= 3;
-      
-      // Platform-specific details
-      const platform = {
-        os: isIOS ? 'iOS' : isAndroid ? 'Android' : isWindows ? 'Windows' : isMac ? 'macOS' : isLinux ? 'Linux' : 'Unknown',
-        browser: isSafari ? 'Safari' : isChrome ? 'Chrome' : isFirefox ? 'Firefox' : isEdge ? 'Edge' : 'Unknown',
-        deviceType: isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop',
-        isMobile: isMobileDevice,
-        isIOS,
-        isAndroid,
-        isSafari,
-        isChrome
-      };
-      
-      if (DEBUGGING) {
-        console.log('Device and platform detection:', {
-          userAgent: userAgent,
-          platform,
-          mobileScore,
-          isTouchDevice,
-          isSmallScreen,
-          isPortrait,
-          hasMobileFeatures
-        });
-      }
-      
-      return platform;
+    // OS Detection
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+    const isAndroid = /Android/.test(userAgent);
+    const isWindows = /Windows/.test(userAgent);
+    const isMac = /Mac/.test(userAgent);
+    const isLinux = /Linux/.test(userAgent);
+    
+    // Browser Detection
+    const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+    const isChrome = /Chrome/.test(userAgent);
+    const isFirefox = /Firefox/.test(userAgent);
+    const isEdge = /Edg/.test(userAgent);
+    
+    // Device Type Detection
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    const isTablet = /iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/.test(userAgent);
+    const isDesktop = !isMobile && !isTablet;
+    
+    // Additional mobile indicators
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+    const isPortrait = window.innerHeight > window.innerWidth;
+    
+    // Mobile-specific features
+    const hasMobileFeatures = 'connection' in navigator || 
+                             'deviceMemory' in navigator || 
+                             'hardwareConcurrency' in navigator;
+    
+    // Enhanced mobile detection with scoring
+    const mobileScore = (isMobile ? 3 : 0) + 
+                       (isTouchDevice ? 2 : 0) + 
+                       (isSmallScreen ? 1 : 0) + 
+                       (hasMobileFeatures ? 1 : 0);
+    
+    const isMobileDevice = mobileScore >= 3;
+    
+    // Platform-specific details
+    const platform = {
+      os: isIOS ? 'iOS' : isAndroid ? 'Android' : isWindows ? 'Windows' : isMac ? 'macOS' : isLinux ? 'Linux' : 'Unknown',
+      browser: isSafari ? 'Safari' : isChrome ? 'Chrome' : isFirefox ? 'Firefox' : isEdge ? 'Edge' : 'Unknown',
+      deviceType: isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop',
+      isMobile: isMobileDevice,
+      isIOS,
+      isAndroid,
+      isSafari,
+      isChrome
+    };
+    
+    if (DEBUGGING) {
+      console.log('Device and platform detection:', {
+        userAgent: userAgent,
+        platform,
+        mobileScore,
+        isTouchDevice,
+        isSmallScreen,
+        isPortrait,
+        hasMobileFeatures
+      });
     }
+    
+    return platform;
+  }
 
   // Enhanced mobile detection function (backward compatibility)
   function isMobileDevice() {
     return detectDeviceAndPlatform().isMobile;
   }
 
-  debugLog('Script starting...');
+  // Cookie management functions
+  function setLocationCookie(city) {
+    const expiry = new Date();
+    expiry.setHours(expiry.getHours() + 1); // Expire after 1 hour
+    document.cookie = `tempLocation=${city};expires=${expiry.toUTCString()};path=/`;
+  }
 
-  // Store the Firebase user for use in apiFetch
-  let currentUser = user;
-  window.currentUser = currentUser; // Make it globally available
+  function getLocationCookie() {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'tempLocation') {
+        return value;
+      }
+    }
+    return null;
+  }
 
   // Global AbortController to cancel in-flight requests
   let inFlightController = null;
@@ -441,7 +444,7 @@ onAuthStateChanged(auth, (user) => {
     inFlightController = new AbortController();
     
     // Get the Firebase ID token for the current user
-    const idToken = await currentUser.getIdToken();
+    const idToken = await window.currentUser.getIdToken();
 
     const headers = {
       'Authorization': `Bearer ${idToken}`,
@@ -490,7 +493,422 @@ onAuthStateChanged(auth, (user) => {
     }
   }
 
+  async function getCityFromCoords(lat, lon) {
+    try {
+      // Cancel any existing in-flight request
+      if (inFlightController) {
+        inFlightController.abort();
+      }
+      
+      // Create new AbortController for this request
+      inFlightController = new AbortController();
+      
+      // Add timeout to the OpenStreetMap API call - longer timeout for mobile
+      const platform = detectDeviceAndPlatform();
+      const timeoutMs = platform.isMobile ? 15000 : 10000; // 15 seconds for mobile, 10 for desktop
+      
+      const timeoutId = setTimeout(() => inFlightController.abort(), timeoutMs);
+      
+      debugLog(`Fetching location data with ${timeoutMs}ms timeout, mobile: ${platform.isMobile}`);
+      
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`, {
+        signal: inFlightController.signal,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TempHist/1.0'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`OpenStreetMap API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      debugLog('OpenStreetMap address data:', data.address);
+      
+      // Get city name with multiple fallbacks
+      const city = data.address.city || 
+                  data.address.town || 
+                  data.address.village || 
+                  data.address.hamlet ||
+                  data.address.suburb ||
+                  data.address.neighbourhood;
+      
+      // Get state/province information with multiple fallbacks
+      const state = data.address.state || 
+                   data.address.province || 
+                   data.address.county || 
+                   data.address.region;
+      
+      // Get country name (prefer full name over code for better API compatibility)
+      const country = data.address.country || data.address.country_code;
+      
+      debugLog('Location components:', { city, state, country, rawAddress: data.address });
+      
+      if (city && country) {
+        // Build location string with state/province and country
+        if (state) {
+          return `${city}, ${state}, ${country}`;
+        } else {
+          return `${city}, ${country}`;
+        }
+      }
+      
+      // If we have city but no country, try to get country from display_name
+      if (city && !country && data.display_name) {
+        const displayParts = data.display_name.split(',').map(part => part.trim());
+        const lastPart = displayParts[displayParts.length - 1];
+        if (lastPart && lastPart !== city) {
+          return `${city}, ${lastPart}`;
+        }
+      }
+      
+      // Fallback to just city name if no country info
+      if (city) {
+        return city;
+      }
+      
+      // Last resort: use display_name if available
+      if (data.display_name) {
+        const displayParts = data.display_name.split(',').map(part => part.trim());
+        if (displayParts.length >= 2) {
+          return `${displayParts[0]}, ${displayParts[displayParts.length - 1]}`;
+        }
+        return displayParts[0];
+      }
+      
+      // Ultimate fallback
+      return 'London, England, United Kingdom';
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        debugLog('OpenStreetMap API aborted');
+      } else {
+        console.warn('OpenStreetMap API error:', error);
+        debugLog('OpenStreetMap API error:', error.message);
+      }
+      throw error;
+    } finally {
+      // Clear the controller after request completes (success or failure)
+      inFlightController = null;
+    }
+  }
+
+  // Splash Screen Management
+  function initializeSplashScreen() {
+    // Check if this is a standalone page (privacy, about) - don't show splash screen
+    const isStandalonePage = !document.querySelector('#todayView');
+    if (isStandalonePage) {
+      debugLog('Standalone page detected, skipping splash screen');
+      return;
+    }
+
+    const splashScreen = document.getElementById('splashScreen');
+    const appShell = document.getElementById('appShell');
+    const useLocationBtn = document.getElementById('useLocationBtn');
+    const chooseLocationBtn = document.getElementById('chooseLocationBtn');
+    const manualLocationSection = document.getElementById('manualLocationSection');
+    const locationSelect = document.getElementById('locationSelect');
+    const confirmLocationBtn = document.getElementById('confirmLocationBtn');
+    const backToSplashBtn = document.getElementById('backToSplashBtn');
+    const locationLoading = document.getElementById('locationLoading');
+
+    // Check if we already have a location (e.g., from cookie or previous session)
+    // Temporarily disabled for development - uncomment the lines below to re-enable
+    // const existingLocation = getLocationCookie();
+    // if (existingLocation) {
+    //   debugLog('Found existing location from cookie:', existingLocation);
+    //   // Skip splash screen and go directly to app
+    //   proceedWithLocation(existingLocation);
+    //   return;
+    // }
+
+    // Show splash screen initially
+    if (splashScreen) {
+      splashScreen.style.display = 'flex';
+    }
+    if (appShell) {
+      appShell.style.display = 'none';
+    }
+
+    // Use my location button handler
+    if (useLocationBtn) {
+      useLocationBtn.addEventListener('click', async () => {
+        await handleUseLocation();
+      });
+    }
+
+    // Choose location manually button handler
+    if (chooseLocationBtn) {
+      chooseLocationBtn.addEventListener('click', () => {
+        showManualLocationSelection();
+      });
+    }
+
+    // Back to splash button handler
+    if (backToSplashBtn) {
+      backToSplashBtn.addEventListener('click', () => {
+        hideManualLocationSelection();
+      });
+    }
+
+    // Location select change handler
+    if (locationSelect) {
+      locationSelect.addEventListener('change', (e) => {
+        const confirmBtn = document.getElementById('confirmLocationBtn');
+        if (confirmBtn) {
+          confirmBtn.disabled = !e.target.value;
+        }
+      });
+    }
+
+    // Confirm location button handler
+    if (confirmLocationBtn) {
+      confirmLocationBtn.addEventListener('click', async () => {
+        const selectedLocation = locationSelect.value;
+        if (selectedLocation) {
+          await handleManualLocationSelection(selectedLocation);
+        }
+      });
+    }
+  }
+
+  async function handleUseLocation() {
+    const splashScreen = document.getElementById('splashScreen');
+    const locationLoading = document.getElementById('locationLoading');
+    const splashActions = document.querySelector('.splash-actions');
+    const manualLocationSection = document.getElementById('manualLocationSection');
+
+    // Show loading state
+    if (splashActions) splashActions.style.display = 'none';
+    if (manualLocationSection) manualLocationSection.style.display = 'none';
+    if (locationLoading) locationLoading.style.display = 'flex';
+
+    try {
+      // Try geolocation first
+      const location = await detectUserLocationWithGeolocation();
+      if (location) {
+        await proceedWithLocation(location);
+        return;
+      }
+    } catch (error) {
+      console.warn('Geolocation failed:', error);
+    }
+
+    // If geolocation fails, try IP-based fallback
+    try {
+      const ipLocation = await getLocationFromIP();
+      if (ipLocation) {
+        // Auto-select the IP-based location and proceed
+        await proceedWithLocation(ipLocation);
+        return;
+      }
+    } catch (error) {
+      console.warn('IP-based location failed:', error);
+    }
+
+    // If both fail, show manual selection
+    showManualLocationSelection();
+  }
+
+  async function detectUserLocationWithGeolocation() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation not supported'));
+        return;
+      }
+
+      const platform = detectDeviceAndPlatform();
+      const timeout = platform.isMobile ? 20000 : 25000;
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const location = await getCityFromCoords(latitude, longitude);
+            resolve(location);
+          } catch (error) {
+            reject(error);
+          }
+        },
+        (error) => {
+          reject(error);
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: timeout,
+          maximumAge: 300000
+        }
+      );
+    });
+  }
+
+  async function getLocationFromIP() {
+    try {
+      const response = await fetch('https://ipapi.co/json/');
+      if (!response.ok) throw new Error('IP lookup failed');
+      
+      const data = await response.json();
+      if (data.city && data.country_name) {
+        return `${data.city}, ${data.country_name}`;
+      }
+      return null;
+    } catch (error) {
+      console.warn('IP-based location lookup failed:', error);
+      return null;
+    }
+  }
+
+  async function showManualLocationSelection() {
+    const splashActions = document.querySelector('.splash-actions');
+    const manualLocationSection = document.getElementById('manualLocationSection');
+    const locationLoading = document.getElementById('locationLoading');
+    const locationSelect = document.getElementById('locationSelect');
+
+    // Hide loading and main actions
+    if (locationLoading) locationLoading.style.display = 'none';
+    if (splashActions) splashActions.style.display = 'none';
+
+    // Load preapproved locations (with built-in fallback)
+    const locations = await loadPreapprovedLocations();
+    populateLocationDropdown(locations);
+
+    // Show manual selection
+    if (manualLocationSection) {
+      manualLocationSection.style.display = 'block';
+    }
+  }
+
+  function hideManualLocationSelection() {
+    const splashActions = document.querySelector('.splash-actions');
+    const manualLocationSection = document.getElementById('manualLocationSection');
+
+    if (manualLocationSection) manualLocationSection.style.display = 'none';
+    if (splashActions) splashActions.style.display = 'flex';
+  }
+
+  async function loadPreapprovedLocations() {
+    try {
+      const response = await apiFetch(getApiUrl('/v1/locations/preapproved'));
+      if (!response.ok) throw new Error('Failed to fetch locations');
+      
+      const data = await response.json();
+      return data.locations || [];
+    } catch (error) {
+      console.warn('Preapproved locations API failed:', error);
+      // Return fallback locations instead of throwing
+      return getFallbackLocations();
+    }
+  }
+
+  function getFallbackLocations() {
+    return [
+      'London, England, United Kingdom',
+      'New York, New York, United States',
+      'Paris, France',
+      'Tokyo, Japan',
+      'Sydney, New South Wales, Australia',
+      'Toronto, Ontario, Canada',
+      'Berlin, Germany',
+      'Madrid, Spain',
+      'Rome, Italy',
+      'Amsterdam, Netherlands',
+      'Vancouver, British Columbia, Canada',
+      'Melbourne, Victoria, Australia',
+      'Dublin, Ireland',
+      'Stockholm, Sweden',
+      'Copenhagen, Denmark',
+      'Zurich, Switzerland',
+      'Vienna, Austria',
+      'Brussels, Belgium',
+      'Oslo, Norway',
+      'Helsinki, Finland'
+    ];
+  }
+
+  function populateLocationDropdown(locations) {
+    const locationSelect = document.getElementById('locationSelect');
+    if (!locationSelect) return;
+
+    // Clear existing options
+    locationSelect.innerHTML = '';
+
+    // Add default option
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Select a location...';
+    locationSelect.appendChild(defaultOption);
+
+    // Add location options
+    locations.forEach(location => {
+      const option = document.createElement('option');
+      option.value = location;
+      option.textContent = location;
+      locationSelect.appendChild(option);
+    });
+  }
+
+  async function handleManualLocationSelection(selectedLocation) {
+    await proceedWithLocation(selectedLocation);
+  }
+
+  async function proceedWithLocation(location) {
+    // Set the global location
+    window.tempLocation = location;
+
+    // Store in cookie for future visits
+    setLocationCookie(location);
+
+    // Hide splash screen and show app
+    const splashScreen = document.getElementById('splashScreen');
+    const appShell = document.getElementById('appShell');
+
+    if (splashScreen) {
+      splashScreen.classList.add('hidden');
+      setTimeout(() => {
+        splashScreen.style.display = 'none';
+      }, 500);
+    }
+
+    if (appShell) {
+      appShell.style.display = 'block';
+    }
+
+    // Initialize the main app
+    mainAppLogic();
+  }
+
+  // Move your main code into a function:
+  function startAppWithFirebaseUser(user) {
+    // Initialize analytics reporting
+    setupAnalyticsReporting();
+    
+    // Initialize splash screen functionality
+    initializeSplashScreen();
+    
+    // SECURITY NOTE: Manual location input is now controlled via splash screen.
+    // Users can choose to use their location or select from preapproved locations.
+
+    // Device detection functions moved to global scope
+
+  debugLog('Script starting...');
+
+  // Store the Firebase user for use in apiFetch
+  let currentUser = user;
+  window.currentUser = currentUser; // Make it globally available
+
+  // Functions moved to global scope
+
   function mainAppLogic() {
+    // Check if this is a standalone page (privacy, about) - don't run main app logic
+    const isStandalonePage = !document.querySelector('#todayView');
+    if (isStandalonePage) {
+      debugLog('Standalone page detected, skipping main app logic');
+      return;
+    }
+
     // Wait for Chart.js to be available
     if (typeof Chart === 'undefined') {
       console.error('Chart.js not loaded');
@@ -641,7 +1059,7 @@ onAuthStateChanged(auth, (user) => {
       } else if (elapsedSeconds < 25) {
         loadingText.textContent = 'Getting temperatures on '+friendlyDate+' over the past 50 years.';
       } else if (elapsedSeconds < 45) {
-        const displayCity = tempLocation ? getDisplayCity(tempLocation) : 'your location';
+        const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
         loadingText.textContent = 'Is today warmer than average in '+displayCity+'?';
       } else if (elapsedSeconds < 60) {
         loadingText.textContent = 'Once we have the data we\'ll know.';
@@ -692,9 +1110,11 @@ onAuthStateChanged(auth, (user) => {
       // Loading area is now visible - user can scroll naturally
     }
 
-    // get the location
-    let tempLocation = 'London, England, United Kingdom'; // default
-    window.tempLocation = tempLocation; // Make it globally accessible
+    // Use global tempLocation - it should be set by splash screen or cookie
+    // If not set, use default (this should only happen in error cases)
+    if (!window.tempLocation) {
+      window.tempLocation = 'London, England, United Kingdom';
+    }
 
     // Helper function to handle API URLs with proper encoding
     function getApiUrl(path) {
@@ -741,126 +1161,9 @@ onAuthStateChanged(auth, (user) => {
       return `${m}-${day}`;
     }
 
-    async function getCityFromCoords(lat, lon) {
-      try {
-        // Cancel any existing in-flight request
-        if (inFlightController) {
-          inFlightController.abort();
-        }
-        
-        // Create new AbortController for this request
-        inFlightController = new AbortController();
-        
-        // Add timeout to the OpenStreetMap API call - longer timeout for mobile
-        const platform = detectDeviceAndPlatform();
-        const timeoutMs = platform.isMobile ? 15000 : 10000; // 15 seconds for mobile, 10 for desktop
-        
-        const timeoutId = setTimeout(() => inFlightController.abort(), timeoutMs);
-        
-        debugLog(`Fetching location data with ${timeoutMs}ms timeout, mobile: ${platform.isMobile}`);
-        
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`, {
-          signal: inFlightController.signal,
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'TempHist/1.0'
-          }
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`OpenStreetMap API error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        debugLog('OpenStreetMap address data:', data.address);
-        
-        // Get city name with multiple fallbacks
-        const city = data.address.city || 
-                    data.address.town || 
-                    data.address.village || 
-                    data.address.hamlet ||
-                    data.address.suburb ||
-                    data.address.neighbourhood;
-        
-        // Get state/province information with multiple fallbacks
-        const state = data.address.state || 
-                     data.address.province || 
-                     data.address.county || 
-                     data.address.region;
-        
-        // Get country name (prefer full name over code for better API compatibility)
-        const country = data.address.country || data.address.country_code;
-        
-        debugLog('Location components:', { city, state, country, rawAddress: data.address });
-        
-        if (city && country) {
-          // Build location string with state/province and country
-          if (state) {
-            return `${city}, ${state}, ${country}`;
-          } else {
-            return `${city}, ${country}`;
-          }
-        }
-        
-        // If we have city but no country, try to get country from display_name
-        if (city && !country && data.display_name) {
-          const displayParts = data.display_name.split(',').map(part => part.trim());
-          const lastPart = displayParts[displayParts.length - 1];
-          if (lastPart && lastPart !== city) {
-            return `${city}, ${lastPart}`;
-          }
-        }
-        
-        // Fallback to just city name if no country info
-        if (city) {
-          return city;
-        }
-        
-        // Last resort: use display_name if available
-        if (data.display_name) {
-          const displayParts = data.display_name.split(',').map(part => part.trim());
-          if (displayParts.length >= 2) {
-            return `${displayParts[0]}, ${displayParts[displayParts.length - 1]}`;
-          }
-          return displayParts[0];
-        }
-        
-        // Ultimate fallback
-        return tempLocation;
-      } catch (error) {
-        if (error.name === 'AbortError') {
-          debugLog('OpenStreetMap API aborted');
-        } else {
-          console.warn('OpenStreetMap API error:', error);
-          debugLog('OpenStreetMap API error:', error.message);
-        }
-        throw error;
-      } finally {
-        // Clear the controller after request completes (success or failure)
-        inFlightController = null;
-      }
-    }
+    // getCityFromCoords function moved to global scope
 
-    // Add these functions near the top with other utility functions
-    function setLocationCookie(city) {
-      const expiry = new Date();
-      expiry.setHours(expiry.getHours() + 1); // Expire after 1 hour
-      document.cookie = `tempLocation=${city};expires=${expiry.toUTCString()};path=/`;
-    }
-
-    function getLocationCookie() {
-      const cookies = document.cookie.split(';');
-      for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'tempLocation') {
-          return value;
-        }
-      }
-      return null;
-    }
+    // Cookie functions moved to top of file
 
     // Utility functions for error UI
     function showError(message) {
@@ -1095,7 +1398,7 @@ onAuthStateChanged(auth, (user) => {
         }
 
         // Fetch weather data using new records API with retry
-        const weatherPath = getRecordPath('daily', tempLocation, `${month}-${day}`);
+        const weatherPath = getRecordPath('daily', window.tempLocation, `${month}-${day}`);
         const weatherUrl = getApiUrl(weatherPath);
         const weatherResponse = await fetchWithRetry(weatherUrl);
         
@@ -1190,7 +1493,7 @@ onAuthStateChanged(auth, (user) => {
                   hidden: !showTrend
                 },
                 {
-                  label: `Temperature in ${getDisplayCity(tempLocation)} on ${friendlyDate}`,
+                  label: `Temperature in ${getDisplayCity(window.tempLocation)} on ${friendlyDate}`,
                   type: 'bar',
                   data: chartData,
                   backgroundColor: chartData.map(point => 
@@ -1352,7 +1655,7 @@ onAuthStateChanged(auth, (user) => {
 
         // Schedule background prefetching after daily chart renders successfully
         const anchorISO = `${currentYear}-${month}-${day}`; // e.g. "2025-09-24"
-        schedulePrefetchAfterDaily(tempLocation, anchorISO, 'celsius', 'rolling1m');
+        schedulePrefetchAfterDaily(window.tempLocation, anchorISO, 'celsius', 'rolling1m');
         
         // Send analytics after successful data load
         sendAnalytics();
@@ -1365,7 +1668,7 @@ onAuthStateChanged(auth, (user) => {
         
         logError(error, { 
           type: 'data_fetch_failure',
-          location: tempLocation,
+          location: window.tempLocation,
           date: `${month}-${day}`
         });
         
@@ -1377,11 +1680,14 @@ onAuthStateChanged(auth, (user) => {
       debugTimeEnd('Total fetch time');
     };
 
-    // SECURITY: Location query string parameter removed to prevent API abuse
-    // Users must enable location permissions to access the service
-    // This ensures users can only access data for their actual location
-    debugLog('Starting geolocation detection');
-    detectUserLocation(); // uses geolocation
+    // Location is now handled by the splash screen flow
+    // The main app logic will be called after location is selected
+    debugLog('Main app logic initialized, waiting for location selection');
+    
+    // If we already have a location (from splash screen), proceed with data fetching
+    if (window.tempLocation) {
+      displayLocationAndFetchData();
+    }
 
     function calculateTrendLine(points, startX, endX) {
       const n = points.length;
@@ -1415,17 +1721,17 @@ onAuthStateChanged(auth, (user) => {
       stopLocationProgress();
       
       // Check if using default fallback location
-      const isDefaultLocation = tempLocation === 'London, England, United Kingdom';
+      const isDefaultLocation = window.tempLocation === 'London, England, United Kingdom';
       const locationDisplay = isDefaultLocation ? 
-        `${getDisplayCity(tempLocation)} (default location)` : 
-        getDisplayCity(tempLocation);
+        `${getDisplayCity(window.tempLocation)} (default location)` : 
+        getDisplayCity(window.tempLocation);
       
       document.getElementById('locationText').textContent = locationDisplay;
       
       // Clear the initial status message
       const locationMessage = isDefaultLocation ? 
-        `📍 Using default location: <strong>${getDisplayCity(tempLocation)}</strong><br><small>Enable location permissions for your actual location</small>` :
-        `📍 Location set to: <strong>${getDisplayCity(tempLocation)}</strong>`;
+        `📍 Using default location: <strong>${getDisplayCity(window.tempLocation)}</strong><br><small>Enable location permissions for your actual location</small>` :
+        `📍 Location set to: <strong>${getDisplayCity(window.tempLocation)}</strong>`;
       
       updateDataNotice('', {
         debugOnly: true,
@@ -1435,7 +1741,7 @@ onAuthStateChanged(auth, (user) => {
         subtitle: 'Loading temperature data...'
       });
       
-      setLocationCookie(tempLocation);
+      setLocationCookie(window.tempLocation);
       
       // Chart area is ready - user can scroll naturally
       
@@ -1465,7 +1771,7 @@ onAuthStateChanged(auth, (user) => {
         useStructuredHtml: true,
         type: 'success',
         title: '✅ Temperature data loaded successfully!',
-        subtitle: `Showing data for ${getDisplayCity(tempLocation)}`
+        subtitle: `Showing data for ${getDisplayCity(window.tempLocation)}`
       });
       
       if (chart) {
@@ -1652,8 +1958,7 @@ onAuthStateChanged(auth, (user) => {
       if (cachedLocation) {
         debugLog('Using cached location:', cachedLocation);
         stopLocationProgress();
-        tempLocation = cachedLocation;
-        window.tempLocation = tempLocation; // Update global location
+        window.tempLocation = cachedLocation; // Update global location
         displayLocationAndFetchData();
         return;
       }
@@ -1738,8 +2043,7 @@ onAuthStateChanged(auth, (user) => {
           debugLog('Fetching city name from coordinates...');
           
           try {
-            tempLocation = await getCityFromCoords(latitude, longitude);
-            window.tempLocation = tempLocation; // Update global location
+            window.tempLocation = await getCityFromCoords(latitude, longitude); // Update global location
             debugLog('Location detection complete');
             
           } catch (error) {
