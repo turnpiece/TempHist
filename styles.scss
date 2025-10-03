@@ -292,6 +292,13 @@ a {
   }
 }
 
+// Also apply h3 styling to standalone pages
+.container h3 {
+  color: var(--thisYear);
+  font-size: 1.3em;
+  margin: 1.5em 0 0.5em 0;
+}
+
 .standard-text {
   font-size: 1em;
   padding: .4em 0;

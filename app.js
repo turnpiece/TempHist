@@ -70,7 +70,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
       const payload = {
         session_duration: analyticsData.sessionDuration,
         api_calls: analyticsData.apiCalls,
-        api_failure_rate: analyticsData.apiFailureRate,
+        api_failure_rate: analyticsData.apiFailureRate, // Keep as string like "20.0%"
         retry_attempts: analyticsData.retryAttempts,
         location_failures: analyticsData.locationFailures,
         error_count: analyticsData.errorCount,
@@ -78,6 +78,9 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
         app_version: "1.0.0",
         platform: "web"
       };
+
+      // Debug: Log the payload being sent
+      debugLog('Analytics payload being sent:', payload);
 
       const response = await fetch(getApiUrl('/analytics'), {
         method: 'POST',
@@ -89,7 +92,11 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
       });
 
       if (!response.ok) {
-        console.warn('Analytics reporting failed:', response.status);
+        const errorText = await response.text();
+        console.warn('Analytics reporting failed:', response.status, errorText);
+        debugLog('Analytics error response:', errorText);
+      } else {
+        debugLog('Analytics sent successfully');
       }
     } catch (error) {
       // Silently fail analytics reporting to not impact user experience
@@ -408,6 +415,9 @@ onAuthStateChanged(auth, (user) => {
 
   // Global AbortController to cancel in-flight requests
   let inFlightController = null;
+  
+  // Separate AbortController for prefetch operations
+  let prefetchController = null;
 
   // Cleanup function to cancel any pending requests
   function cleanupRequests() {
@@ -415,6 +425,7 @@ onAuthStateChanged(auth, (user) => {
       inFlightController.abort();
       inFlightController = null;
     }
+    // Don't abort prefetch operations - let them continue in background
   }
 
   // Clean up requests when page is unloaded
@@ -623,6 +634,12 @@ onAuthStateChanged(auth, (user) => {
       debugLog(`${period} data fetch completed successfully`);
       return result;
     } catch (error) {
+      // Don't log errors for aborted requests (they're expected during navigation)
+      if (error.name === 'AbortError' || error.message.includes('aborted')) {
+        debugLog(`${period} data fetch aborted (likely due to navigation)`);
+        throw error;
+      }
+      
       logError(error, { 
         type: 'async_data_fetch_failure',
         period,
@@ -754,6 +771,15 @@ onAuthStateChanged(auth, (user) => {
     const confirmLocationBtn = document.getElementById('confirmLocationBtn');
     const backToSplashBtn = document.getElementById('backToSplashBtn');
     const locationLoading = document.getElementById('locationLoading');
+
+    // Reset to Today page when splash screen is shown (in case user was on another page)
+    debugLog('Splash screen shown, resetting to Today page');
+    if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
+      window.TempHistRouter.navigate('/today');
+    } else {
+      // Fallback: update URL
+      window.location.hash = '#/today';
+    }
 
     // Check if we already have a location (e.g., from cookie or previous session)
     // Temporarily disabled for development - uncomment the lines below to re-enable
@@ -1115,6 +1141,15 @@ onAuthStateChanged(auth, (user) => {
       });
     }
 
+    // Always navigate to Today page when location is selected
+    debugLog('Navigating to Today page after location selection');
+    if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
+      window.TempHistRouter.navigate('/today');
+    } else {
+      // Fallback: update URL and trigger route handling
+      window.location.hash = '#/today';
+    }
+
     // Initialize the main app
     window.mainAppLogic();
   };
@@ -1306,16 +1341,16 @@ onAuthStateChanged(auth, (user) => {
       const loadingText = document.getElementById('loadingText');
       
       if (elapsedSeconds < 5) {
-        loadingText.textContent = 'Creating data processing job...';
+        loadingText.textContent = 'Connecting to the temperature data server...';
       } else if (elapsedSeconds < 15) {
-        loadingText.textContent = 'Processing temperature data for '+friendlyDate+' over the past 50 years...';
+        loadingText.textContent = 'Getting temperature data for '+friendlyDate+' over the past 50 years...';
       } else if (elapsedSeconds < 30) {
         const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
-        loadingText.textContent = 'Analyzing historical data for '+displayCity+'...';
+        loadingText.textContent = 'Analysing historical data for '+displayCity+'...';
       } else if (elapsedSeconds < 45) {
         loadingText.textContent = 'Generating temperature comparison chart...';
       } else if (elapsedSeconds < 60) {
-        loadingText.textContent = 'Almost done! Finalizing the results...';
+        loadingText.textContent = 'Almost done! Finalising the results...';
       } else if (elapsedSeconds < 90) {
         loadingText.textContent = 'This is taking longer than usual. Please wait...';
       } else {
@@ -1330,7 +1365,7 @@ onAuthStateChanged(auth, (user) => {
       
       switch(stage) {
         case 'date':
-          loadingText.textContent = 'Determining date...';
+          loadingText.textContent = 'Determining the date...';
           break;
         case 'location':
           loadingText.textContent = 'Determining your location...';
@@ -1506,6 +1541,12 @@ onAuthStateChanged(auth, (user) => {
           
           debugLog('Prefetch: Period data IDs prepared', { anchorDateISO, mmdd });
           
+          // Create a separate AbortController for prefetch operations
+          if (prefetchController) {
+            prefetchController.abort();
+          }
+          prefetchController = new AbortController();
+          
           // Fetch all three endpoints using async jobs in parallel for better performance
           debugLog('Prefetch: Fetching weekly, monthly, yearly data using async jobs in parallel');
           const fetchStartTime = Date.now();
@@ -1548,7 +1589,12 @@ onAuthStateChanged(auth, (user) => {
             TempHist.cache.prefetch.week = weeklyData.value;
             debugLog('Prefetch: Weekly data cached successfully');
           } else {
-            debugLog('Prefetch: Weekly data failed', weeklyData.status, weeklyData.reason?.message);
+            const isAborted = weeklyData.reason?.name === 'AbortError' || weeklyData.reason?.message?.includes('aborted');
+            if (isAborted) {
+              debugLog('Prefetch: Weekly data aborted (likely due to navigation)');
+            } else {
+              debugLog('Prefetch: Weekly data failed', weeklyData.status, weeklyData.reason?.message);
+            }
           }
           
           // Process monthly data
@@ -1556,7 +1602,12 @@ onAuthStateChanged(auth, (user) => {
             TempHist.cache.prefetch.month = monthlyData.value;
             debugLog('Prefetch: Monthly data cached successfully');
           } else {
-            debugLog('Prefetch: Monthly data failed', monthlyData.status, monthlyData.reason?.message);
+            const isAborted = monthlyData.reason?.name === 'AbortError' || monthlyData.reason?.message?.includes('aborted');
+            if (isAborted) {
+              debugLog('Prefetch: Monthly data aborted (likely due to navigation)');
+            } else {
+              debugLog('Prefetch: Monthly data failed', monthlyData.status, monthlyData.reason?.message);
+            }
           }
           
           // Process yearly data
@@ -1564,7 +1615,12 @@ onAuthStateChanged(auth, (user) => {
             TempHist.cache.prefetch.year = yearlyData.value;
             debugLog('Prefetch: Yearly data cached successfully');
           } else {
-            debugLog('Prefetch: Yearly data failed', yearlyData.status, yearlyData.reason?.message);
+            const isAborted = yearlyData.reason?.name === 'AbortError' || yearlyData.reason?.message?.includes('aborted');
+            if (isAborted) {
+              debugLog('Prefetch: Yearly data aborted (likely due to navigation)');
+            } else {
+              debugLog('Prefetch: Yearly data failed', yearlyData.status, yearlyData.reason?.message);
+            }
           }
           
           const periodEndTime = Date.now();
