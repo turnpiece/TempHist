@@ -52,6 +52,21 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
     const analytics = TempHist.analytics;
     const sessionDuration = Date.now() - analytics.startTime;
     
+    // Determine the most common error type from recent errors
+    const getErrorType = () => {
+      if (analytics.errors.length === 0) return 'none';
+      
+      const errorTypes = analytics.errors.map(error => error.context?.type || 'unknown');
+      const typeCounts = errorTypes.reduce((acc, type) => {
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {});
+      
+      // Return the most common error type, or 'mixed' if multiple types
+      const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+      return sortedTypes.length > 1 && sortedTypes[0][1] === sortedTypes[1][1] ? 'mixed' : sortedTypes[0][0];
+    };
+    
     return {
       sessionDuration: Math.round(sessionDuration / 1000), // seconds
       apiCalls: analytics.apiCalls,
@@ -59,6 +74,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
       retryAttempts: analytics.retryAttempts,
       locationFailures: analytics.locationFailures,
       errorCount: analytics.errors.length,
+      errorType: getErrorType(),
       recentErrors: analytics.errors.slice(-5) // Last 5 errors
     };
   }
@@ -74,6 +90,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
         retry_attempts: analyticsData.retryAttempts,
         location_failures: analyticsData.locationFailures,
         error_count: analyticsData.errorCount,
+        error_type: analyticsData.errorType,
         recent_errors: analyticsData.recentErrors,
         app_version: "1.0.0",
         platform: "web"
@@ -118,6 +135,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
           retry_attempts: analyticsData.retryAttempts,
           location_failures: analyticsData.locationFailures,
           error_count: analyticsData.errorCount,
+          error_type: analyticsData.errorType,
           recent_errors: analyticsData.recentErrors,
           app_version: "1.0.0",
           platform: "web"
