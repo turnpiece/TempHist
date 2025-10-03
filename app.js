@@ -496,6 +496,143 @@ onAuthStateChanged(auth, (user) => {
     }
   }
 
+  // Async job polling utility functions
+  async function createAsyncJob(period, location, identifier) {
+    debugLog(`Creating async job for ${period} data:`, { location, identifier });
+    
+    // Convert period names to the correct API format
+    const apiPeriod = period === 'week' ? 'weekly' : 
+                     period === 'month' ? 'monthly' : 
+                     period === 'year' ? 'yearly' : 
+                     period; // daily stays as 'daily'
+    
+    debugLog(`Converted period '${period}' to API period '${apiPeriod}'`);
+    const jobUrl = getApiUrl(`/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}/async`);
+    
+    try {
+      const response = await apiFetch(jobUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create job: HTTP ${response.status}`);
+      }
+
+      const job = await response.json();
+      debugLog(`Async job created:`, job);
+      
+      if (!job.job_id) {
+        throw new Error('Invalid job response: missing job_id');
+      }
+
+      return job.job_id;
+    } catch (error) {
+      logError(error, { 
+        type: 'async_job_creation_failure',
+        period,
+        location,
+        identifier
+      });
+      throw error;
+    }
+  }
+
+  async function pollJobStatus(jobId, onProgress = null) {
+    debugLog(`Polling job status for job_id: ${jobId}`);
+    
+    let pollCount = 0;
+    const maxPolls = 100; // Maximum 5 minutes of polling (100 * 3 seconds)
+    const pollInterval = 3000; // 3 seconds between polls
+    
+    while (pollCount < maxPolls) {
+      try {
+        // Check if request was aborted
+        if (inFlightController && inFlightController.signal.aborted) {
+          debugLog('Job polling aborted');
+          throw new Error('Request aborted');
+        }
+
+        const statusUrl = getApiUrl(`/v1/jobs/${jobId}`);
+        const response = await apiFetch(statusUrl);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to check job status: HTTP ${response.status}`);
+        }
+
+        const status = await response.json();
+        debugLog(`Job status (poll ${pollCount + 1}):`, status);
+        
+        if (status.status === 'ready') {
+          debugLog(`Job completed successfully:`, status);
+          return status.result;
+        } else if (status.status === 'error') {
+          const errorMsg = status.error || 'Unknown job error';
+          debugLog(`Job failed:`, errorMsg);
+          throw new Error(`Job failed: ${errorMsg}`);
+        } else if (status.status === 'processing' || status.status === 'pending') {
+          // Job is processing or pending, call progress callback if provided
+          if (onProgress) {
+            onProgress(status);
+          }
+          
+          // Wait before next poll
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          pollCount++;
+        } else {
+          // Unknown status, wait and try again
+          debugLog(`Unknown job status: ${status.status}, waiting...`);
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          pollCount++;
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          throw error;
+        }
+        
+        // Log error but continue polling unless it's a critical error
+        console.warn(`Job polling error (attempt ${pollCount + 1}):`, error.message);
+        
+        // If we've had too many consecutive errors, give up
+        if (pollCount > 10) {
+          throw new Error(`Job polling failed after ${pollCount} attempts: ${error.message}`);
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        pollCount++;
+      }
+    }
+    
+    throw new Error(`Job polling timed out after ${maxPolls} attempts (5 minutes)`);
+  }
+
+  // Main async data fetching function
+  async function fetchTemperatureDataAsync(period, location, identifier, onProgress = null) {
+    debugLog(`Starting async fetch for ${period} data:`, { location, identifier });
+    
+    try {
+      // Create the async job
+      const jobId = await createAsyncJob(period, location, identifier);
+      
+      // Poll for completion with progress updates
+      const result = await pollJobStatus(jobId, onProgress);
+      
+      debugLog(`${period} data fetch completed successfully`);
+      return result;
+    } catch (error) {
+      logError(error, { 
+        type: 'async_data_fetch_failure',
+        period,
+        location,
+        identifier
+      });
+      throw error;
+    }
+  }
+
   async function getCityFromCoords(lat, lon) {
     try {
       // Cancel any existing in-flight request
@@ -1168,19 +1305,21 @@ onAuthStateChanged(auth, (user) => {
       const elapsedSeconds = Math.floor((Date.now() - loadingStartTime) / 1000);
       const loadingText = document.getElementById('loadingText');
       
-      if (elapsedSeconds < 10) {
-        loadingText.textContent = 'Loading temperature data...';
-      } else if (elapsedSeconds < 25) {
-        loadingText.textContent = 'Getting temperatures on '+friendlyDate+' over the past 50 years.';
-      } else if (elapsedSeconds < 45) {
+      if (elapsedSeconds < 5) {
+        loadingText.textContent = 'Creating data processing job...';
+      } else if (elapsedSeconds < 15) {
+        loadingText.textContent = 'Processing temperature data for '+friendlyDate+' over the past 50 years...';
+      } else if (elapsedSeconds < 30) {
         const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
-        loadingText.textContent = 'Is today warmer than average in '+displayCity+'?';
+        loadingText.textContent = 'Analyzing historical data for '+displayCity+'...';
+      } else if (elapsedSeconds < 45) {
+        loadingText.textContent = 'Generating temperature comparison chart...';
       } else if (elapsedSeconds < 60) {
-        loadingText.textContent = 'Once we have the data we\'ll know.';
-      } else if (elapsedSeconds < 80) {
-        loadingText.textContent = 'Please be patient. It shouldn\'t be much longer.';
+        loadingText.textContent = 'Almost done! Finalizing the results...';
+      } else if (elapsedSeconds < 90) {
+        loadingText.textContent = 'This is taking longer than usual. Please wait...';
       } else {
-        loadingText.textContent = 'The server is taking a while to respond.';
+        loadingText.textContent = 'The data processing is taking a while. This may be due to high server load.';
       }
     }
     
@@ -1367,8 +1506,8 @@ onAuthStateChanged(auth, (user) => {
           
           debugLog('Prefetch: Period data IDs prepared', { anchorDateISO, mmdd });
           
-          // Fetch all three endpoints in parallel for better performance
-          debugLog('Prefetch: Fetching weekly, monthly, yearly data in parallel');
+          // Fetch all three endpoints using async jobs in parallel for better performance
+          debugLog('Prefetch: Fetching weekly, monthly, yearly data using async jobs in parallel');
           const fetchStartTime = Date.now();
           
           // Individual endpoint timing
@@ -1376,48 +1515,56 @@ onAuthStateChanged(auth, (user) => {
           const monthlyStart = Date.now();
           const yearlyStart = Date.now();
           
-          const [weeklyResponse, monthlyResponse, yearlyResponse] = await Promise.allSettled([
-            fetch(getApiUrl(getRecordPath('weekly', location, mmdd)), { headers }).then(res => {
-              debugLog('Prefetch: Weekly endpoint completed in', Date.now() - weeklyStart, 'ms');
-              return res;
+          // Progress callbacks for each period
+          const weeklyProgress = (status) => {
+            debugLog('Prefetch: Weekly job progress:', status);
+          };
+          const monthlyProgress = (status) => {
+            debugLog('Prefetch: Monthly job progress:', status);
+          };
+          const yearlyProgress = (status) => {
+            debugLog('Prefetch: Yearly job progress:', status);
+          };
+          
+          const [weeklyData, monthlyData, yearlyData] = await Promise.allSettled([
+            fetchTemperatureDataAsync('week', location, mmdd, weeklyProgress).then(jobResult => {
+              debugLog('Prefetch: Weekly async job completed in', Date.now() - weeklyStart, 'ms');
+              return jobResult.data; // Extract data from job result
             }),
-            fetch(getApiUrl(getRecordPath('monthly', location, mmdd)), { headers }).then(res => {
-              debugLog('Prefetch: Monthly endpoint completed in', Date.now() - monthlyStart, 'ms');
-              return res;
+            fetchTemperatureDataAsync('month', location, mmdd, monthlyProgress).then(jobResult => {
+              debugLog('Prefetch: Monthly async job completed in', Date.now() - monthlyStart, 'ms');
+              return jobResult.data; // Extract data from job result
             }),
-            fetch(getApiUrl(getRecordPath('yearly', location, mmdd)), { headers }).then(res => {
-              debugLog('Prefetch: Yearly endpoint completed in', Date.now() - yearlyStart, 'ms');
-              return res;
+            fetchTemperatureDataAsync('year', location, mmdd, yearlyProgress).then(jobResult => {
+              debugLog('Prefetch: Yearly async job completed in', Date.now() - yearlyStart, 'ms');
+              return jobResult.data; // Extract data from job result
             })
           ]);
           const fetchEndTime = Date.now();
-          debugLog('Prefetch: Parallel fetch completed in', fetchEndTime - fetchStartTime, 'ms');
+          debugLog('Prefetch: Parallel async jobs completed in', fetchEndTime - fetchStartTime, 'ms');
           
           // Process weekly data
-          if (weeklyResponse.status === 'fulfilled' && weeklyResponse.value.ok) {
-            const data = await weeklyResponse.value.json();
-            TempHist.cache.prefetch.week = data;
+          if (weeklyData.status === 'fulfilled') {
+            TempHist.cache.prefetch.week = weeklyData.value;
             debugLog('Prefetch: Weekly data cached successfully');
           } else {
-            debugLog('Prefetch: Weekly data failed', weeklyResponse.status, weeklyResponse.value?.status);
+            debugLog('Prefetch: Weekly data failed', weeklyData.status, weeklyData.reason?.message);
           }
           
           // Process monthly data
-          if (monthlyResponse.status === 'fulfilled' && monthlyResponse.value.ok) {
-            const data = await monthlyResponse.value.json();
-            TempHist.cache.prefetch.month = data;
+          if (monthlyData.status === 'fulfilled') {
+            TempHist.cache.prefetch.month = monthlyData.value;
             debugLog('Prefetch: Monthly data cached successfully');
           } else {
-            debugLog('Prefetch: Monthly data failed', monthlyResponse.status, monthlyResponse.value?.status);
+            debugLog('Prefetch: Monthly data failed', monthlyData.status, monthlyData.reason?.message);
           }
           
           // Process yearly data
-          if (yearlyResponse.status === 'fulfilled' && yearlyResponse.value.ok) {
-            const data = await yearlyResponse.value.json();
-            TempHist.cache.prefetch.year = data;
+          if (yearlyData.status === 'fulfilled') {
+            TempHist.cache.prefetch.year = yearlyData.value;
             debugLog('Prefetch: Yearly data cached successfully');
           } else {
-            debugLog('Prefetch: Yearly data failed', yearlyResponse.status, yearlyResponse.value?.status);
+            debugLog('Prefetch: Yearly data failed', yearlyData.status, yearlyData.reason?.message);
           }
           
           const periodEndTime = Date.now();
@@ -1484,7 +1631,7 @@ onAuthStateChanged(auth, (user) => {
       }
     }
 
-    // Modified fetchHistoricalData function to use new records API
+    // Modified fetchHistoricalData function to use async jobs
     const fetchHistoricalData = async () => {
       debugTime('Total fetch time');
       
@@ -1511,23 +1658,37 @@ onAuthStateChanged(auth, (user) => {
           console.warn('API health check failed, but proceeding with data fetch...');
         }
 
-        // Fetch weather data using new records API with retry
+        // Fetch weather data using async jobs
         const weatherPath = getRecordPath('daily', window.tempLocation, `${month}-${day}`);
-        const weatherUrl = getApiUrl(weatherPath);
-        const weatherResponse = await fetchWithRetry(weatherUrl);
+        const identifier = `${month}-${day}`;
         
-        // Parse the response
-        const responseText = await weatherResponse.text();
-        let weatherData;
-        try {
-          weatherData = JSON.parse(responseText);
-        } catch (parseError) {
-          throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-        }
+        // Progress callback for async job
+        const onProgress = (status) => {
+          debugLog('Daily data job progress:', status);
+          // Update loading message with job progress if available
+          const loadingText = document.getElementById('loadingText');
+          if (loadingText) {
+            if (status.message) {
+              loadingText.textContent = status.message;
+            } else if (status.status === 'pending') {
+              loadingText.textContent = 'Job queued, waiting to start processing...';
+            } else if (status.status === 'processing') {
+              loadingText.textContent = 'Processing temperature data...';
+            }
+          }
+        };
+
+        debugLog('Starting async daily data fetch...');
+        const jobResult = await fetchTemperatureDataAsync('daily', window.tempLocation, identifier, onProgress);
+        
+        // Extract the data from the job result
+        const weatherData = jobResult.data;
+        debugLog('Job result structure:', jobResult);
+        debugLog('Extracted weather data:', weatherData);
         
         // The new v1/records API structure - temperature data is in 'values' array
-        if (!weatherData.values || !Array.isArray(weatherData.values)) {
-          throw new Error('Invalid data format received from '+weatherUrl + '. Expected values array.');
+        if (!weatherData || !weatherData.values || !Array.isArray(weatherData.values)) {
+          throw new Error('Invalid data format received. Expected values array.');
         }
 
         // Extract all data directly from the single response
@@ -1793,7 +1954,21 @@ onAuthStateChanged(auth, (user) => {
         
         console.error('Error fetching historical data:', error);
         hideChart();
-        showError('Sorry, there was a problem connecting to the temperature data server. Please check your connection or try again later.');
+        
+        // Provide more specific error messages based on the error type
+        let errorMessage = 'Sorry, there was a problem processing the temperature data. Please try again later.';
+        
+        if (error.message.includes('Job failed')) {
+          errorMessage = 'The data processing job failed. This may be due to server issues. Please try again later.';
+        } else if (error.message.includes('Job polling timed out')) {
+          errorMessage = 'The data processing is taking longer than expected. Please try again later.';
+        } else if (error.message.includes('Request aborted')) {
+          errorMessage = 'The request was cancelled. Please try again.';
+        } else if (error.message.includes('Failed to create job')) {
+          errorMessage = 'Unable to start data processing. Please check your connection and try again.';
+        }
+        
+        showError(errorMessage);
       }
 
       debugTimeEnd('Total fetch time');
@@ -2421,19 +2596,21 @@ onAuthStateChanged(auth, (user) => {
       if (!loadingText) return;
       
       if (elapsedSeconds < 5) {
-        loadingText.textContent = 'Loading temperature data...';
+        loadingText.textContent = 'Creating data processing job...';
       } else if (elapsedSeconds < 15) {
         const displayCity = window.tempLocation ? window.getDisplayCity(window.tempLocation) : 'your location';
-        loadingText.textContent = `Getting temperatures in ${displayCity} over the past 50 years.`;
+        loadingText.textContent = `Processing ${title.toLowerCase()} temperature data for ${displayCity}...`;
       } else if (elapsedSeconds < 30) {
         const displayCity = window.tempLocation ? window.getDisplayCity(window.tempLocation) : 'your location';
-        loadingText.textContent = `Was this past ${title.toLowerCase()} warmer than average in ${displayCity}?`;
+        loadingText.textContent = `Analyzing historical ${title.toLowerCase()} data for ${displayCity}...`;
       } else if (elapsedSeconds < 45) {
-        loadingText.textContent = 'Once we have the data we\'ll know.';
+        loadingText.textContent = `Generating ${title.toLowerCase()} temperature comparison chart...`;
       } else if (elapsedSeconds < 60) {
-        loadingText.textContent = 'Please be patient. It shouldn\'t be much longer.';
+        loadingText.textContent = 'Almost done! Finalizing the results...';
+      } else if (elapsedSeconds < 90) {
+        loadingText.textContent = 'This is taking longer than usual. Please wait...';
       } else {
-        loadingText.textContent = 'The server is taking a while to respond.';
+        loadingText.textContent = 'The data processing is taking a while. This may be due to high server load.';
       }
     }
 
@@ -2546,15 +2723,31 @@ onAuthStateChanged(auth, (user) => {
           const identifier = `${month}-${day}`;
           const anchorISO = `${dateToUse.getFullYear()}-${month}-${day}`;
           
-          // Trigger immediate prefetch for this period
-          const immediatePrefetchUrl = window.getApiUrl(`/v1/records/${periodKey}ly/${currentLocation}/${identifier}`);
+          // Trigger immediate prefetch for this period using async jobs
+          const onProgress = (status) => {
+            debugLog(`${periodKey}: Immediate prefetch job progress:`, status);
+            // Update loading message with job progress if available
+            const loadingText = document.getElementById(`${periodKey}LoadingText`);
+            if (loadingText) {
+              if (status.message) {
+                loadingText.textContent = status.message;
+              } else if (status.status === 'pending') {
+                loadingText.textContent = 'Job queued, waiting to start processing...';
+              } else if (status.status === 'processing') {
+                loadingText.textContent = `Processing ${periodKey} temperature data...`;
+              }
+            }
+          };
           
-          const res = await apiFetch(immediatePrefetchUrl);
-          if (res.ok) {
-            payload = await res.json();
-            // Cache the result for future use
-            TempHist.cache.prefetch[periodKey] = payload;
-          }
+          const jobResult = await fetchTemperatureDataAsync(periodKey, currentLocation, identifier, onProgress);
+          
+          // Extract the data from the job result
+          payload = jobResult.data;
+          debugLog(`${periodKey} immediate prefetch job result:`, jobResult);
+          debugLog(`Extracted ${periodKey} prefetch data:`, payload);
+          
+          // Cache the result for future use
+          TempHist.cache.prefetch[periodKey] = payload;
         } catch (e) {
           // Immediate prefetch failed, proceed with direct API call
           debugLog(`${periodKey}: Immediate prefetch failed:`, e.message);
@@ -2584,8 +2777,6 @@ onAuthStateChanged(auth, (user) => {
       const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
       const identifier = `${month}-${day}`;
       
-      const url = window.getApiUrl(`/v1/records/${periodKey}ly/${currentLocation}/${identifier}`);
-      
       try {
         // Check temperature data server health first (with timeout)
         const isApiHealthy = await Promise.race([
@@ -2600,10 +2791,29 @@ onAuthStateChanged(auth, (user) => {
           console.warn('API health check failed, but proceeding with data fetch...');
         }
         
-        // Use the same authenticated fetch as the main app
-        const res = await apiFetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        payload = await res.json();
+        // Progress callback for async job
+        const onProgress = (status) => {
+          debugLog(`${periodKey} data job progress:`, status);
+          // Update loading message with job progress if available
+          const loadingText = document.getElementById(`${periodKey}LoadingText`);
+          if (loadingText) {
+            if (status.message) {
+              loadingText.textContent = status.message;
+            } else if (status.status === 'pending') {
+              loadingText.textContent = 'Job queued, waiting to start processing...';
+            } else if (status.status === 'processing') {
+              loadingText.textContent = `Processing ${periodKey} temperature data...`;
+            }
+          }
+        };
+
+        debugLog(`Starting async ${periodKey} data fetch...`);
+        const jobResult = await fetchTemperatureDataAsync(periodKey, currentLocation, identifier, onProgress);
+        
+        // Extract the data from the job result
+        payload = jobResult.data;
+        debugLog(`${periodKey} job result structure:`, jobResult);
+        debugLog(`Extracted ${periodKey} data:`, payload);
       } catch (e) {
         // Show error in error container instead of replacing entire content
         const errorContainer = document.getElementById(`${periodKey}ErrorContainer`);
@@ -2611,8 +2821,20 @@ onAuthStateChanged(auth, (user) => {
         const loadingEl = document.getElementById(`${periodKey}Loading`);
         
         if (errorContainer && errorMessage) {
-          // Show user-friendly error message consistent with Today page
-          errorMessage.textContent = 'Sorry, there was a problem connecting to the temperature data server. Please check your connection or try again later.';
+          // Provide more specific error messages based on the error type
+          let userErrorMessage = 'Sorry, there was a problem processing the temperature data. Please try again later.';
+          
+          if (e.message.includes('Job failed')) {
+            userErrorMessage = 'The data processing job failed. This may be due to server issues. Please try again later.';
+          } else if (e.message.includes('Job polling timed out')) {
+            userErrorMessage = 'The data processing is taking longer than expected. Please try again later.';
+          } else if (e.message.includes('Request aborted')) {
+            userErrorMessage = 'The request was cancelled. Please try again.';
+          } else if (e.message.includes('Failed to create job')) {
+            userErrorMessage = 'Unable to start data processing. Please check your connection and try again.';
+          }
+          
+          errorMessage.textContent = userErrorMessage;
           errorContainer.style.display = 'block';
         }
         
