@@ -2,7 +2,13 @@ import { defineConfig } from 'vite'
 import { copyFileSync, readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 
+// Read package.json to get version
+const packageJson = JSON.parse(readFileSync('package.json', 'utf8'))
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(packageJson.version)
+  },
   build: {
     outDir: 'dist',
     rollupOptions: {

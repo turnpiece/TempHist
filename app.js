@@ -92,7 +92,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
         error_count: analyticsData.errorCount,
         error_type: analyticsData.errorType,
         recent_errors: analyticsData.recentErrors,
-        app_version: "1.0.0",
+        app_version: __APP_VERSION__,
         platform: "web"
       };
 
@@ -137,7 +137,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
           error_count: analyticsData.errorCount,
           error_type: analyticsData.errorType,
           recent_errors: analyticsData.recentErrors,
-          app_version: "1.0.0",
+          app_version: __APP_VERSION__,
           platform: "web"
         };
         
