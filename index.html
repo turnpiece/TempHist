@@ -12,6 +12,42 @@
     ></script>
     <link rel="dns-prefetch" href="https://api.temphist.com" />
     <link rel="stylesheet" href="styles.min.css" />
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "TempHist",
+      "description": "Daily temperature history chart showing how today's temperature compares to the same date over the past 50 years for your location.",
+      "url": "https://temphist.com",
+      "applicationCategory": "WeatherApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Paul Jenkins"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Turnpiece",
+        "url": "https://turnpiece.com"
+      },
+      "featureList": [
+        "Historical temperature comparison",
+        "Location-based weather data",
+        "Interactive temperature charts",
+        "50-year historical data",
+        "Daily, weekly, monthly, and yearly views"
+      ],
+      "browserRequirements": "Requires JavaScript and location access",
+      "screenshot": "https://temphist.com/assets/logo.png"
+    }
+    </script>
   </head>
   <body>
     <header id="header">

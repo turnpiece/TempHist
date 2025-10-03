@@ -6,6 +6,50 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <title>TempHist &ndash; About</title>
     <link rel="stylesheet" href="styles.min.css">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "AboutPage",
+      "name": "About TempHist",
+      "description": "Learn about TempHist, a web application that shows historical temperature data and comparisons for your location.",
+      "url": "https://temphist.com/about",
+      "mainEntity": {
+        "@type": "WebApplication",
+        "name": "TempHist",
+        "description": "Daily temperature history chart showing how today's temperature compares to the same date over the past 50 years for your location.",
+        "url": "https://temphist.com",
+        "applicationCategory": "WeatherApplication",
+        "author": {
+          "@type": "Person",
+          "name": "Paul Jenkins"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "TempHist",
+          "url": "https://temphist.com"
+        }
+      },
+      "breadcrumb": {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://temphist.com"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "About",
+            "item": "https://temphist.com/about"
+          }
+        ]
+      }
+    }
+    </script>
     </head>
   <body>
     <header id="header">
