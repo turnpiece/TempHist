@@ -10,7 +10,7 @@
   const isStandalonePage = !outlet || !document.querySelector('#todayView');
   
   // Debug logging for standalone page detection
-  window.debugLog('Router: isStandalonePage detection:', {
+  (window.debugLog || console.log)('Router: isStandalonePage detection:', {
     outlet: !!outlet,
     todayView: !!document.querySelector('#todayView'),
     isStandalonePage: isStandalonePage,
@@ -56,17 +56,17 @@
   }
 
   function showView(id) {
-    window.debugLog('Router: showing view:', id);
+    (window.debugLog || console.log)('Router: showing view:', id);
     if (!outlet) {
-      window.debugLog('Router: no outlet found');
+      (window.debugLog || console.log)('Router: no outlet found');
       return;
     }
     const sections = outlet.querySelectorAll('section[data-view]');
-    window.debugLog('Router: found sections:', sections.length, Array.from(sections).map(s => s.id));
+    (window.debugLog || console.log)('Router: found sections:', sections.length, Array.from(sections).map(s => s.id));
     sections.forEach(sec => {
       const shouldShow = sec.id === id;
       sec.hidden = !shouldShow;
-      window.debugLog(`Router: section ${sec.id} hidden: ${!shouldShow}`);
+      (window.debugLog || console.log)(`Router: section ${sec.id} hidden: ${!shouldShow}`);
     });
   }
 
@@ -91,40 +91,45 @@
 
   async function handleRoute() {
     const path = currentPath();
-    window.debugLog('Router: handling path:', path, 'isStandalonePage:', isStandalonePage);
+    (window.debugLog || console.log)('Router: handling path:', path, 'isStandalonePage:', isStandalonePage);
     setActiveLink(path);
     
     // Don't try to show views on standalone pages
     if (isStandalonePage) {
-      window.debugLog('Router: Skipping view rendering on standalone page');
+      (window.debugLog || console.log)('Router: Skipping view rendering on standalone page');
       closeMenu();
       return;
     }
     
-    // Check if splash screen is still visible
-    const splashScreen = document.getElementById('splashScreen');
-    if (splashScreen && splashScreen.style.display !== 'none' && !splashScreen.classList.contains('hidden')) {
-      window.debugLog('Router: Splash screen is visible, skipping view rendering');
-      return;
-    }
+    // Splash screen visibility is handled by proceedWithLocation function
     
     // Check if user is trying to access chart pages without a location
     const chartPages = ['/today', '/week', '/month', '/year'];
-    if (chartPages.includes(path) && !window.tempLocation) {
-      window.debugLog('Router: No location set, redirecting to splash screen');
-      // Show splash screen if it's hidden
-      if (splashScreen) {
-        splashScreen.style.display = 'flex';
-        splashScreen.classList.remove('hidden');
+    if (chartPages.includes(path)) {
+      (window.debugLog || console.log)('Router: Checking location for chart page:', {
+        path: path,
+        tempLocation: window.tempLocation,
+        hasLocation: !!window.tempLocation
+      });
+      
+      if (!window.tempLocation) {
+        (window.debugLog || console.log)('Router: No location set, showing error message instead of redirecting');
+        
+        // Show error message instead of redirecting to splash screen
+        if (window.updateDataNotice) {
+          window.updateDataNotice('Please select a location to view temperature data. <a href="#/today" onclick="window.location.reload()">Go to home page</a>', {
+            type: 'error',
+            persistent: true
+          });
+        }
+        
+        // Still show the view but with error state
+        showView("todayView");
+        return;
       }
-      const appShell = document.getElementById('appShell');
-      if (appShell) {
-        appShell.style.display = 'none';
-      }
-      return;
     }
     
-    window.debugLog('Router: Proceeding with SPA view rendering');
+    (window.debugLog || console.log)('Router: Proceeding with SPA view rendering');
     
     switch (path) {
       case "/today":

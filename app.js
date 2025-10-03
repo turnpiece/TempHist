@@ -205,7 +205,10 @@ onAuthStateChanged(auth, (user) => {
 
   window.getCurrentLocation = function() {
     // This will be set by the main app logic
-    return window.tempLocation || 'London, England, United Kingdom';
+    debugLog('getCurrentLocation called, window.tempLocation:', window.tempLocation);
+    const result = window.tempLocation || 'London, England, United Kingdom';
+    debugLog('getCurrentLocation returning:', result);
+    return result;
   };
 
   window.getOrdinal = function(n) {
@@ -314,71 +317,71 @@ onAuthStateChanged(auth, (user) => {
   window.updateDataNotice = updateDataNotice;
 
   // Enhanced device and platform detection (moved to global scope)
-  function detectDeviceAndPlatform() {
-    const userAgent = navigator.userAgent;
-    
-    // OS Detection
-    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
-    const isAndroid = /Android/.test(userAgent);
-    const isWindows = /Windows/.test(userAgent);
-    const isMac = /Mac/.test(userAgent);
-    const isLinux = /Linux/.test(userAgent);
-    
-    // Browser Detection
-    const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
-    const isChrome = /Chrome/.test(userAgent);
-    const isFirefox = /Firefox/.test(userAgent);
-    const isEdge = /Edg/.test(userAgent);
-    
-    // Device Type Detection
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    const isTablet = /iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/.test(userAgent);
-    const isDesktop = !isMobile && !isTablet;
-    
-    // Additional mobile indicators
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const isSmallScreen = window.innerWidth <= 768;
-    const isPortrait = window.innerHeight > window.innerWidth;
-    
-    // Mobile-specific features
-    const hasMobileFeatures = 'connection' in navigator || 
-                             'deviceMemory' in navigator || 
-                             'hardwareConcurrency' in navigator;
-    
-    // Enhanced mobile detection with scoring
-    const mobileScore = (isMobile ? 3 : 0) + 
-                       (isTouchDevice ? 2 : 0) + 
-                       (isSmallScreen ? 1 : 0) + 
-                       (hasMobileFeatures ? 1 : 0);
-    
-    const isMobileDevice = mobileScore >= 3;
-    
-    // Platform-specific details
-    const platform = {
-      os: isIOS ? 'iOS' : isAndroid ? 'Android' : isWindows ? 'Windows' : isMac ? 'macOS' : isLinux ? 'Linux' : 'Unknown',
-      browser: isSafari ? 'Safari' : isChrome ? 'Chrome' : isFirefox ? 'Firefox' : isEdge ? 'Edge' : 'Unknown',
-      deviceType: isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop',
-      isMobile: isMobileDevice,
-      isIOS,
-      isAndroid,
-      isSafari,
-      isChrome
-    };
-    
-    if (DEBUGGING) {
-      console.log('Device and platform detection:', {
-        userAgent: userAgent,
-        platform,
-        mobileScore,
-        isTouchDevice,
-        isSmallScreen,
-        isPortrait,
-        hasMobileFeatures
-      });
+    function detectDeviceAndPlatform() {
+      const userAgent = navigator.userAgent;
+      
+      // OS Detection
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+      const isAndroid = /Android/.test(userAgent);
+      const isWindows = /Windows/.test(userAgent);
+      const isMac = /Mac/.test(userAgent);
+      const isLinux = /Linux/.test(userAgent);
+      
+      // Browser Detection
+      const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+      const isChrome = /Chrome/.test(userAgent);
+      const isFirefox = /Firefox/.test(userAgent);
+      const isEdge = /Edg/.test(userAgent);
+      
+      // Device Type Detection
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+      const isTablet = /iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/.test(userAgent);
+      const isDesktop = !isMobile && !isTablet;
+      
+      // Additional mobile indicators
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isSmallScreen = window.innerWidth <= 768;
+      const isPortrait = window.innerHeight > window.innerWidth;
+      
+      // Mobile-specific features
+      const hasMobileFeatures = 'connection' in navigator || 
+                               'deviceMemory' in navigator || 
+                               'hardwareConcurrency' in navigator;
+      
+      // Enhanced mobile detection with scoring
+      const mobileScore = (isMobile ? 3 : 0) + 
+                         (isTouchDevice ? 2 : 0) + 
+                         (isSmallScreen ? 1 : 0) + 
+                         (hasMobileFeatures ? 1 : 0);
+      
+      const isMobileDevice = mobileScore >= 3;
+      
+      // Platform-specific details
+      const platform = {
+        os: isIOS ? 'iOS' : isAndroid ? 'Android' : isWindows ? 'Windows' : isMac ? 'macOS' : isLinux ? 'Linux' : 'Unknown',
+        browser: isSafari ? 'Safari' : isChrome ? 'Chrome' : isFirefox ? 'Firefox' : isEdge ? 'Edge' : 'Unknown',
+        deviceType: isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop',
+        isMobile: isMobileDevice,
+        isIOS,
+        isAndroid,
+        isSafari,
+        isChrome
+      };
+      
+      if (DEBUGGING) {
+        console.log('Device and platform detection:', {
+          userAgent: userAgent,
+          platform,
+          mobileScore,
+          isTouchDevice,
+          isSmallScreen,
+          isPortrait,
+          hasMobileFeatures
+        });
+      }
+      
+      return platform;
     }
-    
-    return platform;
-  }
 
   // Enhanced mobile detection function (backward compatibility)
   function isMobileDevice() {
@@ -596,7 +599,7 @@ onAuthStateChanged(auth, (user) => {
     }
   }
 
-  // Splash Screen Management
+  // Splash Screen Management - Updated to fix router issues
   function initializeSplashScreen() {
     // Check if this is a standalone page (privacy, about) - don't show splash screen
     const isStandalonePage = !document.querySelector('#todayView');
@@ -630,7 +633,7 @@ onAuthStateChanged(auth, (user) => {
       splashScreen.style.display = 'flex';
     }
     if (appShell) {
-      appShell.style.display = 'none';
+      appShell.classList.add('hidden');
     }
 
     // Use my location button handler
@@ -675,6 +678,60 @@ onAuthStateChanged(auth, (user) => {
     }
   }
 
+  async function handleUseLocationFromMainApp() {
+    // Get location text element - try different possible IDs
+    let locationTextElement = document.getElementById('locationText') || 
+                             document.getElementById('weekLocationText') || 
+                             document.getElementById('monthLocationText') || 
+                             document.getElementById('yearLocationText');
+    
+    // Show loading state inline next to the location
+    if (locationTextElement) {
+      const originalContent = locationTextElement.innerHTML;
+      locationTextElement.innerHTML = `${originalContent.replace(/<a[^>]*>.*?<\/a>/, '')} <span class="location-detecting">Detecting your location...</span>`;
+    }
+    
+    try {
+      // Try geolocation first
+      const location = await detectUserLocationWithGeolocation();
+      if (location) {
+        await proceedWithLocation(location, true, 'detected'); // Mark as detected location
+        return;
+      }
+    } catch (error) {
+      // Only log geolocation errors if IP fallback also fails
+      debugLog('Geolocation failed:', error);
+    }
+
+    // If geolocation fails, try IP-based fallback
+    try {
+      const location = await getLocationFromIP();
+      if (location) {
+        await proceedWithLocation(location, true, 'detected'); // Mark as detected location
+        return;
+      }
+    } catch (error) {
+      console.warn('IP-based location failed:', error);
+    }
+
+    // If both fail, show error message inline
+    if (locationTextElement) {
+      const cityName = getDisplayCity(window.tempLocation);
+      locationTextElement.innerHTML = `${cityName} <a href="#" id="useActualLocationLink" class="location-link">Use my actual location</a> <span class="location-error">Unable to detect location</span>`;
+      // Add classes based on location source
+      locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
+      
+      // Re-add click handler
+      const useActualLocationLink = document.getElementById('useActualLocationLink');
+      if (useActualLocationLink) {
+        useActualLocationLink.addEventListener('click', async (e) => {
+          e.preventDefault();
+          await handleUseLocationFromMainApp();
+        });
+      }
+    }
+  }
+
   async function handleUseLocation() {
     const splashScreen = document.getElementById('splashScreen');
     const locationLoading = document.getElementById('locationLoading');
@@ -690,7 +747,7 @@ onAuthStateChanged(auth, (user) => {
       // Try geolocation first
       const location = await detectUserLocationWithGeolocation();
       if (location) {
-        await proceedWithLocation(location);
+        await proceedWithLocation(location, true, 'detected'); // Mark as detected location
         return;
       }
     } catch (error) {
@@ -702,7 +759,7 @@ onAuthStateChanged(auth, (user) => {
       const ipLocation = await getLocationFromIP();
       if (ipLocation) {
         // Auto-select the IP-based location and proceed
-        await proceedWithLocation(ipLocation);
+        await proceedWithLocation(ipLocation, true, 'detected'); // Mark as detected location
         return;
       }
     } catch (error) {
@@ -762,22 +819,38 @@ onAuthStateChanged(auth, (user) => {
   }
 
   async function showManualLocationSelection() {
+    debugLog('showManualLocationSelection called');
     const splashActions = document.querySelector('.splash-actions');
     const manualLocationSection = document.getElementById('manualLocationSection');
     const locationLoading = document.getElementById('locationLoading');
     const locationSelect = document.getElementById('locationSelect');
 
+    debugLog('Elements found:', {
+      splashActions: !!splashActions,
+      manualLocationSection: !!manualLocationSection,
+      locationLoading: !!locationLoading,
+      locationSelect: !!locationSelect
+    });
+
     // Hide loading and main actions
     if (locationLoading) locationLoading.style.display = 'none';
     if (splashActions) splashActions.style.display = 'none';
 
+    debugLog('Hiding splash actions, showing manual section');
+
     // Load preapproved locations (with built-in fallback)
-    const locations = await loadPreapprovedLocations();
-    populateLocationDropdown(locations);
+    try {
+      const locations = await loadPreapprovedLocations();
+      debugLog('Loaded locations:', locations);
+      populateLocationDropdown(locations);
+    } catch (error) {
+      debugLog('Error loading locations:', error);
+    }
 
     // Show manual selection
     if (manualLocationSection) {
       manualLocationSection.style.display = 'block';
+      debugLog('Manual location section shown');
     }
   }
 
@@ -844,19 +917,39 @@ onAuthStateChanged(auth, (user) => {
     // Add location options
     locations.forEach(location => {
       const option = document.createElement('option');
-      option.value = location;
-      option.textContent = location;
+      
+      // Handle both API objects and fallback strings
+      if (typeof location === 'object' && location.name) {
+        // API location object - display just city name, but store full location for API
+        const displayName = location.name;
+        const apiString = `${location.name}${location.admin1 ? ', ' + location.admin1 : ''}, ${location.country_name}`;
+        
+        option.value = apiString;
+        option.textContent = displayName;
+      } else {
+        // Fallback string location - extract city name for display
+        const cityName = location.split(',')[0].trim();
+        option.value = location;
+        option.textContent = cityName;
+      }
+      
       locationSelect.appendChild(option);
     });
   }
 
   async function handleManualLocationSelection(selectedLocation) {
-    await proceedWithLocation(selectedLocation);
+    debugLog('Manual location selected:', selectedLocation);
+    await proceedWithLocation(selectedLocation, false, 'manual'); // Mark as manual selection
   }
 
-  async function proceedWithLocation(location) {
+  async function proceedWithLocation(location, isDetectedLocation = false, locationSource = 'unknown') {
+    debugLog('Proceeding with location:', location, 'isDetectedLocation:', isDetectedLocation, 'source:', locationSource);
+    
     // Set the global location
     window.tempLocation = location;
+    window.tempLocationIsDetected = isDetectedLocation; // Track if this was actually detected
+    window.tempLocationSource = locationSource; // Track the source: 'detected', 'manual', 'default'
+    debugLog('Set window.tempLocation to:', window.tempLocation);
 
     // Store in cookie for future visits
     setLocationCookie(location);
@@ -866,19 +959,28 @@ onAuthStateChanged(auth, (user) => {
     const appShell = document.getElementById('appShell');
 
     if (splashScreen) {
-      splashScreen.classList.add('hidden');
-      setTimeout(() => {
-        splashScreen.style.display = 'none';
-      }, 500);
+      splashScreen.style.display = 'none';
     }
 
     if (appShell) {
-      appShell.style.display = 'block';
+      // Show the app shell (it should maintain its CSS grid layout)
+      debugLog('Before showing app shell:', {
+        classList: appShell.classList.toString(),
+        style: appShell.style.cssText,
+        computedDisplay: window.getComputedStyle(appShell).display
+      });
+      appShell.classList.remove('hidden');
+      appShell.style.display = 'grid'; // Explicitly set to grid
+      debugLog('After showing app shell:', {
+        classList: appShell.classList.toString(),
+        style: appShell.style.cssText,
+        computedDisplay: window.getComputedStyle(appShell).display
+      });
     }
 
     // Initialize the main app
-    mainAppLogic();
-  }
+    window.mainAppLogic();
+  };
 
   // Move your main code into a function:
   function startAppWithFirebaseUser(user) {
@@ -901,13 +1003,16 @@ onAuthStateChanged(auth, (user) => {
 
   // Functions moved to global scope
 
-  function mainAppLogic() {
+  // Make mainAppLogic globally available
+  window.mainAppLogic = function() {
     // Check if this is a standalone page (privacy, about) - don't run main app logic
     const isStandalonePage = !document.querySelector('#todayView');
     if (isStandalonePage) {
       debugLog('Standalone page detected, skipping main app logic');
       return;
     }
+    
+    debugLog('mainAppLogic called with window.tempLocation:', window.tempLocation);
 
     // Wait for Chart.js to be available
     if (typeof Chart === 'undefined') {
@@ -953,6 +1058,15 @@ onAuthStateChanged(auth, (user) => {
     const startYear = currentYear - 50;
     const loadingEl = document.getElementById('loading');
     const canvasEl = document.getElementById('tempChart');
+    
+    // Clean up any existing chart on the main canvas before starting
+    if (canvasEl) {
+      const existingChart = Chart.getChart(canvasEl);
+      if (existingChart) {
+        debugLog('Destroying existing chart before creating new one');
+        existingChart.destroy();
+      }
+    }
     const barColour = '#ff6b6b';
     const thisYearColour = '#51cf66';
     const showTrend = true;
@@ -1476,6 +1590,11 @@ onAuthStateChanged(auth, (user) => {
             maxTemp
           });
 
+          // Destroy existing chart if it exists
+          if (chart) {
+            chart.destroy();
+          }
+
           chart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -1720,18 +1839,44 @@ onAuthStateChanged(auth, (user) => {
     function displayLocationAndFetchData() {
       stopLocationProgress();
       
-      // Check if using default fallback location
-      const isDefaultLocation = window.tempLocation === 'London, England, United Kingdom';
-      const locationDisplay = isDefaultLocation ? 
-        `${getDisplayCity(window.tempLocation)} (default location)` : 
-        getDisplayCity(window.tempLocation);
+      debugLog('displayLocationAndFetchData called with window.tempLocation:', window.tempLocation);
       
-      document.getElementById('locationText').textContent = locationDisplay;
+      // Check if using the hardcoded default fallback location
+      const isDefaultLocation = window.tempLocation === 'London, England, United Kingdom' && 
+                                window.tempLocationIsDetected === false;
+      const cityName = getDisplayCity(window.tempLocation);
+      const locationDisplay = isDefaultLocation ? 
+        `${cityName} (default location)` : 
+        cityName;
+      
+      // Create location display with optional "Use my actual location" link
+      const locationTextElement = document.getElementById('locationText');
+      if (locationTextElement) {
+        // Add classes based on location source
+        locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
+        
+        // Only show the link if it's not a detected location
+        if (window.tempLocationSource !== 'detected') {
+          locationTextElement.innerHTML = `${locationDisplay} <a href="#" id="useActualLocationLink" class="location-link">Use my actual location</a>`;
+          
+          // Add click handler for the link
+          const useActualLocationLink = document.getElementById('useActualLocationLink');
+          if (useActualLocationLink) {
+            useActualLocationLink.addEventListener('click', async (e) => {
+              e.preventDefault();
+              await handleUseLocationFromMainApp();
+            });
+          }
+        } else {
+          // For detected locations, just show the location without the link
+          locationTextElement.innerHTML = locationDisplay;
+        }
+      }
       
       // Clear the initial status message
       const locationMessage = isDefaultLocation ? 
         `📍 Using default location: <strong>${getDisplayCity(window.tempLocation)}</strong><br><small>Enable location permissions for your actual location</small>` :
-        `📍 Location set to: <strong>${getDisplayCity(window.tempLocation)}</strong>`;
+        `📍 Location detected: <strong>${getDisplayCity(window.tempLocation)}</strong>`;
       
       updateDataNotice('', {
         debugOnly: true,
@@ -2120,12 +2265,7 @@ onAuthStateChanged(auth, (user) => {
     }
   }
 
-  // Ensure mainAppLogic always runs after DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mainAppLogic);
-  } else {
-    mainAppLogic();
-  }
+  // mainAppLogic will be called after location selection
 
   // Router will be activated after view registrations
 
@@ -2203,8 +2343,11 @@ onAuthStateChanged(auth, (user) => {
       // Wait a bit for the app to initialize
       await new Promise(resolve => setTimeout(resolve, 100));
       if (!window.tempLocation) {
+        debugLog('renderPeriod: No location found, using default');
         window.tempLocation = 'London, England, United Kingdom';
       }
+    } else {
+      debugLog('renderPeriod: Using existing location:', window.tempLocation);
     }
 
     // Check if Firebase auth is ready
@@ -2327,7 +2470,28 @@ onAuthStateChanged(auth, (user) => {
     // Set location text early to prevent layout shifts
     const currentLocation = window.getCurrentLocation();
     const displayLocation = window.getDisplayCity(currentLocation);
-    document.getElementById(`${periodKey}LocationText`).textContent = displayLocation;
+    const locationTextElement = document.getElementById(`${periodKey}LocationText`);
+    if (locationTextElement) {
+      // Add classes based on location source
+      locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
+      
+      // Only show the link if it's not a detected location
+      if (window.tempLocationSource !== 'detected') {
+        locationTextElement.innerHTML = `${displayLocation} <a href="#" id="useActualLocationLink" class="location-link">Use my actual location</a>`;
+        
+        // Add click handler for the link
+        const useActualLocationLink = document.getElementById('useActualLocationLink');
+        if (useActualLocationLink) {
+          useActualLocationLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await handleUseLocationFromMainApp();
+          });
+        }
+      } else {
+        // For detected locations, just show the location without the link
+        locationTextElement.textContent = displayLocation;
+      }
+    }
     
     showLoading(true);
 
@@ -2494,7 +2658,28 @@ onAuthStateChanged(auth, (user) => {
     // Update location text with actual API location if available
     if (payload.location) {
       const displayLocation = window.getDisplayCity(payload.location);
-      document.getElementById(`${periodKey}LocationText`).textContent = displayLocation;
+      const locationTextElement = document.getElementById(`${periodKey}LocationText`);
+      if (locationTextElement) {
+        // Add classes based on location source
+        locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
+        
+        // Only show the link if it's not a detected location
+        if (window.tempLocationSource !== 'detected') {
+          locationTextElement.innerHTML = `${displayLocation} <a href="#" id="useActualLocationLink" class="location-link">Use my actual location</a>`;
+          
+          // Add click handler for the link
+          const useActualLocationLink = document.getElementById('useActualLocationLink');
+          if (useActualLocationLink) {
+            useActualLocationLink.addEventListener('click', async (e) => {
+              e.preventDefault();
+              await handleUseLocationFromMainApp();
+            });
+          }
+        } else {
+          // For detected locations, just show the location without the link
+          locationTextElement.textContent = displayLocation;
+        }
+      }
     }
     
     // Apply colors to match Today page
@@ -2527,6 +2712,12 @@ onAuthStateChanged(auth, (user) => {
     const years = chartData.map(p => p.y);
     const minYear = Math.min(...years);
     const maxYear = Math.max(...years);
+
+    // Destroy any existing chart on this canvas
+    const existingChart = Chart.getChart(ctx);
+    if (existingChart) {
+      existingChart.destroy();
+    }
 
     const chart = new Chart(ctx, {
       type: 'bar',
