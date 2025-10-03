@@ -21,6 +21,8 @@ export default defineConfig({
         copyFileSync('router.js', 'dist/router.js')
         // Copy .htaccess
         copyFileSync('.htaccess', 'dist/.htaccess')
+        // Copy favicon
+        copyFileSync('favicon.ico', 'dist/favicon.ico')
         // Copy stylesheets
         copyFileSync('styles.css', 'dist/styles.css')
         copyFileSync('styles.min.css', 'dist/styles.min.css')
