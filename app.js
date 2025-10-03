@@ -620,6 +620,22 @@ onAuthStateChanged(auth, (user) => {
     throw new Error(`Job polling timed out after ${maxPolls} attempts (5 minutes)`);
   }
 
+  // Centralized job progress handler
+  function handleJobProgress(period, status, loadingTextElementId = null) {
+    debugLog(`${period} job progress:`, status);
+    
+    // Only log technical details to debug, don't update UI
+    if (status.message) {
+      debugLog(`${period} job message: ${status.message}`);
+    } else if (status.status === 'pending') {
+      debugLog(`${period} job: Queued, waiting to start processing`);
+    } else if (status.status === 'processing') {
+      debugLog(`${period} job: Processing temperature data`);
+    }
+    
+    // Don't update loading text - let the existing user-friendly messages handle that
+  }
+
   // Main async data fetching function
   async function fetchTemperatureDataAsync(period, location, identifier, onProgress = null) {
     debugLog(`Starting async fetch for ${period} data:`, { location, identifier });
@@ -1558,13 +1574,13 @@ onAuthStateChanged(auth, (user) => {
           
           // Progress callbacks for each period
           const weeklyProgress = (status) => {
-            debugLog('Prefetch: Weekly job progress:', status);
+            handleJobProgress('weekly (prefetch)', status);
           };
           const monthlyProgress = (status) => {
-            debugLog('Prefetch: Monthly job progress:', status);
+            handleJobProgress('monthly (prefetch)', status);
           };
           const yearlyProgress = (status) => {
-            debugLog('Prefetch: Yearly job progress:', status);
+            handleJobProgress('yearly (prefetch)', status);
           };
           
           const [weeklyData, monthlyData, yearlyData] = await Promise.allSettled([
@@ -1720,18 +1736,7 @@ onAuthStateChanged(auth, (user) => {
         
         // Progress callback for async job
         const onProgress = (status) => {
-          debugLog('Daily data job progress:', status);
-          // Update loading message with job progress if available
-          const loadingText = document.getElementById('loadingText');
-          if (loadingText) {
-            if (status.message) {
-              loadingText.textContent = status.message;
-            } else if (status.status === 'pending') {
-              loadingText.textContent = 'Job queued, waiting to start processing...';
-            } else if (status.status === 'processing') {
-              loadingText.textContent = 'Processing temperature data...';
-            }
-          }
+          handleJobProgress('daily', status, 'loadingText');
         };
 
         debugLog('Starting async daily data fetch...');
@@ -2781,18 +2786,7 @@ onAuthStateChanged(auth, (user) => {
           
           // Trigger immediate prefetch for this period using async jobs
           const onProgress = (status) => {
-            debugLog(`${periodKey}: Immediate prefetch job progress:`, status);
-            // Update loading message with job progress if available
-            const loadingText = document.getElementById(`${periodKey}LoadingText`);
-            if (loadingText) {
-              if (status.message) {
-                loadingText.textContent = status.message;
-              } else if (status.status === 'pending') {
-                loadingText.textContent = 'Job queued, waiting to start processing...';
-              } else if (status.status === 'processing') {
-                loadingText.textContent = `Processing ${periodKey} temperature data...`;
-              }
-            }
+            handleJobProgress(`${periodKey} (immediate prefetch)`, status, `${periodKey}LoadingText`);
           };
           
           const jobResult = await fetchTemperatureDataAsync(periodKey, currentLocation, identifier, onProgress);
@@ -2849,18 +2843,7 @@ onAuthStateChanged(auth, (user) => {
         
         // Progress callback for async job
         const onProgress = (status) => {
-          debugLog(`${periodKey} data job progress:`, status);
-          // Update loading message with job progress if available
-          const loadingText = document.getElementById(`${periodKey}LoadingText`);
-          if (loadingText) {
-            if (status.message) {
-              loadingText.textContent = status.message;
-            } else if (status.status === 'pending') {
-              loadingText.textContent = 'Job queued, waiting to start processing...';
-            } else if (status.status === 'processing') {
-              loadingText.textContent = `Processing ${periodKey} temperature data...`;
-            }
-          }
+          handleJobProgress(periodKey, status, `${periodKey}LoadingText`);
         };
 
         debugLog(`Starting async ${periodKey} data fetch...`);

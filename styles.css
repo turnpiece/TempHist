@@ -478,7 +478,7 @@ h2, .date-heading {
   top: 0;
   left: 0;
   width: 100%;
-  max-width: 350px;
+  max-width: 600px;
   height: 100%;
   display: flex;
   flex-direction: column;
