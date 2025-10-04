@@ -113,18 +113,21 @@
       });
       
       if (!window.tempLocation) {
-        (window.debugLog || console.log)('Router: No location set, showing error message instead of redirecting');
+        (window.debugLog || console.log)('Router: No location set, checking if splash screen should be shown');
         
-        // Show error message instead of redirecting to splash screen
-        if (window.updateDataNotice) {
-          window.updateDataNotice('Please select a location to view temperature data. <a href="#/today" onclick="window.location.reload()">Go to home page</a>', {
-            type: 'error',
-            persistent: true
-          });
+        // Check if we're already showing the splash screen
+        const splashScreen = document.getElementById('splashScreen');
+        if (splashScreen && splashScreen.style.display !== 'none') {
+          (window.debugLog || console.log)('Router: Splash screen already visible, staying on splash screen');
+          return;
         }
         
-        // Still show the view but with error state
-        showView("todayView");
+        // Only reload if we're not on a standalone page and splash screen is not visible
+        const isStandalonePage = !document.querySelector('#todayView');
+        if (!isStandalonePage) {
+          (window.debugLog || console.log)('Router: No splash screen visible, reloading to show splash screen');
+          window.location.reload();
+        }
         return;
       }
     }

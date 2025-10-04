@@ -20,6 +20,7 @@ body {
 
 a {
   text-decoration: underline;
+  color: inherit;
 }
 
 .container {
@@ -192,6 +193,9 @@ a {
 .location-text.location-unknown {
   color: var(--text);
 }
+.location-text.location-cookie {
+  color: var(--accent);
+}
 
 .location-detecting {
   font-size: 0.75em;
@@ -259,11 +263,22 @@ a {
   font-size: 1.3em;
   margin: 1.5em 0 0.5em 0;
 }
+#aboutView a,
+#privacyView a {
+  color: inherit;
+  text-decoration: underline;
+}
 
 .container h3 {
   color: var(--thisYear);
   font-size: 1.3em;
   margin: 1.5em 0 0.5em 0;
+}
+
+body.about-page a,
+body.privacy-page a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 .standard-text {

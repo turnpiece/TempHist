@@ -33,6 +33,7 @@ body {
 
 a {
   text-decoration: underline;
+  color: inherit; // Links inherit the color of their parent element
 }
 
 .container {
@@ -226,6 +227,11 @@ a {
     // Unknown source (fallback)
     color: var(--text);
   }
+  
+  &.location-cookie {
+    // Location from cookie (returning user)
+    color: var(--accent);
+  }
 }
 
 // Inline location status messages
@@ -290,6 +296,11 @@ a {
     font-size: 1.3em;
     margin: 1.5em 0 0.5em 0;
   }
+  
+  a {
+    color: inherit; // Links inherit the color of their parent element (white text)
+    text-decoration: underline;
+  }
 }
 
 // Also apply h3 styling to standalone pages
@@ -297,6 +308,15 @@ a {
   color: var(--thisYear);
   font-size: 1.3em;
   margin: 1.5em 0 0.5em 0;
+}
+
+// Link styling for standalone about and privacy pages
+body.about-page,
+body.privacy-page {
+  a {
+    color: inherit; // Links inherit the color of their parent element (white text)
+    text-decoration: underline;
+  }
 }
 
 .standard-text {

@@ -2,27 +2,29 @@ import './styles.scss';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
-  // Global namespace and cache
-  window.TempHist = window.TempHist || {};
-  TempHist.cache = TempHist.cache || {
-    prefetch: {
-      // example shape expected:
-      // week: { location: 'London', startISO: '2025-09-19', endISO: '2025-09-25', series: [...] }
-      // month: { ... }, year: { ... }
-    }
-  };
-  window.TempHistViews = window.TempHistViews || {};
+// Global namespace and cache
+window.TempHist = window.TempHist || {};
+window.TempHist.cache = window.TempHist.cache || {
+  prefetch: {
+    // example shape expected:
+    // week: { location: 'London', startISO: '2025-09-19', endISO: '2025-09-25', series: [...] }
+    // month: { ... }, year: { ... }
+  }
+};
+window.TempHistViews = window.TempHistViews || {};
 
-  // Error monitoring and analytics
-  TempHist.analytics = TempHist.analytics || {
-    errors: [],
-    apiCalls: 0,
-    apiFailures: 0,
-    retryAttempts: 0,
-    locationFailures: 0,
-    startTime: Date.now()
-  };
+// Error monitoring and analytics
+window.TempHist.analytics = window.TempHist.analytics || {
+  errors: [],
+  apiCalls: 0,
+  apiFailures: 0,
+  retryAttempts: 0,
+  locationFailures: 0,
+  startTime: Date.now()
+};
 
+// IIFE to wrap the main application logic
+(() => {
   // Error logging function
   function logError(error, context = {}) {
     const errorData = {
@@ -347,6 +349,23 @@ onAuthStateChanged(auth, (user) => {
   // Prefetch approved locations for manual selection
   async function prefetchApprovedLocations() {
     debugLog('Prefetching approved locations in background...');
+    
+    // Wait for currentUser to be available
+    let attempts = 0;
+    const maxAttempts = 50; // 5 seconds max wait
+    
+    while (!window.currentUser && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
+    if (!window.currentUser) {
+      debugLog('No currentUser available after waiting, using fallback locations');
+      window.TempHist = window.TempHist || {};
+      window.TempHist.prefetchedLocations = getFallbackLocations();
+      return;
+    }
+    
     try {
       const locations = await loadPreapprovedLocations();
       debugLog('Approved locations prefetched:', locations.length, 'locations');
@@ -435,21 +454,57 @@ onAuthStateChanged(auth, (user) => {
   }
 
   // Cookie management functions
-  function setLocationCookie(city) {
+  function setLocationCookie(city, source = null) {
     const expiry = new Date();
     expiry.setHours(expiry.getHours() + 1); // Expire after 1 hour
-    document.cookie = `tempLocation=${city};expires=${expiry.toUTCString()};path=/`;
+    
+    // Safety check: if city is an object, don't store it
+    if (typeof city === 'object' && city !== null) {
+      console.error('setLocationCookie received an object instead of string:', city);
+      debugLog('setLocationCookie: Refusing to store object, skipping cookie storage');
+      return;
+    }
+    
+    // Ensure we're storing a string, not an object
+    const cityString = String(city);
+    const sourceString = source ? String(source) : null;
+    
+    try {
+      const encodedLocation = encodeURIComponent(cityString);
+      const locationCookie = `tempLocation=${encodedLocation};expires=${expiry.toUTCString()};path=/`;
+      
+      document.cookie = locationCookie;
+      debugLog('setLocationCookie: Stored location cookie');
+      
+      // Also store the location source if provided
+      if (sourceString) {
+        const encodedSource = encodeURIComponent(sourceString);
+        const sourceCookie = `tempLocationSource=${encodedSource};expires=${expiry.toUTCString()};path=/`;
+        
+        document.cookie = sourceCookie;
+        debugLog('setLocationCookie: Stored source cookie');
+      }
+      
+    } catch (error) {
+      console.error('setLocationCookie: Error setting cookies:', error);
+    }
   }
 
   function getLocationCookie() {
     const cookies = document.cookie.split(';');
+    let location = null;
+    let source = null;
+    
     for (let cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
-      if (name === 'tempLocation') {
-        return value;
+      if (name === 'tempLocation' && value) {
+        location = decodeURIComponent(value);
+      } else if (name === 'tempLocationSource' && value) {
+        source = decodeURIComponent(value);
       }
     }
-    return null;
+    
+    return { location, source };
   }
 
   // Global AbortController to cancel in-flight requests
@@ -645,6 +700,14 @@ onAuthStateChanged(auth, (user) => {
         // Log error but continue polling unless it's a critical error
         console.warn(`Job polling error (attempt ${pollCount + 1}):`, error.message);
         
+        // Check for specific server errors that indicate backend issues
+        if (error.message.includes('set_cache_value') || 
+            error.message.includes('redis_client') ||
+            error.message.includes('server error') ||
+            error.message.includes('internal error')) {
+          console.warn('Detected server-side error, this may be a temporary backend issue');
+        }
+        
         // If we've had too many consecutive errors, give up
         if (pollCount > 10) {
           throw new Error(`Job polling failed after ${pollCount} attempts: ${error.message}`);
@@ -836,11 +899,13 @@ onAuthStateChanged(auth, (user) => {
     }
 
     // Check if we already have a location (e.g., from cookie or previous session)
-    const existingLocation = getLocationCookie();
-    if (existingLocation) {
-      debugLog('Found existing location from cookie:', existingLocation);
+    const cookieData = getLocationCookie();
+    if (cookieData.location) {
+      debugLog('Found existing location from cookie:', cookieData.location, 'with source:', cookieData.source);
       // Skip splash screen and go directly to app (no need to prefetch locations)
-      proceedWithLocation(existingLocation);
+      // Use the stored source if available, otherwise default to 'cookie'
+      const source = cookieData.source || 'cookie';
+      proceedWithLocation(cookieData.location, source === 'detected', source);
       return;
     }
 
@@ -1186,14 +1251,14 @@ onAuthStateChanged(auth, (user) => {
   async function proceedWithLocation(location, isDetectedLocation = false, locationSource = 'unknown') {
     debugLog('Proceeding with location:', location, 'isDetectedLocation:', isDetectedLocation, 'source:', locationSource);
     
-    // Set the global location
+    // Set the global location FIRST - this is critical for router
     window.tempLocation = location;
     window.tempLocationIsDetected = isDetectedLocation; // Track if this was actually detected
     window.tempLocationSource = locationSource; // Track the source: 'detected', 'manual', 'default'
     debugLog('Set window.tempLocation to:', window.tempLocation);
 
     // Store in cookie for future visits
-    setLocationCookie(location);
+    setLocationCookie(location, locationSource);
 
     // Hide splash screen and show app
     const splashScreen = document.getElementById('splashScreen');
@@ -1219,7 +1284,20 @@ onAuthStateChanged(auth, (user) => {
       });
     }
 
-    // Always navigate to Today page when location is selected
+    // Destroy any existing chart before initializing main app
+    const canvasEl = document.getElementById('tempChart');
+    if (canvasEl) {
+      const existingChart = Chart.getChart(canvasEl);
+      if (existingChart) {
+        debugLog('Destroying existing chart before proceeding with new location');
+        existingChart.destroy();
+      }
+    }
+
+    // Initialize the main app FIRST (this sets up the DOM elements)
+    window.mainAppLogic();
+
+    // THEN navigate to Today page (router will now see window.tempLocation is set)
     debugLog('Navigating to Today page after location selection');
     if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
       window.TempHistRouter.navigate('/today');
@@ -1227,42 +1305,18 @@ onAuthStateChanged(auth, (user) => {
       // Fallback: update URL and trigger route handling
       window.location.hash = '#/today';
     }
-
-    // Initialize the main app
-    window.mainAppLogic();
   };
 
-  // Move your main code into a function:
-  function startAppWithFirebaseUser(user) {
-    // Initialize analytics reporting
-    setupAnalyticsReporting();
-    
-    // Initialize splash screen functionality
-    initializeSplashScreen();
-    
-    // SECURITY NOTE: Manual location input is now controlled via splash screen.
-    // Users can choose to use their location or select from preapproved locations.
-
-    // Device detection functions moved to global scope
-
-  debugLog('Script starting...');
-
-  // Store the Firebase user for use in apiFetch
-  let currentUser = user;
-  window.currentUser = currentUser; // Make it globally available
-
-  // Functions moved to global scope
-
-  // Make mainAppLogic globally available
-  window.mainAppLogic = function() {
-    // Check if this is a standalone page (privacy, about) - don't run main app logic
-    const isStandalonePage = !document.querySelector('#todayView');
-    if (isStandalonePage) {
-      debugLog('Standalone page detected, skipping main app logic');
-      return;
-    }
-    
-    debugLog('mainAppLogic called with window.tempLocation:', window.tempLocation);
+// Define the actual mainAppLogic implementation
+window.mainAppLogic = function() {
+  // Check if this is a standalone page (privacy, about) - don't run main app logic
+  const isStandalonePage = !document.querySelector('#todayView');
+  if (isStandalonePage) {
+    debugLog('Standalone page detected, skipping main app logic');
+    return;
+  }
+  
+  debugLog('mainAppLogic called with window.tempLocation:', window.tempLocation);
 
     // Wait for Chart.js to be available
     if (typeof Chart === 'undefined') {
@@ -2082,7 +2136,11 @@ onAuthStateChanged(auth, (user) => {
         let errorMessage = 'Sorry, there was a problem processing the temperature data. Please try again later.';
         
         if (error.message.includes('Job failed')) {
-          errorMessage = 'The data processing job failed. This may be due to server issues. Please try again later.';
+          if (error.message.includes('set_cache_value') || error.message.includes('redis_client')) {
+            errorMessage = 'The server is experiencing technical difficulties with data caching. Please try again in a few minutes.';
+          } else {
+            errorMessage = 'The data processing job failed. This may be due to server issues. Please try again later.';
+          }
         } else if (error.message.includes('Job polling timed out')) {
           errorMessage = 'The data processing is taking longer than expected. Please try again later.';
         } else if (error.message.includes('Request aborted')) {
@@ -2184,7 +2242,7 @@ onAuthStateChanged(auth, (user) => {
         subtitle: 'Loading temperature data...'
       });
       
-      setLocationCookie(window.tempLocation);
+      setLocationCookie(window.tempLocation, window.tempLocationSource);
       
       // Chart area is ready - user can scroll naturally
       
@@ -2399,11 +2457,12 @@ onAuthStateChanged(auth, (user) => {
       startLocationProgress();
       
       // Check for cached location first
-      const cachedLocation = getLocationCookie();
-      if (cachedLocation) {
-        debugLog('Using cached location:', cachedLocation);
+      const cookieData = getLocationCookie();
+      if (cookieData.location) {
+        debugLog('Using cached location:', cookieData.location, 'with source:', cookieData.source);
         stopLocationProgress();
-        window.tempLocation = cachedLocation; // Update global location
+        window.tempLocation = cookieData.location; // Update global location
+        window.tempLocationSource = cookieData.source || 'cookie'; // Update source
         displayLocationAndFetchData();
         return;
       }
@@ -2928,7 +2987,11 @@ onAuthStateChanged(auth, (user) => {
           let userErrorMessage = 'Sorry, there was a problem processing the temperature data. Please try again later.';
           
           if (e.message.includes('Job failed')) {
-            userErrorMessage = 'The data processing job failed. This may be due to server issues. Please try again later.';
+            if (e.message.includes('set_cache_value') || e.message.includes('redis_client')) {
+              userErrorMessage = 'The server is experiencing technical difficulties with data caching. Please try again in a few minutes.';
+            } else {
+              userErrorMessage = 'The data processing job failed. This may be due to server issues. Please try again later.';
+            }
           } else if (e.message.includes('Job polling timed out')) {
             userErrorMessage = 'The data processing is taking longer than expected. Please try again later.';
           } else if (e.message.includes('Request aborted')) {
@@ -3214,6 +3277,7 @@ onAuthStateChanged(auth, (user) => {
     chart.update('none');
   }
 
+  // Register view renderers after renderPeriod is defined
   window.TempHistViews.week = { render: () => renderPeriod('weekView', 'week', 'Week') };
   window.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 'Month') };
   window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
@@ -3222,4 +3286,26 @@ onAuthStateChanged(auth, (user) => {
   if (window.TempHistRouter && typeof window.TempHistRouter.handleRoute === 'function') {
     window.TempHistRouter.handleRoute();
   }
-}
+
+  // Move your main code into a function:
+  function startAppWithFirebaseUser(user) {
+    // Store the Firebase user for use in apiFetch FIRST
+    let currentUser = user;
+    window.currentUser = currentUser; // Make it globally available
+    
+    // Initialize analytics reporting
+    setupAnalyticsReporting();
+    
+    // Initialize splash screen functionality (now currentUser is available)
+    initializeSplashScreen();
+    
+    // SECURITY NOTE: Manual location input is now controlled via splash screen.
+    // Users can choose to use their location or select from preapproved locations.
+
+    // Device detection functions moved to global scope
+
+    debugLog('Script starting...');
+
+    // Functions moved to global scope
+  }
+})(); // End of IIFE
