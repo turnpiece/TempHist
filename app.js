@@ -299,17 +299,20 @@ onAuthStateChanged(auth, (user) => {
     // Handle debug-only messages
     if (options.debugOnly && !DEBUGGING) {
       dataNotice.textContent = '';
-      dataNotice.className = '';
+      dataNotice.className = 'notice'; // Keep the notice class for CSS :empty selector
       return;
     }
 
     // Clear the notice
     if (message === null || message === '') {
       dataNotice.textContent = '';
-      dataNotice.className = '';
+      dataNotice.className = 'notice'; // Keep the notice class for CSS :empty selector
       return;
     }
 
+    // Ensure notice class is present for CSS :empty selector
+    dataNotice.classList.add('notice');
+    
     // Remove old status classes
     dataNotice.classList.remove('status-neutral', 'status-error', 'status-success', 'status-warning');
 
@@ -800,7 +803,6 @@ onAuthStateChanged(auth, (user) => {
     const appShell = document.getElementById('appShell');
     const useLocationBtn = document.getElementById('useLocationBtn');
     const chooseLocationBtn = document.getElementById('chooseLocationBtn');
-    const manualLocationSection = document.getElementById('manualLocationSection');
     const locationSelect = document.getElementById('locationSelect');
     const confirmLocationBtn = document.getElementById('confirmLocationBtn');
     const backToSplashBtn = document.getElementById('backToSplashBtn');
@@ -843,6 +845,7 @@ onAuthStateChanged(auth, (user) => {
     // Choose location manually button handler
     if (chooseLocationBtn) {
       chooseLocationBtn.addEventListener('click', () => {
+        debugLog('Choose location manually button clicked');
         showManualLocationSelection();
       });
     }
@@ -1034,19 +1037,23 @@ onAuthStateChanged(auth, (user) => {
 
     debugLog('Hiding splash actions, showing manual section');
 
-    // Load preapproved locations (with built-in fallback)
+    // Show manual selection immediately, then load locations in background
+    if (manualLocationSection) {
+      manualLocationSection.style.display = 'block';
+      debugLog('Manual location section shown');
+    }
+
+    // Load preapproved locations (with built-in fallback) in background
     try {
       const locations = await loadPreapprovedLocations();
       debugLog('Loaded locations:', locations);
       populateLocationDropdown(locations);
     } catch (error) {
       debugLog('Error loading locations:', error);
-    }
-
-    // Show manual selection
-    if (manualLocationSection) {
-      manualLocationSection.style.display = 'block';
-      debugLog('Manual location section shown');
+      // If API fails, populate with fallback locations
+      const fallbackLocations = getFallbackLocations();
+      debugLog('Using fallback locations:', fallbackLocations);
+      populateLocationDropdown(fallbackLocations);
     }
   }
 
@@ -1060,13 +1067,16 @@ onAuthStateChanged(auth, (user) => {
 
   async function loadPreapprovedLocations() {
     try {
+      debugLog('Loading preapproved locations from API...');
       const response = await apiFetch(getApiUrl('/v1/locations/preapproved'));
       if (!response.ok) throw new Error('Failed to fetch locations');
       
       const data = await response.json();
+      debugLog('API returned locations:', data.locations?.length || 0, 'locations');
       return data.locations || [];
     } catch (error) {
       console.warn('Preapproved locations API failed:', error);
+      debugLog('Using fallback locations due to API failure');
       // Return fallback locations instead of throwing
       return getFallbackLocations();
     }
@@ -1099,7 +1109,12 @@ onAuthStateChanged(auth, (user) => {
 
   function populateLocationDropdown(locations) {
     const locationSelect = document.getElementById('locationSelect');
-    if (!locationSelect) return;
+    if (!locationSelect) {
+      debugLog('Location select element not found');
+      return;
+    }
+
+    debugLog('Populating location dropdown with', locations.length, 'locations');
 
     // Clear existing options
     locationSelect.innerHTML = '';
@@ -1131,6 +1146,8 @@ onAuthStateChanged(auth, (user) => {
       
       locationSelect.appendChild(option);
     });
+    
+    debugLog('Location dropdown populated with', locationSelect.options.length, 'options');
   }
 
   async function handleManualLocationSelection(selectedLocation) {
@@ -2245,6 +2262,7 @@ onAuthStateChanged(auth, (user) => {
         `;
         const dataNotice = document.getElementById('dataNotice');
         if (dataNotice) {
+          dataNotice.classList.add('notice');
           dataNotice.innerHTML = instructions;
         }
       } else if (permissionState === 'prompt') {
@@ -2257,6 +2275,7 @@ onAuthStateChanged(auth, (user) => {
         `;
         const dataNotice = document.getElementById('dataNotice');
         if (dataNotice) {
+          dataNotice.classList.add('notice');
           dataNotice.innerHTML = instructions;
         }
       }
