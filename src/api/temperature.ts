@@ -1,9 +1,11 @@
 import type { 
   TemperatureDataResponse, 
   AsyncJobResponse, 
-  FirebaseUser,
   ChartDataPoint 
-} from '../types/index.js';
+} from '../types/index';
+
+// Import debug function
+declare const debugLog: (...args: any[]) => void;
 
 /**
  * Get API base URL based on environment
@@ -36,14 +38,50 @@ export function getApiUrl(path: string): string {
  * Wrapper function for API fetches with Firebase authentication
  */
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  if (!window.currentUser) {
-    throw new Error('No authenticated user available');
+  debugLog('apiFetch called with URL:', url);
+  debugLog('apiFetch: window.currentUser exists?', !!window.currentUser);
+  
+  // For local development, try using a test token if available
+  const isLocalDevelopment = url.includes('localhost:3000') || url.includes('localhost:8000');
+  
+  let authToken: string;
+  
+  if (isLocalDevelopment) {
+    // For local development, try different approaches
+    // First try a simple test token
+    const testToken = 'test_token';
+    debugLog('apiFetch: Using test token for local development');
+    authToken = testToken;
+  } else {
+    // Use Firebase token for production
+    if (!window.currentUser) {
+      debugLog('apiFetch: No currentUser, throwing error');
+      throw new Error('No authenticated user available');
+    }
+
+    debugLog('apiFetch: currentUser available, getting token...');
+    try {
+      authToken = await window.currentUser.getIdToken();
+      debugLog('apiFetch: Got token (length:', authToken.length, '), making request to:', url);
+      
+      // Decode token to see the project ID (first part is header, second is payload)
+      try {
+        const tokenParts = authToken.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          debugLog('Token payload project ID:', payload.aud, 'issuer:', payload.iss);
+        }
+      } catch (decodeError) {
+        debugLog('Could not decode token payload:', decodeError);
+      }
+    } catch (tokenError) {
+      debugLog('apiFetch: Error getting token:', tokenError);
+      throw new Error(`Failed to get Firebase token: ${tokenError}`);
+    }
   }
 
-  const idToken = await window.currentUser.getIdToken();
-
   const headers: HeadersInit = {
-    'Authorization': `Bearer ${idToken}`,
+    'Authorization': `Bearer ${authToken}`,
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     ...options.headers
@@ -51,9 +89,9 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
 
   try {
     const response = await fetch(url, { 
+      ...options,
       method: options.method || 'GET',
-      headers,
-      ...options
+      headers
     });
 
     if (!response.ok) {
@@ -100,14 +138,14 @@ export async function checkApiHealth(): Promise<boolean> {
  * Create async job for temperature data
  */
 export async function createAsyncJob(
-  period: 'daily' | 'weekly' | 'monthly' | 'yearly',
+  period: 'daily' | 'week' | 'month' | 'year',
   location: string,
   identifier: string
 ): Promise<string> {
   const apiPeriod = period === 'week' ? 'weekly' : 
                    period === 'month' ? 'monthly' : 
                    period === 'year' ? 'yearly' : 
-                   period;
+                   'daily';
   
   const jobUrl = getApiUrl(`/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}/async`);
   
@@ -186,7 +224,7 @@ export async function pollJobStatus(
  * Fetch temperature data using async jobs
  */
 export async function fetchTemperatureDataAsync(
-  period: 'daily' | 'weekly' | 'monthly' | 'yearly',
+  period: 'daily' | 'week' | 'month' | 'year',
   location: string,
   identifier: string,
   onProgress?: (status: AsyncJobResponse) => void
@@ -207,7 +245,7 @@ export async function fetchTemperatureDataAsync(
 /**
  * Transform temperature data to chart format
  */
-export function transformToChartData(data: TemperatureDataPoint[]): ChartDataPoint[] {
+export function transformToChartData(data: TemperatureDataResponse['values']): ChartDataPoint[] {
   return data.map(point => ({ 
     x: point.temperature, 
     y: point.year 

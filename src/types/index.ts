@@ -43,6 +43,7 @@ export interface AsyncJobResponse {
   status: 'pending' | 'processing' | 'ready' | 'error';
   result?: TemperatureDataResponse;
   error?: string;
+  message?: string;
 }
 
 // Chart.js types (extended)
@@ -61,6 +62,7 @@ export interface ChartDataset {
   pointRadius?: number;
   borderWidth?: number;
   base?: number;
+  hidden?: boolean;
 }
 
 // Firebase types
@@ -142,6 +144,18 @@ export interface PlatformInfo {
   isChrome: boolean;
 }
 
+// Data notice options
+export interface DataNoticeOptions {
+  type?: 'success' | 'error' | 'warning' | 'neutral' | 'info';
+  title?: string;
+  subtitle?: string;
+  useStructuredHtml?: boolean;
+  debugOnly?: boolean;
+  extraInfo?: string;
+  largeTitle?: boolean;
+  secondarySubtitle?: boolean;
+}
+
 // Global window extensions
 declare global {
   interface Window {
@@ -189,16 +203,9 @@ declare global {
       points: ChartDataPoint[];
       slope: number;
     };
+    TempHistAnalytics: () => any;
+    TempHistSendAnalytics: () => Promise<void>;
   }
 }
 
-export interface DataNoticeOptions {
-  type?: 'success' | 'error' | 'warning' | 'neutral' | 'info';
-  title?: string;
-  subtitle?: string;
-  useStructuredHtml?: boolean;
-  debugOnly?: boolean;
-  extraInfo?: string;
-  largeTitle?: boolean;
-  secondarySubtitle?: boolean;
-}
+export {};

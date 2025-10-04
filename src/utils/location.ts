@@ -1,4 +1,4 @@
-import type { CookieData, TempHistLocation } from '../types/index.js';
+import type { CookieData, TempHistLocation } from '../types/index';
 
 /**
  * Cookie management functions with proper TypeScript types
