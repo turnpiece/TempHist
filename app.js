@@ -344,6 +344,24 @@ onAuthStateChanged(auth, (user) => {
   // Make updateDataNotice globally available
   window.updateDataNotice = updateDataNotice;
 
+  // Prefetch approved locations for manual selection
+  async function prefetchApprovedLocations() {
+    debugLog('Prefetching approved locations in background...');
+    try {
+      const locations = await loadPreapprovedLocations();
+      debugLog('Approved locations prefetched:', locations.length, 'locations');
+      
+      // Store in a global cache for immediate use
+      window.TempHist = window.TempHist || {};
+      window.TempHist.prefetchedLocations = locations;
+    } catch (error) {
+      debugLog('Failed to prefetch approved locations:', error);
+      // Store fallback locations
+      window.TempHist = window.TempHist || {};
+      window.TempHist.prefetchedLocations = getFallbackLocations();
+    }
+  }
+
   // Enhanced device and platform detection (moved to global scope)
     function detectDeviceAndPlatform() {
       const userAgent = navigator.userAgent;
@@ -818,14 +836,13 @@ onAuthStateChanged(auth, (user) => {
     }
 
     // Check if we already have a location (e.g., from cookie or previous session)
-    // Temporarily disabled for development - uncomment the lines below to re-enable
-    // const existingLocation = getLocationCookie();
-    // if (existingLocation) {
-    //   debugLog('Found existing location from cookie:', existingLocation);
-    //   // Skip splash screen and go directly to app
-    //   proceedWithLocation(existingLocation);
-    //   return;
-    // }
+    const existingLocation = getLocationCookie();
+    if (existingLocation) {
+      debugLog('Found existing location from cookie:', existingLocation);
+      // Skip splash screen and go directly to app (no need to prefetch locations)
+      proceedWithLocation(existingLocation);
+      return;
+    }
 
     // Show splash screen initially
     if (splashScreen) {
@@ -834,6 +851,10 @@ onAuthStateChanged(auth, (user) => {
     if (appShell) {
       appShell.classList.add('hidden');
     }
+
+    // Prefetch approved locations in background for manual selection
+    // (only runs if no cookie location exists, optimizing performance)
+    prefetchApprovedLocations();
 
     // Use my location button handler
     if (useLocationBtn) {
@@ -1043,17 +1064,24 @@ onAuthStateChanged(auth, (user) => {
       debugLog('Manual location section shown');
     }
 
-    // Load preapproved locations (with built-in fallback) in background
-    try {
-      const locations = await loadPreapprovedLocations();
-      debugLog('Loaded locations:', locations);
+    // Use prefetched locations if available, otherwise load them
+    let locations = window.TempHist?.prefetchedLocations;
+    if (locations) {
+      debugLog('Using prefetched locations:', locations.length, 'locations');
       populateLocationDropdown(locations);
-    } catch (error) {
-      debugLog('Error loading locations:', error);
-      // If API fails, populate with fallback locations
-      const fallbackLocations = getFallbackLocations();
-      debugLog('Using fallback locations:', fallbackLocations);
-      populateLocationDropdown(fallbackLocations);
+    } else {
+      debugLog('No prefetched locations found, loading now...');
+      try {
+        locations = await loadPreapprovedLocations();
+        debugLog('Loaded locations:', locations);
+        populateLocationDropdown(locations);
+      } catch (error) {
+        debugLog('Error loading locations:', error);
+        // If API fails, populate with fallback locations
+        const fallbackLocations = getFallbackLocations();
+        debugLog('Using fallback locations:', fallbackLocations);
+        populateLocationDropdown(fallbackLocations);
+      }
     }
   }
 
