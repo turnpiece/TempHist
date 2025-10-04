@@ -181,6 +181,9 @@
   sidebar?.addEventListener("click", (e) => {
     const target = e.target.closest("a[data-route]");
     if (target) {
+      // Close menu on any navigation click
+      closeMenu();
+      
       // On standalone pages, let the links work normally (they'll navigate to index.html)
       if (isStandalonePage) {
         return; // Don't prevent default, let the link work
@@ -205,6 +208,20 @@
     }
     e.preventDefault();
     window.location.hash = '#/today';
+  });
+
+  // Close menu when clicking outside of it
+  document.addEventListener("click", (e) => {
+    const isSidebarOpen = sidebar?.classList.contains("open");
+    if (isSidebarOpen) {
+      // Check if click is outside sidebar and burger button
+      const isClickInsideSidebar = sidebar?.contains(e.target);
+      const isClickOnBurger = burgerBtn?.contains(e.target);
+      
+      if (!isClickInsideSidebar && !isClickOnBurger) {
+        closeMenu();
+      }
+    }
   });
 
   window.addEventListener("hashchange", handleRoute);

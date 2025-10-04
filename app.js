@@ -930,7 +930,6 @@ onAuthStateChanged(auth, (user) => {
   }
 
   async function handleUseLocation() {
-    const splashScreen = document.getElementById('splashScreen');
     const locationLoading = document.getElementById('locationLoading');
     const splashActions = document.querySelector('.splash-actions');
     const manualLocationSection = document.getElementById('manualLocationSection');
