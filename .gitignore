@@ -30,6 +30,12 @@ yarn-error.log*
 dist/
 build/
 
+# Test coverage
+coverage/
+
+# TypeScript compilation
+*.tsbuildinfo
+
 # Source maps (generated during compilation)
 *.map
 

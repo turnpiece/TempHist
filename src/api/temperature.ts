@@ -1,7 +1,8 @@
 import type { 
   TemperatureDataResponse, 
   AsyncJobResponse, 
-  ChartDataPoint 
+  ChartDataPoint,
+  JobResultResponse
 } from '../types/index';
 
 // Import debug function
@@ -175,7 +176,7 @@ export async function createAsyncJob(
 export async function pollJobStatus(
   jobId: string, 
   onProgress?: (status: AsyncJobResponse) => void
-): Promise<TemperatureDataResponse> {
+): Promise<JobResultResponse> {
   let pollCount = 0;
   const maxPolls = 100; // Maximum 5 minutes of polling
   const pollInterval = 3000; // 3 seconds between polls
@@ -228,7 +229,7 @@ export async function fetchTemperatureDataAsync(
   location: string,
   identifier: string,
   onProgress?: (status: AsyncJobResponse) => void
-): Promise<TemperatureDataResponse> {
+): Promise<JobResultResponse> {
   try {
     // Create the async job
     const jobId = await createAsyncJob(period, location, identifier);

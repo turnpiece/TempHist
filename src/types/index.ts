@@ -38,10 +38,17 @@ export interface TemperatureDataResponse {
   summary: string;
 }
 
+export interface JobResultResponse {
+  cache_key: string;
+  etag: string;
+  data: TemperatureDataResponse;
+  computed_at: string;
+}
+
 export interface AsyncJobResponse {
   job_id: string;
   status: 'pending' | 'processing' | 'ready' | 'error';
-  result?: TemperatureDataResponse;
+  result?: JobResultResponse;
   error?: string;
   message?: string;
 }
@@ -173,6 +180,7 @@ declare global {
         prefetchPromise?: Promise<any>;
       };
       prefetchedLocations?: string[];
+      lastIdentifier?: string;
       analytics: {
         errors: ErrorLog[];
         apiCalls: number;

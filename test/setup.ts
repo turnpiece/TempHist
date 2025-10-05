@@ -81,6 +81,9 @@ global.console = {
   debug: vi.fn()
 }
 
+// Mock debugLog function used by TypeScript modules
+global.debugLog = vi.fn();
+
 // Helper to clear cookies between tests
 global.clearCookies = () => {
   cookieStore = ''

@@ -16,20 +16,23 @@ A web application that visualizes historical temperature data for any location, 
 ## Features
 
 - Visualizes 50 years of temperature data in an interactive chart
-- Automatically detects user's location
-- Shows average temperature
+- Multiple time period views: Today, Past Week, Past Month, Past Year
+- Automatically detects user's location with manual location selection
+- Shows average temperature and trend analysis
 - Responsive design that works on both desktop and mobile
 - Handles edge cases like leap years and timezone differences
 - Zero layout shift (CLS) with skeleton loader and background fallback
-- Fast, modern build with Vite and SCSS support
+- Fast, modern build with Vite, TypeScript, and SCSS support
 - Firebase anonymous authentication for secure API access
+- Comprehensive test suite with Vitest
 
 ## Tech Stack
 
-- **Frontend**: Vanilla JavaScript with Chart.js for visualization
+- **Frontend**: TypeScript with Chart.js for visualization
 - **Build Tool**: [Vite](https://vitejs.dev/) (for fast dev/build and modern ES modules)
 - **Styles**: SCSS (with hot reload and code splitting via Vite)
 - **Authentication**: Firebase Anonymous Auth
+- **Testing**: Vitest with JSDOM for comprehensive test coverage
 - **Backend**: Node.js with Express (for API/proxy and development mock data)
 - **Data Source**: Historical weather data API (with fallback mock data for development)
 - **Hosting**: Static site (e.g., SiteGround, Netlify, Vercel, or any Apache/Nginx host)
@@ -54,19 +57,31 @@ A web application that visualizes historical temperature data for any location, 
    ```
    PORT=3000
    NODE_ENV=development
-   API_BASE=https://api.temphist.com
+   API_BASE=http://localhost:3000
    ```
 
 4. Start the development server with Vite:
+
    ```bash
    npm run dev
+   ```
+
+5. Start the backend proxy server (in a separate terminal):
+   ```bash
+   npm start
    ```
 
 The application will be available at `http://localhost:5173`
 
 ## Building for Production
 
-1. Build the app:
+1. Type-check the TypeScript code:
+
+   ```bash
+   npm run type-check
+   ```
+
+2. Build the app:
 
    ```bash
    npm run build
@@ -74,9 +89,9 @@ The application will be available at `http://localhost:5173`
 
    This outputs static files to the `dist/` directory.
 
-2. Deploy the contents of `dist/` to your web root.
+3. Deploy the contents of `dist/` to your web root.
 
-3. Set environment variables for production:
+4. Set environment variables for production:
 
    ```bash
    NODE_ENV=production
@@ -171,8 +186,10 @@ This allows:
 
 1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/).
 2. Enable Anonymous Authentication in the Firebase Auth settings.
-3. Add your Firebase config to `app.js`.
+3. Add your Firebase config to `src/main.ts`.
 4. The app will sign in users anonymously and use the Firebase ID token for API requests.
+
+**Note**: For local development, the app uses a test token instead of Firebase authentication to avoid requiring Firebase setup during development.
 
 ## Lighthouse/CLS Optimization
 
@@ -186,21 +203,66 @@ This allows:
 - If you use webhooks (e.g., for auto-deployment), ensure Cloudflare is set to **bypass cache** for your webhook endpoint (e.g., `/webhook.php`).
 - Use a `.htaccess` file for SPA routing if deploying to Apache.
 
+## Testing
+
+Run the comprehensive test suite:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with UI
+npm run test:ui
+```
+
 ## Usage
 
 1. The application will automatically try to detect your location
-2. The chart will display temperature data for the current date (or yesterday if before 1 AM)
-3. Hover over bars to see exact temperatures for each year
-4. The average temperature is shown as a vertical line
-5. The current year's temperature is highlighted in green
+2. Navigate between different time periods: Today, Past Week, Past Month, Past Year
+3. The chart will display temperature data for the current date (or yesterday if before 1 AM)
+4. Hover over bars to see exact temperatures for each year
+5. The average temperature is shown as a horizontal line
+6. The current year's temperature is highlighted in green
+7. Trend analysis shows temperature changes over time
 
 ## Development
 
-- `app.js`: Main frontend application code (ES modules, Vite, SCSS imports, Firebase auth)
-- `server.js`: Backend server implementation (API/proxy, development mock data, CORS handling)
+### Project Structure
+
+- `src/main.ts`: Main TypeScript application entry point
+- `src/types/`: TypeScript type definitions
+- `src/utils/`: Utility functions (location, platform, data notices)
+- `src/services/`: Service modules (location detection, API interactions)
+- `src/api/`: API client functions
+- `server.js`: Backend proxy server (development mock data, CORS handling)
 - `package.json`: Project dependencies and scripts
-- `styles.scss`: Main SCSS file (imported in JS)
+- `styles.scss`: Main SCSS file
 - `.env`: Environment configuration (API endpoints, ports, environment mode)
+- `test/`: Comprehensive test suite with Vitest
+
+### Key Features
+
+- **TypeScript**: Full type safety and better development experience
+- **Modular Architecture**: Clean separation of concerns with dedicated modules
+- **Comprehensive Testing**: Unit tests, integration tests, and API tests
+- **Development Server**: Hot reload with Vite for fast development
+- **Production Build**: Optimized bundle with TypeScript compilation
+
+### TypeScript Benefits
+
+The application has been converted from JavaScript to TypeScript, providing:
+
+- **Type Safety**: Catch errors at compile time instead of runtime
+- **Better IDE Support**: Enhanced autocomplete, refactoring, and navigation
+- **Improved Maintainability**: Clear interfaces and type definitions
+- **Reduced Bugs**: Type checking prevents common JavaScript pitfalls
+- **Better Documentation**: Types serve as inline documentation
 
 ## License
 
@@ -231,16 +293,17 @@ SOFTWARE.
 ### Known Issues
 
 - **Mobile Geolocation**: Some mobile devices experience timeouts or permission issues with location detection
-- **Firebase Configuration**: Firebase config is currently hardcoded in `app.js` (should be moved to environment variables)
+- **Firebase Configuration**: Firebase config is currently hardcoded in `src/main.ts` (should be moved to environment variables)
 - **Error Handling**: Limited fallback options when the weather API is unavailable
 - **Mobile Debug Mode**: Debug overlay appears on mobile devices and may interfere with UI
 
 ### Technical Debt
 
-- **Hardcoded Values**: Firebase config and API endpoints should be configurable
+- **Environment Configuration**: Firebase config and API endpoints should be configurable via environment variables
 - **Mock Data**: Development mode uses static mock data instead of realistic historical data
 - **Error Recovery**: Limited retry logic for failed API calls
 - **Mobile Optimization**: Some mobile-specific optimizations could be improved
+- **TypeScript Strictness**: Could enable stricter TypeScript settings for better type safety
 
 ### Browser Compatibility
 

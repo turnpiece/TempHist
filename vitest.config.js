@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom', // For DOM testing
     globals: true, // Enable global test functions (describe, it, expect)
-    setupFiles: ['./test/setup.js'], // Test setup file
+    setupFiles: ['./test/setup.ts'], // Test setup file
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

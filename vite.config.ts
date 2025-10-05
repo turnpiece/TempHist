@@ -23,28 +23,19 @@ export default defineConfig({
     {
       name: 'copy-static-files',
       writeBundle() {
-        // Copy router.js
-        copyFileSync('router.js', 'dist/router.js')
-        // Copy .htaccess
-        copyFileSync('.htaccess', 'dist/.htaccess')
+        // Copy .htaccess if it exists
+        try {
+          copyFileSync('.htaccess', 'dist/.htaccess')
+        } catch (error) {
+          // .htaccess might not exist, that's okay
+        }
         // Copy favicon
         copyFileSync('favicon.ico', 'dist/favicon.ico')
-        // Copy stylesheets
-        copyFileSync('styles.css', 'dist/styles.css')
-        copyFileSync('styles.min.css', 'dist/styles.min.css')
         // Copy assets directory
         const { execSync } = require('child_process')
         execSync('cp -r assets dist/', { stdio: 'inherit' })
         
-        // Add cache-busting to router.js in HTML files
-        const timestamp = Date.now()
-        const htmlFiles = ['dist/index.html', 'dist/about.html', 'dist/privacy.html']
-        htmlFiles.forEach(file => {
-          let content = readFileSync(file, 'utf8')
-          content = content.replace(/router\.js"/g, `router.js?v=${timestamp}"`)
-          writeFileSync(file, content)
-        })
-        console.log(`✅ Added cache-busting timestamp ${timestamp} to router.js references`)
+        console.log(`✅ Copied static files to dist/`)
       }
     }
   ]

@@ -19,6 +19,11 @@ import { updateDataNotice } from './utils/dataNotice';
 import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP, getFallbackLocations } from './services/locationDetection';
 
+// Chart styling constants
+const CHART_AXIS_COLOR = '#ECECEC';
+const CHART_FONT_SIZE_SMALL = 11;
+const CHART_FONT_SIZE_MEDIUM = 12;
+
 // Import types
 import type { 
   TemperatureDataResponse, 
@@ -589,6 +594,9 @@ async function proceedWithLocation(
   // Store in cookie for future visits
   setLocationCookie(location, locationSource);
 
+  // Clear any cached data from previous location/date to prevent showing stale data
+  clearAllCachedData();
+
   // Hide splash screen and show app
   const splashScreen = document.getElementById('splashScreen');
   const appShell = document.getElementById('appShell');
@@ -615,6 +623,251 @@ async function proceedWithLocation(
   }
 }
 
+/**
+ * Clear all cached data when location or date changes
+ */
+function clearAllCachedData(): void {
+  debugLog('Clearing all cached data due to location/date change');
+  
+  // Clear prefetched period data
+  if (window.TempHist && window.TempHist.cache) {
+    window.TempHist.cache.prefetch = {};
+    window.TempHist.cache.prefetchPromise = undefined;
+  }
+  
+  // Destroy any existing charts to prevent stale data display
+  const chartElements = [
+    document.getElementById('tempChart'),
+    document.getElementById('weekChart'),
+    document.getElementById('monthChart'),
+    document.getElementById('yearChart')
+  ];
+  
+  chartElements.forEach(canvas => {
+    if (canvas && Chart) {
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) {
+        debugLog('Destroying existing chart on', canvas.id);
+        existingChart.destroy();
+      }
+    }
+  });
+  
+  // Clear any loading states and error messages
+  const loadingElements = document.querySelectorAll('.loading');
+  loadingElements.forEach(el => {
+    el.classList.add('hidden');
+    el.classList.remove('visible');
+  });
+  
+  const errorContainers = document.querySelectorAll('.error-container');
+  errorContainers.forEach(el => {
+    (el as HTMLElement).style.display = 'none';
+  });
+  
+  debugLog('All cached data cleared');
+}
+
+/**
+ * Check if we need to clear data due to date change
+ */
+function checkAndHandleDateChange(): boolean {
+  const now = new Date();
+  const useYesterday = now.getHours() < 1;
+  const dateToUse = new Date(now);
+  if (useYesterday) {
+    dateToUse.setDate(dateToUse.getDate() - 1);
+  }
+  
+  // Handle 29 Feb fallback to 28 Feb if not a leap year
+  const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
+  if (isLeapDay) {
+    dateToUse.setDate(28);
+  }
+  
+  const currentIdentifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+  
+  // Check if we have a stored identifier and if it's different from current
+  const lastIdentifier = (window.TempHist as any)?.lastIdentifier;
+  if (lastIdentifier && lastIdentifier !== currentIdentifier) {
+    debugLog('Date change detected:', lastIdentifier, '->', currentIdentifier);
+    clearAllCachedData();
+    (window.TempHist as any).lastIdentifier = currentIdentifier;
+    return true;
+  }
+  
+  // Store current identifier
+  window.TempHist = window.TempHist || {};
+  (window.TempHist as any).lastIdentifier = currentIdentifier;
+  return false;
+}
+
+/**
+ * Start prefetching period data (week, month, year) in background
+ */
+function startPeriodDataPrefetch(): void {
+  debugLog('Starting period data prefetch in background...');
+  
+  // Use requestIdleCallback for better performance, fallback to setTimeout
+  const ric = window.requestIdleCallback || ((callback: () => void) => setTimeout(callback, 0));
+  
+  const prefetchStartTime = Date.now();
+  
+  ric(() => {
+    const bundlePrefetchPromise = (async () => {
+      try {
+        debugLog('Prefetch: Starting parallel period data fetch...');
+        const fetchStartTime = Date.now();
+        
+        // Get current date for identifier
+        const now = new Date();
+        const useYesterday = now.getHours() < 1;
+        const dateToUse = new Date(now);
+        if (useYesterday) {
+          dateToUse.setDate(dateToUse.getDate() - 1);
+        }
+        
+        // Handle 29 Feb fallback to 28 Feb if not a leap year
+        const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
+        if (isLeapDay) {
+          dateToUse.setDate(28);
+        }
+        
+        const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+        const location = window.tempLocation!;
+        
+        // Fetch all period data in parallel
+        const [weeklyData, monthlyData, yearlyData] = await Promise.allSettled([
+          fetchTemperatureDataAsync('week', location, identifier),
+          fetchTemperatureDataAsync('month', location, identifier),
+          fetchTemperatureDataAsync('year', location, identifier)
+        ]);
+        
+        const fetchEndTime = Date.now();
+        debugLog('Prefetch: Parallel async jobs completed in', fetchEndTime - fetchStartTime, 'ms');
+        
+        // Process weekly data
+        if (weeklyData.status === 'fulfilled') {
+          window.TempHist.cache.prefetch.week = weeklyData.value.data;
+          debugLog('Prefetch: Weekly data cached successfully');
+        } else {
+          const isAborted = weeklyData.reason?.name === 'AbortError' || weeklyData.reason?.message?.includes('aborted');
+          if (isAborted) {
+            debugLog('Prefetch: Weekly data aborted (likely due to navigation)');
+          } else {
+            debugLog('Prefetch: Weekly data failed', weeklyData.status, weeklyData.reason?.message);
+          }
+        }
+        
+        // Process monthly data
+        if (monthlyData.status === 'fulfilled') {
+          window.TempHist.cache.prefetch.month = monthlyData.value.data;
+          debugLog('Prefetch: Monthly data cached successfully');
+        } else {
+          const isAborted = monthlyData.reason?.name === 'AbortError' || monthlyData.reason?.message?.includes('aborted');
+          if (isAborted) {
+            debugLog('Prefetch: Monthly data aborted (likely due to navigation)');
+          } else {
+            debugLog('Prefetch: Monthly data failed', monthlyData.status, monthlyData.reason?.message);
+          }
+        }
+        
+        // Process yearly data
+        if (yearlyData.status === 'fulfilled') {
+          window.TempHist.cache.prefetch.year = yearlyData.value.data;
+          debugLog('Prefetch: Yearly data cached successfully');
+        } else {
+          const isAborted = yearlyData.reason?.name === 'AbortError' || yearlyData.reason?.message?.includes('aborted');
+          if (isAborted) {
+            debugLog('Prefetch: Yearly data aborted (likely due to navigation)');
+          } else {
+            debugLog('Prefetch: Yearly data failed', yearlyData.status, yearlyData.reason?.message);
+          }
+        }
+        
+      } catch (e: any) {
+        debugLog('Prefetch: Period data prefetch error', e.message);
+      }
+    })();
+    
+    // Store the promise so other parts can wait for it
+    window.TempHist.cache.prefetchPromise = bundlePrefetchPromise;
+    
+    debugLog('Prefetch: Stored prefetch promise, scheduling execution');
+    ric(() => {
+      bundlePrefetchPromise.then(() => {
+        const totalTime = Date.now() - prefetchStartTime;
+        debugLog('Prefetch: Total prefetch operation completed in', totalTime, 'ms');
+      }).catch(() => {
+        const totalTime = Date.now() - prefetchStartTime;
+        debugLog('Prefetch: Total prefetch operation failed after', totalTime, 'ms');
+      });
+    });
+  });
+}
+
+/**
+ * Render the About page content
+ */
+function renderAboutPage(): void {
+  const aboutView = document.getElementById('aboutView');
+  if (!aboutView) return;
+
+  aboutView.innerHTML = `
+    <div class="container">
+      <h2>About TempHist</h2>
+      <p>TempHist shows you how today's temperature compares to the same date over the past 50 years. It can also compare this past week, month or year with the same period over the past 50 years.</p>
+
+      <h3>How it works</h3>
+      <p>TempHist uses your location to fetch historical weather data and displays it in an easy-to-read chart. Each bar represents the temperature on this date, or this past week/month/year, in a different year, with the current year highlighted in green.</p>
+
+      <h3>Data sources</h3>
+      <p>Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted meteorological providers.</p>
+
+      <h3>Privacy</h3>
+      <p>TempHist respects your privacy. We don't collect, store, or share any personal information. Location data is used only once to fetch weather data.</p>
+
+      <h3>Contact</h3>
+      <p>TempHist is operated by Turnpiece Ltd. For questions or feedback, please visit <a href="https://turnpiece.com">turnpiece.com</a>.</p>
+    </div>
+  `;
+}
+
+/**
+ * Render the Privacy page content
+ */
+function renderPrivacyPage(): void {
+  const privacyView = document.getElementById('privacyView');
+  if (!privacyView) return;
+
+  privacyView.innerHTML = `
+    <div class="container">
+      <h2>Privacy Policy</h2>
+      <p>Effective date: September 2025</p>
+
+      <p>TempHist, operated by Turnpiece Ltd., respects your privacy.</p>
+
+      <h3>No personal data collected</h3>
+      <p>TempHist does not collect, store, or share any personal information.</p>
+
+      <h3>Location use</h3>
+      <p>If you grant permission, the app uses your current location once to retrieve historical weather data for your area. Location data is never shared but is temporarily stored in a cookie on your machine for one hour.</p>
+
+      <h3>Third-party services</h3>
+      <p>TempHist uses Firebase for anonymous authentication and may set third-party cookies from Google services. These cookies are used solely for authentication purposes and do not track personal information.</p>
+
+      <h3>No tracking or analytics</h3>
+      <p>The app does not include analytics, advertising or third-party tracking beyond the authentication service mentioned above.</p>
+
+      <h3>Data sources</h3>
+      <p>Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted providers. Requests are processed anonymously.</p>
+
+      <h3>Contact</h3>
+      <p>If you have questions, please contact Turnpiece Ltd. at <a href="https://turnpiece.com">https://turnpiece.com</a>.</p>
+    </div>
+  `;
+}
+
 // Make mainAppLogic globally available
 window.mainAppLogic = function(): void {
   // Check if this is a standalone page (privacy, about) - don't run main app logic
@@ -625,6 +878,9 @@ window.mainAppLogic = function(): void {
   }
   
   debugLog('mainAppLogic called with window.tempLocation:', window.tempLocation);
+
+  // Check for date changes and clear cache if needed
+  checkAndHandleDateChange();
 
   // Wait for Chart.js to be available
   if (typeof Chart === 'undefined') {
@@ -738,10 +994,168 @@ window.mainAppLogic = function(): void {
     window.tempLocation = 'London, England, United Kingdom';
   }
 
+  // Shared chart creation function for both Today and period pages
+  function createTemperatureChart(
+    ctx: CanvasRenderingContext2D,
+    chartData: ChartDataPoint[],
+    averageData: { temp: number },
+    trendData: any,
+    periodTitle: string,
+    friendlyDate: string,
+    minTemp: number,
+    maxTemp: number,
+    startYear: number,
+    currentYear: number,
+    canvas: HTMLCanvasElement
+  ): any {
+    const barColour = '#ff6b6b';
+    const thisYearColour = '#51cf66';
+    const trendColour = '#aaaa00';
+    const avgColour = '#4dabf7';
+    const showTrend = true;
+
+    return new Chart(ctx, {
+      type: 'bar',
+      data: {
+        datasets: [
+          {
+            label: 'Trend',
+            type: 'line',
+            data: [],
+            backgroundColor: trendColour,
+            borderColor: trendColour,
+            fill: false,
+            pointRadius: 0,
+            borderWidth: 2,
+            opacity: 1,
+            hidden: !showTrend
+          },
+          {
+            label: `Temperature in ${getDisplayCity(window.tempLocation!)} ${periodTitle === 'Today' ? `on ${friendlyDate}` : `for ${periodTitle}`}`,
+            type: 'bar',
+            data: chartData,
+            backgroundColor: chartData.map(point => 
+              point.y === currentYear ? thisYearColour : barColour
+            ),
+            borderWidth: 0,
+            base: minTemp
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        parsing: false,
+        animation: { duration: 0 },
+        normalized: true,
+        layout: {
+          padding: {
+            left: 0,
+            right: 20,
+            top: 15,
+            bottom: 15
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          annotation: {
+            annotations: {
+              averageLine: {
+                type: 'line',
+                yMin: startYear - 1,
+                yMax: currentYear + 1,
+                xMin: averageData.temp,
+                xMax: averageData.temp,
+                borderColor: avgColour,
+                borderWidth: 2,
+                label: {
+                  display: true,
+                  content: `Average: ${averageData.temp.toFixed(1)}°C`,
+                  position: 'start',
+                  font: {
+                    size: 12
+                  }
+                }
+              }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              title: function(context: any) {
+                return `${context[0].parsed.y.toString()}: ${context[0].parsed.x}°C`
+              },
+              label: function() {
+                return ''
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Temperature (°C)',
+              font: {
+                size: CHART_FONT_SIZE_MEDIUM
+              },
+              color: CHART_AXIS_COLOR
+            },
+            min: minTemp,
+            max: maxTemp,
+            ticks: {
+              font: {
+                size: CHART_FONT_SIZE_SMALL
+              },
+              color: CHART_AXIS_COLOR,
+              stepSize: 2,
+              callback: function(value: any) {
+                return value;
+              }
+            }
+          },
+          y: {
+            type: 'linear',
+            min: startYear,
+            max: currentYear,
+            ticks: {
+              maxTicksLimit: 20,
+              callback: (val: any) => val.toString(),
+              font: {
+                size: CHART_FONT_SIZE_SMALL
+              },
+              color: CHART_AXIS_COLOR
+            },
+            title: {
+              display: false,
+              text: 'Year'
+            },
+            grid: {
+              display: false
+            },
+            offset: true
+          }
+        },
+        elements: {
+          bar: {
+            minBarLength: 30,
+            maxBarThickness: 30,
+            categoryPercentage: 0.1,
+            barPercentage: 1.0
+          }
+        }
+      }
+    });
+  }
+
   // Render function for period pages (week, month, year)
   async function renderPeriod(sectionId: string, periodKey: 'week' | 'month' | 'year', title: string): Promise<void> {
     const sec = document.getElementById(sectionId);
     if (!sec) return;
+
+    // Check for date changes and clear cache if needed
+    checkAndHandleDateChange();
 
     // Check if the app is properly initialized
     if (!window.tempLocation) {
@@ -864,33 +1278,57 @@ window.mainAppLogic = function(): void {
     canvas.classList.remove('visible');
 
     try {
-      // Fetch data for this period
-      const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+      // Check for prefetched data first
+      let weatherData: any;
       
-      // Progress callback for async job
-      const onProgress = (status: AsyncJobResponse) => {
-        debugLog(`${periodKey} job progress:`, status);
-      };
+      if (window.TempHist.cache.prefetch[periodKey]) {
+        debugLog(`${periodKey}: Using prefetched data`);
+        weatherData = window.TempHist.cache.prefetch[periodKey];
+      } else {
+        // Check if prefetch is in progress and wait for it
+        const prefetchPromise = window.TempHist.cache.prefetchPromise;
+        if (prefetchPromise) {
+          debugLog(`${periodKey}: Waiting for prefetch to complete...`);
+          try {
+            await prefetchPromise;
+            weatherData = window.TempHist.cache.prefetch[periodKey];
+            if (weatherData) {
+              debugLog(`${periodKey}: Got prefetched data after waiting`);
+            }
+          } catch (e) {
+            debugLog(`${periodKey}: Prefetch failed, proceeding with direct API call`);
+          }
+        }
+        
+        // If still no prefetched data, fetch directly
+        if (!weatherData) {
+          const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+          
+          // Progress callback for async job
+          const onProgress = (status: AsyncJobResponse) => {
+            debugLog(`${periodKey} job progress:`, status);
+          };
 
-      debugLog(`Starting async ${periodKey} data fetch...`);
-      const jobResult = await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress);
+          debugLog(`Starting async ${periodKey} data fetch...`);
+          const jobResult = await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress);
+          weatherData = jobResult;
+        }
+      }
       
-      // Extract the data from the job result
-      const weatherData = jobResult;
-      debugLog(`${periodKey} job result structure:`, jobResult);
+      // Extract the data from the result
+      debugLog(`${periodKey} data structure:`, weatherData);
       
-      // For period endpoints (week/month/year), data is directly in the response
-      // For daily endpoint, data is nested under 'data' property
+      // Handle both prefetched data (direct format) and fresh API data (job result format)
       let temperatureData: any[], averageData: any, trendData: any, summaryData: any;
       
       if (weatherData.data && weatherData.data.values) {
-        // Daily endpoint structure
+        // Fresh API data (job result format)
         temperatureData = weatherData.data.values;
         averageData = { temp: weatherData.data.average.mean };
         trendData = weatherData.data.trend;
         summaryData = weatherData.data.summary;
       } else if (weatherData.values) {
-        // Period endpoint structure (week/month/year)
+        // Prefetched data (direct format)
         temperatureData = weatherData.values;
         averageData = { temp: weatherData.average.mean };
         trendData = weatherData.trend;
@@ -909,83 +1347,45 @@ window.mainAppLogic = function(): void {
       debugLog(`${periodKey} chart data length:`, chartData.length);
       debugLog(`${periodKey} sample chart data point:`, chartData[0]);
       
+      // Calculate temperature range for chart scaling
+      const tempRange = calculateTemperatureRange(chartData);
+      const minTemp = tempRange.min;
+      const maxTemp = tempRange.max;
+      
+      // Get year range
+      const years = chartData.map(d => d.y);
+      const minYear = Math.min(...years);
+      const maxYear = Math.max(...years);
+      
       // Hide loading and show chart
       loadingEl.classList.add('hidden');
       loadingEl.classList.remove('visible');
       canvas.classList.add('visible');
       canvas.classList.remove('hidden');
 
-      // Create chart
-      const chart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          datasets: [
-            {
-              label: 'Trend',
-              type: 'line',
-              data: [],
-              backgroundColor: trendColour,
-              borderColor: trendColour,
-              fill: false,
-              pointRadius: 0,
-              borderWidth: 2,
-              hidden: !showTrend
-            },
-            {
-              label: `Temperature in ${getDisplayCity(window.tempLocation!)} for ${title}`,
-              type: 'bar',
-              data: chartData,
-              backgroundColor: chartData.map(point => 
-                point.y === currentYear ? thisYearColour : barColour
-              ),
-              borderWidth: 0
-            }
-          ]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          parsing: false,
-          animation: { duration: 0 },
-          normalized: true,
-          layout: {
-            padding: {
-              left: 0,
-              right: 20,
-              top: 10,
-              bottom: 10
-            }
-          },
-          plugins: {
-            legend: {
-              display: false
-            }
-          },
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: 'Temperature (°C)'
-              },
-              min: Math.min(...chartData.map((d: any) => d.x)) - 2,
-              max: Math.max(...chartData.map((d: any) => d.x)) + 2
-            },
-            y: {
-              title: {
-                display: true,
-                text: 'Year'
-              },
-              type: 'linear',
-              ticks: {
-                callback: function(value: any) {
-                  return Math.round(value);
-                }
-              }
-            }
-          }
-        }
-      });
+      // Create chart using shared function
+      const chart = createTemperatureChart(
+        ctx,
+        chartData,
+        averageData,
+        trendData,
+        title,
+        friendlyDate,
+        minTemp,
+        maxTemp,
+        minYear,
+        maxYear,
+        canvas
+      );
+
+      // Update trend line if enabled
+      if (chart && chart.data && chart.data.datasets) {
+        // chartData is now {x: temperature, y: year} (after transformation), but calculateTrendLine expects {x: year, y: temperature}
+        const calculatedTrendData = calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
+          minYear - 0.5, maxYear + 0.5);
+        chart.data.datasets[0].data = calculatedTrendData.points.map(p => ({ x: p.y, y: p.x }));
+        chart.update();
+      }
 
       // Update summary, average, and trend text
       const summaryTextEl = document.getElementById(`${periodKey}SummaryText`);
@@ -993,7 +1393,7 @@ window.mainAppLogic = function(): void {
       const trendTextEl = document.getElementById(`${periodKey}TrendText`);
       
       if (summaryTextEl) {
-        summaryTextEl.textContent = summaryData.summary;
+        summaryTextEl.textContent = summaryData || 'No summary available.';
         summaryTextEl.classList.add('summary-text');
       }
       
@@ -1003,8 +1403,11 @@ window.mainAppLogic = function(): void {
       }
       
       if (trendTextEl) {
-        const trendDirection = trendData.slope > 0 ? 'rising' : trendData.slope < 0 ? 'falling' : 'stable';
-        trendTextEl.textContent = `Trend: ${trendDirection} (${trendData.slope.toFixed(2)}°C/year)`;
+        // Use actual slope value for direction determination, not rounded display value
+        const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
+                         trendData.slope > 0 ? 'rising' : 'falling';
+        const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)} ${trendData.unit || '°C/decade'}`;
+        trendTextEl.textContent = formatted;
         trendTextEl.classList.add('trend-text');
       }
 
@@ -1076,20 +1479,23 @@ window.mainAppLogic = function(): void {
       const jobResult = await fetchTemperatureDataAsync('daily', window.tempLocation!, identifier, onProgress);
       
       // Extract the data from the job result
-      const weatherData = jobResult;
+      const jobResultData = jobResult;
       debugLog('Job result structure:', jobResult);
-      debugLog('Extracted weather data:', weatherData);
+      debugLog('Extracted weather data:', jobResultData);
       
-      // The new v1/records API structure - temperature data is in 'data.values' array
-      if (!weatherData || !weatherData.data || !weatherData.data.values || !Array.isArray(weatherData.data.values)) {
+      // Job result contains the temperature data in the 'data' property
+      if (!jobResultData || !jobResultData.data || !jobResultData.data.values || !Array.isArray(jobResultData.data.values)) {
         throw new Error('Invalid data format received. Expected data.values array.');
       }
-
-      // Extract all data directly from the single response
-      const temperatureData = weatherData.data.values;
-      const averageData = { temp: weatherData.data.average.mean };
-      const trendData = weatherData.data.trend;
-      const summaryData = weatherData.data.summary;
+      
+      const temperatureData = jobResultData.data.values;
+      const averageData = { temp: jobResultData.data.average.mean };
+      const trendData = jobResultData.data.trend;
+      const summaryData = jobResultData.data.summary;
+      
+      if (!Array.isArray(temperatureData)) {
+        throw new Error('Temperature data is not an array.');
+      }
 
       // Update the chart with the weather data
       // API returns data in {year, temperature} format, transform to {x: temperature, y: year} for horizontal bars
@@ -1129,129 +1535,19 @@ window.mainAppLogic = function(): void {
           maxTemp: tempRange.max
         });
 
-        chart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            datasets: [
-              {
-                label: 'Trend',
-                type: 'line',
-                data: [],
-                backgroundColor: trendColour,
-                borderColor: trendColour,
-                fill: false,
-                pointRadius: 0,
-                borderWidth: 2,
-                hidden: !showTrend
-              },
-              {
-                label: `Temperature in ${getDisplayCity(window.tempLocation!)} on ${friendlyDate}`,
-                type: 'bar',
-                data: chartData,
-                backgroundColor: chartData.map(point => 
-                  point.y === currentYear ? thisYearColour : barColour
-                ),
-                borderWidth: 0
-              }
-            ]
-          },
-          options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            parsing: false,
-            animation: { duration: 0 },
-            normalized: true,
-            layout: {
-              padding: {
-                left: 0,
-                right: 20,
-                top: 15,
-                bottom: 15
-              }
-            },
-            plugins: {
-              legend: { display: false },
-              annotation: {
-                annotations: {
-                  averageLine: {
-                    type: 'line',
-                    yMin: startYear - 1,
-                    yMax: currentYear + 1,
-                    xMin: averageData.temp,
-                    xMax: averageData.temp,
-                    borderColor: avgColour,
-                    borderWidth: 2,
-                    label: {
-                      display: true,
-                      content: `Average: ${averageData.temp.toFixed(1)}°C`,
-                      position: 'start',
-                      font: {
-                        size: 12
-                      }
-                    }
-                  }
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  title: function(context: any) {
-                    return `${context[0].parsed.y.toString()}: ${context[0].parsed.x}°C`
-                  },
-                  label: function() {
-                    return ''
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                type: 'linear',
-                title: {
-                  display: true,
-                  text: 'Temperature (°C)',
-                  font: {
-                    size: 12
-                  },
-                  color: '#ECECEC'
-                },
-                min: tempRange.min,
-                max: tempRange.max,
-                ticks: {
-                  font: {
-                    size: 11
-                  },
-                  color: '#ECECEC',
-                  stepSize: 2,
-                  callback: function(value: any) {
-                    return value;
-                  }
-                }
-              },
-              y: {
-                type: 'linear',
-                min: startYear,
-                max: currentYear,
-                ticks: {
-                  maxTicksLimit: 20,
-                  callback: (val: any) => val.toString(),
-                  font: {
-                    size: 11
-                  },
-                  color: '#ECECEC'
-                },
-                title: {
-                  display: false,
-                  text: 'Year'
-                },
-                grid: {
-                  display: false
-                },
-                offset: true
-              }
-            }
-          }
-        } as any);
+        chart = createTemperatureChart(
+          ctx,
+          chartData,
+          averageData,
+          trendData,
+          'Today',
+          friendlyDate,
+          tempRange.min,
+          tempRange.max,
+          startYear,
+          currentYear,
+          canvasEl as HTMLCanvasElement
+        );
         
         debugTimeEnd('Chart initialization');
       }
@@ -1286,6 +1582,9 @@ window.mainAppLogic = function(): void {
 
       // Send analytics after successful data load
       sendAnalytics();
+
+      // Start prefetching period data in background after Today page data is loaded
+      startPeriodDataPrefetch();
 
     } catch (error) {
       console.error('Error fetching historical data:', error);
@@ -1579,6 +1878,8 @@ window.mainAppLogic = function(): void {
   window.TempHistViews.week = { render: () => renderPeriod('weekView', 'week', 'Week') };
   window.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 'Month') };
   window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
+  window.TempHistViews.about = { render: () => renderAboutPage() };
+  window.TempHistViews.privacy = { render: () => renderPrivacyPage() };
 
   // Now activate the router after all views are registered
   if (window.TempHistRouter && typeof window.TempHistRouter.handleRoute === 'function') {
