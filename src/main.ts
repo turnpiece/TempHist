@@ -1406,7 +1406,7 @@ window.mainAppLogic = function(): void {
         // Use actual slope value for direction determination, not rounded display value
         const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
                          trendData.slope > 0 ? 'rising' : 'falling';
-        const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)} ${trendData.unit || '°C/decade'}`;
+        const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${trendData.unit || '°C/decade'}`;
         trendTextEl.textContent = formatted;
         trendTextEl.classList.add('trend-text');
       }
@@ -1423,7 +1423,20 @@ window.mainAppLogic = function(): void {
     } catch (error) {
       debugLog(`Error fetching ${periodKey} data:`, error);
       
-      // Show error state
+      // Check if this is an abort error (user navigated away)
+      const isAbortError = error instanceof Error && (
+        error.name === 'AbortError' || 
+        error.message.includes('aborted') ||
+        error.message.includes('AbortError')
+      );
+      
+      if (isAbortError) {
+        debugLog(`${periodKey} data fetch aborted (likely due to navigation)`);
+        // Silently handle abort - don't show error to user
+        return;
+      }
+      
+      // Show error state only for real errors
       loadingEl.classList.add('hidden');
       loadingEl.classList.remove('visible');
       
@@ -1572,7 +1585,7 @@ window.mainAppLogic = function(): void {
         // Use actual slope value for direction determination, not rounded display value
         const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
                          trendData.slope > 0 ? 'rising' : 'falling';
-        const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)} ${trendData.unit}`;
+        const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${trendData.unit}`;
         trendTextEl.textContent = formatted;
       }
 
@@ -1588,6 +1601,21 @@ window.mainAppLogic = function(): void {
 
     } catch (error) {
       console.error('Error fetching historical data:', error);
+      
+      // Check if this is an abort error (user navigated away)
+      const isAbortError = error instanceof Error && (
+        error.name === 'AbortError' || 
+        error.message.includes('aborted') ||
+        error.message.includes('AbortError') ||
+        error.message.includes('Request aborted')
+      );
+      
+      if (isAbortError) {
+        debugLog('Daily data fetch aborted (likely due to navigation)');
+        // Silently handle abort - don't show error to user
+        return;
+      }
+      
       hideChart();
       
       // Provide more specific error messages based on the error type
@@ -1602,8 +1630,6 @@ window.mainAppLogic = function(): void {
           }
         } else if (error.message.includes('Job polling timed out')) {
           errorMessage = 'The data processing is taking longer than expected. Please try again later.';
-        } else if (error.message.includes('Request aborted')) {
-          errorMessage = 'The request was cancelled. Please try again.';
         } else if (error.message.includes('Failed to create job')) {
           errorMessage = 'Unable to start data processing. Please check your connection and try again.';
         }
