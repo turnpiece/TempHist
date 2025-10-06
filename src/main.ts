@@ -285,11 +285,15 @@ function initializeSplashScreen(): void {
     window.location.hash = '#/today';
   }
 
+  // Always prefetch approved locations in background for potential manual selection
+  // This ensures locations are available even if user has a cookie but wants to change location
+  prefetchApprovedLocations();
+
   // Check if we already have a location (e.g., from cookie or previous session)
   const cookieData = getLocationCookie();
   if (cookieData.location) {
     debugLog('Found existing location from cookie:', cookieData.location, 'with source:', cookieData.source);
-    // Skip splash screen and go directly to app (no need to prefetch locations)
+    // Skip splash screen and go directly to app
     // Use the stored source if available, otherwise default to 'cookie'
     const source = cookieData.source || 'cookie';
     
@@ -305,10 +309,6 @@ function initializeSplashScreen(): void {
   if (appShell) {
     appShell.classList.add('hidden');
   }
-
-  // Prefetch approved locations in background for manual selection
-  // (only runs if no cookie location exists, optimizing performance)
-  prefetchApprovedLocations();
 
   // Set up splash screen event listeners
   setupSplashScreenListeners();
@@ -406,20 +406,36 @@ async function prefetchApprovedLocations(): Promise<void> {
 }
 
 /**
- * Load preapproved locations from API
+ * Load preapproved locations from static file
  */
 async function loadPreapprovedLocations(): Promise<string[]> {
   try {
-    debugLog('Loading preapproved locations from API...');
-    const response = await apiFetch(getApiUrl('/v1/locations/preapproved'));
-    if (!response.ok) throw new Error('Failed to fetch locations');
+    debugLog('Loading preapproved locations from static file...');
     
-    const data = await response.json();
-    debugLog('API returned locations:', data.locations?.length || 0, 'locations');
-    return data.locations || [];
+    // Try to load from static file first
+    const response = await fetch('/data/preapproved-locations.json');
+    if (response.ok) {
+      const data = await response.json();
+      if (data.locations && Array.isArray(data.locations)) {
+        debugLog('Static file returned locations:', data.locations.length, 'locations');
+        debugLog('Last updated:', data.lastUpdated);
+        return data.locations;
+      }
+    }
+    
+    // Fallback to API if static file doesn't exist or is invalid
+    debugLog('Static file not available, trying API...');
+    const apiResponse = await apiFetch(getApiUrl('/v1/locations/preapproved'));
+    if (apiResponse.ok) {
+      const data = await apiResponse.json();
+      debugLog('API returned locations:', data.locations?.length || 0, 'locations');
+      return data.locations || [];
+    }
+    
+    throw new Error('Both static file and API failed');
   } catch (error) {
-    console.warn('Preapproved locations API failed:', error);
-    debugLog('Using fallback locations due to API failure');
+    console.warn('Preapproved locations loading failed:', error);
+    debugLog('Using fallback locations due to loading failure');
     // Return fallback locations instead of throwing
     return getFallbackLocations();
   }
@@ -481,29 +497,52 @@ function showManualLocationSelection(): void {
 
   debugLog('Hiding splash actions, showing manual section');
 
-  // Show manual selection immediately, then load locations in background
+  // Show manual selection immediately with loading state
   if (manualLocationSection) {
     manualLocationSection.style.display = 'block';
     debugLog('Manual location section shown');
   }
 
-  // Use prefetched locations if available, otherwise load them
+  // Show loading state in the dropdown
+  if (locationSelect) {
+    locationSelect.innerHTML = '<option value="">Loading locations...</option>';
+    (locationSelect as HTMLSelectElement).disabled = true;
+  }
+
+  // Disable confirm button while loading
+  const confirmBtn = document.getElementById('confirmLocationBtn') as HTMLButtonElement;
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+  }
+
+  // Use prefetched locations if available, otherwise load them with timeout
   let locations = window.TempHist?.prefetchedLocations;
   if (locations) {
     debugLog('Using prefetched locations:', locations.length, 'locations');
     populateLocationDropdown(locations);
   } else {
     debugLog('No prefetched locations found, loading now...');
+    
+    // Set up timeout to use fallback locations after 7 seconds
+    const timeoutId = setTimeout(() => {
+      debugLog('Location loading timeout reached, using fallback locations');
+      const fallbackLocations = getFallbackLocations();
+      debugLog('Using fallback locations due to timeout:', fallbackLocations);
+      populateLocationDropdown(fallbackLocations);
+    }, 7000); // 7 second timeout
+
     loadPreapprovedLocations()
       .then(locations => {
+        clearTimeout(timeoutId); // Cancel timeout since we got the data
         debugLog('Loaded locations:', locations);
         populateLocationDropdown(locations);
       })
       .catch(error => {
+        clearTimeout(timeoutId); // Cancel timeout since we're handling the error
         debugLog('Error loading locations:', error);
         // If API fails, populate with fallback locations
         const fallbackLocations = getFallbackLocations();
-        debugLog('Using fallback locations:', fallbackLocations);
+        debugLog('Using fallback locations due to API error:', fallbackLocations);
         populateLocationDropdown(fallbackLocations);
       });
   }
@@ -564,6 +603,13 @@ function populateLocationDropdown(locations: string[]): void {
     locationSelect.appendChild(option);
   });
   
+  // Re-enable the dropdown and confirm button
+  locationSelect.disabled = false;
+  const confirmBtn = document.getElementById('confirmLocationBtn') as HTMLButtonElement;
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+  }
+  
   debugLog('Location dropdown populated with', locationSelect.options.length, 'options');
 }
 
@@ -574,6 +620,7 @@ async function handleManualLocationSelection(selectedLocation: string): Promise<
   debugLog('Manual location selected:', selectedLocation);
   await proceedWithLocation(selectedLocation, false, 'manual'); // Mark as manual selection
 }
+
 
 /**
  * Proceed with selected location
@@ -615,12 +662,25 @@ async function proceedWithLocation(
 
   // THEN navigate to Today page (router will now see window.tempLocation is set)
   debugLog('Navigating to Today page after location selection');
+  
+  // Activate the router now that everything is initialized
+  if (window.TempHistRouter && typeof window.TempHistRouter.handleRoute === 'function') {
+    window.TempHistRouter.handleRoute();
+  }
+  
   if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
     window.TempHistRouter.navigate('/today');
   } else {
     // Fallback: update URL and trigger route handling
     window.location.hash = '#/today';
   }
+  
+  // Force navigation highlighting update after a short delay
+  setTimeout(() => {
+    if (window.TempHistRouter && typeof window.TempHistRouter.updateNavigationHighlight === 'function') {
+      window.TempHistRouter.updateNavigationHighlight('/today');
+    }
+  }, 200);
 }
 
 /**
@@ -1252,17 +1312,16 @@ window.mainAppLogic = function(): void {
       // Add classes based on location source
       locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
       
-      // Only show the link if it's not a detected location
+      // Show location with "Use my actual location" link if not detected
       if (window.tempLocationSource !== 'detected') {
-        locationTextElement.innerHTML = `${displayLocation} <a href="#" id="useActualLocationLink" class="location-link">Use my actual location</a>`;
+        locationTextElement.innerHTML = `${displayLocation} <a href="#" id="useActualLocationLink-${periodKey}" class="location-link">Use my actual location</a>`;
         
         // Add click handler for the link
-        const useActualLocationLink = document.getElementById('useActualLocationLink');
+        const useActualLocationLink = document.getElementById(`useActualLocationLink-${periodKey}`);
         if (useActualLocationLink) {
           useActualLocationLink.addEventListener('click', async (e) => {
             e.preventDefault();
-            // Handle use actual location - this would need to be implemented
-            debugLog('Use actual location clicked from period page');
+            await handleUseLocationFromMainApp();
           });
         }
       } else {
@@ -1880,12 +1939,13 @@ window.mainAppLogic = function(): void {
     // If both fail, show error message inline
     if (locationTextElement) {
       const cityName = getDisplayCity(window.tempLocation!);
-      locationTextElement.innerHTML = `${cityName} <a href="#" id="useActualLocationLink" class="location-link">Use my actual location</a> <span class="location-error">Unable to detect location</span>`;
+      const periodKey = locationTextElement.id.replace('LocationText', '');
+      locationTextElement.innerHTML = `${cityName} <a href="#" id="useActualLocationLink-${periodKey}" class="location-link">Use my actual location</a> <span class="location-error">Unable to detect location</span>`;
       // Add classes based on location source
       locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
       
       // Re-add click handler
-      const useActualLocationLink = document.getElementById('useActualLocationLink');
+      const useActualLocationLink = document.getElementById(`useActualLocationLink-${periodKey}`);
       if (useActualLocationLink) {
         useActualLocationLink.addEventListener('click', async (e) => {
           e.preventDefault();
@@ -1906,12 +1966,188 @@ window.mainAppLogic = function(): void {
   window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
   window.TempHistViews.about = { render: () => renderAboutPage() };
   window.TempHistViews.privacy = { render: () => renderPrivacyPage() };
-
-  // Now activate the router after all views are registered
-  if (window.TempHistRouter && typeof window.TempHistRouter.handleRoute === 'function') {
-    window.TempHistRouter.handleRoute();
+  
+  // Register views with router
+  if (window.TempHistRouter && typeof (window.TempHistRouter as any).registerView === 'function') {
+    (window.TempHistRouter as any).registerView('week', window.TempHistViews.week);
+    (window.TempHistRouter as any).registerView('month', window.TempHistViews.month);
+    (window.TempHistRouter as any).registerView('year', window.TempHistViews.year);
+    (window.TempHistRouter as any).registerView('about', window.TempHistViews.about);
+    (window.TempHistRouter as any).registerView('privacy', window.TempHistViews.privacy);
   }
+
+  // Router will be activated after location is set in proceedWithLocation
 };
+
+// Simple router implementation
+class TempHistRouter {
+  private currentRoute: string = '/today';
+  private views: Record<string, { render: () => void | Promise<void> }> = {};
+
+  constructor() {
+    debugLog('Router constructor called');
+    // Listen for hash changes
+    window.addEventListener('hashchange', () => {
+      debugLog('Hash change detected');
+      this.handleRoute();
+    });
+    
+    // Listen for popstate events (back/forward buttons)
+    window.addEventListener('popstate', () => {
+      debugLog('Popstate event detected');
+      this.handleRoute();
+    });
+    
+    // Handle initial route when router is created
+    setTimeout(() => {
+      debugLog('Handling initial route');
+      this.handleRoute();
+    }, 100);
+  }
+
+  navigate(path: string): void {
+    debugLog('Router navigating to:', path);
+    this.currentRoute = path;
+    window.location.hash = `#${path}`;
+    this.handleRoute();
+  }
+
+  handleRoute(): void {
+    debugLog('Router handling route change');
+    
+    // Get current route from hash
+    const hash = window.location.hash;
+    const route = hash === '' ? '/today' : hash.substring(1); // Remove # prefix
+    this.currentRoute = route;
+    
+    debugLog('Current route:', route);
+    
+    // Hide all views first
+    const allViews = document.querySelectorAll('[data-view]');
+    allViews.forEach(view => {
+      (view as HTMLElement).hidden = true;
+    });
+    
+    // Show the appropriate view
+    let viewElement: HTMLElement | null = null;
+    let viewKey: string = '';
+    
+    switch (route) {
+      case '/today':
+        viewElement = document.getElementById('todayView');
+        viewKey = 'today';
+        break;
+      case '/week':
+        viewElement = document.getElementById('weekView');
+        viewKey = 'week';
+        break;
+      case '/month':
+        viewElement = document.getElementById('monthView');
+        viewKey = 'month';
+        break;
+      case '/year':
+        viewElement = document.getElementById('yearView');
+        viewKey = 'year';
+        break;
+      case '/about':
+        viewElement = document.getElementById('aboutView');
+        viewKey = 'about';
+        break;
+      case '/privacy':
+        viewElement = document.getElementById('privacyView');
+        viewKey = 'privacy';
+        break;
+      default:
+        debugLog('Unknown route, defaulting to today');
+        viewElement = document.getElementById('todayView');
+        viewKey = 'today';
+        this.navigate('/today');
+        return;
+    }
+    
+    if (viewElement) {
+      viewElement.hidden = false;
+      debugLog('Showing view:', viewKey);
+      
+      // Update navigation highlighting
+      this.updateNavigationHighlight(route);
+      
+      // Render the view if it has a render function
+      if (this.views[viewKey] && typeof this.views[viewKey].render === 'function') {
+        debugLog('Rendering view:', viewKey);
+        this.views[viewKey].render();
+      } else if (viewKey === 'today') {
+        // Today view doesn't have a separate render function, it's handled by mainAppLogic
+        debugLog('Today view - no additional rendering needed');
+      }
+    } else {
+      console.error('View element not found for route:', route);
+    }
+  }
+  
+  updateNavigationHighlight(route: string): void {
+    debugLog('Updating navigation highlight for route:', route);
+    
+    // Use a small delay to ensure DOM is ready
+    setTimeout(() => {
+      // Try multiple selectors to find nav items
+      let navItems = document.querySelectorAll('nav a[data-route]');
+      if (navItems.length === 0) {
+        // Fallback: try to find nav items without data-route attribute
+        navItems = document.querySelectorAll('nav a');
+        debugLog('No items with data-route found, trying all nav links:', navItems.length);
+      }
+      
+      debugLog('Found nav items:', navItems.length);
+      
+      // Remove active class from all nav items
+      navItems.forEach(item => {
+        item.classList.remove('active');
+        debugLog('Removed active class from:', item.getAttribute('data-route') || item.getAttribute('href'));
+      });
+      
+      // Add active class to current route
+      let activeItem = document.querySelector(`nav a[data-route="${route}"]`);
+      
+      if (!activeItem) {
+        // Fallback: try to match by href
+        activeItem = document.querySelector(`nav a[href="#${route}"]`);
+        debugLog('Trying href fallback for route:', `#${route}`);
+      }
+      
+      if (activeItem) {
+        activeItem.classList.add('active');
+        debugLog('Highlighted nav item for route:', route, 'element:', activeItem);
+        debugLog('Active item classes:', activeItem.className);
+        debugLog('Active item computed styles:', {
+          color: window.getComputedStyle(activeItem).color,
+          fontWeight: window.getComputedStyle(activeItem).fontWeight,
+          textDecoration: window.getComputedStyle(activeItem).textDecoration
+        });
+        // Force a style update
+        (activeItem as HTMLElement).style.color = '';
+        (activeItem as HTMLElement).style.fontWeight = '';
+        (activeItem as HTMLElement).style.textDecoration = '';
+      } else {
+        debugLog('No nav item found for route:', route);
+        // Try to find any nav items to debug
+        const allNavItems = document.querySelectorAll('nav a');
+        debugLog('All nav links found:', allNavItems.length);
+        allNavItems.forEach((item, index) => {
+          debugLog(`Nav item ${index}:`, item.getAttribute('href'), item.getAttribute('data-route'));
+        });
+      }
+    }, 50);
+  }
+  
+  registerView(key: string, view: { render: () => void | Promise<void> }): void {
+    this.views[key] = view;
+    debugLog('Registered view:', key);
+  }
+}
+
+// Initialize router
+window.TempHistRouter = new TempHistRouter();
 
 // Make analytics functions globally available
 window.TempHistAnalytics = reportAnalytics;

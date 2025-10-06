@@ -855,6 +855,22 @@ h2, .date-heading {
   padding-top: 2rem;
   border-top: 1px solid rgba($colour-text, 0.2);
   animation: slideInDown 0.4s ease-out;
+  
+  .location-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: rgba($colour-text, 0.1);
+  }
+}
+
+// Navigation active state
+nav a.active {
+  color: $colour-spinner !important;
+}
+
+// More specific selector for navigation
+#sidebar a.active {
+  color: $colour-spinner !important;
 }
 
 @keyframes slideInDown {

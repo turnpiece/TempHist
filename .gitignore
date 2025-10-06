@@ -30,6 +30,9 @@ yarn-error.log*
 dist/
 build/
 
+# Cached data files
+public/
+
 # Test coverage
 coverage/
 

@@ -1,0 +1,35 @@
+# TempHist Cache Update Cron Jobs
+
+# Run these commands to set up automatic cache updates
+
+# Environment variables (add these to your crontab)
+
+API_BASE=https://api.temphist.com
+OUTPUT_DIR=/path/to/your/webroot/data
+FIREBASE_SERVICE_ACCOUNT_PATH=/path/to/your/firebase-service-account.json
+
+# Update locations every 6 hours
+
+0 _/6 _ \* \* cd /path/to/your/project && node scripts/fetch-locations.js >> /var/log/temphist-locations.log 2>&1
+
+# Update temperature data (daily, weekly, monthly, yearly) every day at 3 AM
+
+0 3 \* \* \* cd /path/to/your/project && node scripts/fetch-daily-data.js >> /var/log/temphist-temperature.log 2>&1
+
+# Or run both together every 6 hours (recommended)
+
+0 _/6 _ \* \* cd /path/to/your/project && node scripts/update-cache.js >> /var/log/temphist-cache.log 2>&1
+
+# Notes:
+
+# - Replace /path/to/your/project with your actual project path
+
+# - Replace /path/to/your/webroot/data with your actual data directory path
+
+# - Replace /path/to/your/firebase-service-account.json with your Firebase service account path
+
+# - Log files will be created automatically
+
+# - Check logs if scripts fail: tail -f /var/log/temphist-\*.log
+
+# - The temperature data script requires Firebase authentication for production API access

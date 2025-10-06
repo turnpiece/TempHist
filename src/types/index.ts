@@ -196,6 +196,8 @@ declare global {
     TempHistRouter: {
       navigate: (path: string) => void;
       handleRoute: () => void;
+      registerView: (key: string, view: { render: () => void | Promise<void> }) => void;
+      updateNavigationHighlight: (route: string) => void;
     };
     updateDataNotice: (message: string | null, options?: DataNoticeOptions) => void;
     DEBUGGING: boolean;

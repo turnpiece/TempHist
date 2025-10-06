@@ -13,6 +13,16 @@ A web application that visualizes historical temperature data for any location, 
 - All API requests are authenticated via Firebase
 - Manual location input is disabled for security
 
+## Server-Side Caching
+
+For production deployments, the application includes server-side caching scripts to improve performance:
+
+- **Location Caching**: Preapproved locations are fetched from the API and saved to static JSON files
+- **Daily Data Prefetching**: Temperature data for all locations can be prefetched and cached
+- **Cron Job Support**: Scripts are designed to run via cron jobs for automatic updates
+
+See [`scripts/README.md`](scripts/README.md) for detailed setup and configuration instructions.
+
 ## Features
 
 - Visualizes 50 years of temperature data in an interactive chart
