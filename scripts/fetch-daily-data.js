@@ -179,12 +179,82 @@ async function pollJobStatus(jobId, maxPolls = 100, pollInterval = 3000) {
   throw new Error(`Job ${jobId} timed out after ${maxPolls} polls`);
 }
 
+async function checkDataUpdated(period, location, identifier) {
+  try {
+    const apiPeriod = period === 'week' ? 'weekly' : 
+                     period === 'month' ? 'monthly' : 
+                     period === 'year' ? 'yearly' : 
+                     'daily';
+    
+    const url = `${API_BASE}/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}/updated`;
+    
+    const headers = {
+      'User-Agent': 'TempHist-DataFetcher/1.0'
+    };
+    
+    // Only add Authorization header if we have a token
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
+    const response = await axios.get(url, {
+      timeout: 10000,
+      headers
+    });
+    
+    if (response.data) {
+      return response.data;
+    } else {
+      throw new Error('Invalid updated status response');
+    }
+  } catch (error) {
+    console.error(`❌ Failed to check ${period} data update status for ${location}:`, error.message);
+    // If we can't check the status, assume we need to fetch
+    return { updated: null, cached: false };
+  }
+}
+
 async function fetchDataForLocation(location, periods, identifier) {
   const results = {};
   
   for (const period of periods) {
     try {
       console.log(`🔄 Processing ${period} data for ${location}...`);
+      
+      // Check if data needs to be updated
+      const updateStatus = await checkDataUpdated(period, location, identifier);
+      
+      if (updateStatus.updated === null) {
+        console.log(`📥 ${period} data has never been fetched, fetching now...`);
+      } else {
+        console.log(`📅 ${period} data last updated: ${updateStatus.updated}`);
+        console.log(`💾 ${period} data is cached: ${updateStatus.cached}`);
+        
+        // Check if we already have this data locally
+        const localDataPath = path.join(OUTPUT_DIR, DAILY_DATA_DIR, `${location.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_${identifier}.json`);
+        
+        try {
+          const localData = await fs.readFile(localDataPath, 'utf8');
+          const parsed = JSON.parse(localData);
+          
+          if (parsed.data && parsed.data[period]) {
+            const localUpdated = new Date(parsed.lastUpdated);
+            const apiUpdated = new Date(updateStatus.updated);
+            
+            if (localUpdated >= apiUpdated) {
+              console.log(`✅ ${period} data is up to date locally, skipping fetch`);
+              results[period] = parsed.data[period];
+              continue;
+            } else {
+              console.log(`🔄 ${period} data has been updated on API, fetching new data...`);
+            }
+          } else {
+            console.log(`📥 ${period} data missing locally, fetching now...`);
+          }
+        } catch (localError) {
+          console.log(`📥 ${period} data not found locally, fetching now...`);
+        }
+      }
       
       // Create async job
       const jobId = await createAsyncJob(period, location, identifier);
