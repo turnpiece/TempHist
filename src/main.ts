@@ -1710,17 +1710,55 @@ window.mainAppLogic = function(): void {
     const elapsedSeconds = Math.floor((Date.now() - loadingStartTime) / 1000);
     const loadingText = document.getElementById('loadingText');
     
+    // Get current page/period
+    const currentHash = window.location.hash;
+    const isTodayPage = currentHash === '' || currentHash === '#today' || currentHash === '#/today';
+    const isWeekPage = currentHash === '#week' || currentHash === '#/week';
+    const isMonthPage = currentHash === '#month' || currentHash === '#/month';
+    const isYearPage = currentHash === '#year' || currentHash === '#/year';
+    
+    const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
+    
     if (elapsedSeconds < 5) {
       if (loadingText) loadingText.textContent = 'Connecting to the temperature data server...';
     } else if (elapsedSeconds < 15) {
-      if (loadingText) loadingText.textContent = 'Getting temperature data for '+friendlyDate+' over the past 50 years...';
+      if (isTodayPage) {
+        if (loadingText) loadingText.textContent = `Is today warmer or cooler than average in ${displayCity}?`;
+      } else if (isWeekPage) {
+        if (loadingText) loadingText.textContent = `Has this past week been warmer or cooler than average in ${displayCity}?`;
+      } else if (isMonthPage) {
+        if (loadingText) loadingText.textContent = `Has this past month been warmer or cooler than average in ${displayCity}?`;
+      } else if (isYearPage) {
+        if (loadingText) loadingText.textContent = `Has this past year been warmer or cooler than average in ${displayCity}?`;
+      } else {
+        if (loadingText) loadingText.textContent = 'Getting temperature data for '+friendlyDate+' over the past 50 years...';
+      }
     } else if (elapsedSeconds < 30) {
-      const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
-      if (loadingText) loadingText.textContent = 'Analysing historical data for '+displayCity+'...';
+      if (isTodayPage) {
+        if (loadingText) loadingText.textContent = `Analysing today's temperature in ${displayCity}...`;
+      } else if (isWeekPage) {
+        if (loadingText) loadingText.textContent = `Analysing this week's temperatures in ${displayCity}...`;
+      } else if (isMonthPage) {
+        if (loadingText) loadingText.textContent = `Analysing this month's temperatures in ${displayCity}...`;
+      } else if (isYearPage) {
+        if (loadingText) loadingText.textContent = `Analysing this year's temperatures in ${displayCity}...`;
+      } else {
+        if (loadingText) loadingText.textContent = 'Analysing historical data for '+displayCity+'...';
+      }
     } else if (elapsedSeconds < 45) {
-      if (loadingText) loadingText.textContent = 'Generating temperature comparison chart...';
+      if (isTodayPage) {
+        if (loadingText) loadingText.textContent = 'Generating today\'s temperature comparison...';
+      } else if (isWeekPage) {
+        if (loadingText) loadingText.textContent = 'Generating weekly temperature comparison...';
+      } else if (isMonthPage) {
+        if (loadingText) loadingText.textContent = 'Generating monthly temperature comparison...';
+      } else if (isYearPage) {
+        if (loadingText) loadingText.textContent = 'Generating yearly temperature comparison...';
+      } else {
+        if (loadingText) loadingText.textContent = 'Generating temperature comparison chart...';
+      }
     } else if (elapsedSeconds < 60) {
-      if (loadingText) loadingText.textContent = 'Almost done! Finalising the results...';
+      if (loadingText) loadingText.textContent = 'You should be seeing a bar chart soon...';
     } else if (elapsedSeconds < 90) {
       if (loadingText) loadingText.textContent = 'This is taking longer than usual. Please wait...';
     } else {
