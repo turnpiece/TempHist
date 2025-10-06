@@ -81,21 +81,21 @@ SERVER_URL=https://temphist.com
 ### Basic Setup (Locations Only)
 
 ```bash
-# Fetch locations every 6 hours
-0 */6 * * * cd /path/to/temphist && node scripts/fetch-locations.js
+# Fetch locations every 6 hours (with logging)
+0 */6 * * * cd /path/to/temphist && node scripts/fetch-locations.js >> /path/to/temphist/logs/temphist-locations.log 2>&1
 
 # Or fetch daily at 2 AM
-0 2 * * * cd /path/to/temphist && node scripts/fetch-locations.js
+0 2 * * * cd /path/to/temphist && node scripts/fetch-locations.js >> /path/to/temphist/logs/temphist-locations.log 2>&1
 ```
 
 ### Advanced Setup (Locations + Daily Data)
 
 ```bash
 # Update all cache data every 6 hours
-0 */6 * * * cd /path/to/temphist && node scripts/update-cache.js
+0 */6 * * * cd /path/to/temphist && node scripts/update-cache.js >> /path/to/temphist/logs/temphist-cache.log 2>&1
 
 # Or update daily at 2 AM
-0 2 * * * cd /path/to/temphist && node scripts/update-cache.js
+0 2 * * * cd /path/to/temphist && node scripts/update-cache.js >> /path/to/temphist/logs/temphist-cache.log 2>&1
 ```
 
 ### Production Setup
@@ -104,10 +104,22 @@ For production, you might want to run locations more frequently than daily data:
 
 ```bash
 # Fetch locations every 2 hours
-0 */2 * * * cd /path/to/temphist && node scripts/fetch-locations.js
+0 */2 * * * cd /path/to/temphist && node scripts/fetch-locations.js >> /path/to/temphist/logs/temphist-locations.log 2>&1
 
 # Fetch daily data once per day at 3 AM
-0 3 * * * cd /path/to/temphist && node scripts/fetch-daily-data.js
+0 3 * * * cd /path/to/temphist && node scripts/fetch-daily-data.js >> /path/to/temphist/logs/temphist-daily.log 2>&1
+```
+
+### Log Rotation (Optional)
+
+To prevent logs from growing too large, add log rotation:
+
+```bash
+# Compress large log files weekly
+0 2 * * 0 find /path/to/temphist/logs -name '*.log' -size +10M -exec gzip {} \;
+
+# Delete old compressed logs after 30 days
+0 2 * * 0 find /path/to/temphist/logs -name '*.log.gz' -mtime +30 -delete
 ```
 
 ## File Structure
@@ -115,14 +127,21 @@ For production, you might want to run locations more frequently than daily data:
 After running the scripts, your directory structure will look like:
 
 ```
-public/
-└── data/
-    ├── preapproved-locations.json
-    └── daily-data/
-        ├── london_england_united_kingdom_2024-01-15.json
-        ├── new_york_new_york_united_states_2024-01-15.json
-        ├── paris_ile_de_france_france_2024-01-15.json
-        └── summary_2024-01-15.json
+/home/u22-lgxgqxwpxieh/www/
+├── dev.temphist.com/
+│   ├── repo/                    # Git repository (gets overwritten on deploy)
+│   │   ├── scripts/
+│   │   └── public/data/         # Cached data (copied to web root)
+│   ├── logs/                    # Logs directory (persistent across deployments)
+│   │   ├── temphist-locations.log
+│   │   ├── temphist-daily.log
+│   │   └── temphist-cache.log
+│   └── public_html/             # Web root
+│       └── data/                # Cached data served to users
+└── temphist.com/                # Production (same structure)
+    ├── repo/
+    ├── logs/
+    └── public_html/
 ```
 
 ## Client-Side Integration
