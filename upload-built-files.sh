@@ -5,7 +5,7 @@
 
 # Set variables
 SERVER_USER="u22-lgxgqxwpxieh"
-SERVER_HOST="dev.temphist.com"
+SERVER_HOST="temphist.com"
 WEB_ROOT="/home/u22-lgxgqxwpxieh/www/dev.temphist.com/public_html"
 PROJECT_DIR="/home/u22-lgxgqxwpxieh/www/dev.temphist.com/repo"
 

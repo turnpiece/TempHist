@@ -23,14 +23,14 @@ quit
 EOF
 
 echo "Uploading files via SFTP..."
-sftp -b sftp_upload.batch u22-lgxgqxwpxieh@dev.temphist.com
+sftp -b sftp_upload.batch u22-lgxgqxwpxieh@temphist.com
 
 if [ $? -eq 0 ]; then
     echo "✅ Files uploaded successfully via SFTP"
 else
     echo "❌ SFTP upload failed"
     echo "Trying manual SFTP connection..."
-    echo "Run: sftp u22-lgxgqxwpxieh@dev.temphist.com"
+    echo "Run: sftp u22-lgxgqxwpxieh@temphist.com"
     echo "Then manually upload files"
 fi
 

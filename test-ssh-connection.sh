@@ -6,7 +6,7 @@
 echo "=== Testing SSH Connection ==="
 
 SERVER_USER="u22-lgxgqxwpxieh"
-SERVER_HOST="dev.temphist.com"
+SERVER_HOST="temphist.com"
 
 echo "Testing connection to $SERVER_USER@$SERVER_HOST..."
 
