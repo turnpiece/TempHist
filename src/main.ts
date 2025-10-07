@@ -45,6 +45,22 @@ window.TempHist.cache = window.TempHist.cache || {
 };
 window.TempHistViews = window.TempHistViews || {};
 
+// Global loading interval management
+const activeLoadingIntervals = new Set<NodeJS.Timeout>();
+let globalLoadingStartTime: number | null = null;
+let globalLoadingCheckInterval: NodeJS.Timeout | null = null;
+
+// Clear all loading intervals (useful when navigating between pages)
+function clearAllLoadingIntervals(): void {
+  activeLoadingIntervals.forEach(interval => clearInterval(interval));
+  activeLoadingIntervals.clear();
+  if (globalLoadingCheckInterval) {
+    clearInterval(globalLoadingCheckInterval);
+    globalLoadingCheckInterval = null;
+  }
+  globalLoadingStartTime = null;
+}
+
 // Error monitoring and analytics
 window.TempHist.analytics = window.TempHist.analytics || {
   errors: [],
@@ -1336,6 +1352,9 @@ window.mainAppLogic = function(): void {
     canvas.classList.add('hidden');
     canvas.classList.remove('visible');
 
+    // Clear any existing loading intervals to prevent conflicts
+    clearAllLoadingIntervals();
+    
     // Start dynamic loading messages for this period
     const periodLoadingStartTime = Date.now();
     let periodLoadingInterval: NodeJS.Timeout | null = null;
@@ -1344,6 +1363,9 @@ window.mainAppLogic = function(): void {
     periodLoadingInterval = setInterval(() => {
       updatePeriodLoadingMessage(periodKey, periodLoadingStartTime);
     }, 1000);
+    
+    // Track this interval
+    activeLoadingIntervals.add(periodLoadingInterval);
 
     try {
       // Check for prefetched data first
@@ -1434,6 +1456,7 @@ window.mainAppLogic = function(): void {
       // Clear the loading message interval
       if (periodLoadingInterval) {
         clearInterval(periodLoadingInterval);
+        activeLoadingIntervals.delete(periodLoadingInterval);
       }
 
       // Create chart using shared function
@@ -1516,6 +1539,7 @@ window.mainAppLogic = function(): void {
       // Clear the loading message interval
       if (periodLoadingInterval) {
         clearInterval(periodLoadingInterval);
+        activeLoadingIntervals.delete(periodLoadingInterval);
       }
       
       const errorContainer = document.getElementById(`${periodKey}ErrorContainer`);
@@ -1719,7 +1743,7 @@ window.mainAppLogic = function(): void {
     debugTimeEnd('Total fetch time');
   }
 
-  // Add loading state management
+  // Add loading state management (using global variables)
   let loadingStartTime: number | null = null;
   let loadingCheckInterval: NodeJS.Timeout | null = null;
 
@@ -1831,8 +1855,14 @@ window.mainAppLogic = function(): void {
 
   // Show initial loading state (only after date and location are known)
   function showInitialLoadingState(): void {
+    // Clear any existing loading intervals
+    clearAllLoadingIntervals();
+    
     loadingStartTime = Date.now();
+    globalLoadingStartTime = loadingStartTime;
     loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
+    globalLoadingCheckInterval = loadingCheckInterval;
+    activeLoadingIntervals.add(loadingCheckInterval);
 
     if (loadingEl) {
       loadingEl.classList.add('visible');
@@ -1886,9 +1916,12 @@ window.mainAppLogic = function(): void {
   function showChart(): void {
     if (loadingCheckInterval) {
       clearInterval(loadingCheckInterval);
+      activeLoadingIntervals.delete(loadingCheckInterval);
       loadingCheckInterval = null;
     }
     loadingStartTime = null;
+    globalLoadingStartTime = null;
+    globalLoadingCheckInterval = null;
 
     if (loadingEl) {
       loadingEl.classList.add('hidden');
@@ -2115,6 +2148,9 @@ class TempHistRouter {
 
   handleRoute(): void {
     debugLog('Router handling route change');
+    
+    // Clear any existing loading intervals when navigating
+    clearAllLoadingIntervals();
     
     // Get current route from hash
     const hash = window.location.hash;
