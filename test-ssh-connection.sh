@@ -5,14 +5,13 @@
 
 echo "=== Testing SSH Connection ==="
 
-SERVER_USER="u22-lgxgqxwpxieh"
-SERVER_HOST="temphist.com"
+SERVER_HOST="temphist"  # Using SSH config alias
 
-echo "Testing connection to $SERVER_USER@$SERVER_HOST..."
+echo "Testing connection to $SERVER_HOST..."
 
 # Test basic SSH connection
 echo "1. Testing basic SSH connection..."
-ssh -o ConnectTimeout=10 -o BatchMode=yes $SERVER_USER@$SERVER_HOST "echo 'SSH connection successful'" 2>&1
+ssh -o ConnectTimeout=10 -o BatchMode=yes $SERVER_HOST "echo 'SSH connection successful'" 2>&1
 
 if [ $? -eq 0 ]; then
     echo "✅ SSH connection works"

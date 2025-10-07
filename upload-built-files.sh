@@ -4,8 +4,7 @@
 # This bypasses the server-side build issues
 
 # Set variables
-SERVER_USER="u22-lgxgqxwpxieh"
-SERVER_HOST="temphist.com"
+SERVER_HOST="temphist"  # Using SSH config alias
 WEB_ROOT="/home/u22-lgxgqxwpxieh/www/dev.temphist.com/public_html"
 PROJECT_DIR="/home/u22-lgxgqxwpxieh/www/dev.temphist.com/repo"
 
@@ -19,7 +18,7 @@ fi
 
 # Upload built files
 echo "Uploading built files..."
-scp -r dist/* $SERVER_USER@$SERVER_HOST:$WEB_ROOT/
+scp -r dist/* $SERVER_HOST:$WEB_ROOT/
 
 if [ $? -ne 0 ]; then
     echo "❌ Upload failed."
@@ -30,7 +29,7 @@ echo "✅ Built files uploaded successfully"
 
 # Upload scripts folder
 echo "Uploading scripts folder..."
-scp -r scripts $SERVER_USER@$SERVER_HOST:$PROJECT_DIR/
+scp -r scripts $SERVER_HOST:$PROJECT_DIR/
 
 if [ $? -ne 0 ]; then
     echo "⚠️ Scripts upload failed, but deployment continues"
@@ -41,7 +40,7 @@ fi
 # Upload data directory if it exists
 if [ -d "public/data" ]; then
     echo "Uploading data directory..."
-    scp -r public/data $SERVER_USER@$SERVER_HOST:$WEB_ROOT/
+    scp -r public/data $SERVER_HOST:$WEB_ROOT/
     echo "✅ Data directory uploaded"
 fi
 
