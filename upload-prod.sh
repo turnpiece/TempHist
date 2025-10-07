@@ -49,11 +49,14 @@ else
     echo "✅ Scripts folder uploaded"
 fi
 
-# Upload data directory if it exists
-if [ -d "public/data" ]; then
-    echo "Uploading data directory..."
-    scp -r public/data $SERVER_HOST:$WEB_ROOT/
-    echo "✅ Data directory uploaded"
+# Ensure data directory exists on server (but don't upload local data)
+echo "Ensuring data directory exists on server..."
+ssh $SERVER_HOST "mkdir -p $WEB_ROOT/data/daily-data && chmod 755 $WEB_ROOT/data && chmod 755 $WEB_ROOT/data/daily-data"
+
+if [ $? -eq 0 ]; then
+    echo "✅ Data directory structure verified"
+else
+    echo "⚠️ Could not verify data directory, but deployment continues"
 fi
 
 echo "=== Production Upload Complete ==="
