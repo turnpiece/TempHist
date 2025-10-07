@@ -1731,7 +1731,7 @@ window.mainAppLogic = function(): void {
             errorMessage = 'The data processing job failed. This may be due to server issues. Please try again later.';
           }
         } else if (error.message.includes('Job polling timed out')) {
-          errorMessage = 'The data processing is taking longer than expected. Please try again later.';
+          errorMessage = 'The data processing has timed out. Please try again later.';
         } else if (error.message.includes('Failed to create job')) {
           errorMessage = 'Unable to start data processing. Please check your connection and try again.';
         }
@@ -1805,7 +1805,7 @@ window.mainAppLogic = function(): void {
     } else if (elapsedSeconds < 90) {
       if (loadingText) loadingText.textContent = 'This is taking longer than usual. Please wait...';
     } else {
-      if (loadingText) loadingText.textContent = 'The data processing is taking a while. This may be due to high server load.';
+      if (loadingText) loadingText.textContent = 'This really is taking a while, maybe due to a slow internet connection, high server load or something may have gone wrong.';
     }
   }
 
