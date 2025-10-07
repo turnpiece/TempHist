@@ -12,6 +12,7 @@ export default defineConfig({
   publicDir: 'public',
   build: {
     outDir: 'dist',
+    minify: 'terser',
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
@@ -19,6 +20,9 @@ export default defineConfig({
         privacy: resolve(__dirname, 'privacy.html')
       }
     }
+  },
+  esbuild: {
+    target: 'es2015'
   },
   plugins: [
     {
