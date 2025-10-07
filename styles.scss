@@ -317,6 +317,11 @@ body.privacy-page {
     color: inherit; // Links inherit the color of their parent element (white text)
     text-decoration: underline;
   }
+  
+  // Don't underline the header logo/title link
+  .header-left a {
+    text-decoration: none;
+  }
 }
 
 .standard-text {
