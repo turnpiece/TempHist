@@ -11,7 +11,7 @@ const axios = require('axios');
 require('dotenv').config();
 
 // Configuration
-const API_BASE = process.env.API_BASE || 'https://api.temphist.com';
+const API_BASE = process.env.VITE_API_BASE || 'https://api.temphist.com';
 const OUTPUT_DIR = process.env.OUTPUT_DIR || './public/data';
 const LOCATIONS_FILE = 'preapproved-locations.json';
 

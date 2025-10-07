@@ -13,52 +13,33 @@ const axios = require('axios');
 require('dotenv').config();
 
 // Configuration
-const API_BASE = process.env.API_BASE || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://api.temphist.com');
+const API_BASE = process.env.VITE_API_BASE || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://api.temphist.com');
+const API_TOKEN = process.env.API_TOKEN;
 const OUTPUT_DIR = process.env.OUTPUT_DIR || './public/data';
 const LOCATIONS_FILE = 'preapproved-locations.json';
 const DAILY_DATA_DIR = 'daily-data';
 
-// Firebase Admin SDK for server-side authentication
-let admin = null;
+// Authentication token for API requests
 let authToken = null;
 
-async function initializeFirebase() {
+async function getAuthToken() {
   try {
-    // Try to use Firebase Admin SDK if available
-    try {
-      admin = require('firebase-admin');
-      
-      // Initialize with service account if available
-      const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-      if (serviceAccountPath && require('fs').existsSync(serviceAccountPath)) {
-        const serviceAccount = require(serviceAccountPath);
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount)
-        });
-        console.log('✅ Firebase Admin SDK initialized with service account');
-      } else {
-        // Fallback: use default credentials or environment
-        admin.initializeApp();
-        console.log('✅ Firebase Admin SDK initialized with default credentials');
-      }
-      
-      // Get a custom token for API authentication
-      const customToken = await admin.auth().createCustomToken('cron-job-user');
-      console.log('✅ Firebase custom token created');
-      return customToken;
-    } catch (firebaseError) {
-      console.log('⚠️ Firebase Admin SDK not available, using fallback authentication');
-      
-      // Fallback: use a test token for development
-      if (API_BASE.includes('localhost')) {
-        console.log('🔧 Using development mode - using test token');
-        return 'test_token'; // Use test token for local dev
-      } else {
-        throw new Error('Firebase authentication required for production API');
-      }
+    // Use API_TOKEN environment variable for authentication
+    if (API_TOKEN) {
+      console.log('✅ Using API_TOKEN for authentication');
+      return API_TOKEN;
     }
+    
+    // Fallback: use test token for development
+    if (API_BASE.includes('localhost')) {
+      const testToken = process.env.TEST_TOKEN || 'test_token';
+      console.log('🔧 Using development mode - using test token from environment');
+      return testToken;
+    }
+    
+    throw new Error('API_TOKEN environment variable is required for production API');
   } catch (error) {
-    console.error('❌ Failed to initialize Firebase:', error.message);
+    console.error('❌ Failed to get authentication token:', error.message);
     throw error;
   }
 }
@@ -350,8 +331,8 @@ async function main() {
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
     console.log(`🌐 Using API: ${API_BASE}`);
     
-    // Initialize Firebase authentication
-    authToken = await initializeFirebase();
+    // Get authentication token
+    authToken = await getAuthToken();
     
     // Get current date identifier
     const now = new Date();

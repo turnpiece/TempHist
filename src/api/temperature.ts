@@ -49,8 +49,8 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
   
   if (isLocalDevelopment) {
     // For local development, try different approaches
-    // First try a simple test token
-    const testToken = 'test_token';
+    // First try a test token from environment variable
+    const testToken = import.meta.env.VITE_TEST_TOKEN || 'test_token';
     debugLog('apiFetch: Using test token for local development');
     authToken = testToken;
   } else {
