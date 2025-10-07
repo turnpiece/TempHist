@@ -1336,6 +1336,15 @@ window.mainAppLogic = function(): void {
     canvas.classList.add('hidden');
     canvas.classList.remove('visible');
 
+    // Start dynamic loading messages for this period
+    const periodLoadingStartTime = Date.now();
+    let periodLoadingInterval: NodeJS.Timeout | null = null;
+    
+    // Set up the interval after all early returns
+    periodLoadingInterval = setInterval(() => {
+      updatePeriodLoadingMessage(periodKey, periodLoadingStartTime);
+    }, 1000);
+
     try {
       // Check for prefetched data first
       let weatherData: any;
@@ -1421,6 +1430,11 @@ window.mainAppLogic = function(): void {
       loadingEl.classList.remove('visible');
       canvas.classList.add('visible');
       canvas.classList.remove('hidden');
+      
+      // Clear the loading message interval
+      if (periodLoadingInterval) {
+        clearInterval(periodLoadingInterval);
+      }
 
       // Create chart using shared function
       const chart = createTemperatureChart(
@@ -1498,6 +1512,11 @@ window.mainAppLogic = function(): void {
       // Show error state only for real errors
       loadingEl.classList.add('hidden');
       loadingEl.classList.remove('visible');
+      
+      // Clear the loading message interval
+      if (periodLoadingInterval) {
+        clearInterval(periodLoadingInterval);
+      }
       
       const errorContainer = document.getElementById(`${periodKey}ErrorContainer`);
       const errorMessage = document.getElementById(`${periodKey}ErrorMessage`);
@@ -1763,6 +1782,50 @@ window.mainAppLogic = function(): void {
       if (loadingText) loadingText.textContent = 'This is taking longer than usual. Please wait...';
     } else {
       if (loadingText) loadingText.textContent = 'The data processing is taking a while. This may be due to high server load.';
+    }
+  }
+
+  // Dynamic loading messages for period pages
+  function updatePeriodLoadingMessage(periodKey: 'week' | 'month' | 'year', startTime: number): void {
+    const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const loadingText = document.getElementById(`${periodKey}LoadingText`);
+    
+    if (!loadingText) return;
+    
+    const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
+    
+    if (elapsedSeconds < 5) {
+      loadingText.textContent = 'Connecting to the temperature data server...';
+    } else if (elapsedSeconds < 15) {
+      if (periodKey === 'week') {
+        loadingText.textContent = `Has this past week been warmer or cooler than average in ${displayCity}?`;
+      } else if (periodKey === 'month') {
+        loadingText.textContent = `Has this past month been warmer or cooler than average in ${displayCity}?`;
+      } else if (periodKey === 'year') {
+        loadingText.textContent = `Has this past year been warmer or cooler than average in ${displayCity}?`;
+      }
+    } else if (elapsedSeconds < 30) {
+      if (periodKey === 'week') {
+        loadingText.textContent = `Analysing this week's temperatures in ${displayCity}...`;
+      } else if (periodKey === 'month') {
+        loadingText.textContent = `Analysing this month's temperatures in ${displayCity}...`;
+      } else if (periodKey === 'year') {
+        loadingText.textContent = `Analysing this year's temperatures in ${displayCity}...`;
+      }
+    } else if (elapsedSeconds < 45) {
+      if (periodKey === 'week') {
+        loadingText.textContent = 'Generating weekly temperature comparison...';
+      } else if (periodKey === 'month') {
+        loadingText.textContent = 'Generating monthly temperature comparison...';
+      } else if (periodKey === 'year') {
+        loadingText.textContent = 'Generating yearly temperature comparison...';
+      }
+    } else if (elapsedSeconds < 60) {
+      loadingText.textContent = 'You should be seeing a bar chart soon...';
+    } else if (elapsedSeconds < 90) {
+      loadingText.textContent = 'This is taking longer than usual. Please wait...';
+    } else {
+      loadingText.textContent = 'The data processing is taking a while. This may be due to high server load.';
     }
   }
 
