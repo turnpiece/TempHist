@@ -50,6 +50,8 @@ weather_cache/
 # Deployment scripts (contain sensitive server information)
 deploy.sh
 deploy-dev.sh
+upload-dev.sh
+upload-prod.sh
 
 # Build styles script
 build-styles.sh
