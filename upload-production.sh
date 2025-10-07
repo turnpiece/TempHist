@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Simple script to upload locally built files to the server
-# This bypasses the server-side build issues
+# Build and upload to production server
+# This uses production environment variables
 
 # Set variables
 SERVER_HOST="temphist"  # Using SSH config alias
-WEB_ROOT="/home/u22-lgxgqxwpxieh/www/dev.temphist.com/public_html"
-PROJECT_DIR="/home/u22-lgxgqxwpxieh/www/dev.temphist.com/repo"
+WEB_ROOT="/home/u22-lgxgqxwpxieh/www/temphist.com/public_html"
+PROJECT_DIR="/home/u22-lgxgqxwpxieh/www/temphist.com/repo"
 
-echo "=== Building and Uploading to Dev Server ==="
+echo "=== Building and Uploading to Production Server ==="
 
-# Set environment variables for dev build
-export VITE_API_BASE=https://devapi.temphist.com
+# Set environment variables for production build
+export VITE_API_BASE=https://api.temphist.com
 export VITE_TEST_TOKEN=qrXrUQuLAer4
 
 echo "Building project with environment variables..."
@@ -29,7 +29,7 @@ fi
 echo "✅ Build successful"
 
 # Upload built files
-echo "Uploading built files..."
+echo "Uploading built files to production..."
 scp -r dist/* $SERVER_HOST:$WEB_ROOT/
 
 if [ $? -ne 0 ]; then
@@ -56,6 +56,6 @@ if [ -d "public/data" ]; then
     echo "✅ Data directory uploaded"
 fi
 
-echo "=== Upload Complete ==="
-echo "The application has been deployed using local build."
-echo "Visit: https://dev.temphist.com"
+echo "=== Production Upload Complete ==="
+echo "The application has been deployed to production."
+echo "Visit: https://temphist.com"
