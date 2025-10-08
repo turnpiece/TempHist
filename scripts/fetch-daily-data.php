@@ -7,6 +7,30 @@
  * Designed to be run via cron job on the production server
  */
 
+// Load .env file if it exists
+function loadEnvFile($path = '.env') {
+    if (file_exists($path)) {
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            if (strpos(trim($line), '#') === 0) continue; // Skip comments
+            
+            list($name, $value) = explode('=', $line, 2) + [null, null];
+            if ($name && $value !== null) {
+                $name = trim($name);
+                $value = trim($value);
+                if (!getenv($name)) {
+                    putenv("$name=$value");
+                }
+            }
+        }
+    }
+}
+
+// Load .env file from script directory or parent
+$scriptDir = dirname(__FILE__);
+loadEnvFile("$scriptDir/../.env");
+loadEnvFile("$scriptDir/.env");
+
 // Configuration
 $apiBase = getenv('VITE_API_BASE') ?: (getenv('NODE_ENV') === 'development' ? 'http://localhost:3000' : 'https://api.temphist.com');
 $apiToken = getenv('API_TOKEN');
