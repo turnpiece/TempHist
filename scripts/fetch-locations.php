@@ -16,9 +16,10 @@ function loadEnvFile($path = '.env') {
             if ($name && $value !== null) {
                 $name = trim($name);
                 $value = trim($value);
-                if (!getenv($name)) {
-                    putenv("$name=$value");
-                }
+                // Set in both putenv and $_ENV for maximum compatibility
+                putenv("$name=$value");
+                $_ENV[$name] = $value;
+                $_SERVER[$name] = $value;
             }
         }
     }

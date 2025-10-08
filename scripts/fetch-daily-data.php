@@ -18,9 +18,10 @@ function loadEnvFile($path = '.env') {
             if ($name && $value !== null) {
                 $name = trim($name);
                 $value = trim($value);
-                if (!getenv($name)) {
-                    putenv("$name=$value");
-                }
+                // Set in both putenv and $_ENV for maximum compatibility
+                putenv("$name=$value");
+                $_ENV[$name] = $value;
+                $_SERVER[$name] = $value;
             }
         }
     }
@@ -126,7 +127,8 @@ function createAsyncJob($period, $location, $identifier, $apiBase, $authToken) {
     $error = curl_error($ch);
     curl_close($ch);
     
-    if ($response === false || $httpCode !== 200) {
+    // Accept both 200 (OK) and 202 (Accepted) for async job creation
+    if ($response === false || ($httpCode !== 200 && $httpCode !== 202)) {
         $errorMsg = "Failed to create $period job for $location";
         if ($error) {
             $errorMsg .= ": $error";
