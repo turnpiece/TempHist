@@ -53,6 +53,7 @@ deploy-dev.sh
 deploy-local-build.sh
 upload-dev.sh
 upload-prod.sh
+upload-sftp.sh
 
 # Build styles script
 build-styles.sh
