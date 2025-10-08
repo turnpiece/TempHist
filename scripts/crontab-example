@@ -2,34 +2,54 @@
 
 # Run these commands to set up automatic cache updates
 
-# Environment variables (add these to your crontab)
+# Environment variables
 
-API_BASE=https://api.temphist.com
-OUTPUT_DIR=/path/to/your/webroot/data
-FIREBASE_SERVICE_ACCOUNT_PATH=/path/to/your/firebase-service-account.json
+# Set these in your .env file in the project directory:
+
+# API_TOKEN=your_api_token_here
+
+# VITE_API_BASE=https://api.temphist.com (or https://devapi.temphist.com for dev)
+
+# OUTPUT_DIR=/path/to/your/webroot/data
+
+# RECOMMENDED: Use PHP scripts (works on servers with limited Node.js support)
+
+# Option 1: Run combined update script (runs both locations and temperature data)
+
+0 _/6 _ \* \* cd /path/to/your/project && bash scripts/update-cache.sh >> /var/log/temphist-cache.log 2>&1
+
+# Option 2: Run scripts separately
 
 # Update locations every 6 hours
 
-0 _/6 _ \* \* cd /path/to/your/project && node scripts/fetch-locations.js >> /var/log/temphist-locations.log 2>&1
+# 0 _/6 _ \* \* cd /path/to/your/project && php scripts/fetch-locations.php >> /var/log/temphist-locations.log 2>&1
 
 # Update temperature data (daily, weekly, monthly, yearly) every day at 3 AM
 
-0 3 \* \* \* cd /path/to/your/project && node scripts/fetch-daily-data.js >> /var/log/temphist-temperature.log 2>&1
+# 0 3 \* \* \* cd /path/to/your/project && php scripts/fetch-daily-data.php >> /var/log/temphist-temperature.log 2>&1
 
-# Or run both together every 6 hours (recommended)
+# ALTERNATIVE: Use Node.js scripts (requires full Node.js support with WebAssembly)
 
-0 _/6 _ \* \* cd /path/to/your/project && node scripts/update-cache.js >> /var/log/temphist-cache.log 2>&1
+# Update locations every 6 hours
+
+# 0 _/6 _ \* \* cd /path/to/your/project && node scripts/fetch-locations.js >> /var/log/temphist-locations.log 2>&1
+
+# Update temperature data every day at 3 AM
+
+# 0 3 \* \* \* cd /path/to/your/project && node scripts/fetch-daily-data.js >> /var/log/temphist-temperature.log 2>&1
 
 # Notes:
 
-# - Replace /path/to/your/project with your actual project path
+# - Replace /path/to/your/project with your actual project path (e.g., /home/user/www/temphist.com/repo)
 
-# - Replace /path/to/your/webroot/data with your actual data directory path
+# - Replace /path/to/your/webroot/data with your actual data directory path (e.g., /home/user/www/temphist.com/public_html/data)
 
-# - Replace /path/to/your/firebase-service-account.json with your Firebase service account path
+# - Ensure .env file exists in project directory with API_TOKEN set
 
 # - Log files will be created automatically
 
 # - Check logs if scripts fail: tail -f /var/log/temphist-\*.log
 
-# - The temperature data script requires Firebase authentication for production API access
+# - The temperature data script requires API_TOKEN for authentication
+
+# - PHP scripts use cURL instead of Node.js fetch/axios to avoid WebAssembly memory issues
