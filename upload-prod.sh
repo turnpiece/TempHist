@@ -13,10 +13,12 @@ echo "=== Building and Uploading to Production Server ==="
 # Set environment variables for production build
 export VITE_API_BASE=https://api.temphist.com
 export VITE_TEST_TOKEN=qrXrUQuLAer4
+export API_TOKEN=r2whxLDXQ35Q
 
 echo "Building project with environment variables..."
 echo "VITE_API_BASE=$VITE_API_BASE"
 echo "VITE_TEST_TOKEN=$VITE_TEST_TOKEN"
+echo "API_TOKEN=$API_TOKEN"
 
 # Build the project
 npm run build

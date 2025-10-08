@@ -13,10 +13,12 @@ echo "=== Building and Uploading to Dev Server ==="
 # Set environment variables for dev build
 export VITE_API_BASE=https://devapi.temphist.com
 export VITE_TEST_TOKEN=qrXrUQuLAer4
+export API_TOKEN=r2whxLDXQ35Q
 
 echo "Building project with environment variables..."
 echo "VITE_API_BASE=$VITE_API_BASE"
 echo "VITE_TEST_TOKEN=$VITE_TEST_TOKEN"
+echo "API_TOKEN=$API_TOKEN"
 
 # Build the project
 npm run build

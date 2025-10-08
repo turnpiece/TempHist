@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import { copyFileSync, readFileSync, writeFileSync } from 'fs'
+import { copyFileSync, readFileSync } from 'fs'
 import { resolve } from 'path'
 
 // Read package.json to get version

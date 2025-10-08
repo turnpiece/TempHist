@@ -22,7 +22,6 @@ export function detectDeviceAndPlatform(): PlatformInfo {
   // Device Type Detection
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   const isTablet = /iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/.test(userAgent);
-  const isDesktop = !isMobile && !isTablet;
   
   // Additional mobile indicators
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;

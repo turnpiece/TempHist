@@ -26,12 +26,9 @@ const CHART_FONT_SIZE_MEDIUM = 12;
 
 // Import types
 import type { 
-  TemperatureDataResponse, 
   ChartDataPoint, 
   AsyncJobResponse,
-  FirebaseUser,
-  PlatformInfo,
-  DataNoticeOptions 
+  FirebaseUser
 } from './types/index.js';
 
 // Global namespace and cache
@@ -47,19 +44,17 @@ window.TempHistViews = window.TempHistViews || {};
 
 // Global loading interval management
 const activeLoadingIntervals = new Set<NodeJS.Timeout>();
-let globalLoadingStartTime: number | null = null;
 let globalLoadingCheckInterval: NodeJS.Timeout | null = null;
 
 // Clear all loading intervals (useful when navigating between pages)
-function clearAllLoadingIntervals(): void {
-  activeLoadingIntervals.forEach(interval => clearInterval(interval));
-  activeLoadingIntervals.clear();
-  if (globalLoadingCheckInterval) {
-    clearInterval(globalLoadingCheckInterval);
-    globalLoadingCheckInterval = null;
+  function clearAllLoadingIntervals(): void {
+    activeLoadingIntervals.forEach(interval => clearInterval(interval));
+    activeLoadingIntervals.clear();
+    if (globalLoadingCheckInterval) {
+      clearInterval(globalLoadingCheckInterval);
+      globalLoadingCheckInterval = null;
+    }
   }
-  globalLoadingStartTime = null;
-}
 
 // Error monitoring and analytics
 window.TempHist.analytics = window.TempHist.analytics || {
@@ -98,6 +93,23 @@ window.DEBUGGING = DEBUGGING;
 window.debugLog = debugLog;
 window.debugTime = debugTime;
 window.debugTimeEnd = debugTimeEnd;
+
+// Helper function to generate location display with edit icon
+function generateLocationDisplayHTML(displayText: string, periodKey: string = ''): string {
+  const buttonId = periodKey ? `changeLocationBtn-${periodKey}` : 'changeLocationBtn';
+  return `
+    ${displayText}
+    <button 
+      id="${buttonId}" 
+      class="location-edit-icon" 
+      title="Change location"
+      aria-label="Change location">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
+      </svg>
+    </button>
+  `;
+}
 
 // Make utility functions globally available
 window.getApiUrl = getApiUrl;
@@ -729,6 +741,21 @@ function clearAllCachedData(): void {
     }
   });
   
+  // Clear text content of summary, average, and trend elements
+  const textElements = [
+    'summaryText', 'avgText', 'trendText',
+    'weekSummaryText', 'weekAvgText', 'weekTrendText',
+    'monthSummaryText', 'monthAvgText', 'monthTrendText',
+    'yearSummaryText', 'yearAvgText', 'yearTrendText'
+  ];
+  
+  textElements.forEach(elementId => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.textContent = '';
+    }
+  });
+  
   // Clear any loading states and error messages
   const loadingElements = document.querySelectorAll('.loading');
   loadingElements.forEach(el => {
@@ -779,6 +806,27 @@ function checkAndHandleDateChange(): boolean {
 }
 
 /**
+ * Helper function to process prefetched period data results
+ */
+function processPrefetchResult(
+  periodName: string,
+  result: PromiseSettledResult<any>,
+  cacheKey: 'week' | 'month' | 'year'
+): void {
+  if (result.status === 'fulfilled') {
+    window.TempHist.cache.prefetch[cacheKey] = result.value.data;
+    debugLog(`Prefetch: ${periodName} data cached successfully`);
+  } else {
+    const isAborted = result.reason?.name === 'AbortError' || result.reason?.message?.includes('aborted');
+    if (isAborted) {
+      debugLog(`Prefetch: ${periodName} data aborted (likely due to navigation)`);
+    } else {
+      debugLog(`Prefetch: ${periodName} data failed`, result.status, result.reason?.message);
+    }
+  }
+}
+
+/**
  * Start prefetching period data (week, month, year) in background
  */
 function startPeriodDataPrefetch(): void {
@@ -822,44 +870,10 @@ function startPeriodDataPrefetch(): void {
         const fetchEndTime = Date.now();
         debugLog('Prefetch: Parallel async jobs completed in', fetchEndTime - fetchStartTime, 'ms');
         
-        // Process weekly data
-        if (weeklyData.status === 'fulfilled') {
-          window.TempHist.cache.prefetch.week = weeklyData.value.data;
-          debugLog('Prefetch: Weekly data cached successfully');
-        } else {
-          const isAborted = weeklyData.reason?.name === 'AbortError' || weeklyData.reason?.message?.includes('aborted');
-          if (isAborted) {
-            debugLog('Prefetch: Weekly data aborted (likely due to navigation)');
-          } else {
-            debugLog('Prefetch: Weekly data failed', weeklyData.status, weeklyData.reason?.message);
-          }
-        }
-        
-        // Process monthly data
-        if (monthlyData.status === 'fulfilled') {
-          window.TempHist.cache.prefetch.month = monthlyData.value.data;
-          debugLog('Prefetch: Monthly data cached successfully');
-        } else {
-          const isAborted = monthlyData.reason?.name === 'AbortError' || monthlyData.reason?.message?.includes('aborted');
-          if (isAborted) {
-            debugLog('Prefetch: Monthly data aborted (likely due to navigation)');
-          } else {
-            debugLog('Prefetch: Monthly data failed', monthlyData.status, monthlyData.reason?.message);
-          }
-        }
-        
-        // Process yearly data
-        if (yearlyData.status === 'fulfilled') {
-          window.TempHist.cache.prefetch.year = yearlyData.value.data;
-          debugLog('Prefetch: Yearly data cached successfully');
-        } else {
-          const isAborted = yearlyData.reason?.name === 'AbortError' || yearlyData.reason?.message?.includes('aborted');
-          if (isAborted) {
-            debugLog('Prefetch: Yearly data aborted (likely due to navigation)');
-          } else {
-            debugLog('Prefetch: Yearly data failed', yearlyData.status, yearlyData.reason?.message);
-          }
-        }
+        // Process all results using helper function
+        processPrefetchResult('Weekly', weeklyData, 'week');
+        processPrefetchResult('Monthly', monthlyData, 'month');
+        processPrefetchResult('Yearly', yearlyData, 'year');
         
       } catch (e: any) {
         debugLog('Prefetch: Period data prefetch error', e.message);
@@ -1010,10 +1024,7 @@ window.mainAppLogic = function(): void {
   }
 
   const barColour = '#ff6b6b';
-  const thisYearColour = '#51cf66';
   const showTrend = true;
-  const trendColour = '#aaaa00';
-  const avgColour = '#4dabf7';
 
   // whether or not to show the chart
   let chart: any;
@@ -1075,14 +1086,12 @@ window.mainAppLogic = function(): void {
     ctx: CanvasRenderingContext2D,
     chartData: ChartDataPoint[],
     averageData: { temp: number },
-    trendData: any,
     periodTitle: string,
     friendlyDate: string,
     minTemp: number,
     maxTemp: number,
     startYear: number,
-    currentYear: number,
-    canvas: HTMLCanvasElement
+    currentYear: number
   ): any {
     const barColour = '#ff6b6b';
     const thisYearColour = '#51cf66';
@@ -1328,21 +1337,16 @@ window.mainAppLogic = function(): void {
       // Add classes based on location source
       locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
       
-      // Show location with "Use my actual location" link if not detected
-      if (window.tempLocationSource !== 'detected') {
-        locationTextElement.innerHTML = `${displayLocation} <a href="#" id="useActualLocationLink-${periodKey}" class="location-link">Use my actual location</a>`;
-        
-        // Add click handler for the link
-        const useActualLocationLink = document.getElementById(`useActualLocationLink-${periodKey}`);
-        if (useActualLocationLink) {
-          useActualLocationLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await handleUseLocationFromMainApp();
-          });
-        }
-      } else {
-        // For detected locations, just show the location without the link
-        locationTextElement.textContent = displayLocation;
+      // Show location with edit icon
+      locationTextElement.innerHTML = generateLocationDisplayHTML(displayLocation, periodKey);
+      
+      // Add click handler for the edit icon
+      const changeLocationBtn = document.getElementById(`changeLocationBtn-${periodKey}`);
+      if (changeLocationBtn) {
+        changeLocationBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          handleChangeLocation();
+        });
       }
     }
     
@@ -1464,14 +1468,12 @@ window.mainAppLogic = function(): void {
         ctx,
         chartData,
         averageData,
-        trendData,
         title,
         friendlyDate,
         minTemp,
         maxTemp,
         minYear,
-        maxYear,
-        canvas
+        maxYear
       );
 
       // Update trend line if enabled
@@ -1654,14 +1656,12 @@ window.mainAppLogic = function(): void {
           ctx,
           chartData,
           averageData,
-          trendData,
           'Today',
           friendlyDate,
           tempRange.min,
           tempRange.max,
           startYear,
-          currentYear,
-          canvasEl as HTMLCanvasElement
+          currentYear
         );
         
         debugTimeEnd('Chart initialization');
@@ -1859,7 +1859,6 @@ window.mainAppLogic = function(): void {
     clearAllLoadingIntervals();
     
     loadingStartTime = Date.now();
-    globalLoadingStartTime = loadingStartTime;
     loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
     globalLoadingCheckInterval = loadingCheckInterval;
     activeLoadingIntervals.add(loadingCheckInterval);
@@ -1920,7 +1919,6 @@ window.mainAppLogic = function(): void {
       loadingCheckInterval = null;
     }
     loadingStartTime = null;
-    globalLoadingStartTime = null;
     globalLoadingCheckInterval = null;
 
     if (loadingEl) {
@@ -1991,27 +1989,22 @@ window.mainAppLogic = function(): void {
       `${cityName} (default location)` : 
       cityName;
     
-    // Create location display with optional "Use my actual location" link
+    // Create location display with edit icon
     const locationTextElement = document.getElementById('locationText');
     if (locationTextElement) {
       // Add classes based on location source
       locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
       
-      // Only show the link if it's not a detected location
-      if (window.tempLocationSource !== 'detected') {
-        locationTextElement.innerHTML = `${locationDisplay} <a href="#" id="useActualLocationLink" class="location-link">Use my actual location</a>`;
-        
-        // Add click handler for the link
-        const useActualLocationLink = document.getElementById('useActualLocationLink');
-        if (useActualLocationLink) {
-          useActualLocationLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await handleUseLocationFromMainApp();
-          });
-        }
-      } else {
-        // For detected locations, just show the location without the link
-        locationTextElement.innerHTML = locationDisplay;
+      // Show location with edit icon
+      locationTextElement.innerHTML = generateLocationDisplayHTML(locationDisplay);
+      
+      // Add click handler for the edit icon
+      const changeLocationBtn = document.getElementById('changeLocationBtn');
+      if (changeLocationBtn) {
+        changeLocationBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          handleChangeLocation();
+        });
       }
     }
     
@@ -2033,60 +2026,42 @@ window.mainAppLogic = function(): void {
     fetchHistoricalData();
   }
 
-  // Handle use location from main app
-  async function handleUseLocationFromMainApp(): Promise<void> {
-    // Get location text element - try different possible IDs
-    let locationTextElement = document.getElementById('locationText') || 
-                             document.getElementById('weekLocationText') || 
-                             document.getElementById('monthLocationText') || 
-                             document.getElementById('yearLocationText');
+  // Handle change location - navigate to splash screen
+  function handleChangeLocation(): void {
+    debugLog('Change location clicked, navigating to splash screen');
     
-    // Show loading state inline next to the location
-    if (locationTextElement) {
-      const originalContent = locationTextElement.innerHTML;
-      locationTextElement.innerHTML = `${originalContent.replace(/<a[^>]*>.*?<\/a>/, '')} <span class="location-detecting">Detecting your location...</span>`;
+    // Show splash screen
+    const splashScreen = document.getElementById('splashScreen');
+    const appShell = document.getElementById('appShell');
+    
+    if (splashScreen) {
+      splashScreen.style.display = 'flex';
+    }
+    if (appShell) {
+      appShell.classList.add('hidden');
     }
     
-    try {
-      // Try geolocation first
-      const location = await detectUserLocationWithGeolocation();
-      if (location) {
-        await proceedWithLocation(location, true, 'detected'); // Mark as detected location
-        return;
-      }
-    } catch (error) {
-      // Only log geolocation errors if IP fallback also fails
-      debugLog('Geolocation failed:', error);
+    // Reset splash screen to initial state
+    const locationLoading = document.getElementById('locationLoading');
+    const splashActions = document.querySelector('.splash-actions');
+    const manualLocationSection = document.getElementById('manualLocationSection');
+    
+    if (locationLoading) locationLoading.style.display = 'none';
+    if (splashActions) (splashActions as HTMLElement).style.display = 'flex';
+    if (manualLocationSection) manualLocationSection.style.display = 'none';
+    
+    // Navigate to today page
+    if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
+      window.TempHistRouter.navigate('/today');
+    } else {
+      window.location.hash = '#/today';
     }
-
-    // If geolocation fails, try IP-based fallback
-    try {
-      const location = await getLocationFromIP();
-      if (location) {
-        await proceedWithLocation(location, true, 'detected'); // Mark as detected location
-        return;
-      }
-    } catch (error) {
-      console.warn('IP-based location failed:', error);
-    }
-
-    // If both fail, show error message inline
-    if (locationTextElement) {
-      const cityName = getDisplayCity(window.tempLocation!);
-      const periodKey = locationTextElement.id.replace('LocationText', '');
-      locationTextElement.innerHTML = `${cityName} <a href="#" id="useActualLocationLink-${periodKey}" class="location-link">Use my actual location</a> <span class="location-error">Unable to detect location</span>`;
-      // Add classes based on location source
-      locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
-      
-      // Re-add click handler
-      const useActualLocationLink = document.getElementById(`useActualLocationLink-${periodKey}`);
-      if (useActualLocationLink) {
-        useActualLocationLink.addEventListener('click', async (e) => {
-          e.preventDefault();
-          await handleUseLocationFromMainApp();
-        });
-      }
-    }
+    
+    // Re-setup splash screen event listeners (in case they were lost)
+    setupSplashScreenListeners();
+    
+    // Prefetch approved locations for selection
+    prefetchApprovedLocations();
   }
 
   // If we already have a location (from splash screen), proceed with data fetching
@@ -2115,7 +2090,6 @@ window.mainAppLogic = function(): void {
 
 // Simple router implementation
 class TempHistRouter {
-  private currentRoute: string = '/today';
   private views: Record<string, { render: () => void | Promise<void> }> = {};
 
   constructor() {
@@ -2141,7 +2115,6 @@ class TempHistRouter {
 
   navigate(path: string): void {
     debugLog('Router navigating to:', path);
-    this.currentRoute = path;
     window.location.hash = `#${path}`;
     this.handleRoute();
   }
@@ -2155,7 +2128,6 @@ class TempHistRouter {
     // Get current route from hash
     const hash = window.location.hash;
     const route = hash === '' ? '/today' : hash.substring(1); // Remove # prefix
-    this.currentRoute = route;
     
     debugLog('Current route:', route);
     
@@ -2240,7 +2212,6 @@ class TempHistRouter {
       // Remove active class from all nav items
       navItems.forEach(item => {
         item.classList.remove('active');
-        debugLog('Removed active class from:', item.getAttribute('data-route') || item.getAttribute('href'));
       });
       
       // Add active class to current route
@@ -2279,7 +2250,6 @@ class TempHistRouter {
   
   registerView(key: string, view: { render: () => void | Promise<void> }): void {
     this.views[key] = view;
-    debugLog('Registered view:', key);
   }
 }
 
