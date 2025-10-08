@@ -111,6 +111,28 @@ function generateLocationDisplayHTML(displayText: string, periodKey: string = ''
   `;
 }
 
+// Helper function to generate context-specific error messages
+function generateErrorMessage(error: unknown): string {
+  // Default message
+  let errorMessage = 'Sorry, there was a problem processing the temperature data. Please try again later.';
+  
+  if (error instanceof Error) {
+    if (error.message.includes('Job failed')) {
+      if (error.message.includes('set_cache_value') || error.message.includes('redis_client')) {
+        errorMessage = 'The server is experiencing technical difficulties with data caching. Please try again in a few minutes.';
+      } else {
+        errorMessage = 'The data processing job failed. This may be due to server issues. Please try again later.';
+      }
+    } else if (error.message.includes('Job polling timed out')) {
+      errorMessage = 'The data processing has timed out. Please try again later.';
+    } else if (error.message.includes('Failed to create job')) {
+      errorMessage = 'Unable to start data processing. Please check your connection and try again.';
+    }
+  }
+  
+  return errorMessage;
+}
+
 // Make utility functions globally available
 window.getApiUrl = getApiUrl;
 window.getCurrentLocation = () => window.tempLocation || 'London, England, United Kingdom';
@@ -1545,11 +1567,14 @@ window.mainAppLogic = function(): void {
       }
       
       const errorContainer = document.getElementById(`${periodKey}ErrorContainer`);
-      const errorMessage = document.getElementById(`${periodKey}ErrorMessage`);
+      const errorMessageElement = document.getElementById(`${periodKey}ErrorMessage`);
       
-      if (errorContainer && errorMessage) {
+      if (errorContainer && errorMessageElement) {
         errorContainer.style.display = 'block';
-        errorMessage.textContent = `Failed to load ${title.toLowerCase()} data. Please try again.`;
+        
+        // Generate context-specific error message
+        const errorMessage = generateErrorMessage(error);
+        errorMessageElement.textContent = errorMessage;
         
         // Add reload button functionality
         const reloadButton = document.getElementById(`${periodKey}ReloadButton`);
@@ -1720,23 +1745,8 @@ window.mainAppLogic = function(): void {
       
       hideChart();
       
-      // Provide more specific error messages based on the error type
-      let errorMessage = 'Sorry, there was a problem processing the temperature data. Please try again later.';
-      
-      if (error instanceof Error) {
-        if (error.message.includes('Job failed')) {
-          if (error.message.includes('set_cache_value') || error.message.includes('redis_client')) {
-            errorMessage = 'The server is experiencing technical difficulties with data caching. Please try again in a few minutes.';
-          } else {
-            errorMessage = 'The data processing job failed. This may be due to server issues. Please try again later.';
-          }
-        } else if (error.message.includes('Job polling timed out')) {
-          errorMessage = 'The data processing has timed out. Please try again later.';
-        } else if (error.message.includes('Failed to create job')) {
-          errorMessage = 'Unable to start data processing. Please check your connection and try again.';
-        }
-      }
-      
+      // Generate context-specific error message
+      const errorMessage = generateErrorMessage(error);
       showError(errorMessage);
     }
 
