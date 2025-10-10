@@ -20,7 +20,8 @@ app.use(express.static('dist', {
 }));
 
 // SPA fallback routing - serve appropriate HTML files
-app.get('*', (req, res) => {
+// Using middleware instead of app.get('*') for Express 5 compatibility
+app.use((req, res, next) => {
   const requestedPath = req.path;
   
   // Handle specific HTML pages
