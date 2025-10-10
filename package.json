@@ -31,6 +31,10 @@
     "url": "https://github.com/turnpiece/TempHist/issues"
   },
   "homepage": "https://github.com/turnpiece/TempHist#readme",
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
+  },
   "dependencies": {
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
