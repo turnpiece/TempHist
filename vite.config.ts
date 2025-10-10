@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import { copyFileSync, readFileSync } from 'fs'
 import { resolve } from 'path'
+import { execSync } from 'child_process'
 
 // Read package.json to get version
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8'))
@@ -37,7 +38,6 @@ export default defineConfig({
         // Copy favicon
         copyFileSync('favicon.ico', 'dist/favicon.ico')
         // Copy assets directory
-        const { execSync } = require('child_process')
         execSync('cp -r assets dist/', { stdio: 'inherit' })
         
         // Copy data directory if it exists

@@ -20,7 +20,7 @@ Railway is now configured to automatically build and deploy your app. Here's wha
 ## Configuration Files
 
 - **`railway.json`**: Tells Railway how to build and start the app
-- **`nixpacks.toml`**: Specifies Node.js 22 for Railway (required for Vite 7)
+- **`nixpacks.toml`**: Specifies Node.js 20 for Railway (Vite 6 compatible)
 - **`server.js`**: Lightweight Express server for all Railway deployments (dev, staging, production)
 - **`server-local.js`**: Local development server with API proxy (not used in Railway)
 
@@ -81,7 +81,7 @@ Set these in your Railway dashboard (under Variables):
 - Check the build logs in Railway dashboard
 - Ensure all dependencies are in `package.json` (not just `devDependencies`)
 - TypeScript compilation might need more memory - Railway provides adequate resources
-- **Node.js version error**: The `nixpacks.toml` file ensures Node.js 22 is used (required for Vite 7)
+- **Node.js version error**: The `nixpacks.toml` file ensures Node.js 20 is used (Vite 6 compatible)
 
 ### App Won't Start
 
