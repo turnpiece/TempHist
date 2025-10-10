@@ -10,6 +10,7 @@
     "test:ui": "vitest --ui",
     "test:watch": "vitest --watch",
     "start": "node server.js",
+    "start:local": "node server-local.js",
     "dev": "vite",
     "build": "npx tsc && npx vite build",
     "type-check": "npx tsc --noEmit",
