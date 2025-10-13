@@ -1,12 +1,11 @@
-name: Update TempHist Cache
+name: Update TempHist Cache (Dev Testing)
 
 on:
-  schedule:
-    # Run fetch-daily-data every hour
-    - cron: "0 * * * *"
-    # Run fetch-locations daily at midnight UTC
-    - cron: "0 0 * * *"
-  workflow_dispatch: # Allow manual runs
+  # Disabled scheduled runs for testing - will enable after moving to main
+  # schedule:
+  #   - cron: "0 * * * *"  # Hourly
+  #   - cron: "0 0 * * *"  # Daily
+  workflow_dispatch: # Manual testing only for now
 
 jobs:
   update-cache:
@@ -27,16 +26,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Update locations (daily only)
-        if: github.event.schedule == '0 0 * * *'
+      - name: Update locations
         run: node scripts/fetch-locations.js
         env:
           VITE_API_BASE: https://temphist-api-develop.up.railway.app
           API_TOKEN: ${{ secrets.API_TOKEN }}
           OUTPUT_DIR: ./public/data
 
-      - name: Update daily data (hourly)
-        if: github.event.schedule == '0 * * * *'
+      - name: Update daily data
         run: node scripts/fetch-daily-data.js
         env:
           VITE_API_BASE: https://temphist-api-develop.up.railway.app
