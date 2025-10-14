@@ -1,0 +1,209 @@
+{
+  "identifier": "10-06",
+  "totalLocations": 20,
+  "successCount": 20,
+  "failureCount": 0,
+  "lastUpdated": "2025-10-06T13:49:20.218Z",
+  "results": [
+    {
+      "location": "London, England, United Kingdom",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "New York, New York, United States",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Paris, Île-de-France, France",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Tokyo, Tokyo, Japan",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Sydney, New South Wales, Australia",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Berlin, Berlin, Germany",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Madrid, Madrid, Spain",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Rome, Lazio, Italy",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Amsterdam, North Holland, Netherlands",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Vancouver, British Columbia, Canada",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Melbourne, Victoria, Australia",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Barcelona, Catalonia, Spain",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Munich, Bavaria, Germany",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Vienna, Vienna, Austria",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Prague, Prague, Czech Republic",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Warsaw, Masovian Voivodeship, Poland",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Stockholm, Stockholm, Sweden",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Copenhagen, Capital Region, Denmark",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Oslo, Oslo, Norway",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    },
+    {
+      "location": "Helsinki, Uusimaa, Finland",
+      "status": "success",
+      "periods": [
+        "daily",
+        "week",
+        "month",
+        "year"
+      ]
+    }
+  ]
+}

@@ -34,6 +34,8 @@ build/
 public/
 !public/data/
 !public/data/*.json
+!public/data/daily-data/
+!public/data/daily-data/*.json
 
 # Test coverage
 coverage/
