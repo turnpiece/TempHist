@@ -357,8 +357,13 @@ async function main() {
     // Ensure output directory exists
     await ensureOutputDir();
     
-    // Define periods to fetch
-    const periods = ['daily', 'week', 'month', 'year'];
+    // Define periods to fetch (can be overridden by PERIODS env var)
+    const defaultPeriods = ['daily', 'week', 'month', 'year'];
+    const periods = process.env.PERIODS ? 
+      process.env.PERIODS.split(',').map(p => p.trim()) : 
+      defaultPeriods;
+    
+    console.log(`📅 Fetching data for periods: ${periods.join(', ')}`);
     
     // Track results
     let successCount = 0;
