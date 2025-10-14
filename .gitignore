@@ -32,6 +32,8 @@ build/
 
 # Cached data files
 public/
+!public/data/
+!public/data/*.json
 
 # Test coverage
 coverage/
