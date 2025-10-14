@@ -56,9 +56,18 @@ jobs:
       - name: Check for changes
         id: check-changes
         run: |
+          echo "=== Change Detection Debug ==="
+          echo "Current directory: $(pwd)"
+          echo "Git status:"
+          git status --porcelain
+          echo "Checking public/data/ for changes:"
+          git diff --name-only public/data/ || echo "No diff command output"
+          echo "Checking if public/data/ has changes:"
           if git diff --quiet public/data/; then
+            echo "No changes detected in public/data/"
             echo "changed=false" >> $GITHUB_OUTPUT
           else
+            echo "Changes detected in public/data/"
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
