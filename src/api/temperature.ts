@@ -222,7 +222,49 @@ export async function pollJobStatus(
 }
 
 /**
- * Fetch temperature data using async jobs
+ * Fetch temperature data using synchronous endpoint (fallback)
+ */
+export async function fetchTemperatureDataSync(
+  period: 'daily' | 'week' | 'month' | 'year',
+  location: string,
+  identifier: string
+): Promise<JobResultResponse> {
+  const apiPeriod = period === 'week' ? 'weekly' : 
+                   period === 'month' ? 'monthly' : 
+                   period === 'year' ? 'yearly' : 
+                   'daily';
+  
+  const syncUrl = getApiUrl(`/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}`);
+  
+  try {
+    debugLog(`Falling back to synchronous API for ${period} data...`);
+    const response = await apiFetch(syncUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Synchronous API failed: HTTP ${response.status}`);
+    }
+
+    const data: TemperatureDataResponse = await response.json();
+    
+    // Wrap the response in the same format as async job results
+    return {
+      cache_key: `sync_fallback_${Date.now()}`,
+      etag: `"sync_${Date.now()}"`,
+      data: data,
+      computed_at: new Date().toISOString()
+    };
+  } catch (error) {
+    throw new Error(`Synchronous fallback failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Fetch temperature data using async jobs with sync fallback
  */
 export async function fetchTemperatureDataAsync(
   period: 'daily' | 'week' | 'month' | 'year',
@@ -231,15 +273,37 @@ export async function fetchTemperatureDataAsync(
   onProgress?: (status: AsyncJobResponse) => void
 ): Promise<JobResultResponse> {
   try {
+    // Try async job first
+    debugLog(`Attempting async fetch for ${period} data...`);
+    
     // Create the async job
     const jobId = await createAsyncJob(period, location, identifier);
     
     // Poll for completion with progress updates
     const result = await pollJobStatus(jobId, onProgress);
     
+    debugLog(`Async fetch successful for ${period} data`);
     return result;
   } catch (error) {
-    throw new Error(`Temperature data fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Check if it's a timeout or job failure that we should fall back from
+    if (errorMessage.includes('timed out') || errorMessage.includes('Job polling failed') || errorMessage.includes('Job failed')) {
+      debugLog(`Async job failed (${errorMessage}), falling back to synchronous API...`);
+      
+      try {
+        // Fall back to synchronous API
+        const fallbackResult = await fetchTemperatureDataSync(period, location, identifier);
+        debugLog(`Synchronous fallback successful for ${period} data`);
+        return fallbackResult;
+      } catch (fallbackError) {
+        // If both async and sync fail, throw the original async error with fallback info
+        throw new Error(`Temperature data fetch failed: ${errorMessage}. Sync fallback also failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`);
+      }
+    } else {
+      // For other errors (like network issues), don't fall back - just throw
+      throw new Error(`Temperature data fetch failed: ${errorMessage}`);
+    }
   }
 }
 

@@ -255,6 +255,19 @@ app.use("/api", cronRoutes);
 - Build-time vars (VITE\_\*): Must be set BEFORE building
 - If you change VITE\_\* vars, trigger a new deployment to rebuild
 
+### API Resilience Features
+
+TempHist includes built-in resilience features:
+
+**Async Job Fallback**: If async temperature data jobs timeout or fail, the app automatically falls back to synchronous API calls. This ensures users always get data even if the background job system is having issues.
+
+**Error Handling**: The app gracefully handles various failure modes:
+
+- Network timeouts
+- API server errors
+- Job worker failures
+- Authentication issues
+
 ### CORS Errors (Preflight Failed)
 
 If you see errors like "Preflight response is not successful" or "Failed to load resource: Preflight response is not successful. Status code: 400":
