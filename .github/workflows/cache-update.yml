@@ -26,6 +26,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Debug repository state
+        run: |
+          echo "=== Repository Debug Info ==="
+          echo "Current directory: $(pwd)"
+          echo "Git status:"
+          git status --porcelain
+          echo "Git log (last 3 commits):"
+          git log --oneline -3
+          echo "Files in repo:"
+          find . -name "*.js" -type f | head -10
+          echo "Scripts directory:"
+          ls -la scripts/ 2>/dev/null || echo "Scripts directory not found"
+
       - name: Update locations
         run: node scripts/fetch-locations.js
         env:
