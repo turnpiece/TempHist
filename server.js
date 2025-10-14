@@ -24,6 +24,15 @@ app.use(express.static('dist', {
 app.use((req, res, next) => {
   const requestedPath = req.path;
   
+  // Exclude data files and API routes from SPA routing
+  if (requestedPath.startsWith('/data/') || 
+      requestedPath.startsWith('/api/') ||
+      requestedPath.endsWith('.json') ||
+      requestedPath.endsWith('.xml') ||
+      requestedPath.endsWith('.csv')) {
+    return res.status(404).send('File not found');
+  }
+  
   // Handle specific HTML pages
   if (requestedPath === '/about' || requestedPath === '/about.html') {
     return res.sendFile(path.join(__dirname, 'dist', 'about.html'));
