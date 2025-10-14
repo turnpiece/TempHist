@@ -52,6 +52,7 @@ jobs:
           VITE_API_BASE: https://temphist-api-develop.up.railway.app
           API_TOKEN: ${{ secrets.API_TOKEN }}
           OUTPUT_DIR: ./public/data
+          PERIODS: "daily" # Only fetch daily data to reduce API calls
 
       - name: Check for changes
         id: check-changes
