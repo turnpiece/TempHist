@@ -1,0 +1,1143 @@
+{
+  "location": "Helsinki, Uusimaa, Finland",
+  "identifier": "10-06",
+  "data": {
+    "daily": {
+      "period": "daily",
+      "location": "Helsinki, Uusimaa, Finland",
+      "identifier": "10-06",
+      "range": {
+        "start": "1975-10-06",
+        "end": "2025-10-06",
+        "years": 51
+      },
+      "unit_group": "celsius",
+      "values": [
+        {
+          "date": "1975-10-06",
+          "year": 1975,
+          "temperature": 9.9
+        },
+        {
+          "date": "1976-10-06",
+          "year": 1976,
+          "temperature": 3.3
+        },
+        {
+          "date": "1977-10-06",
+          "year": 1977,
+          "temperature": 6.4
+        },
+        {
+          "date": "1978-10-06",
+          "year": 1978,
+          "temperature": 3.9
+        },
+        {
+          "date": "1979-10-06",
+          "year": 1979,
+          "temperature": 3.5
+        },
+        {
+          "date": "1980-10-06",
+          "year": 1980,
+          "temperature": 8.3
+        },
+        {
+          "date": "1981-10-06",
+          "year": 1981,
+          "temperature": 10.6
+        },
+        {
+          "date": "1982-10-06",
+          "year": 1982,
+          "temperature": 7.2
+        },
+        {
+          "date": "1983-10-06",
+          "year": 1983,
+          "temperature": 8.4
+        },
+        {
+          "date": "1984-10-06",
+          "year": 1984,
+          "temperature": 11
+        },
+        {
+          "date": "1985-10-06",
+          "year": 1985,
+          "temperature": 10.3
+        },
+        {
+          "date": "1986-10-06",
+          "year": 1986,
+          "temperature": 3.6
+        },
+        {
+          "date": "1987-10-06",
+          "year": 1987,
+          "temperature": 9.1
+        },
+        {
+          "date": "1988-10-06",
+          "year": 1988,
+          "temperature": 9.7
+        },
+        {
+          "date": "1989-10-06",
+          "year": 1989,
+          "temperature": 3.1
+        },
+        {
+          "date": "1990-10-06",
+          "year": 1990,
+          "temperature": 8.5
+        },
+        {
+          "date": "1991-10-06",
+          "year": 1991,
+          "temperature": 10.9
+        },
+        {
+          "date": "1992-10-06",
+          "year": 1992,
+          "temperature": 7.4
+        },
+        {
+          "date": "1993-10-06",
+          "year": 1993,
+          "temperature": 9.9
+        },
+        {
+          "date": "1994-10-06",
+          "year": 1994,
+          "temperature": 4.2
+        },
+        {
+          "date": "1995-10-06",
+          "year": 1995,
+          "temperature": 10.9
+        },
+        {
+          "date": "1996-10-06",
+          "year": 1996,
+          "temperature": 9.7
+        },
+        {
+          "date": "1997-10-06",
+          "year": 1997,
+          "temperature": 5.3
+        },
+        {
+          "date": "1998-10-06",
+          "year": 1998,
+          "temperature": 2.9
+        },
+        {
+          "date": "1999-10-06",
+          "year": 1999,
+          "temperature": 10.5
+        },
+        {
+          "date": "2000-10-06",
+          "year": 2000,
+          "temperature": 11.9
+        },
+        {
+          "date": "2001-10-06",
+          "year": 2001,
+          "temperature": 9.4
+        },
+        {
+          "date": "2002-10-06",
+          "year": 2002,
+          "temperature": 1.7
+        },
+        {
+          "date": "2003-10-06",
+          "year": 2003,
+          "temperature": 8.3
+        },
+        {
+          "date": "2004-10-06",
+          "year": 2004,
+          "temperature": 12.2
+        },
+        {
+          "date": "2005-10-06",
+          "year": 2005,
+          "temperature": 11.5
+        },
+        {
+          "date": "2006-10-06",
+          "year": 2006,
+          "temperature": 11.2
+        },
+        {
+          "date": "2007-10-06",
+          "year": 2007,
+          "temperature": 11.5
+        },
+        {
+          "date": "2008-10-06",
+          "year": 2008,
+          "temperature": 10.4
+        },
+        {
+          "date": "2009-10-06",
+          "year": 2009,
+          "temperature": 5
+        },
+        {
+          "date": "2010-10-06",
+          "year": 2010,
+          "temperature": 9.2
+        },
+        {
+          "date": "2011-10-06",
+          "year": 2011,
+          "temperature": 11.8
+        },
+        {
+          "date": "2012-10-06",
+          "year": 2012,
+          "temperature": 9.4
+        },
+        {
+          "date": "2013-10-06",
+          "year": 2013,
+          "temperature": 11.4
+        },
+        {
+          "date": "2014-10-06",
+          "year": 2014,
+          "temperature": 7.7
+        },
+        {
+          "date": "2015-10-06",
+          "year": 2015,
+          "temperature": 3.1
+        },
+        {
+          "date": "2016-10-06",
+          "year": 2016,
+          "temperature": 6.2
+        },
+        {
+          "date": "2017-10-06",
+          "year": 2017,
+          "temperature": 7.8
+        },
+        {
+          "date": "2018-10-06",
+          "year": 2018,
+          "temperature": 9.5
+        },
+        {
+          "date": "2019-10-06",
+          "year": 2019,
+          "temperature": 3.7
+        },
+        {
+          "date": "2020-10-06",
+          "year": 2020,
+          "temperature": 14.2
+        },
+        {
+          "date": "2021-10-06",
+          "year": 2021,
+          "temperature": 12
+        },
+        {
+          "date": "2022-10-06",
+          "year": 2022,
+          "temperature": 12.9
+        },
+        {
+          "date": "2023-10-06",
+          "year": 2023,
+          "temperature": 7.1
+        },
+        {
+          "date": "2024-10-06",
+          "year": 2024,
+          "temperature": 11.7
+        },
+        {
+          "date": "2025-10-06",
+          "year": 2025,
+          "temperature": 10.9
+        }
+      ],
+      "average": {
+        "mean": 8.4,
+        "unit": "celsius",
+        "data_points": 51
+      },
+      "trend": {
+        "slope": 0.62,
+        "unit": "°C/decade",
+        "data_points": 51,
+        "r_squared": null
+      },
+      "summary": "10.9°C. It's colder than last year but not as cold as 2023. However, Today is 2.5°C warmer than average.",
+      "metadata": {
+        "period_days": 1,
+        "end_date": "2025-10-06"
+      }
+    },
+    "week": {
+      "period": "weekly",
+      "location": "Helsinki, Uusimaa, Finland",
+      "identifier": "10-06",
+      "range": {
+        "start": "1975-10-06",
+        "end": "2025-10-06",
+        "years": 51
+      },
+      "unit_group": "celsius",
+      "values": [
+        {
+          "date": "1975-10-06",
+          "year": 1975,
+          "temperature": 9.6
+        },
+        {
+          "date": "1976-10-06",
+          "year": 1976,
+          "temperature": 4.8
+        },
+        {
+          "date": "1977-10-06",
+          "year": 1977,
+          "temperature": 4.8
+        },
+        {
+          "date": "1978-10-06",
+          "year": 1978,
+          "temperature": 4.9
+        },
+        {
+          "date": "1979-10-06",
+          "year": 1979,
+          "temperature": 4.5
+        },
+        {
+          "date": "1980-10-06",
+          "year": 1980,
+          "temperature": 8.4
+        },
+        {
+          "date": "1981-10-06",
+          "year": 1981,
+          "temperature": 11.7
+        },
+        {
+          "date": "1982-10-06",
+          "year": 1982,
+          "temperature": 8.9
+        },
+        {
+          "date": "1983-10-06",
+          "year": 1983,
+          "temperature": 6.7
+        },
+        {
+          "date": "1984-10-06",
+          "year": 1984,
+          "temperature": 11
+        },
+        {
+          "date": "1985-10-06",
+          "year": 1985,
+          "temperature": 10.8
+        },
+        {
+          "date": "1986-10-06",
+          "year": 1986,
+          "temperature": 6.3
+        },
+        {
+          "date": "1987-10-06",
+          "year": 1987,
+          "temperature": 7.8
+        },
+        {
+          "date": "1988-10-06",
+          "year": 1988,
+          "temperature": 9.1
+        },
+        {
+          "date": "1989-10-06",
+          "year": 1989,
+          "temperature": 5.1
+        },
+        {
+          "date": "1990-10-06",
+          "year": 1990,
+          "temperature": 6.2
+        },
+        {
+          "date": "1991-10-06",
+          "year": 1991,
+          "temperature": 9.6
+        },
+        {
+          "date": "1992-10-06",
+          "year": 1992,
+          "temperature": 6.9
+        },
+        {
+          "date": "1993-10-06",
+          "year": 1993,
+          "temperature": 5.9
+        },
+        {
+          "date": "1994-10-06",
+          "year": 1994,
+          "temperature": 5.6
+        },
+        {
+          "date": "1995-10-06",
+          "year": 1995,
+          "temperature": 9.7
+        },
+        {
+          "date": "1996-10-06",
+          "year": 1996,
+          "temperature": 9.3
+        },
+        {
+          "date": "1997-10-06",
+          "year": 1997,
+          "temperature": 6.8
+        },
+        {
+          "date": "1998-10-06",
+          "year": 1998,
+          "temperature": 4.2
+        },
+        {
+          "date": "1999-10-06",
+          "year": 1999,
+          "temperature": 12.9
+        },
+        {
+          "date": "2000-10-06",
+          "year": 2000,
+          "temperature": 12.5
+        },
+        {
+          "date": "2001-10-06",
+          "year": 2001,
+          "temperature": 10.1
+        },
+        {
+          "date": "2002-10-06",
+          "year": 2002,
+          "temperature": 5
+        },
+        {
+          "date": "2003-10-06",
+          "year": 2003,
+          "temperature": 9.2
+        },
+        {
+          "date": "2004-10-06",
+          "year": 2004,
+          "temperature": 9.1
+        },
+        {
+          "date": "2005-10-06",
+          "year": 2005,
+          "temperature": 11.1
+        },
+        {
+          "date": "2006-10-06",
+          "year": 2006,
+          "temperature": 12.3
+        },
+        {
+          "date": "2007-10-06",
+          "year": 2007,
+          "temperature": 12
+        },
+        {
+          "date": "2008-10-06",
+          "year": 2008,
+          "temperature": 9.9
+        },
+        {
+          "date": "2009-10-06",
+          "year": 2009,
+          "temperature": 5.9
+        },
+        {
+          "date": "2010-10-06",
+          "year": 2010,
+          "temperature": 8.8
+        },
+        {
+          "date": "2011-10-06",
+          "year": 2011,
+          "temperature": 11.8
+        },
+        {
+          "date": "2012-10-06",
+          "year": 2012,
+          "temperature": 11.5
+        },
+        {
+          "date": "2013-10-06",
+          "year": 2013,
+          "temperature": 7.6
+        },
+        {
+          "date": "2014-10-06",
+          "year": 2014,
+          "temperature": 8.8
+        },
+        {
+          "date": "2015-10-06",
+          "year": 2015,
+          "temperature": 10
+        },
+        {
+          "date": "2016-10-06",
+          "year": 2016,
+          "temperature": 8.8
+        },
+        {
+          "date": "2017-10-06",
+          "year": 2017,
+          "temperature": 9.3
+        },
+        {
+          "date": "2018-10-06",
+          "year": 2018,
+          "temperature": 8.1
+        },
+        {
+          "date": "2019-10-06",
+          "year": 2019,
+          "temperature": 5.9
+        },
+        {
+          "date": "2020-10-06",
+          "year": 2020,
+          "temperature": 13.3
+        },
+        {
+          "date": "2021-10-06",
+          "year": 2021,
+          "temperature": 11
+        },
+        {
+          "date": "2022-10-06",
+          "year": 2022,
+          "temperature": 9.5
+        },
+        {
+          "date": "2023-10-06",
+          "year": 2023,
+          "temperature": 11.4
+        },
+        {
+          "date": "2024-10-06",
+          "year": 2024,
+          "temperature": 8.1
+        },
+        {
+          "date": "2025-10-06",
+          "year": 2025,
+          "temperature": 7.5
+        }
+      ],
+      "average": {
+        "mean": 8.6,
+        "unit": "celsius",
+        "data_points": 51
+      },
+      "trend": {
+        "slope": 0.57,
+        "unit": "°C/decade",
+        "data_points": 51,
+        "r_squared": null
+      },
+      "summary": "7.5°C. This has been the coldest week ending 6th October since 2019. it was 1.2°C cooler than average.",
+      "metadata": {
+        "period_days": 7,
+        "end_date": "2025-10-06"
+      }
+    },
+    "month": {
+      "period": "monthly",
+      "location": "Helsinki, Uusimaa, Finland",
+      "identifier": "10-06",
+      "range": {
+        "start": "1975-10-06",
+        "end": "2025-10-06",
+        "years": 51
+      },
+      "unit_group": "celsius",
+      "values": [
+        {
+          "date": "1975-10-06",
+          "year": 1975,
+          "temperature": 11.9
+        },
+        {
+          "date": "1976-10-06",
+          "year": 1976,
+          "temperature": 9
+        },
+        {
+          "date": "1977-10-06",
+          "year": 1977,
+          "temperature": 6.6
+        },
+        {
+          "date": "1978-10-06",
+          "year": 1978,
+          "temperature": 8
+        },
+        {
+          "date": "1979-10-06",
+          "year": 1979,
+          "temperature": 9
+        },
+        {
+          "date": "1980-10-06",
+          "year": 1980,
+          "temperature": 10.8
+        },
+        {
+          "date": "1981-10-06",
+          "year": 1981,
+          "temperature": 10.6
+        },
+        {
+          "date": "1982-10-06",
+          "year": 1982,
+          "temperature": 10.3
+        },
+        {
+          "date": "1983-10-06",
+          "year": 1983,
+          "temperature": 10.5
+        },
+        {
+          "date": "1984-10-06",
+          "year": 1984,
+          "temperature": 10.5
+        },
+        {
+          "date": "1985-10-06",
+          "year": 1985,
+          "temperature": 9.7
+        },
+        {
+          "date": "1986-10-06",
+          "year": 1986,
+          "temperature": 7
+        },
+        {
+          "date": "1987-10-06",
+          "year": 1987,
+          "temperature": 9.5
+        },
+        {
+          "date": "1988-10-06",
+          "year": 1988,
+          "temperature": 10.2
+        },
+        {
+          "date": "1989-10-06",
+          "year": 1989,
+          "temperature": 10.5
+        },
+        {
+          "date": "1990-10-06",
+          "year": 1990,
+          "temperature": 8.1
+        },
+        {
+          "date": "1991-10-06",
+          "year": 1991,
+          "temperature": 10.4
+        },
+        {
+          "date": "1992-10-06",
+          "year": 1992,
+          "temperature": 10.9
+        },
+        {
+          "date": "1993-10-06",
+          "year": 1993,
+          "temperature": 6.9
+        },
+        {
+          "date": "1994-10-06",
+          "year": 1994,
+          "temperature": 10.3
+        },
+        {
+          "date": "1995-10-06",
+          "year": 1995,
+          "temperature": 10.8
+        },
+        {
+          "date": "1996-10-06",
+          "year": 1996,
+          "temperature": 9.3
+        },
+        {
+          "date": "1997-10-06",
+          "year": 1997,
+          "temperature": 9.8
+        },
+        {
+          "date": "1998-10-06",
+          "year": 1998,
+          "temperature": 10.5
+        },
+        {
+          "date": "1999-10-06",
+          "year": 1999,
+          "temperature": 11.7
+        },
+        {
+          "date": "2000-10-06",
+          "year": 2000,
+          "temperature": 9.4
+        },
+        {
+          "date": "2001-10-06",
+          "year": 2001,
+          "temperature": 12
+        },
+        {
+          "date": "2002-10-06",
+          "year": 2002,
+          "temperature": 8.4
+        },
+        {
+          "date": "2003-10-06",
+          "year": 2003,
+          "temperature": 12.7
+        },
+        {
+          "date": "2004-10-06",
+          "year": 2004,
+          "temperature": 11.6
+        },
+        {
+          "date": "2005-10-06",
+          "year": 2005,
+          "temperature": 12.4
+        },
+        {
+          "date": "2006-10-06",
+          "year": 2006,
+          "temperature": 13
+        },
+        {
+          "date": "2007-10-06",
+          "year": 2007,
+          "temperature": 10.9
+        },
+        {
+          "date": "2008-10-06",
+          "year": 2008,
+          "temperature": 10
+        },
+        {
+          "date": "2009-10-06",
+          "year": 2009,
+          "temperature": 11.8
+        },
+        {
+          "date": "2010-10-06",
+          "year": 2010,
+          "temperature": 11.2
+        },
+        {
+          "date": "2011-10-06",
+          "year": 2011,
+          "temperature": 13.2
+        },
+        {
+          "date": "2012-10-06",
+          "year": 2012,
+          "temperature": 12.1
+        },
+        {
+          "date": "2013-10-06",
+          "year": 2013,
+          "temperature": 11.6
+        },
+        {
+          "date": "2014-10-06",
+          "year": 2014,
+          "temperature": 10.7
+        },
+        {
+          "date": "2015-10-06",
+          "year": 2015,
+          "temperature": 12.1
+        },
+        {
+          "date": "2016-10-06",
+          "year": 2016,
+          "temperature": 12.3
+        },
+        {
+          "date": "2017-10-06",
+          "year": 2017,
+          "temperature": 11.4
+        },
+        {
+          "date": "2018-10-06",
+          "year": 2018,
+          "temperature": 12.9
+        },
+        {
+          "date": "2019-10-06",
+          "year": 2019,
+          "temperature": 9.1
+        },
+        {
+          "date": "2020-10-06",
+          "year": 2020,
+          "temperature": 13.4
+        },
+        {
+          "date": "2021-10-06",
+          "year": 2021,
+          "temperature": 10
+        },
+        {
+          "date": "2022-10-06",
+          "year": 2022,
+          "temperature": 10.9
+        },
+        {
+          "date": "2023-10-06",
+          "year": 2023,
+          "temperature": 14.1
+        },
+        {
+          "date": "2024-10-06",
+          "year": 2024,
+          "temperature": 13.3
+        },
+        {
+          "date": "2025-10-06",
+          "year": 2025,
+          "temperature": 12.6
+        }
+      ],
+      "average": {
+        "mean": 10.7,
+        "unit": "celsius",
+        "data_points": 51
+      },
+      "trend": {
+        "slope": 0.69,
+        "unit": "°C/decade",
+        "data_points": 51,
+        "r_squared": null
+      },
+      "summary": "12.6°C. This has been the coldest month ending 6th October since 2022. However, it was 1.9°C warmer than average.",
+      "metadata": {
+        "period_days": 30,
+        "end_date": "2025-10-06"
+      }
+    },
+    "year": {
+      "period": "yearly",
+      "location": "Helsinki, Uusimaa, Finland",
+      "identifier": "10-06",
+      "range": {
+        "start": "1975-10-06",
+        "end": "2025-10-06",
+        "years": 51
+      },
+      "unit_group": "celsius",
+      "values": [
+        {
+          "date": "1975-10-06",
+          "year": 1975,
+          "temperature": 6.2
+        },
+        {
+          "date": "1976-10-06",
+          "year": 1976,
+          "temperature": 0.5
+        },
+        {
+          "date": "1977-10-06",
+          "year": 1977,
+          "temperature": 1.8
+        },
+        {
+          "date": "1978-10-06",
+          "year": 1978,
+          "temperature": 5.2
+        },
+        {
+          "date": "1979-10-06",
+          "year": 1979,
+          "temperature": 5.5
+        },
+        {
+          "date": "1980-10-06",
+          "year": 1980,
+          "temperature": 7.2
+        },
+        {
+          "date": "1981-10-06",
+          "year": 1981,
+          "temperature": 5
+        },
+        {
+          "date": "1982-10-06",
+          "year": 1982,
+          "temperature": 6
+        },
+        {
+          "date": "1983-10-06",
+          "year": 1983,
+          "temperature": 6.6
+        },
+        {
+          "date": "1984-10-06",
+          "year": 1984,
+          "temperature": 5.8
+        },
+        {
+          "date": "1985-10-06",
+          "year": 1985,
+          "temperature": 3.2
+        },
+        {
+          "date": "1986-10-06",
+          "year": 1986,
+          "temperature": 3.9
+        },
+        {
+          "date": "1987-10-06",
+          "year": 1987,
+          "temperature": 2
+        },
+        {
+          "date": "1988-10-06",
+          "year": 1988,
+          "temperature": 8.2
+        },
+        {
+          "date": "1989-10-06",
+          "year": 1989,
+          "temperature": 7.2
+        },
+        {
+          "date": "1990-10-06",
+          "year": 1990,
+          "temperature": 4.5
+        },
+        {
+          "date": "1991-10-06",
+          "year": 1991,
+          "temperature": 6.1
+        },
+        {
+          "date": "1992-10-06",
+          "year": 1992,
+          "temperature": 6.1
+        },
+        {
+          "date": "1993-10-06",
+          "year": 1993,
+          "temperature": 4
+        },
+        {
+          "date": "1994-10-06",
+          "year": 1994,
+          "temperature": 8.7
+        },
+        {
+          "date": "1995-10-06",
+          "year": 1995,
+          "temperature": 6.3
+        },
+        {
+          "date": "1996-10-06",
+          "year": 1996,
+          "temperature": 5.8
+        },
+        {
+          "date": "1997-10-06",
+          "year": 1997,
+          "temperature": 5.9
+        },
+        {
+          "date": "1998-10-06",
+          "year": 1998,
+          "temperature": 6.5
+        },
+        {
+          "date": "1999-10-06",
+          "year": 1999,
+          "temperature": 7.8
+        },
+        {
+          "date": "2000-10-06",
+          "year": 2000,
+          "temperature": 6.9
+        },
+        {
+          "date": "2001-10-06",
+          "year": 2001,
+          "temperature": 5.9
+        },
+        {
+          "date": "2002-10-06",
+          "year": 2002,
+          "temperature": 6.8
+        },
+        {
+          "date": "2003-10-06",
+          "year": 2003,
+          "temperature": 6.1
+        },
+        {
+          "date": "2004-10-06",
+          "year": 2004,
+          "temperature": 6.2
+        },
+        {
+          "date": "2005-10-06",
+          "year": 2005,
+          "temperature": 7.5
+        },
+        {
+          "date": "2006-10-06",
+          "year": 2006,
+          "temperature": 6.7
+        },
+        {
+          "date": "2007-10-06",
+          "year": 2007,
+          "temperature": 8.4
+        },
+        {
+          "date": "2008-10-06",
+          "year": 2008,
+          "temperature": 7.8
+        },
+        {
+          "date": "2009-10-06",
+          "year": 2009,
+          "temperature": 6.1
+        },
+        {
+          "date": "2010-10-06",
+          "year": 2010,
+          "temperature": 6.3
+        },
+        {
+          "date": "2011-10-06",
+          "year": 2011,
+          "temperature": 3.4
+        },
+        {
+          "date": "2012-10-06",
+          "year": 2012,
+          "temperature": 5
+        },
+        {
+          "date": "2013-10-06",
+          "year": 2013,
+          "temperature": 6
+        },
+        {
+          "date": "2014-10-06",
+          "year": 2014,
+          "temperature": 4.2
+        },
+        {
+          "date": "2015-10-06",
+          "year": 2015,
+          "temperature": 7.3
+        },
+        {
+          "date": "2016-10-06",
+          "year": 2016,
+          "temperature": 3.1
+        },
+        {
+          "date": "2017-10-06",
+          "year": 2017,
+          "temperature": 5.4
+        },
+        {
+          "date": "2018-10-06",
+          "year": 2018,
+          "temperature": 9.1
+        },
+        {
+          "date": "2019-10-06",
+          "year": 2019,
+          "temperature": 4.7
+        },
+        {
+          "date": "2020-10-06",
+          "year": 2020,
+          "temperature": 8.1
+        },
+        {
+          "date": "2021-10-06",
+          "year": 2021,
+          "temperature": 5.4
+        },
+        {
+          "date": "2022-10-06",
+          "year": 2022,
+          "temperature": 7.6
+        },
+        {
+          "date": "2023-10-06",
+          "year": 2023,
+          "temperature": 8.4
+        },
+        {
+          "date": "2024-10-06",
+          "year": 2024,
+          "temperature": 5.4
+        },
+        {
+          "date": "2025-10-06",
+          "year": 2025,
+          "temperature": 10.2
+        }
+      ],
+      "average": {
+        "mean": 6,
+        "unit": "celsius",
+        "data_points": 204
+      },
+      "trend": {
+        "slope": 0.47,
+        "unit": "°C/decade",
+        "data_points": 51,
+        "r_squared": null
+      },
+      "summary": "10.2°C. This has been the warmest year ending 6th October on record. it was 4.3°C warmer than average.",
+      "metadata": {
+        "period_days": 365,
+        "end_date": "2025-10-06"
+      }
+    }
+  },
+  "lastUpdated": "2025-10-06T13:49:18.218Z"
+}
