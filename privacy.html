@@ -3,10 +3,62 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TempHist &ndash; Privacy Policy</title>
-    <link rel="stylesheet" href="styles.min.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <title>TempHist - privacy policy</title>
+    <link rel="stylesheet" href="styles.scss">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "TempHist Privacy Policy",
+      "description": "Privacy policy for TempHist - learn how we handle your location data and privacy.",
+      "url": "https://temphist.com/privacy",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "TempHist",
+        "url": "https://temphist.com"
+      },
+      "about": {
+        "@type": "WebApplication",
+        "name": "TempHist",
+        "description": "Daily temperature history chart showing how today's temperature compares to the same date over the past 50 years for your location.",
+        "url": "https://temphist.com",
+        "applicationCategory": "WeatherApplication",
+        "author": {
+          "@type": "Organization",
+          "name": "Turnpiece"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Turnpiece",
+          "url": "https://turnpiece.com"
+        }
+      },
+      "breadcrumb": {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://temphist.com"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Privacy Policy",
+            "item": "https://temphist.com/privacy"
+          }
+        ]
+      },
+      "dateModified": "2024-01-01",
+      "inLanguage": "en-US"
+    }
+    </script>
     </head>
-  <body>
+  <body class="privacy-page">
     <header id="header">
       <div class="header-left">
         <a href="/">
@@ -34,7 +86,7 @@
           <li><a href="/#/month" data-route="/month">Past month</a></li>
           <li><a href="/#/year" data-route="/year">Past year</a></li>
           <li><a href="/about" data-route="/about">About</a></li>
-          <li><a href="/privacy" data-route="/privacy">Privacy</a></li>
+          <li><a href="/privacy" data-route="/privacy" class="active">Privacy</a></li>
         </ul>
       </nav>
 
@@ -50,10 +102,13 @@
             <p>TempHist does not collect, store, or share any personal information.</p>
 
             <h3>Location use</h3>
-            <p>If you grant permission, the app uses your current location once to retrieve historical weather data for your area. Location data is never stored or shared.</p>
+            <p>If you grant permission, the app uses your current location once to retrieve historical weather data for your area. Location data is never shared but is temporarily stored in a cookie on your machine for one hour.</p>
+
+            <h3>Third-party services</h3>
+            <p>TempHist uses Firebase for anonymous authentication and may set third-party cookies from Google services. These cookies are used solely for authentication purposes and do not track personal information.</p>
 
             <h3>No tracking or analytics</h3>
-            <p>The app does not include analytics, advertising, or third-party tracking.</p>
+            <p>The app does not include analytics, advertising or third-party tracking beyond the authentication service mentioned above.</p>
 
             <h3>Data sources</h3>
             <p>Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted providers. Requests are processed anonymously.</p>
@@ -66,7 +121,6 @@
     </div>
 
     
-    <script type="module" src="/app.js" defer></script>
-    <script src="router.js" defer></script>
+    <script type="module" src="/src/main.ts" defer></script>
   </body>
 </html>

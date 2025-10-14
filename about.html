@@ -3,10 +3,55 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TempHist &ndash; About</title>
-    <link rel="stylesheet" href="styles.min.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <title>TempHist - about</title>
+    <link rel="stylesheet" href="styles.scss">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "AboutPage",
+      "name": "About TempHist",
+      "description": "Learn about TempHist, a web application that shows historical temperature data and comparisons for your location.",
+      "url": "https://temphist.com/about",
+      "mainEntity": {
+        "@type": "WebApplication",
+        "name": "TempHist",
+        "description": "Daily temperature history chart showing how today's temperature compares to the same date over the past 50 years for your location.",
+        "url": "https://temphist.com",
+        "applicationCategory": "WeatherApplication",
+        "author": {
+          "@type": "Organization",
+          "name": "Turnpiece"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Turnpiece",
+          "url": "https://turnpiece.com"
+        }
+      },
+      "breadcrumb": {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://temphist.com"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "About",
+            "item": "https://temphist.com/about"
+          }
+        ]
+      }
+    }
+    </script>
     </head>
-  <body>
+  <body class="about-page">
     <header id="header">
       <div class="header-left">
         <a href="/">
@@ -33,7 +78,7 @@
           <li><a href="/#/week" data-route="/week">Past week</a></li>
           <li><a href="/#/month" data-route="/month">Past month</a></li>
           <li><a href="/#/year" data-route="/year">Past year</a></li>
-          <li><a href="/about" data-route="/about">About</a></li>
+          <li><a href="/about" data-route="/about" class="active">About</a></li>
           <li><a href="/privacy" data-route="/privacy">Privacy</a></li>
         </ul>
       </nav>
@@ -42,26 +87,25 @@
         <div id="content">
           <div class="container">
             <h2>About TempHist</h2>
-            <p>TempHist shows you how today's temperature compares to the same date over the past 50 years.</p>
+            <p>TempHist shows you how today's temperature compares to the same date over the past 50 years. It can also compare this past week, month or year with the same period over the past 50 years.</p>
 
             <h3>How it works</h3>
-            <p>TempHist uses your location to fetch historical weather data and displays it in an easy-to-read chart. Each bar represents the temperature on this date in a different year, with the current year highlighted in green.</p>
+            <p>TempHist uses your location to fetch historical weather data and displays it in an easy-to-read chart. Each bar represents the temperature on this date, or this past week/month/year, in a different year, with the current year highlighted in green.</p>
 
             <h3>Data sources</h3>
             <p>Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted meteorological providers.</p>
 
             <h3>Privacy</h3>
-            <p>TempHist respects your privacy. We don't collect, store, or share any personal information. Location data is used only once to fetch weather data and is never stored.</p>
+            <p>TempHist respects your privacy. We don't collect, store, or share any personal information. Location data is used only once to fetch weather data.</p>
 
             <h3>Contact</h3>
-            <p>TempHist is operated by Turnpiece Ltd. For questions or feedback, please visit <a href="https://turnpiece.com">https://turnpiece.com</a>.</p>
+            <p>TempHist is operated by Turnpiece Ltd. For questions or feedback, please visit <a href="https://turnpiece.com">turnpiece.com</a>.</p>
           </div>
         </div>
       </main>
     </div>
 
     
-    <script type="module" src="/app.js" defer></script>
-    <script src="router.js" defer></script>
+    <script type="module" src="/src/main.ts" defer></script>
   </body>
 </html>
