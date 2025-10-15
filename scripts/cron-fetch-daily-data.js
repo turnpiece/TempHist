@@ -138,10 +138,31 @@ async function fetchLocationsFromAPI() {
     }
 
     const data = response.data;
+    debugLog(`📊 API Response structure:`, Object.keys(data));
+    debugLog(`📊 Locations array length:`, data.locations?.length);
+    debugLog(`📊 First location example:`, data.locations?.[0]);
+    
     if (data.locations && Array.isArray(data.locations)) {
+      // Extract location strings from the response
+      const locationStrings = data.locations.map((loc, index) => {
+        if (typeof loc === 'string') {
+          return loc;
+        } else if (typeof loc === 'object' && loc.identifier) {
+          return loc.identifier;
+        } else if (typeof loc === 'object' && loc.location) {
+          return loc.location;
+        } else {
+          debugLog(`⚠️ Unexpected location format at index ${index}:`, loc);
+          return String(loc);
+        }
+      });
+      
+      debugLog(`📊 Extracted ${locationStrings.length} location strings`);
+      debugLog(`📊 First extracted location:`, locationStrings[0]);
+      
       // Save the locations file for future use
       await saveLocationsFile(data);
-      return data.locations;
+      return locationStrings;
     } else {
       throw new Error('Invalid API response format');
     }
@@ -334,7 +355,19 @@ async function main() {
     const locations = await loadLocations();
     
     // Ensure output directory exists
+    debugLog(`📁 Ensuring output directory exists: ${RAILWAY_DATA_DIR}`);
     await fs.mkdir(RAILWAY_DATA_DIR, { recursive: true });
+    
+    // Verify directory was created
+    try {
+      const stats = await fs.stat(RAILWAY_DATA_DIR);
+      if (!stats.isDirectory()) {
+        throw new Error(`Output directory path exists but is not a directory: ${RAILWAY_DATA_DIR}`);
+      }
+      debugLog(`✅ Output directory verified: ${RAILWAY_DATA_DIR}`);
+    } catch (statError) {
+      throw new Error(`Failed to create or verify output directory: ${RAILWAY_DATA_DIR} - ${statError.message}`);
+    }
     
     // Track results
     let successCount = 0;
@@ -343,13 +376,15 @@ async function main() {
     // Process each location
     for (const location of locations) {
       try {
-        debugLog(`\n📍 Processing: ${location}`);
+        // Ensure location is a string
+        const locationString = typeof location === 'string' ? location : String(location);
+        debugLog(`\n📍 Processing: ${locationString}`);
         
         // Fetch daily data (using sync API for speed)
-        const data = await fetchDailyData(location, identifier);
+        const data = await fetchDailyData(locationString, identifier);
         
         if (data) {
-          await saveLocationData(location, data, identifier);
+          await saveLocationData(locationString, data, identifier);
           successCount++;
         } else {
           failureCount++;
@@ -359,7 +394,8 @@ async function main() {
         await new Promise(resolve => setTimeout(resolve, 1000));
         
       } catch (error) {
-        errorLog(`❌ Error processing ${location}:`, error.message);
+        const locationString = typeof location === 'string' ? location : String(location);
+        errorLog(`❌ Error processing ${locationString}:`, error.message);
         
         // If it's a rate limit error, exit immediately
         if (error.message.includes('Rate limit exceeded')) {
