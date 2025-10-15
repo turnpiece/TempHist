@@ -93,8 +93,106 @@ async function loadLocations() {
     }
   } catch (error) {
     errorLog('❌ Failed to load locations:', error.message);
+    
+    // If file doesn't exist, try to fetch locations from API as fallback
+    if (error.code === 'ENOENT') {
+      log('📡 Locations file not found, attempting to fetch from API...');
+      try {
+        const locations = await fetchLocationsFromAPI();
+        if (locations && locations.length > 0) {
+          log(`✅ Successfully fetched ${locations.length} locations from API as fallback`);
+          return locations;
+        }
+      } catch (apiError) {
+        errorLog('❌ Failed to fetch locations from API:', apiError.message);
+        
+        // Last resort: use hardcoded fallback locations
+        log('🆘 Using hardcoded fallback locations...');
+        return getFallbackLocations();
+      }
+    }
+    
     throw error;
   }
+}
+
+async function fetchLocationsFromAPI() {
+  try {
+    if (!API_TOKEN) {
+      throw new Error('API_TOKEN environment variable is required');
+    }
+
+    const url = `${API_BASE}/v1/locations/preapproved`;
+    debugLog(`📡 Fetching locations from API: ${url}`);
+    
+    const response = await axios.get(url, {
+      timeout: 30000,
+      headers: {
+        'Authorization': `Bearer ${API_TOKEN}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status !== 200) {
+      throw new Error(`API returned status ${response.status}`);
+    }
+
+    const data = response.data;
+    if (data.locations && Array.isArray(data.locations)) {
+      // Save the locations file for future use
+      await saveLocationsFile(data);
+      return data.locations;
+    } else {
+      throw new Error('Invalid API response format');
+    }
+    
+  } catch (error) {
+    errorLog('❌ Failed to fetch locations from API:', error.message);
+    throw error;
+  }
+}
+
+async function saveLocationsFile(data) {
+  try {
+    // Ensure output directory exists
+    await fs.mkdir(RAILWAY_DATA_DIR, { recursive: true });
+    
+    const outputPath = path.join(RAILWAY_DATA_DIR, 'preapproved-locations.json');
+    await fs.writeFile(outputPath, JSON.stringify(data, null, 2));
+    debugLog(`💾 Locations file saved: ${outputPath}`);
+  } catch (error) {
+    errorLog('⚠️ Failed to save locations file:', error.message);
+    // Don't throw here, as the main goal is to get the locations data
+  }
+}
+
+function getFallbackLocations() {
+  // Hardcoded fallback locations in case API is unavailable
+  const fallbackLocations = [
+    'london__england__united_kingdom',
+    'new_york__new_york__united_states',
+    'paris___le_de_france__france',
+    'tokyo__tokyo__japan',
+    'sydney__new_south_wales__australia',
+    'berlin__berlin__germany',
+    'madrid__madrid__spain',
+    'rome__lazio__italy',
+    'amsterdam__north_holland__netherlands',
+    'stockholm__stockholm__sweden',
+    'copenhagen__capital_region__denmark',
+    'oslo__oslo__norway',
+    'helsinki__uusimaa__finland',
+    'vienna__vienna__austria',
+    'prague__prague__czech_republic',
+    'warsaw__masovian_voivodeship__poland',
+    'barcelona__catalonia__spain',
+    'munich__bavaria__germany',
+    'melbourne__victoria__australia',
+    'vancouver__british_columbia__canada'
+  ];
+  
+  log(`🆘 Using ${fallbackLocations.length} hardcoded fallback locations`);
+  return fallbackLocations;
 }
 
 async function fetchDailyData(location, identifier) {

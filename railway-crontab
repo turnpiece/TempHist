@@ -34,17 +34,21 @@
 
 # 3. Add two cron jobs:
 
-# CRON JOB 1 (Locations):
+# CRON JOB 1 (Locations) - Run first to create locations file:
 
-# - Schedule: 0 0 \* \* \*
+# - Schedule: 0 0 \* \* \* (daily at midnight)
 
 # - Custom Start Command: node scripts/cron-fetch-locations.js
 
-# CRON JOB 2 (Daily Data):
+# CRON JOB 2 (Daily Data) - Can run independently with fallback:
 
-# - Schedule: 0 \* \* \* \*
+# - Schedule: 0 \* \* \* \* (hourly)
 
 # - Custom Start Command: node scripts/cron-fetch-daily-data.js
+
+# Note: The daily data script now has fallback mechanisms to fetch locations
+
+# from the API if the locations file doesn't exist, so it can run independently.
 
 # 4. Set the environment variables in the "Variables" tab
 
