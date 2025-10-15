@@ -82,9 +82,27 @@ async function fetchDailyData(location, identifier) {
     if (error.response) {
       console.error(`📊 Response status: ${error.response.status}`);
       console.error(`📄 Response data:`, error.response.data);
+      
+      // Handle rate limiting (429) - exit immediately
+      if (error.response.status === 429) {
+        console.error(`🚫 Rate limit exceeded for ${location}. Exiting to avoid further rate limit violations.`);
+        throw new Error(`Rate limit exceeded: ${error.response.data?.detail || 'Too many requests'}`);
+      }
+      
+      // Handle authentication errors (401/403) - continue with other locations
+      if (error.response.status === 401 || error.response.status === 403) {
+        console.error(`🔐 Authentication failed for ${location}. This may indicate an API token issue.`);
+        return null;
+      }
     }
     if (error.code) {
       console.error(`🔧 Error code: ${error.code}`);
+      
+      // Handle connection errors - these might be temporary
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+        console.error(`🌐 Connection error for ${location}. This may be a temporary network issue.`);
+        return null;
+      }
     }
     return null;
   }
@@ -158,6 +176,14 @@ async function main() {
         
       } catch (error) {
         console.error(`❌ Error processing ${location}:`, error.message);
+        
+        // If it's a rate limit error, exit immediately
+        if (error.message.includes('Rate limit exceeded')) {
+          console.error(`🚫 Rate limit exceeded. Stopping processing to avoid further violations.`);
+          console.error(`📊 Processed ${successCount} locations successfully before rate limit hit.`);
+          process.exit(1);
+        }
+        
         failureCount++;
       }
     }

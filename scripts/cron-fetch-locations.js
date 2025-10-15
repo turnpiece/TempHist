@@ -92,9 +92,25 @@ async function fetchLocations() {
     if (error.response) {
       console.error(`📊 Response status: ${error.response.status}`);
       console.error(`📄 Response data:`, error.response.data);
+      
+      // Handle rate limiting (429) - exit immediately
+      if (error.response.status === 429) {
+        console.error(`🚫 Rate limit exceeded. Exiting to avoid further rate limit violations.`);
+        throw new Error(`Rate limit exceeded: ${error.response.data?.detail || 'Too many requests'}`);
+      }
+      
+      // Handle authentication errors (401/403) - use fallback
+      if (error.response.status === 401 || error.response.status === 403) {
+        console.error(`🔐 Authentication failed. This may indicate an API token issue.`);
+      }
     }
     if (error.code) {
       console.error(`🔧 Error code: ${error.code}`);
+      
+      // Handle connection errors - these might be temporary
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+        console.error(`🌐 Connection error. This may be a temporary network issue.`);
+      }
     }
     
     try {
@@ -121,6 +137,13 @@ async function fetchLocations() {
       
     } catch (fallbackError) {
       console.error('❌ Railway cron job failed completely:', fallbackError.message);
+      
+      // If it's a rate limit error, exit with specific code
+      if (fallbackError.message.includes('Rate limit exceeded')) {
+        console.error(`🚫 Rate limit exceeded. Cannot proceed with fallback either.`);
+        process.exit(1);
+      }
+      
       process.exit(1);
     }
   }
