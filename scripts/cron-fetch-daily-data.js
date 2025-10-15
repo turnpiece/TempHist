@@ -20,6 +20,9 @@ const LOCATIONS_FILE = 'preapproved-locations.json';
 console.log('🚀 Starting Railway cron job: fetch-daily-data');
 console.log(`📡 API Base: ${API_BASE}`);
 console.log(`📂 Output Dir: ${OUTPUT_DIR}`);
+console.log(`🔑 API Token: ${API_TOKEN ? `${API_TOKEN.substring(0, 8)}...` : 'NOT SET'}`);
+console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`📋 All env vars starting with VITE_:`, Object.keys(process.env).filter(key => key.startsWith('VITE_')).map(key => `${key}=${process.env[key]}`));
 
 async function loadLocations() {
   try {
@@ -49,6 +52,9 @@ async function fetchDailyData(location, identifier) {
     const url = `${API_BASE}/v1/records/daily/${encodeURIComponent(location)}/${identifier}`;
     
     console.log(`📡 Fetching daily data for: ${location}`);
+    console.log(`🔗 Full URL: ${url}`);
+    console.log(`🔑 API Token: ${API_TOKEN.substring(0, 8)}...`);
+    console.log(`🌐 API Base: ${API_BASE}`);
     
     const response = await axios.get(url, {
       timeout: 30000,
@@ -58,6 +64,9 @@ async function fetchDailyData(location, identifier) {
       }
     });
 
+    console.log(`✅ Response status: ${response.status}`);
+    console.log(`📊 Response data keys: ${Object.keys(response.data || {}).join(', ')}`);
+
     if (response.status !== 200) {
       throw new Error(`API returned status ${response.status}`);
     }
@@ -66,6 +75,13 @@ async function fetchDailyData(location, identifier) {
     
   } catch (error) {
     console.error(`❌ Failed to fetch data for ${location}:`, error.message);
+    if (error.response) {
+      console.error(`📊 Response status: ${error.response.status}`);
+      console.error(`📄 Response data:`, error.response.data);
+    }
+    if (error.code) {
+      console.error(`🔧 Error code: ${error.code}`);
+    }
     return null;
   }
 }
