@@ -13,6 +13,17 @@ const axios = require('axios');
 
 // Configuration
 const API_BASE = process.env.VITE_API_BASE || 'https://temphist-api-develop.up.railway.app';
+
+// For Railway cron jobs, use public API if internal URL fails
+const getApiBase = () => {
+  const base = process.env.VITE_API_BASE || 'https://temphist-api-develop.up.railway.app';
+  // If it's an internal Railway URL and we're in production, try public URL first
+  if (base.includes('.railway.internal') && process.env.NODE_ENV === 'production') {
+    console.log('🔄 Internal Railway URL detected, using public API URL for cron job');
+    return 'https://temphist-api-develop.up.railway.app';
+  }
+  return base;
+};
 const API_TOKEN = process.env.API_TOKEN;
 const OUTPUT_DIR = './dist/data'; // Write directly to dist for serving
 const LOCATIONS_FILE = 'preapproved-locations.json';
@@ -53,12 +64,13 @@ async function fetchDailyData(location, identifier) {
     }
 
     // Use sync API for faster execution in cron jobs
-    const url = `${API_BASE}/v1/records/daily/${encodeURIComponent(location)}/${identifier}`;
+    const apiBase = getApiBase();
+    const url = `${apiBase}/v1/records/daily/${encodeURIComponent(location)}/${identifier}`;
     
     console.log(`📡 Fetching daily data for: ${location}`);
     console.log(`🔗 Full URL: ${url}`);
     console.log(`🔑 API Token: ${API_TOKEN.substring(0, 8)}...`);
-    console.log(`🌐 API Base: ${API_BASE}`);
+    console.log(`🌐 API Base: ${apiBase}`);
     
     const response = await axios.get(url, {
       timeout: 30000,
