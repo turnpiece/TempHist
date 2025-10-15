@@ -19,6 +19,24 @@ console.log('🚀 Starting Railway cron job: fetch-locations');
 console.log(`📡 API Base: ${API_BASE}`);
 console.log(`📂 Output Dir: ${OUTPUT_DIR}`);
 
+async function loadFallbackLocations() {
+  try {
+    const fallbackPath = path.join(OUTPUT_DIR, 'preapproved-locations.json');
+    const data = await fs.readFile(fallbackPath, 'utf8');
+    const parsed = JSON.parse(data);
+    
+    if (parsed.locations && Array.isArray(parsed.locations)) {
+      console.log(`📖 Loaded ${parsed.locations.length} fallback locations from file`);
+      return parsed.locations;
+    } else {
+      throw new Error('Invalid fallback locations file format');
+    }
+  } catch (error) {
+    console.error('❌ Failed to load fallback locations:', error.message);
+    throw error;
+  }
+}
+
 async function fetchLocations() {
   try {
     if (!API_TOKEN) {
@@ -40,7 +58,7 @@ async function fetchLocations() {
     }
 
     const data = response.data;
-    console.log(`✅ Fetched ${data.locations?.length || 0} locations`);
+    console.log(`✅ Fetched ${data.locations?.length || 0} locations from API`);
 
     // Ensure output directory exists
     await fs.mkdir(OUTPUT_DIR, { recursive: true });
@@ -56,8 +74,34 @@ async function fetchLocations() {
     process.exit(0);
     
   } catch (error) {
-    console.error('❌ Railway cron job failed:', error.message);
-    process.exit(1);
+    console.error('❌ API fetch failed, using fallback locations:', error.message);
+    
+    try {
+      // Load fallback locations from existing file
+      const fallbackLocations = await loadFallbackLocations();
+      
+      // Ensure output directory exists
+      await fs.mkdir(OUTPUT_DIR, { recursive: true });
+      
+      // Save fallback locations with updated timestamp
+      const outputPath = path.join(OUTPUT_DIR, 'preapproved-locations.json');
+      const fallbackData = {
+        locations: fallbackLocations,
+        lastUpdated: new Date().toISOString(),
+        count: fallbackLocations.length,
+        source: 'fallback'
+      };
+      
+      await fs.writeFile(outputPath, JSON.stringify(fallbackData, null, 2));
+      console.log(`💾 Fallback locations saved to: ${outputPath}`);
+      console.log('✅ Railway cron job completed with fallback data');
+      
+      process.exit(0);
+      
+    } catch (fallbackError) {
+      console.error('❌ Railway cron job failed completely:', fallbackError.message);
+      process.exit(1);
+    }
   }
 }
 

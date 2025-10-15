@@ -15,29 +15,24 @@ const API_BASE = process.env.VITE_API_BASE || 'https://api.temphist.com';
 const OUTPUT_DIR = process.env.OUTPUT_DIR || './public/data';
 const LOCATIONS_FILE = 'preapproved-locations.json';
 
-// Fallback locations if API fails
-const fallbackLocations = [
-  'London, England, United Kingdom',
-  'New York, New York, United States',
-  'Paris, Île-de-France, France',
-  'Tokyo, Tokyo, Japan',
-  'Sydney, New South Wales, Australia',
-  'Berlin, Berlin, Germany',
-  'Madrid, Madrid, Spain',
-  'Rome, Lazio, Italy',
-  'Amsterdam, North Holland, Netherlands',
-  'Vancouver, British Columbia, Canada',
-  'Melbourne, Victoria, Australia',
-  'Barcelona, Catalonia, Spain',
-  'Munich, Bavaria, Germany',
-  'Vienna, Vienna, Austria',
-  'Prague, Prague, Czech Republic',
-  'Warsaw, Masovian Voivodeship, Poland',
-  'Stockholm, Stockholm, Sweden',
-  'Copenhagen, Capital Region, Denmark',
-  'Oslo, Oslo, Norway',
-  'Helsinki, Uusimaa, Finland'
-];
+// Load fallback locations from existing file
+async function loadFallbackLocations() {
+  try {
+    const fallbackPath = path.join(OUTPUT_DIR, LOCATIONS_FILE);
+    const data = await fs.readFile(fallbackPath, 'utf8');
+    const parsed = JSON.parse(data);
+    
+    if (parsed.locations && Array.isArray(parsed.locations)) {
+      console.log(`📖 Loaded ${parsed.locations.length} fallback locations from file`);
+      return parsed.locations;
+    } else {
+      throw new Error('Invalid fallback locations file format');
+    }
+  } catch (error) {
+    console.error('❌ Failed to load fallback locations:', error.message);
+    throw error;
+  }
+}
 
 async function ensureOutputDir() {
   try {
@@ -65,12 +60,12 @@ async function fetchLocationsFromAPI() {
       return response.data.locations;
     } else {
       console.log('⚠️ API returned invalid data structure, using fallback locations');
-      return fallbackLocations;
+      return await loadFallbackLocations();
     }
   } catch (error) {
     console.error('❌ Failed to fetch locations from API:', error.message);
-    console.log('🔄 Using fallback locations');
-    return fallbackLocations;
+    console.log('🔄 Using fallback locations from file');
+    return await loadFallbackLocations();
   }
 }
 
@@ -81,7 +76,7 @@ async function saveLocationsToFile(locations) {
       locations: locations,
       lastUpdated: new Date().toISOString(),
       count: locations.length,
-      source: locations === fallbackLocations ? 'fallback' : 'api'
+      source: 'api' // Will be updated to 'fallback' if needed
     };
     
     await fs.writeFile(outputPath, JSON.stringify(data, null, 2));
@@ -126,4 +121,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { fetchLocationsFromAPI, saveLocationsToFile, fallbackLocations };
+module.exports = { fetchLocationsFromAPI, saveLocationsToFile, loadFallbackLocations };
