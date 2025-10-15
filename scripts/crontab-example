@@ -32,9 +32,9 @@
 
 # 0 3 \* \* \* cd /path/to/your/project && php scripts/cron-fetch-daily-data.php >> /var/log/temphist-temperature.log 2>&1
 
-# OPTION 3: Run combined update script (runs both locations and temperature data)
+# Note: Combined update scripts have been removed in favor of separate cron schedules
 
-# 0 _/6 _ \* \* cd /path/to/your/project && bash scripts/update-cache.sh >> /var/log/temphist-cache.log 2>&1
+# This allows for more flexible scheduling and better error isolation
 
 # Notes:
 

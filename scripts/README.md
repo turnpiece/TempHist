@@ -4,53 +4,74 @@ This directory contains scripts for server-side caching of TempHist data to impr
 
 ## Overview
 
-The caching system consists of three main scripts:
+The caching system consists of two main script types:
 
-1. **`fetch-locations.js`** - Fetches preapproved locations from the API and saves them to a static JSON file
-2. **`fetch-daily-data.js`** - Prefetches daily temperature data for all locations
-3. **`update-cache.js`** - Combined script that runs both location and daily data fetching
+### Node.js Scripts (Recommended for Railway, Vercel, etc.)
+
+1. **`cron-fetch-locations.js`** - Fetches preapproved locations from the API and saves them to a static JSON file
+2. **`cron-fetch-daily-data.js`** - Prefetches daily temperature data for all locations
+
+### PHP Scripts (Alternative for traditional servers)
+
+1. **`cron-fetch-locations.php`** - PHP version of locations fetcher
+2. **`cron-fetch-daily-data.php`** - PHP version of daily data fetcher
 
 ## Scripts
 
-### fetch-locations.js
+### Node.js Scripts
 
-Fetches preapproved locations from the API and saves them to `/public/data/preapproved-locations.json`.
+#### cron-fetch-locations.js
+
+Fetches preapproved locations from the API and saves them to `/dist/data/preapproved-locations.json`.
 
 **Usage:**
 
 ```bash
-node scripts/fetch-locations.js
+node scripts/cron-fetch-locations.js
 ```
 
 **Output:**
 
-- Creates `/public/data/preapproved-locations.json` with locations data
+- Creates `/dist/data/preapproved-locations.json` with locations data
 - Includes metadata: lastUpdated, count, source (api/fallback)
+- Uses file-based fallback if API fails
 
-### fetch-daily-data.js
+#### cron-fetch-daily-data.js
 
 Prefetches daily temperature data for all preapproved locations and saves them to individual JSON files.
 
 **Usage:**
 
 ```bash
-node scripts/fetch-daily-data.js
+node scripts/cron-fetch-daily-data.js
 ```
 
 **Output:**
 
-- Creates `/public/data/daily-data/` directory
+- Creates `/dist/data/daily-data/` directory
 - Saves individual files: `{location}_{date}.json`
 - Creates summary file: `summary_{date}.json`
 
-### update-cache.js
+### PHP Scripts
 
-Runs both location and daily data fetching scripts in sequence.
+#### cron-fetch-locations.php
+
+PHP version of the locations fetcher for traditional servers.
 
 **Usage:**
 
 ```bash
-node scripts/update-cache.js
+php scripts/cron-fetch-locations.php
+```
+
+#### cron-fetch-daily-data.php
+
+PHP version of the daily data fetcher for traditional servers.
+
+**Usage:**
+
+```bash
+php scripts/cron-fetch-daily-data.php
 ```
 
 ## Configuration
@@ -61,53 +82,55 @@ Create a `.env` file or set these environment variables:
 
 ```bash
 # API Configuration
-API_BASE=https://api.temphist.com
+VITE_API_BASE=https://api.temphist.com
+API_TOKEN=your_api_token_here
 
 # Output Configuration
-OUTPUT_DIR=./public/data
-
-# Server Configuration (for update-cache.js)
-SERVER_URL=https://temphist.com
+OUTPUT_DIR=./dist/data
 ```
 
 ### Default Values
 
-- `API_BASE`: `https://api.temphist.com`
-- `OUTPUT_DIR`: `./public/data`
-- `SERVER_URL`: `https://temphist.com`
+- `VITE_API_BASE`: `https://api.temphist.com` (or `https://temphist-api-develop.up.railway.app` for dev)
+- `API_TOKEN`: Required for API authentication
+- `OUTPUT_DIR`: `./dist/data` (Node.js) or `./public/data` (PHP)
 
 ## Cron Job Setup
 
-### Basic Setup (Locations Only)
+### Railway Deployment (Recommended)
+
+For Railway deployment, use separate cron services:
+
+#### Locations Cron Service
+
+- **Start Command**: `npm run cron:locations`
+- **Schedule**: `0 0 * * *` (daily at midnight UTC)
+
+#### Daily Data Cron Service
+
+- **Start Command**: `npm run cron:daily-data`
+- **Schedule**: `0 * * * *` (hourly)
+
+### Traditional Server Setup
+
+#### Node.js Scripts
 
 ```bash
-# Fetch locations every 6 hours (with logging)
-0 */6 * * * cd /path/to/temphist && node scripts/fetch-locations.js >> /path/to/temphist/logs/temphist-locations.log 2>&1
+# Fetch locations daily at midnight UTC
+0 0 * * * cd /path/to/temphist && node scripts/cron-fetch-locations.js >> /var/log/temphist-locations.log 2>&1
 
-# Or fetch daily at 2 AM
-0 2 * * * cd /path/to/temphist && node scripts/fetch-locations.js >> /path/to/temphist/logs/temphist-locations.log 2>&1
+# Fetch daily data hourly
+0 * * * * cd /path/to/temphist && node scripts/cron-fetch-daily-data.js >> /var/log/temphist-temperature.log 2>&1
 ```
 
-### Advanced Setup (Locations + Daily Data)
+#### PHP Scripts
 
 ```bash
-# Update all cache data every 6 hours
-0 */6 * * * cd /path/to/temphist && node scripts/update-cache.js >> /path/to/temphist/logs/temphist-cache.log 2>&1
+# Fetch locations daily at midnight UTC
+0 0 * * * cd /path/to/temphist && php scripts/cron-fetch-locations.php >> /var/log/temphist-locations.log 2>&1
 
-# Or update daily at 2 AM
-0 2 * * * cd /path/to/temphist && node scripts/update-cache.js >> /path/to/temphist/logs/temphist-cache.log 2>&1
-```
-
-### Production Setup
-
-For production, you might want to run locations more frequently than daily data:
-
-```bash
-# Fetch locations every 2 hours
-0 */2 * * * cd /path/to/temphist && node scripts/fetch-locations.js >> /path/to/temphist/logs/temphist-locations.log 2>&1
-
-# Fetch daily data once per day at 3 AM
-0 3 * * * cd /path/to/temphist && node scripts/fetch-daily-data.js >> /path/to/temphist/logs/temphist-daily.log 2>&1
+# Fetch daily data daily at 3 AM
+0 3 * * * cd /path/to/temphist && php scripts/cron-fetch-daily-data.php >> /var/log/temphist-temperature.log 2>&1
 ```
 
 ### Log Rotation (Optional)
@@ -126,22 +149,30 @@ To prevent logs from growing too large, add log rotation:
 
 After running the scripts, your directory structure will look like:
 
+### Railway Deployment
+
 ```
-/home/u22-lgxgqxwpxieh/www/
-├── dev.temphist.com/
-│   ├── repo/                    # Git repository (gets overwritten on deploy)
-│   │   ├── scripts/
-│   │   └── public/data/         # Cached data (copied to web root)
-│   ├── logs/                    # Logs directory (persistent across deployments)
-│   │   ├── temphist-locations.log
-│   │   ├── temphist-daily.log
-│   │   └── temphist-cache.log
-│   └── public_html/             # Web root
-│       └── data/                # Cached data served to users
-└── temphist.com/                # Production (same structure)
-    ├── repo/
-    ├── logs/
-    └── public_html/
+dist/
+├── data/
+│   ├── preapproved-locations.json    # Locations data
+│   └── daily-data/                   # Daily temperature data
+│       ├── london__england__united_kingdom_10-15.json
+│       ├── new_york__new_york__united_states_10-15.json
+│       └── summary_10-15.json
+└── [other build files...]
+```
+
+### Traditional Server
+
+```
+public/
+├── data/
+│   ├── preapproved-locations.json    # Locations data
+│   └── daily-data/                   # Daily temperature data
+│       ├── london__england__united_kingdom_10-15.json
+│       ├── new_york__new_york__united_states_10-15.json
+│       └── summary_10-15.json
+└── [other web files...]
 ```
 
 ## Client-Side Integration
@@ -205,20 +236,23 @@ DEBUG=1 node scripts/fetch-locations.js
 Test individual scripts:
 
 ```bash
-# Test locations fetching
-node scripts/fetch-locations.js
+# Test locations fetching (Node.js)
+node scripts/cron-fetch-locations.js
 
-# Test daily data fetching (requires locations file)
-node scripts/fetch-daily-data.js
+# Test daily data fetching (Node.js)
+node scripts/cron-fetch-daily-data.js
 
-# Test combined update
-node scripts/update-cache.js
+# Test locations fetching (PHP)
+php scripts/cron-fetch-locations.php
+
+# Test daily data fetching (PHP)
+php scripts/cron-fetch-daily-data.php
 ```
 
 ### Local Development
 
-For local development, set API_BASE to your local API:
+For local development, set VITE_API_BASE to your local API:
 
 ```bash
-API_BASE=http://localhost:8000 node scripts/fetch-locations.js
+VITE_API_BASE=http://localhost:8000 node scripts/cron-fetch-locations.js
 ```
