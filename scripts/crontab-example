@@ -1,8 +1,32 @@
 # TempHist Cache Update Cron Jobs
 
-# Run these commands to set up automatic cache updates
+# RAILWAY SETUP (Recommended)
 
-# Environment variables
+# Set these environment variables in your Railway dashboard:
+
+# VITE_API_BASE=https://devapi.temphist.com (or https://api.temphist.com for production)
+
+# API_TOKEN=your_api_token_here
+
+# DEBUG_LOGGING=true (optional, for debugging)
+
+# Railway Cron Jobs:
+
+# Create two separate cron jobs in Railway dashboard:
+
+# CRON JOB 1 (Locations):
+
+# - Schedule: 0 0 \* \* \*
+
+# - Custom Start Command: node scripts/cron-fetch-locations.js
+
+# CRON JOB 2 (Daily Data):
+
+# - Schedule: 0 \* \* \* \*
+
+# - Custom Start Command: node scripts/cron-fetch-daily-data.js
+
+# TRADITIONAL SERVER SETUP
 
 # Set these in your .env file in the project directory:
 
@@ -11,8 +35,6 @@
 # VITE_API_BASE=https://api.temphist.com (or https://devapi.temphist.com for dev)
 
 # OUTPUT_DIR=/path/to/your/webroot/data
-
-# OPTION 1: Use Node.js scripts (recommended for Railway, Vercel, etc.)
 
 # Update locations daily at midnight UTC
 

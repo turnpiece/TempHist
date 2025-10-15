@@ -13,7 +13,11 @@ const axios = require('axios');
 // Configuration
 const API_BASE = process.env.VITE_API_BASE || 'https://temphist-api-develop.up.railway.app';
 const API_TOKEN = process.env.API_TOKEN;
-const OUTPUT_DIR = './dist/data'; // Write directly to dist for serving
+const OUTPUT_DIR = process.env.OUTPUT_DIR || './dist/data'; // Allow override via environment variable
+
+// Railway-specific configuration
+const IS_RAILWAY = process.env.RAILWAY_ENVIRONMENT !== undefined;
+const RAILWAY_DATA_DIR = IS_RAILWAY ? '/app/data' : OUTPUT_DIR;
 
 // Debug logging control
 const DEBUGGING = process.env.DEBUG_LOGGING === 'true' || process.env.NODE_ENV !== 'production';
@@ -35,7 +39,8 @@ function errorLog(...args) {
 
 log('🚀 Starting cron job: fetch-locations');
 log(`📡 API Base: ${API_BASE}`);
-log(`📂 Output Dir: ${OUTPUT_DIR}`);
+log(`📂 Output Dir: ${RAILWAY_DATA_DIR}`);
+log(`🚂 Railway Environment: ${IS_RAILWAY ? 'Yes' : 'No'}`);
 debugLog(`🔑 API Token: ${API_TOKEN ? `${API_TOKEN.substring(0, 8)}...` : 'NOT SET'}`);
 debugLog(`🔑 API Token Length: ${API_TOKEN ? API_TOKEN.length : 0}`);
 debugLog(`🔑 API Token Type: ${typeof API_TOKEN}`);
@@ -74,7 +79,7 @@ async function checkApiHealth() {
 
 async function loadFallbackLocations() {
   try {
-    const fallbackPath = path.join(OUTPUT_DIR, 'preapproved-locations.json');
+    const fallbackPath = path.join(RAILWAY_DATA_DIR, 'preapproved-locations.json');
     const data = await fs.readFile(fallbackPath, 'utf8');
     const parsed = JSON.parse(data);
     
@@ -127,11 +132,35 @@ async function fetchLocations() {
     log(`✅ Fetched ${data.locations?.length || 0} locations from API`);
 
     // Ensure output directory exists
-    await fs.mkdir(OUTPUT_DIR, { recursive: true });
+    debugLog(`📁 Creating output directory: ${RAILWAY_DATA_DIR}`);
+    await fs.mkdir(RAILWAY_DATA_DIR, { recursive: true });
+    
+    // Verify directory was created
+    try {
+      const stats = await fs.stat(RAILWAY_DATA_DIR);
+      if (!stats.isDirectory()) {
+        throw new Error(`Output directory path exists but is not a directory: ${RAILWAY_DATA_DIR}`);
+      }
+      debugLog(`✅ Output directory verified: ${RAILWAY_DATA_DIR}`);
+    } catch (statError) {
+      throw new Error(`Failed to create or verify output directory: ${RAILWAY_DATA_DIR} - ${statError.message}`);
+    }
 
-    // Write to dist directory for immediate serving
-    const outputPath = path.join(OUTPUT_DIR, 'preapproved-locations.json');
+    // Write to data directory for immediate serving
+    const outputPath = path.join(RAILWAY_DATA_DIR, 'preapproved-locations.json');
+    debugLog(`💾 Writing locations file: ${outputPath}`);
     await fs.writeFile(outputPath, JSON.stringify(data, null, 2));
+    
+    // Verify file was written
+    try {
+      const stats = await fs.stat(outputPath);
+      if (stats.size === 0) {
+        throw new Error(`Locations file was created but is empty: ${outputPath}`);
+      }
+      debugLog(`✅ Locations file verified: preapproved-locations.json (${stats.size} bytes)`);
+    } catch (verifyError) {
+      throw new Error(`Failed to verify locations file was written: ${outputPath} - ${verifyError.message}`);
+    }
     
     log(`💾 Locations saved to: ${outputPath}`);
     log('✅ Cron job completed successfully');
@@ -171,10 +200,10 @@ async function fetchLocations() {
       const fallbackLocations = await loadFallbackLocations();
       
       // Ensure output directory exists
-      await fs.mkdir(OUTPUT_DIR, { recursive: true });
+      await fs.mkdir(RAILWAY_DATA_DIR, { recursive: true });
       
       // Save fallback locations with updated timestamp
-      const outputPath = path.join(OUTPUT_DIR, 'preapproved-locations.json');
+      const outputPath = path.join(RAILWAY_DATA_DIR, 'preapproved-locations.json');
       const fallbackData = {
         locations: fallbackLocations,
         lastUpdated: new Date().toISOString(),

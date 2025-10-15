@@ -14,8 +14,12 @@ const axios = require('axios');
 // Configuration
 const API_BASE = process.env.VITE_API_BASE || 'https://temphist-api-develop.up.railway.app';
 const API_TOKEN = process.env.API_TOKEN;
-const OUTPUT_DIR = './dist/data'; // Write directly to dist for serving
+const OUTPUT_DIR = process.env.OUTPUT_DIR || './dist/data'; // Allow override via environment variable
 const LOCATIONS_FILE = 'preapproved-locations.json';
+
+// Railway-specific configuration
+const IS_RAILWAY = process.env.RAILWAY_ENVIRONMENT !== undefined;
+const RAILWAY_DATA_DIR = IS_RAILWAY ? '/app/data' : OUTPUT_DIR;
 
 // Debug logging control
 const DEBUGGING = process.env.DEBUG_LOGGING === 'true' || process.env.NODE_ENV !== 'production';
@@ -37,7 +41,8 @@ function errorLog(...args) {
 
 log('🚀 Starting cron job: fetch-daily-data');
 log(`📡 API Base: ${API_BASE}`);
-log(`📂 Output Dir: ${OUTPUT_DIR}`);
+log(`📂 Output Dir: ${RAILWAY_DATA_DIR}`);
+log(`🚂 Railway Environment: ${IS_RAILWAY ? 'Yes' : 'No'}`);
 debugLog(`🔑 API Token: ${API_TOKEN ? `${API_TOKEN.substring(0, 8)}...` : 'NOT SET'}`);
 debugLog(`🔑 API Token Length: ${API_TOKEN ? API_TOKEN.length : 0}`);
 debugLog(`🔑 API Token Type: ${typeof API_TOKEN}`);
@@ -76,7 +81,7 @@ async function checkApiHealth() {
 
 async function loadLocations() {
   try {
-    const locationsPath = path.join(OUTPUT_DIR, LOCATIONS_FILE);
+    const locationsPath = path.join(RAILWAY_DATA_DIR, LOCATIONS_FILE);
     const data = await fs.readFile(locationsPath, 'utf8');
     const parsed = JSON.parse(data);
     
@@ -160,10 +165,23 @@ async function saveLocationData(location, data, identifier) {
     // Create a safe filename from the location
     const safeLocation = location.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
     const filename = `${safeLocation}_${identifier}.json`;
-    const dailyDataDir = path.join(OUTPUT_DIR, 'daily-data');
+    const dailyDataDir = path.join(RAILWAY_DATA_DIR, 'daily-data');
+    
+    debugLog(`📁 Creating directory: ${dailyDataDir}`);
     
     // Ensure daily-data directory exists
     await fs.mkdir(dailyDataDir, { recursive: true });
+    
+    // Verify directory was created
+    try {
+      const stats = await fs.stat(dailyDataDir);
+      if (!stats.isDirectory()) {
+        throw new Error(`Path exists but is not a directory: ${dailyDataDir}`);
+      }
+      debugLog(`✅ Directory verified: ${dailyDataDir}`);
+    } catch (statError) {
+      throw new Error(`Failed to create or verify directory: ${dailyDataDir} - ${statError.message}`);
+    }
     
     const filepath = path.join(dailyDataDir, filename);
     
@@ -174,13 +192,28 @@ async function saveLocationData(location, data, identifier) {
       data: data
     };
     
+    debugLog(`💾 Writing file: ${filepath}`);
     await fs.writeFile(filepath, JSON.stringify(fileData, null, 2));
-    debugLog(`💾 Data saved: ${filename}`);
+    
+    // Verify file was written
+    try {
+      const stats = await fs.stat(filepath);
+      if (stats.size === 0) {
+        throw new Error(`File was created but is empty: ${filepath}`);
+      }
+      debugLog(`✅ File verified: ${filename} (${stats.size} bytes)`);
+    } catch (verifyError) {
+      throw new Error(`Failed to verify file was written: ${filepath} - ${verifyError.message}`);
+    }
+    
+    log(`💾 Data saved: ${filename}`);
     
     return filepath;
     
   } catch (error) {
     errorLog(`❌ Failed to save data for ${location}:`, error.message);
+    errorLog(`❌ Output directory: ${RAILWAY_DATA_DIR}`);
+    errorLog(`❌ Daily data directory: ${path.join(RAILWAY_DATA_DIR, 'daily-data')}`);
     throw error;
   }
 }
@@ -203,7 +236,7 @@ async function main() {
     const locations = await loadLocations();
     
     // Ensure output directory exists
-    await fs.mkdir(OUTPUT_DIR, { recursive: true });
+    await fs.mkdir(RAILWAY_DATA_DIR, { recursive: true });
     
     // Track results
     let successCount = 0;
@@ -251,15 +284,55 @@ async function main() {
       processed_at: new Date().toISOString()
     };
     
-    const dailyDataDir = path.join(OUTPUT_DIR, 'daily-data');
+    const dailyDataDir = path.join(RAILWAY_DATA_DIR, 'daily-data');
+    debugLog(`📁 Ensuring summary directory exists: ${dailyDataDir}`);
     await fs.mkdir(dailyDataDir, { recursive: true });
     
+    // Verify directory exists
+    try {
+      const stats = await fs.stat(dailyDataDir);
+      if (!stats.isDirectory()) {
+        throw new Error(`Summary directory path exists but is not a directory: ${dailyDataDir}`);
+      }
+      debugLog(`✅ Summary directory verified: ${dailyDataDir}`);
+    } catch (statError) {
+      throw new Error(`Failed to create or verify summary directory: ${dailyDataDir} - ${statError.message}`);
+    }
+    
     const summaryPath = path.join(dailyDataDir, `summary_${identifier}.json`);
+    debugLog(`💾 Writing summary file: ${summaryPath}`);
     await fs.writeFile(summaryPath, JSON.stringify(summary, null, 2));
+    
+    // Verify summary file was written
+    try {
+      const stats = await fs.stat(summaryPath);
+      if (stats.size === 0) {
+        throw new Error(`Summary file was created but is empty: ${summaryPath}`);
+      }
+      debugLog(`✅ Summary file verified: summary_${identifier}.json (${stats.size} bytes)`);
+    } catch (verifyError) {
+      throw new Error(`Failed to verify summary file was written: ${summaryPath} - ${verifyError.message}`);
+    }
     
     log('\n✅ Cron job completed successfully');
     log(`📊 Summary: ${successCount} successful, ${failureCount} failed out of ${locations.length} locations`);
     log(`📄 Summary saved to: ${summaryPath}`);
+    
+    // List files in the daily-data directory for verification
+    try {
+      const files = await fs.readdir(dailyDataDir);
+      log(`📁 Files in daily-data directory: ${files.length} files`);
+      files.forEach(file => {
+        const filePath = path.join(dailyDataDir, file);
+        fs.stat(filePath).then(stats => {
+          debugLog(`  - ${file} (${stats.size} bytes, ${stats.mtime.toISOString()})`);
+        }).catch(() => {
+          debugLog(`  - ${file} (size unknown)`);
+        });
+      });
+    } catch (listError) {
+      errorLog(`⚠️ Could not list files in daily-data directory: ${listError.message}`);
+    }
     
     // Exit cleanly as required by cron jobs
     process.exit(0);
