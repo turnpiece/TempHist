@@ -35,29 +35,23 @@ $apiBase = getenv('VITE_API_BASE') ?: 'https://api.temphist.com';
 $outputDir = getenv('OUTPUT_DIR') ?: './public/data';
 $locationsFile = 'preapproved-locations.json';
 
-// Fallback locations if API fails
-$fallbackLocations = [
-    'London, England, United Kingdom',
-    'New York, New York, United States',
-    'Paris, Île-de-France, France',
-    'Tokyo, Tokyo, Japan',
-    'Sydney, New South Wales, Australia',
-    'Berlin, Berlin, Germany',
-    'Madrid, Madrid, Spain',
-    'Rome, Lazio, Italy',
-    'Amsterdam, North Holland, Netherlands',
-    'Vancouver, British Columbia, Canada',
-    'Melbourne, Victoria, Australia',
-    'Barcelona, Catalonia, Spain',
-    'Munich, Bavaria, Germany',
-    'Vienna, Vienna, Austria',
-    'Prague, Prague, Czech Republic',
-    'Warsaw, Masovian Voivodeship, Poland',
-    'Stockholm, Stockholm, Sweden',
-    'Copenhagen, Capital Region, Denmark',
-    'Oslo, Oslo, Norway',
-    'Helsinki, Uusimaa, Finland'
-];
+// Load fallback locations from existing file
+function loadFallbackLocations($outputDir, $locationsFile) {
+    $fallbackPath = "$outputDir/$locationsFile";
+    
+    if (!file_exists($fallbackPath)) {
+        throw new Exception("Fallback locations file not found: $fallbackPath");
+    }
+    
+    $data = json_decode(file_get_contents($fallbackPath), true);
+    
+    if ($data && isset($data['locations']) && is_array($data['locations'])) {
+        echo "📖 Loaded " . count($data['locations']) . " fallback locations from file\n";
+        return $data['locations'];
+    } else {
+        throw new Exception('Invalid fallback locations file format');
+    }
+}
 
 function ensureOutputDir($dir) {
     if (!file_exists($dir)) {
@@ -70,7 +64,7 @@ function ensureOutputDir($dir) {
     }
 }
 
-function fetchLocationsFromAPI($apiBase, $fallbackLocations) {
+function fetchLocationsFromAPI($apiBase, $outputDir, $locationsFile) {
     $url = "$apiBase/v1/locations/preapproved";
     echo "🔄 Fetching locations from API: $url\n";
     
@@ -93,8 +87,8 @@ function fetchLocationsFromAPI($apiBase, $fallbackLocations) {
             echo ": $error";
         }
         echo " (HTTP $httpCode)\n";
-        echo "🔄 Using fallback locations\n";
-        return $fallbackLocations;
+        echo "🔄 Using fallback locations from file\n";
+        return loadFallbackLocations($outputDir, $locationsFile);
     }
     
     $data = json_decode($response, true);
@@ -103,19 +97,19 @@ function fetchLocationsFromAPI($apiBase, $fallbackLocations) {
         echo "✅ Successfully fetched " . count($data['locations']) . " locations from API\n";
         return $data['locations'];
     } else {
-        echo "⚠️ API returned invalid data structure, using fallback locations\n";
-        return $fallbackLocations;
+        echo "⚠️ API returned invalid data structure, using fallback locations from file\n";
+        return loadFallbackLocations($outputDir, $locationsFile);
     }
 }
 
-function saveLocationsToFile($locations, $outputDir, $fileName, $fallbackLocations) {
+function saveLocationsToFile($locations, $outputDir, $fileName) {
     $outputPath = "$outputDir/$fileName";
     
     $data = [
         'locations' => $locations,
         'lastUpdated' => date('c'),
         'count' => count($locations),
-        'source' => ($locations === $fallbackLocations) ? 'fallback' : 'api'
+        'source' => 'api' // Will be updated to 'fallback' if needed
     ];
     
     $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -139,10 +133,10 @@ try {
     ensureOutputDir($outputDir);
     
     // Fetch locations from API
-    $locations = fetchLocationsFromAPI($apiBase, $fallbackLocations);
+    $locations = fetchLocationsFromAPI($apiBase, $outputDir, $locationsFile);
     
     // Save to file
-    $outputPath = saveLocationsToFile($locations, $outputDir, $locationsFile, $fallbackLocations);
+    $outputPath = saveLocationsToFile($locations, $outputDir, $locationsFile);
     
     echo "✅ Location fetch process completed successfully\n";
     echo "📄 Output file: $outputPath\n";

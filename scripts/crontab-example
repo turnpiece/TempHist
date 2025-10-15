@@ -12,31 +12,29 @@
 
 # OUTPUT_DIR=/path/to/your/webroot/data
 
-# RECOMMENDED: Use PHP scripts (works on servers with limited Node.js support)
+# OPTION 1: Use Node.js scripts (recommended for Railway, Vercel, etc.)
 
-# Option 1: Run combined update script (runs both locations and temperature data)
+# Update locations daily at midnight UTC
 
-0 _/6 _ \* \* cd /path/to/your/project && bash scripts/update-cache.sh >> /var/log/temphist-cache.log 2>&1
+# 0 0 \* \* \* cd /path/to/your/project && node scripts/cron-fetch-locations.js >> /var/log/temphist-locations.log 2>&1
 
-# Option 2: Run scripts separately
+# Update daily temperature data hourly
 
-# Update locations every 6 hours
+# 0 \* \* \* \* cd /path/to/your/project && node scripts/cron-fetch-daily-data.js >> /var/log/temphist-temperature.log 2>&1
 
-# 0 _/6 _ \* \* cd /path/to/your/project && php scripts/fetch-locations.php >> /var/log/temphist-locations.log 2>&1
+# OPTION 2: Use PHP scripts (works on traditional servers with limited Node.js support)
+
+# Update locations daily at midnight UTC
+
+# 0 0 \* \* \* cd /path/to/your/project && php scripts/cron-fetch-locations.php >> /var/log/temphist-locations.log 2>&1
 
 # Update temperature data (daily, weekly, monthly, yearly) every day at 3 AM
 
-# 0 3 \* \* \* cd /path/to/your/project && php scripts/fetch-daily-data.php >> /var/log/temphist-temperature.log 2>&1
+# 0 3 \* \* \* cd /path/to/your/project && php scripts/cron-fetch-daily-data.php >> /var/log/temphist-temperature.log 2>&1
 
-# ALTERNATIVE: Use Node.js scripts (requires full Node.js support with WebAssembly)
+# OPTION 3: Run combined update script (runs both locations and temperature data)
 
-# Update locations every 6 hours
-
-# 0 _/6 _ \* \* cd /path/to/your/project && node scripts/fetch-locations.js >> /var/log/temphist-locations.log 2>&1
-
-# Update temperature data every day at 3 AM
-
-# 0 3 \* \* \* cd /path/to/your/project && node scripts/fetch-daily-data.js >> /var/log/temphist-temperature.log 2>&1
+# 0 _/6 _ \* \* cd /path/to/your/project && bash scripts/update-cache.sh >> /var/log/temphist-cache.log 2>&1
 
 # Notes:
 
