@@ -12,21 +12,10 @@ const axios = require('axios');
 
 // Configuration
 const API_BASE = process.env.VITE_API_BASE || 'https://temphist-api-develop.up.railway.app';
-
-// For Railway cron jobs, use public API if internal URL fails
-const getApiBase = () => {
-  const base = process.env.VITE_API_BASE || 'https://temphist-api-develop.up.railway.app';
-  // If it's an internal Railway URL and we're in production, try public URL first
-  if (base.includes('.railway.internal') && process.env.NODE_ENV === 'production') {
-    console.log('🔄 Internal Railway URL detected, using public API URL for cron job');
-    return 'https://temphist-api-develop.up.railway.app';
-  }
-  return base;
-};
 const API_TOKEN = process.env.API_TOKEN;
 const OUTPUT_DIR = './dist/data'; // Write directly to dist for serving
 
-console.log('🚀 Starting Railway cron job: fetch-locations');
+console.log('🚀 Starting cron job: fetch-locations');
 console.log(`📡 API Base: ${API_BASE}`);
 console.log(`📂 Output Dir: ${OUTPUT_DIR}`);
 console.log(`🔑 API Token: ${API_TOKEN ? `${API_TOKEN.substring(0, 8)}...` : 'NOT SET'}`);
@@ -36,6 +25,34 @@ console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`📋 All env vars starting with VITE_:`, Object.keys(process.env).filter(key => key.startsWith('VITE_')).map(key => `${key}=${process.env[key]}`));
 console.log(`📋 All env vars starting with API_:`, Object.keys(process.env).filter(key => key.startsWith('API_')).map(key => `${key}=${process.env[key]}`));
 console.log(`📋 Raw process.env.API_TOKEN:`, JSON.stringify(process.env.API_TOKEN));
+
+async function checkApiHealth() {
+  try {
+    const healthUrl = `${API_BASE}/health`;
+    console.log(`🏥 Checking API health at: ${healthUrl}`);
+    
+    const response = await axios.get(healthUrl, {
+      timeout: 10000,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 200) {
+      console.log('✅ API health check passed');
+      return true;
+    } else {
+      console.error(`❌ API health check failed with status: ${response.status}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ API health check failed:', error.message);
+    if (error.code) {
+      console.error(`🔧 Error code: ${error.code}`);
+    }
+    return false;
+  }
+}
 
 async function loadFallbackLocations() {
   try {
@@ -61,12 +78,17 @@ async function fetchLocations() {
       throw new Error('API_TOKEN environment variable is required');
     }
 
-    const apiBase = getApiBase();
-    const url = `${apiBase}/v1/locations/preapproved`;
+    // Check API health first
+    const isHealthy = await checkApiHealth();
+    if (!isHealthy) {
+      throw new Error('API health check failed - API is not accessible');
+    }
+
+    const url = `${API_BASE}/v1/locations/preapproved`;
     console.log('📡 Fetching locations from API...');
     console.log(`🔗 Full URL: ${url}`);
     console.log(`🔑 API Token: ${API_TOKEN.substring(0, 8)}...`);
-    console.log(`🌐 API Base: ${apiBase}`);
+    console.log(`🌐 API Base: ${API_BASE}`);
     
     const response = await axios.get(url, {
       timeout: 30000,
@@ -94,9 +116,9 @@ async function fetchLocations() {
     await fs.writeFile(outputPath, JSON.stringify(data, null, 2));
     
     console.log(`💾 Locations saved to: ${outputPath}`);
-    console.log('✅ Railway cron job completed successfully');
+    console.log('✅ Cron job completed successfully');
     
-    // Exit cleanly as required by Railway cron jobs
+    // Exit cleanly as required by cron jobs
     process.exit(0);
     
   } catch (error) {
@@ -108,7 +130,8 @@ async function fetchLocations() {
       // Handle rate limiting (429) - exit immediately
       if (error.response.status === 429) {
         console.error(`🚫 Rate limit exceeded. Exiting to avoid further rate limit violations.`);
-        throw new Error(`Rate limit exceeded: ${error.response.data?.detail || 'Too many requests'}`);
+        console.error('❌ Cron job failed due to rate limiting');
+        process.exit(1);
       }
       
       // Handle authentication errors (401/403) - use fallback
@@ -143,12 +166,12 @@ async function fetchLocations() {
       
       await fs.writeFile(outputPath, JSON.stringify(fallbackData, null, 2));
       console.log(`💾 Fallback locations saved to: ${outputPath}`);
-      console.log('✅ Railway cron job completed with fallback data');
+      console.log('✅ Cron job completed with fallback data');
       
       process.exit(0);
       
     } catch (fallbackError) {
-      console.error('❌ Railway cron job failed completely:', fallbackError.message);
+      console.error('❌ Cron job failed completely:', fallbackError.message);
       
       // If it's a rate limit error, exit with specific code
       if (fallbackError.message.includes('Rate limit exceeded')) {
