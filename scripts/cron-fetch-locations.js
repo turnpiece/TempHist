@@ -19,8 +19,12 @@ console.log('🚀 Starting Railway cron job: fetch-locations');
 console.log(`📡 API Base: ${API_BASE}`);
 console.log(`📂 Output Dir: ${OUTPUT_DIR}`);
 console.log(`🔑 API Token: ${API_TOKEN ? `${API_TOKEN.substring(0, 8)}...` : 'NOT SET'}`);
+console.log(`🔑 API Token Length: ${API_TOKEN ? API_TOKEN.length : 0}`);
+console.log(`🔑 API Token Type: ${typeof API_TOKEN}`);
 console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`📋 All env vars starting with VITE_:`, Object.keys(process.env).filter(key => key.startsWith('VITE_')).map(key => `${key}=${process.env[key]}`));
+console.log(`📋 All env vars starting with API_:`, Object.keys(process.env).filter(key => key.startsWith('API_')).map(key => `${key}=${process.env[key]}`));
+console.log(`📋 Raw process.env.API_TOKEN:`, JSON.stringify(process.env.API_TOKEN));
 
 async function loadFallbackLocations() {
   try {
