@@ -18,6 +18,9 @@ const OUTPUT_DIR = './dist/data'; // Write directly to dist for serving
 console.log('🚀 Starting Railway cron job: fetch-locations');
 console.log(`📡 API Base: ${API_BASE}`);
 console.log(`📂 Output Dir: ${OUTPUT_DIR}`);
+console.log(`🔑 API Token: ${API_TOKEN ? `${API_TOKEN.substring(0, 8)}...` : 'NOT SET'}`);
+console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`📋 All env vars starting with VITE_:`, Object.keys(process.env).filter(key => key.startsWith('VITE_')).map(key => `${key}=${process.env[key]}`));
 
 async function loadFallbackLocations() {
   try {
@@ -43,15 +46,22 @@ async function fetchLocations() {
       throw new Error('API_TOKEN environment variable is required');
     }
 
+    const url = `${API_BASE}/v1/locations/preapproved`;
     console.log('📡 Fetching locations from API...');
+    console.log(`🔗 Full URL: ${url}`);
+    console.log(`🔑 API Token: ${API_TOKEN.substring(0, 8)}...`);
+    console.log(`🌐 API Base: ${API_BASE}`);
     
-    const response = await axios.get(`${API_BASE}/v1/locations/preapproved`, {
+    const response = await axios.get(url, {
       timeout: 30000,
       headers: {
         'Authorization': `Bearer ${API_TOKEN}`,
         'Accept': 'application/json'
       }
     });
+
+    console.log(`✅ Response status: ${response.status}`);
+    console.log(`📊 Response data keys: ${Object.keys(response.data || {}).join(', ')}`);
 
     if (response.status !== 200) {
       throw new Error(`API returned status ${response.status}`);
@@ -75,6 +85,13 @@ async function fetchLocations() {
     
   } catch (error) {
     console.error('❌ API fetch failed, using fallback locations:', error.message);
+    if (error.response) {
+      console.error(`📊 Response status: ${error.response.status}`);
+      console.error(`📄 Response data:`, error.response.data);
+    }
+    if (error.code) {
+      console.error(`🔧 Error code: ${error.code}`);
+    }
     
     try {
       // Load fallback locations from existing file
