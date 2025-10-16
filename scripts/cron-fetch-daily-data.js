@@ -21,6 +21,11 @@ const LOCATIONS_FILE = 'preapproved-locations.json';
 const IS_RAILWAY = process.env.RAILWAY_ENVIRONMENT !== undefined;
 const RAILWAY_DATA_DIR = IS_RAILWAY ? '/app/data' : OUTPUT_DIR;
 
+// Debug the directory configuration
+debugLog(`🔧 Railway Environment: ${IS_RAILWAY}`);
+debugLog(`🔧 RAILWAY_DATA_DIR: ${RAILWAY_DATA_DIR}`);
+debugLog(`🔧 OUTPUT_DIR: ${OUTPUT_DIR}`);
+
 // Debug logging control
 const DEBUGGING = process.env.DEBUG_LOGGING === 'true' || process.env.NODE_ENV !== 'production';
 
@@ -222,6 +227,11 @@ async function fetchDailyData(location, identifier) {
       throw new Error('API_TOKEN environment variable is required');
     }
 
+    // Validate location is a proper string and not '[object Object]'
+    if (!location || typeof location !== 'string' || location === '[object Object]' || location.includes('[object Object]')) {
+      throw new Error(`Invalid location string: "${location}" (type: ${typeof location})`);
+    }
+
     // Use sync API for faster execution in cron jobs
     const url = `${API_BASE}/v1/records/daily/${encodeURIComponent(location)}/${identifier}`;
     
@@ -240,11 +250,19 @@ async function fetchDailyData(location, identifier) {
 
     debugLog(`✅ Response status: ${response.status}`);
     debugLog(`📊 Response data keys: ${Object.keys(response.data || {}).join(', ')}`);
+    debugLog(`📊 Response data size: ${JSON.stringify(response.data).length} characters`);
 
     if (response.status !== 200) {
       throw new Error(`API returned status ${response.status}`);
     }
 
+    // Validate that we actually got temperature data
+    if (!response.data || !response.data.daily) {
+      errorLog(`⚠️ No daily data found in response for ${location}`);
+      return null;
+    }
+
+    debugLog(`✅ Successfully fetched data for ${location}`);
     return response.data;
     
   } catch (error) {
@@ -282,11 +300,26 @@ async function fetchDailyData(location, identifier) {
 async function saveLocationData(location, data, identifier) {
   try {
     // Create a safe filename from the location
-    const safeLocation = location.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const safeLocation = location
+      .toLowerCase()
+      .replace(/[àáâãäå]/g, 'a') // Replace accented characters
+      .replace(/[èéêë]/g, 'e')
+      .replace(/[ìíîï]/g, 'i')
+      .replace(/[òóôõö]/g, 'o')
+      .replace(/[ùúûü]/g, 'u')
+      .replace(/[ç]/g, 'c')
+      .replace(/[ñ]/g, 'n')
+      .replace(/[^a-zA-Z0-9\s]/g, '_') // Replace special characters with underscores
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .replace(/_+/g, '_') // Replace multiple underscores with single
+      .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+    
     const filename = `${safeLocation}_${identifier}.json`;
     const dailyDataDir = path.join(RAILWAY_DATA_DIR, 'daily-data');
     
     debugLog(`📁 Creating directory: ${dailyDataDir}`);
+    debugLog(`📁 Parent directory: ${path.dirname(dailyDataDir)}`);
+    debugLog(`📁 Railway data dir: ${RAILWAY_DATA_DIR}`);
     
     // Ensure daily-data directory exists
     await fs.mkdir(dailyDataDir, { recursive: true });
@@ -376,8 +409,16 @@ async function main() {
     // Process each location
     for (const location of locations) {
       try {
-        // Ensure location is a string
-        const locationString = typeof location === 'string' ? location : String(location);
+        // Ensure location is a string and validate it
+        let locationString;
+        if (typeof location === 'string' && location.trim()) {
+          locationString = location.trim();
+        } else {
+          errorLog(`❌ Invalid location format: ${JSON.stringify(location)} (type: ${typeof location})`);
+          failureCount++;
+          continue;
+        }
+        
         debugLog(`\n📍 Processing: ${locationString}`);
         
         // Fetch daily data (using sync API for speed)
