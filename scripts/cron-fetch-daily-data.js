@@ -152,6 +152,17 @@ async function fetchLocationsFromAPI() {
       const locationStrings = data.locations.map((loc, index) => {
         if (typeof loc === 'string') {
           return loc;
+        } else if (typeof loc === 'object' && loc.name) {
+          // New API format: construct location string from object properties
+          let locationString = loc.name;
+          if (loc.admin1 && loc.admin1 !== loc.name) {
+            locationString += `, ${loc.admin1}`;
+          }
+          if (loc.country_name && loc.country_name !== loc.admin1) {
+            locationString += `, ${loc.country_name}`;
+          }
+          debugLog(`📊 Converted location object to string: ${JSON.stringify(loc)} -> "${locationString}"`);
+          return locationString;
         } else if (typeof loc === 'object' && loc.identifier) {
           return loc.identifier;
         } else if (typeof loc === 'object' && loc.location) {
@@ -387,6 +398,11 @@ async function main() {
     // Load locations
     const locations = await loadLocations();
     
+    // Debug the loaded locations
+    debugLog(`📊 Loaded ${locations.length} locations`);
+    debugLog(`📊 First few locations:`, locations.slice(0, 3));
+    debugLog(`📊 Location types:`, locations.slice(0, 3).map(loc => typeof loc));
+    
     // Ensure output directory exists
     debugLog(`📁 Ensuring output directory exists: ${RAILWAY_DATA_DIR}`);
     await fs.mkdir(RAILWAY_DATA_DIR, { recursive: true });
@@ -415,6 +431,7 @@ async function main() {
           locationString = location.trim();
         } else {
           errorLog(`❌ Invalid location format: ${JSON.stringify(location)} (type: ${typeof location})`);
+          debugLog(`❌ Location details:`, location);
           failureCount++;
           continue;
         }
