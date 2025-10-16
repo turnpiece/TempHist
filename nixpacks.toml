@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["npm install", "mkdir -p /app/data/daily-data"]
+cmds = ["npm install"]
 
 [phases.build]
 cmds = ["npm run build"]
