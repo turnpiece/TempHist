@@ -205,7 +205,6 @@ declare global {
     debugTime: (label: string) => void;
     debugTimeEnd: (label: string) => void;
     getApiUrl: (path: string) => string;
-    getCurrentLocation: () => string;
     getDisplayCity: (fullLocation: string) => string;
     getOrdinal: (n: number) => string;
     mainAppLogic: () => void;

@@ -14,7 +14,6 @@ declare const Chart: any;
 
 // Import our TypeScript modules
 import { setLocationCookie, getLocationCookie, getDisplayCity, getOrdinal } from './utils/location';
-import { detectDeviceAndPlatform, isMobileDevice } from './utils/platform';
 import { updateDataNotice } from './utils/dataNotice';
 import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP, getFallbackLocations } from './services/locationDetection';
@@ -135,7 +134,6 @@ function generateErrorMessage(error: unknown): string {
 
 // Make utility functions globally available
 window.getApiUrl = getApiUrl;
-window.getCurrentLocation = () => window.tempLocation || 'London, England, United Kingdom';
 window.getOrdinal = getOrdinal;
 window.getDisplayCity = getDisplayCity;
 window.updateDataNotice = updateDataNotice;

@@ -73,37 +73,3 @@ export function getOrdinal(n: number): string {
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
-
-/**
- * Get current location from global state with fallback
- */
-export function getCurrentLocation(): string {
-  const result = window.tempLocation || 'London, England, United Kingdom';
-  return result;
-}
-
-/**
- * Create location object with proper typing
- */
-export function createLocationObject(
-  location: string, 
-  source: TempHistLocation['source'], 
-  isDetected: boolean = false
-): TempHistLocation {
-  return {
-    location,
-    source,
-    isDetected
-  };
-}
-
-/**
- * Validate location string format
- */
-export function isValidLocation(location: string): boolean {
-  if (!location || typeof location !== 'string') return false;
-  
-  // Basic validation - should contain at least city and country
-  const parts = location.split(',').map(part => part.trim());
-  return parts.length >= 2 && parts.every(part => part.length > 0);
-}
