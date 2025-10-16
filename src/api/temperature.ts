@@ -18,9 +18,9 @@ export function getApiUrl(path: string): string {
       return import.meta.env.VITE_API_BASE;
     }
     
-    // Development (local)
+    // Development (local) - use proxy server with /api prefix
     if (import.meta.env.DEV) {
-      return 'http://localhost:3000';
+      return 'http://localhost:3000/api';
     }
     
     // Dev site also uses production API
@@ -41,6 +41,7 @@ export function getApiUrl(path: string): string {
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
   debugLog('apiFetch called with URL:', url);
   debugLog('apiFetch: window.currentUser exists?', !!window.currentUser);
+  debugLog('apiFetch: import.meta.env.DEV =', import.meta.env.DEV);
   
   // For local development, try using a test token if available
   const isLocalDevelopment = url.includes('localhost:3000') || url.includes('localhost:8000');

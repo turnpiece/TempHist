@@ -118,21 +118,6 @@ The project uses GitHub webhooks for automated deployment:
 - **Production**: Push to `main` branch → automatically deploys to production
 - **Development**: Push to `develop` branch → automatically deploys to dev environment
 
-#### Webhook Setup
-
-1. **Create webhook in GitHub:**
-
-   - Go to your repository → Settings → Webhooks
-   - Add webhook: `https://yourdomain.com/webhook.php`
-   - Set content type to `application/json`
-   - Add your webhook secret
-
-2. **Server Requirements:**
-   - PHP 7.4+ with `exec()` enabled
-   - SSH access for git operations
-   - Node.js and npm for building
-   - Proper file permissions
-
 #### Manual Deployment
 
 If you need to deploy manually:
@@ -152,22 +137,6 @@ npm install
 npm run build
 # Copy dist/ contents to dev web root
 ```
-
-### Deployment Scripts
-
-The project includes deployment scripts (not committed to Git for security):
-
-- `deploy.sh` - Production deployment script
-- `deploy-dev.sh` - Development deployment script
-
-These scripts handle:
-
-- Git operations with SSH keys
-- Dependency installation
-- Build process
-- File copying to web directories
-
-**Note**: Deployment scripts contain server-specific paths and should not be committed to version control.
 
 ## Static Site Deployment and .htaccess
 

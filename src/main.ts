@@ -360,6 +360,83 @@ function initializeSplashScreen(): void {
 
   // Set up splash screen event listeners
   setupSplashScreenListeners();
+  
+  // Set up mobile navigation
+  setupMobileNavigation();
+}
+
+/**
+ * Set up mobile navigation functionality
+ */
+function setupMobileNavigation(): void {
+  const burgerBtn = document.getElementById('burgerBtn');
+  const sidebar = document.getElementById('sidebar');
+  
+  if (!burgerBtn || !sidebar) {
+    debugLog('Mobile navigation elements not found - burgerBtn:', !!burgerBtn, 'sidebar:', !!sidebar);
+    return;
+  }
+  
+  debugLog('Setting up mobile navigation - burgerBtn and sidebar found');
+  
+  // Handle burger button click
+  burgerBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const isOpen = sidebar.classList.contains('open');
+    
+    if (isOpen) {
+      // Close the sidebar
+      sidebar.classList.remove('open');
+      burgerBtn.setAttribute('aria-expanded', 'false');
+      burgerBtn.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('menu-open');
+      debugLog('Mobile menu closed');
+    } else {
+      // Open the sidebar
+      sidebar.classList.add('open');
+      burgerBtn.setAttribute('aria-expanded', 'true');
+      burgerBtn.setAttribute('aria-label', 'Close menu');
+      document.body.classList.add('menu-open');
+      debugLog('Mobile menu opened');
+    }
+  });
+  
+  // Handle clicking outside the sidebar to close it
+  document.addEventListener('click', (e) => {
+    const isOpen = sidebar.classList.contains('open');
+    if (isOpen && !sidebar.contains(e.target as Node) && !burgerBtn.contains(e.target as Node)) {
+      sidebar.classList.remove('open');
+      burgerBtn.setAttribute('aria-expanded', 'false');
+      burgerBtn.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('menu-open');
+      debugLog('Mobile menu closed by clicking outside');
+    }
+  });
+  
+  // Handle sidebar link clicks to close the menu
+  const sidebarLinks = sidebar.querySelectorAll('a');
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      burgerBtn.setAttribute('aria-expanded', 'false');
+      burgerBtn.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('menu-open');
+      debugLog('Mobile menu closed by link click');
+    });
+  });
+  
+  // Handle escape key to close menu
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+      sidebar.classList.remove('open');
+      burgerBtn.setAttribute('aria-expanded', 'false');
+      burgerBtn.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('menu-open');
+      debugLog('Mobile menu closed by escape key');
+    }
+  });
 }
 
 /**
@@ -984,6 +1061,8 @@ window.mainAppLogic = function(): void {
   const isStandalonePage = !document.querySelector('#todayView');
   if (isStandalonePage) {
     debugLog('Standalone page detected, skipping main app logic');
+    // Still set up mobile navigation for standalone pages
+    setupMobileNavigation();
     return;
   }
   
@@ -2267,3 +2346,16 @@ window.TempHistRouter = new TempHistRouter();
 // Make analytics functions globally available
 window.TempHistAnalytics = reportAnalytics;
 window.TempHistSendAnalytics = sendAnalytics;
+
+// Initialize mobile navigation for all pages
+document.addEventListener('DOMContentLoaded', () => {
+  setupMobileNavigation();
+});
+
+// Also set it up immediately if DOM is already loaded
+if (document.readyState === 'loading') {
+  // DOM is still loading, wait for DOMContentLoaded
+} else {
+  // DOM is already loaded
+  setupMobileNavigation();
+}
