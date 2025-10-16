@@ -268,9 +268,15 @@ async function fetchDailyData(location, identifier) {
     }
 
     // Validate that we actually got temperature data
+    debugLog(`📊 Checking response.data:`, !!response.data);
+    debugLog(`📊 Checking response.data.values:`, !!response.data?.values);
+    debugLog(`📊 response.data.values type:`, typeof response.data?.values);
+    debugLog(`📊 response.data.values length:`, response.data?.values?.length);
+    
     if (!response.data || !response.data.values) {
       errorLog(`⚠️ No daily data found in response for ${location}`);
       debugLog(`📊 Response data structure:`, Object.keys(response.data || {}));
+      debugLog(`📊 Full response.data:`, response.data);
       return null;
     }
 
@@ -334,6 +340,7 @@ async function saveLocationData(location, data, identifier) {
     debugLog(`📁 Railway data dir: ${RAILWAY_DATA_DIR}`);
     
     // Ensure daily-data directory exists
+    debugLog(`📁 Attempting to create directory: ${dailyDataDir}`);
     await fs.mkdir(dailyDataDir, { recursive: true });
     
     // Verify directory was created
@@ -343,7 +350,14 @@ async function saveLocationData(location, data, identifier) {
         throw new Error(`Path exists but is not a directory: ${dailyDataDir}`);
       }
       debugLog(`✅ Directory verified: ${dailyDataDir}`);
+      
+      // List contents of the directory to verify it's accessible
+      const contents = await fs.readdir(dailyDataDir);
+      debugLog(`📁 Directory contents:`, contents);
     } catch (statError) {
+      errorLog(`❌ Failed to create or verify directory: ${dailyDataDir} - ${statError.message}`);
+      errorLog(`❌ Error code: ${statError.code}`);
+      errorLog(`❌ Error path: ${statError.path}`);
       throw new Error(`Failed to create or verify directory: ${dailyDataDir} - ${statError.message}`);
     }
     
@@ -415,7 +429,13 @@ async function main() {
         throw new Error(`Output directory path exists but is not a directory: ${RAILWAY_DATA_DIR}`);
       }
       debugLog(`✅ Output directory verified: ${RAILWAY_DATA_DIR}`);
+      
+      // List contents to verify it's accessible
+      const contents = await fs.readdir(RAILWAY_DATA_DIR);
+      debugLog(`📁 Output directory contents:`, contents);
     } catch (statError) {
+      errorLog(`❌ Failed to create or verify output directory: ${RAILWAY_DATA_DIR} - ${statError.message}`);
+      errorLog(`❌ Error code: ${statError.code}`);
       throw new Error(`Failed to create or verify output directory: ${RAILWAY_DATA_DIR} - ${statError.message}`);
     }
     
