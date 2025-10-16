@@ -268,8 +268,9 @@ async function fetchDailyData(location, identifier) {
     }
 
     // Validate that we actually got temperature data
-    if (!response.data || !response.data.daily) {
+    if (!response.data || !response.data.values) {
       errorLog(`⚠️ No daily data found in response for ${location}`);
+      debugLog(`📊 Response data structure:`, Object.keys(response.data || {}));
       return null;
     }
 
