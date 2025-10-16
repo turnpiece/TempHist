@@ -22,7 +22,8 @@ const DEBUGGING = process.env.DEBUG_LOGGING === 'true' || process.env.NODE_ENV !
 
 // Railway-specific configuration
 const IS_RAILWAY = process.env.RAILWAY_ENVIRONMENT !== undefined;
-const RAILWAY_DATA_DIR = IS_RAILWAY ? '/app/data' : OUTPUT_DIR;
+// Use environment variable for data directory to support volumes
+const RAILWAY_DATA_DIR = process.env.DATA_DIR || (IS_RAILWAY ? '/app/data' : OUTPUT_DIR);
 
 // Helper functions for debug logging
 function debugLog(...args) {
@@ -176,8 +177,8 @@ async function fetchLocationsFromAPI() {
       debugLog(`📊 Extracted ${locationStrings.length} location strings`);
       debugLog(`📊 First extracted location:`, locationStrings[0]);
       
-      // Save the locations file for future use
-      await saveLocationsFile(data);
+      // Save the locations file for future use (with converted strings)
+      await saveLocationsFile(locationStrings);
       return locationStrings;
     } else {
       throw new Error('Invalid API response format');
@@ -195,8 +196,25 @@ async function saveLocationsFile(data) {
     await fs.mkdir(RAILWAY_DATA_DIR, { recursive: true });
     
     const outputPath = path.join(RAILWAY_DATA_DIR, 'preapproved-locations.json');
-    await fs.writeFile(outputPath, JSON.stringify(data, null, 2));
+    
+    // If data is an array of strings, wrap it in the expected format
+    let fileData;
+    if (Array.isArray(data)) {
+      // Converted location strings format
+      fileData = {
+        locations: data,
+        lastUpdated: new Date().toISOString(),
+        count: data.length,
+        source: "api_converted"
+      };
+    } else {
+      // Original API response format
+      fileData = data;
+    }
+    
+    await fs.writeFile(outputPath, JSON.stringify(fileData, null, 2));
     debugLog(`💾 Locations file saved: ${outputPath}`);
+    debugLog(`📊 Saved ${fileData.locations?.length || 0} locations`);
   } catch (error) {
     errorLog('⚠️ Failed to save locations file:', error.message);
     // Don't throw here, as the main goal is to get the locations data
@@ -535,14 +553,27 @@ async function main() {
     try {
       const files = await fs.readdir(dailyDataDir);
       log(`📁 Files in daily-data directory: ${files.length} files`);
-      files.forEach(file => {
-        const filePath = path.join(dailyDataDir, file);
-        fs.stat(filePath).then(stats => {
-          debugLog(`  - ${file} (${stats.size} bytes, ${stats.mtime.toISOString()})`);
-        }).catch(() => {
-          debugLog(`  - ${file} (size unknown)`);
-        });
-      });
+      log(`📁 Daily-data directory path: ${dailyDataDir}`);
+      
+      // Get detailed file information
+      for (const file of files) {
+        try {
+          const filePath = path.join(dailyDataDir, file);
+          const stats = await fs.stat(filePath);
+          log(`  - ${file} (${stats.size} bytes, ${stats.mtime.toISOString()})`);
+        } catch (statError) {
+          log(`  - ${file} (size unknown - ${statError.message})`);
+        }
+      }
+      
+      // Also check the parent directory
+      try {
+        const parentContents = await fs.readdir(RAILWAY_DATA_DIR);
+        log(`📁 Parent directory (${RAILWAY_DATA_DIR}) contents:`, parentContents);
+      } catch (parentError) {
+        log(`⚠️ Could not list parent directory: ${parentError.message}`);
+      }
+      
     } catch (listError) {
       errorLog(`⚠️ Could not list files in daily-data directory: ${listError.message}`);
     }
