@@ -17,17 +17,12 @@ const API_TOKEN = process.env.API_TOKEN;
 const OUTPUT_DIR = process.env.OUTPUT_DIR || './dist/data'; // Allow override via environment variable
 const LOCATIONS_FILE = 'preapproved-locations.json';
 
+// Debug logging control (must be defined before debugLog function)
+const DEBUGGING = process.env.DEBUG_LOGGING === 'true' || process.env.NODE_ENV !== 'production';
+
 // Railway-specific configuration
 const IS_RAILWAY = process.env.RAILWAY_ENVIRONMENT !== undefined;
 const RAILWAY_DATA_DIR = IS_RAILWAY ? '/app/data' : OUTPUT_DIR;
-
-// Debug the directory configuration
-debugLog(`🔧 Railway Environment: ${IS_RAILWAY}`);
-debugLog(`🔧 RAILWAY_DATA_DIR: ${RAILWAY_DATA_DIR}`);
-debugLog(`🔧 OUTPUT_DIR: ${OUTPUT_DIR}`);
-
-// Debug logging control
-const DEBUGGING = process.env.DEBUG_LOGGING === 'true' || process.env.NODE_ENV !== 'production';
 
 // Helper functions for debug logging
 function debugLog(...args) {
@@ -43,6 +38,11 @@ function log(...args) {
 function errorLog(...args) {
   console.error(...args);
 }
+
+// Debug the directory configuration
+debugLog(`🔧 Railway Environment: ${IS_RAILWAY}`);
+debugLog(`🔧 RAILWAY_DATA_DIR: ${RAILWAY_DATA_DIR}`);
+debugLog(`🔧 OUTPUT_DIR: ${OUTPUT_DIR}`);
 
 log('🚀 Starting cron job: fetch-daily-data');
 log(`📡 API Base: ${API_BASE}`);
