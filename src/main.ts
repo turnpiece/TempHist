@@ -838,6 +838,8 @@ function clearAllCachedData(): void {
     }
   });
   
+  // Note: Main chart variable will be reset when fetchHistoricalData is called
+  
   // Clear text content of summary, average, and trend elements
   const textElements = [
     'summaryText', 'avgText', 'trendText',
@@ -1669,6 +1671,16 @@ window.mainAppLogic = function(): void {
   async function fetchHistoricalData(): Promise<void> {
     debugTime('Total fetch time');
     
+    // Destroy any existing chart before starting
+    if (canvasEl) {
+      const existingChart = Chart.getChart(canvasEl);
+      if (existingChart) {
+        debugLog('Destroying existing chart before fetching new data');
+        existingChart.destroy();
+        chart = null; // Reset the chart variable
+      }
+    }
+    
     showInitialLoadingState();
     hideError();
 
@@ -1726,6 +1738,14 @@ window.mainAppLogic = function(): void {
       // Create or update chart
       if (!chart) {
         debugTime('Chart initialization');
+        
+        // Double-check that no chart exists on this canvas
+        const existingChart = Chart.getChart(canvasEl);
+        if (existingChart) {
+          debugLog('Found existing chart during creation, destroying it first');
+          existingChart.destroy();
+        }
+        
         const ctx = (canvasEl as HTMLCanvasElement).getContext('2d');
         if (!ctx) {
           throw new Error('Could not get canvas context');
