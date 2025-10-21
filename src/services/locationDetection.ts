@@ -1,6 +1,9 @@
 import type { NominatimResponse, IPLocationResponse, GeolocationPosition, GeolocationError } from '../types/index';
 import { detectDeviceAndPlatform } from '../utils/platform';
 
+// Default location constant
+const DEFAULT_LOCATION = 'London, England, United Kingdom';
+
 /**
  * Get city name from coordinates using OpenStreetMap Nominatim API
  */
@@ -79,7 +82,7 @@ export async function getCityFromCoords(lat: number, lon: number): Promise<strin
     }
     
     // Ultimate fallback
-    return 'London, England, United Kingdom';
+    return DEFAULT_LOCATION;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('OpenStreetMap API timeout');
@@ -149,7 +152,7 @@ export async function getLocationFromIP(): Promise<string | null> {
  */
 export function getFallbackLocations(): string[] {
   return [
-    'London, England, United Kingdom',
+    DEFAULT_LOCATION,
     'New York, New York, United States',
     'Paris, France',
     'Tokyo, Japan',

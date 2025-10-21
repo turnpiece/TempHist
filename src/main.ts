@@ -23,6 +23,9 @@ const CHART_AXIS_COLOR = '#ECECEC';
 const CHART_FONT_SIZE_SMALL = 11;
 const CHART_FONT_SIZE_MEDIUM = 12;
 
+// Default location constant
+const DEFAULT_LOCATION = 'London, England, United Kingdom';
+
 // Import types
 import type { 
   ChartDataPoint, 
@@ -137,18 +140,27 @@ function generateErrorMessage(error: unknown): string {
  * Check if data is incomplete and show appropriate UI
  */
 function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined): boolean {
+  debugLog('checkDataCompleteness called with metadata:', metadata);
+  
   if (!metadata) {
+    debugLog('No metadata provided, assuming data is complete');
     return true; // No metadata means we assume data is complete
   }
+  
+  debugLog('Metadata completeness:', metadata.completeness, '%');
   
   // Consider data incomplete if completeness is less than 100%
   const isIncomplete = metadata.completeness < 100;
   
+  debugLog('Is data incomplete?', isIncomplete);
+  
   if (isIncomplete) {
+    debugLog('Showing incomplete data notice');
     showIncompleteDataNotice(metadata);
     return false;
   }
   
+  debugLog('Data is complete, no notice needed');
   return true;
 }
 
@@ -156,8 +168,13 @@ function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined): b
  * Show notice for incomplete data with retry option
  */
 function showIncompleteDataNotice(metadata: TemperatureDataMetadata): void {
+  debugLog('showIncompleteDataNotice called with metadata:', metadata);
+  
   const missingCount = metadata.missing_years.length;
   const completeness = Math.round(metadata.completeness);
+  
+  debugLog('Missing years count:', missingCount);
+  debugLog('Completeness:', completeness, '%');
   
   const noticeHtml = `
     <div class="notice-content warning">
@@ -166,25 +183,50 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata): void {
         Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).
         ${missingCount > 0 ? `${missingCount} years are missing from the dataset.` : ''}
       </p>
-      <p>This may affect the accuracy of the temperature trend analysis.</p>
+      <p>This will affect the accuracy of the temperature trend analysis.</p>
       <button class="btn btn-primary" onclick="retryDataFetch()">
         Try Again
       </button>
     </div>
   `;
   
-  updateDataNotice(noticeHtml, {
-    type: 'warning',
-    useStructuredHtml: true,
-    largeTitle: true,
-    secondarySubtitle: true
-  });
+  debugLog('Calling updateDataNotice with HTML:', noticeHtml);
+  
+  // Create a new warning element and insert it after the trend text
+  const trendTextEl = document.getElementById('trendText');
+  if (trendTextEl) {
+    // Remove any existing warning notice first
+    const existingWarning = document.getElementById('incompleteDataWarning');
+    if (existingWarning) {
+      existingWarning.remove();
+    }
+    
+    // Create the warning element
+    const warningEl = document.createElement('div');
+    warningEl.id = 'incompleteDataWarning';
+    warningEl.className = 'notice status-warning';
+    warningEl.innerHTML = noticeHtml;
+    
+    // Insert after the trend text
+    trendTextEl.parentNode?.insertBefore(warningEl, trendTextEl.nextSibling);
+    debugLog('Incomplete data warning inserted after trend text');
+  } else {
+    debugLog('Trend text element not found, cannot place warning');
+  }
+  
+  debugLog('updateDataNotice called');
 }
 
 /**
  * Retry data fetch (called from the retry button)
  */
 function retryDataFetch(): void {
+  // Remove the incomplete data warning
+  const incompleteDataWarning = document.getElementById('incompleteDataWarning');
+  if (incompleteDataWarning) {
+    incompleteDataWarning.remove();
+  }
+  
   updateDataNotice(null); // Clear the notice
   // Call the global fetchHistoricalData function if available
   if (window.fetchHistoricalData && typeof window.fetchHistoricalData === 'function') {
@@ -1243,7 +1285,7 @@ window.mainAppLogic = function(): void {
   // Use global tempLocation - it should be set by splash screen or cookie
   // If not set, use default (this should only happen in error cases)
   if (!window.tempLocation) {
-    window.tempLocation = 'London, England, United Kingdom';
+    window.tempLocation = DEFAULT_LOCATION;
   }
 
   // Shared chart creation function for both Today and period pages
@@ -1413,7 +1455,7 @@ window.mainAppLogic = function(): void {
       await new Promise(resolve => setTimeout(resolve, 100));
       if (!window.tempLocation) {
         debugLog('renderPeriod: No location found, using default');
-        window.tempLocation = 'London, England, United Kingdom';
+        window.tempLocation = DEFAULT_LOCATION;
       }
     } else {
       debugLog('renderPeriod: Using existing location:', window.tempLocation);
@@ -1603,9 +1645,12 @@ window.mainAppLogic = function(): void {
       }
       
       // Check data completeness and show warning if needed
+      debugLog(`Checking data completeness for ${periodKey} data, metadata:`, metadata);
       const isDataComplete = checkDataCompleteness(metadata);
       if (!isDataComplete) {
         debugLog(`${periodKey}: Data is incomplete, showing warning notice`);
+      } else {
+        debugLog(`${periodKey}: Data is complete, no warning needed`);
       }
 
       // Update the chart with the weather data
@@ -1802,9 +1847,12 @@ window.mainAppLogic = function(): void {
       }
       
       // Check data completeness and show warning if needed
+      debugLog('Checking data completeness for daily data, metadata:', metadata);
       const isDataComplete = checkDataCompleteness(metadata);
       if (!isDataComplete) {
-        debugLog('Data is incomplete, showing warning notice');
+        debugLog('Daily data is incomplete, showing warning notice');
+      } else {
+        debugLog('Daily data is complete, no warning needed');
       }
 
       // Update the chart with the weather data
@@ -2120,14 +2168,21 @@ window.mainAppLogic = function(): void {
       canvasEl.classList.remove('hidden');
     }
     
-    // Clear the data notice
-    updateDataNotice('', {
-      debugOnly: true,
-      useStructuredHtml: true,
-      type: 'success',
-      title: '✅ Temperature data loaded successfully!',
-      subtitle: `Showing data for ${getDisplayCity(window.tempLocation!)}`
-    });
+    // Only show success message if there's no incomplete data notice
+    const incompleteDataWarning = document.getElementById('incompleteDataWarning');
+    
+    if (!incompleteDataWarning) {
+      // Clear the data notice
+      updateDataNotice('', {
+        debugOnly: true,
+        useStructuredHtml: true,
+        type: 'success',
+        title: '✅ Temperature data loaded successfully!',
+        subtitle: `Showing data for ${getDisplayCity(window.tempLocation!)}`
+      });
+    } else {
+      debugLog('Skipping success message because incomplete data warning is present');
+    }
     
     if (chart) {
       chart.update();
@@ -2171,7 +2226,7 @@ window.mainAppLogic = function(): void {
     debugLog('displayLocationAndFetchData called with window.tempLocation:', window.tempLocation);
     
     // Check if using the hardcoded default fallback location
-    const isDefaultLocation = window.tempLocation === 'London, England, United Kingdom' && 
+    const isDefaultLocation = window.tempLocation === DEFAULT_LOCATION && 
                               window.tempLocationIsDetected === false;
     const cityName = getDisplayCity(window.tempLocation!);
     const locationDisplay = isDefaultLocation ? 

@@ -462,11 +462,18 @@ body.privacy-page {
       color: #666;
     }
   }
-  
-  .notice-extra-info {
-    margin: 0;
-    font-size: 12px;
-    color: #888;
+}
+
+// Incomplete data warning specific styles
+.notice.status-warning {
+  .notice-content.warning {
+    .notice-title.large {
+      color: #dc3545; // Red color for the title
+    }
+    
+    .notice-subtitle.secondary {
+      color: #dc3545; // Red color for the subtitle
+    }
   }
 }
 

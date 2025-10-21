@@ -408,10 +408,12 @@ body.privacy-page .header-left a {
   margin: 0 0 15px 0;
   color: #666;
 }
-.notice .notice-extra-info {
-  margin: 0;
-  font-size: 12px;
-  color: #888;
+
+.notice.status-warning .notice-content.warning .notice-title.large {
+  color: #dc3545;
+}
+.notice.status-warning .notice-content.warning .notice-subtitle.secondary {
+  color: #dc3545;
 }
 
 .permission-box {
