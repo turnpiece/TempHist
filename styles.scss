@@ -30,6 +30,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.4;
   min-height: 100vh;
+  padding-bottom: 2rem; // Extra bottom padding for mobile browser bar
 }
 
 a {
@@ -322,6 +323,7 @@ a {
 #viewOutlet { 
   padding: 0 16px 16px 16px; 
   position: relative;
+  padding-bottom: 4rem; // Extra bottom padding for mobile browser bar
 }
 
 /* Page-specific styles for privacy and about pages */
@@ -908,6 +910,7 @@ h2, .date-heading {
 .manual-location-section {
   margin-top: 2rem;
   padding-top: 2rem;
+  padding-bottom: 2rem; // Add bottom padding for mobile browser bar
   border-top: 1px solid rgba($colour-text, 0.2);
   animation: slideInDown 0.4s ease-out;
   
@@ -1035,5 +1038,14 @@ nav a.active {
   
   .location-select {
     max-width: 100%;
+  }
+  
+  // Extra bottom padding for mobile browser bar
+  #viewOutlet {
+    padding-bottom: 6rem; // Increased padding on mobile
+  }
+  
+  .manual-location-section {
+    padding-bottom: 3rem; // Extra padding for location section on mobile
   }
 }
