@@ -27,7 +27,8 @@ const CHART_FONT_SIZE_MEDIUM = 12;
 import type { 
   ChartDataPoint, 
   AsyncJobResponse,
-  FirebaseUser
+  FirebaseUser,
+  TemperatureDataMetadata
 } from './types/index.js';
 
 // Global namespace and cache
@@ -132,11 +133,74 @@ function generateErrorMessage(error: unknown): string {
   return errorMessage;
 }
 
+/**
+ * Check if data is incomplete and show appropriate UI
+ */
+function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined): boolean {
+  if (!metadata) {
+    return true; // No metadata means we assume data is complete
+  }
+  
+  // Consider data incomplete if completeness is less than 100%
+  const isIncomplete = metadata.completeness < 100;
+  
+  if (isIncomplete) {
+    showIncompleteDataNotice(metadata);
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Show notice for incomplete data with retry option
+ */
+function showIncompleteDataNotice(metadata: TemperatureDataMetadata): void {
+  const missingCount = metadata.missing_years.length;
+  const completeness = Math.round(metadata.completeness);
+  
+  const noticeHtml = `
+    <div class="notice-content warning">
+      <h3 class="notice-title large">Incomplete Data</h3>
+      <p class="notice-subtitle secondary">
+        Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).
+        ${missingCount > 0 ? `${missingCount} years are missing from the dataset.` : ''}
+      </p>
+      <p>This may affect the accuracy of the temperature trend analysis.</p>
+      <button class="btn btn-primary" onclick="retryDataFetch()">
+        Try Again
+      </button>
+    </div>
+  `;
+  
+  updateDataNotice(noticeHtml, {
+    type: 'warning',
+    useStructuredHtml: true,
+    largeTitle: true,
+    secondarySubtitle: true
+  });
+}
+
+/**
+ * Retry data fetch (called from the retry button)
+ */
+function retryDataFetch(): void {
+  updateDataNotice(null); // Clear the notice
+  // Call the global fetchHistoricalData function if available
+  if (window.fetchHistoricalData && typeof window.fetchHistoricalData === 'function') {
+    window.fetchHistoricalData();
+  } else {
+    // Fallback to page reload if function not available
+    window.location.reload();
+  }
+}
+
 // Make utility functions globally available
 window.getApiUrl = getApiUrl;
 window.getOrdinal = getOrdinal;
 window.getDisplayCity = getDisplayCity;
 window.updateDataNotice = updateDataNotice;
+window.retryDataFetch = retryDataFetch;
 
 // Firebase config
 const firebaseConfig = {
@@ -361,7 +425,7 @@ function setupMobileNavigation(): void {
   debugLog('Setting up mobile navigation - burgerBtn and sidebar found');
   
   // Remove any existing event listeners to prevent duplicates
-  const newBurgerBtn = burgerBtn.cloneNode(true);
+  const newBurgerBtn = burgerBtn.cloneNode(true) as HTMLElement;
   burgerBtn.parentNode?.replaceChild(newBurgerBtn, burgerBtn);
   
   // Handle burger button click
@@ -433,7 +497,7 @@ function handleWindowResize(): void {
     // Only re-setup if we're in mobile view and the button is visible
     const computedStyle = window.getComputedStyle(burgerBtn);
     if (computedStyle.display !== 'none') {
-      debugLog('Window resized to mobile view, re-setting up mobile navigation');
+      //debugLog('Window resized to mobile view, re-setting up mobile navigation');
       setupMobileNavigation();
     }
   }
@@ -1514,7 +1578,7 @@ window.mainAppLogic = function(): void {
       debugLog(`${periodKey} data structure:`, weatherData);
       
       // Handle both prefetched data (direct format) and fresh API data (job result format)
-      let temperatureData: any[], averageData: any, trendData: any, summaryData: any;
+      let temperatureData: any[], averageData: any, trendData: any, summaryData: any, metadata: any;
       
       if (weatherData.data && weatherData.data.values) {
         // Fresh API data (job result format)
@@ -1522,18 +1586,26 @@ window.mainAppLogic = function(): void {
         averageData = { temp: weatherData.data.average.mean };
         trendData = weatherData.data.trend;
         summaryData = weatherData.data.summary;
+        metadata = weatherData.data.metadata;
       } else if (weatherData.values) {
         // Prefetched data (direct format)
         temperatureData = weatherData.values;
         averageData = { temp: weatherData.average.mean };
         trendData = weatherData.trend;
         summaryData = weatherData.summary;
+        metadata = weatherData.metadata;
       } else {
         throw new Error('Invalid data format received. Expected values array.');
       }
       
       if (!Array.isArray(temperatureData)) {
         throw new Error('Temperature data is not an array.');
+      }
+      
+      // Check data completeness and show warning if needed
+      const isDataComplete = checkDataCompleteness(metadata);
+      if (!isDataComplete) {
+        debugLog(`${periodKey}: Data is incomplete, showing warning notice`);
       }
 
       // Update the chart with the weather data
@@ -1723,9 +1795,16 @@ window.mainAppLogic = function(): void {
       const averageData = { temp: jobResultData.data.average.mean };
       const trendData = jobResultData.data.trend;
       const summaryData = jobResultData.data.summary;
+      const metadata = jobResultData.data.metadata;
       
       if (!Array.isArray(temperatureData)) {
         throw new Error('Temperature data is not an array.');
+      }
+      
+      // Check data completeness and show warning if needed
+      const isDataComplete = checkDataCompleteness(metadata);
+      if (!isDataComplete) {
+        debugLog('Data is incomplete, showing warning notice');
       }
 
       // Update the chart with the weather data
@@ -1849,6 +1928,9 @@ window.mainAppLogic = function(): void {
 
     debugTimeEnd('Total fetch time');
   }
+
+  // Make fetchHistoricalData globally accessible
+  window.fetchHistoricalData = fetchHistoricalData;
 
   // Add loading state management (using global variables)
   let loadingStartTime: number | null = null;
