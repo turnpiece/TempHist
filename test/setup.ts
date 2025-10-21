@@ -84,6 +84,21 @@ global.console = {
 // Mock debugLog function used by TypeScript modules
 global.debugLog = vi.fn();
 
+// Mock import.meta.env for Vite environment variables
+Object.defineProperty(global, 'import', {
+  value: {
+    meta: {
+      env: {
+        VITE_API_BASE: 'http://localhost:3000/api',
+        DEV: false,
+        PROD: true,
+        SSR: false
+      }
+    }
+  },
+  writable: true
+});
+
 // Helper to clear cookies between tests
 global.clearCookies = () => {
   cookieStore = ''
