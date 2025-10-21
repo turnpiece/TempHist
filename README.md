@@ -67,7 +67,7 @@ This approach provides excellent performance (1-5ms API response times) while ma
    ```
    PORT=3000
    NODE_ENV=development
-   API_BASE=http://localhost:3000
+   VITE_API_BASE=http://localhost:3000/api
    ```
 
 4. Start the development server with Vite:
@@ -105,7 +105,7 @@ The application will be available at `http://localhost:5173`
 
    ```bash
    NODE_ENV=production
-   API_BASE=https://api.temphist.com
+   VITE_API_BASE=https://api.temphist.com
    PORT=3000
    ```
 
@@ -168,7 +168,7 @@ This allows:
 3. Add your Firebase config to `src/main.ts`.
 4. The app will sign in users anonymously and use the Firebase ID token for API requests.
 
-**Note**: For local development, the app uses a test token instead of Firebase authentication to avoid requiring Firebase setup during development.
+**Note**: For local development, the proxy server (`server-local.js`) automatically injects a test token to avoid requiring Firebase setup during development.
 
 ## Lighthouse/CLS Optimization
 

@@ -12,25 +12,11 @@ declare const debugLog: (...args: any[]) => void;
  * Get API base URL based on environment
  */
 export function getApiUrl(path: string): string {
-  const apiBase = (() => {
-    // Check for environment-specific API URL first
-    if (import.meta.env.VITE_API_BASE) {
-      return import.meta.env.VITE_API_BASE;
-    }
-    
-    // Development (local) - use proxy server with /api prefix
-    if (import.meta.env.DEV) {
-      return 'http://localhost:3000/api';
-    }
-    
-    // Dev site also uses production API
-    if (window.location.hostname === 'dev.temphist.com') {
-      return 'https://api.temphist.com';
-    }
-    
-    // Production
-    return 'https://api.temphist.com';
-  })();
+  const apiBase = import.meta.env.VITE_API_BASE;
+  
+  if (!apiBase) {
+    throw new Error('VITE_API_BASE environment variable is not set');
+  }
   
   return `${apiBase}${path}`;
 }
@@ -41,45 +27,32 @@ export function getApiUrl(path: string): string {
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
   debugLog('apiFetch called with URL:', url);
   debugLog('apiFetch: window.currentUser exists?', !!window.currentUser);
-  debugLog('apiFetch: import.meta.env.DEV =', import.meta.env.DEV);
   
-  // For local development, try using a test token if available
-  const isLocalDevelopment = url.includes('localhost:3000') || url.includes('localhost:8000');
-  
-  let authToken: string;
-  
-  if (isLocalDevelopment) {
-    // For local development, try different approaches
-    // First try a test token from environment variable
-    const testToken = import.meta.env.VITE_TEST_TOKEN || 'test_token';
-    debugLog('apiFetch: Using test token for local development');
-    authToken = testToken;
-  } else {
-    // Use Firebase token for production
-    if (!window.currentUser) {
-      debugLog('apiFetch: No currentUser, throwing error');
-      throw new Error('No authenticated user available');
-    }
+  // Use Firebase token for authentication
+  if (!window.currentUser) {
+    debugLog('apiFetch: No currentUser, throwing error');
+    throw new Error('No authenticated user available');
+  }
 
-    debugLog('apiFetch: currentUser available, getting token...');
+  debugLog('apiFetch: currentUser available, getting token...');
+  let authToken: string;
+  try {
+    authToken = await window.currentUser.getIdToken();
+    debugLog('apiFetch: Got token (length:', authToken.length, '), making request to:', url);
+    
+    // Decode token to see the project ID (first part is header, second is payload)
     try {
-      authToken = await window.currentUser.getIdToken();
-      debugLog('apiFetch: Got token (length:', authToken.length, '), making request to:', url);
-      
-      // Decode token to see the project ID (first part is header, second is payload)
-      try {
-        const tokenParts = authToken.split('.');
-        if (tokenParts.length === 3) {
-          const payload = JSON.parse(atob(tokenParts[1]));
-          debugLog('Token payload project ID:', payload.aud, 'issuer:', payload.iss);
-        }
-      } catch (decodeError) {
-        debugLog('Could not decode token payload:', decodeError);
+      const tokenParts = authToken.split('.');
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        debugLog('Token payload project ID:', payload.aud, 'issuer:', payload.iss);
       }
-    } catch (tokenError) {
-      debugLog('apiFetch: Error getting token:', tokenError);
-      throw new Error(`Failed to get Firebase token: ${tokenError}`);
+    } catch (decodeError) {
+      debugLog('Could not decode token payload:', decodeError);
     }
+  } catch (tokenError) {
+    debugLog('apiFetch: Error getting token:', tokenError);
+    throw new Error(`Failed to get Firebase token: ${tokenError}`);
   }
 
   const headers: HeadersInit = {

@@ -68,6 +68,13 @@ app.use('/api', createProxyMiddleware({
     '^/api': '' // Remove /api prefix when forwarding
   },
   onProxyReq: (proxyReq, req, res) => {
+    // For local development, inject test token if no Authorization header is present
+    const authHeader = req.headers.authorization;
+    if (!authHeader && process.env.VITE_TEST_TOKEN) {
+      console.log('🔑 Injecting test token for local development');
+      proxyReq.setHeader('Authorization', `Bearer ${process.env.VITE_TEST_TOKEN}`);
+    }
+    
     console.log('🔄 Proxying request:', req.method, req.url, '→', `${apiBase}${req.url.replace('/api', '')}`);
   },
   onProxyRes: (proxyRes, req, res) => {
