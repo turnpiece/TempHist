@@ -65,9 +65,10 @@ This approach provides excellent performance (1-5ms API response times) while ma
 3. Create a `.env` file in the root directory with your configuration:
 
    ```
-   PORT=3000
-   NODE_ENV=development
    VITE_API_BASE=http://localhost:3000/api
+   VITE_TEST_TOKEN=your_test_token_here
+   PORT=3000
+   API_BASE=http://localhost:8000
    ```
 
 4. Start the development server with Vite:
@@ -82,6 +83,56 @@ This approach provides excellent performance (1-5ms API response times) while ma
    ```
 
 The application will be available at `http://localhost:5173`
+
+## Environment Variables
+
+### Required Variables
+
+- **`VITE_API_BASE`** - The base URL for the API server
+  - Local development: `http://localhost:3000/api`
+  - Production: `https://api.temphist.com`
+  - Dev/Staging: Your respective API server URL
+
+### Optional Variables
+
+- **`VITE_TEST_TOKEN`** - Test token for local development (used by `server-local.js`)
+
+  - Only needed for local development
+  - Automatically injected by the proxy server when no Firebase auth is available
+
+- **`PORT`** - Server port (default: 3000)
+
+  - Used by both `server.js` and `server-local.js`
+  - Railway automatically sets this
+
+- **`API_BASE`** - Backend API URL for local development proxy (default: `http://localhost:8000`)
+  - Only used by `server-local.js`
+  - Points to your local FastAPI/backend server
+
+### Environment-Specific Configuration
+
+**Local Development:**
+
+```bash
+VITE_API_BASE=http://localhost:3000/api
+VITE_TEST_TOKEN=your_test_token_here
+PORT=3000
+API_BASE=http://localhost:8000
+```
+
+**Production:**
+
+```bash
+VITE_API_BASE=https://api.temphist.com
+PORT=3000
+```
+
+**Dev/Staging:**
+
+```bash
+VITE_API_BASE=https://dev-api.temphist.com
+PORT=3000
+```
 
 ## Building for Production
 
@@ -104,7 +155,6 @@ The application will be available at `http://localhost:5173`
 4. Set environment variables for production:
 
    ```bash
-   NODE_ENV=production
    VITE_API_BASE=https://api.temphist.com
    PORT=3000
    ```

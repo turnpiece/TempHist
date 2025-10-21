@@ -36,8 +36,6 @@ Set these in your Railway dashboard (under Variables):
 
 - `PORT` - Railway sets this automatically (default: 3000)
 - `VITE_TEST_TOKEN` - Test token for local development (only used by server-local.js)
-- `API_TOKEN` - Token for server-side API calls (if needed for future functionality)
-- `TEST_TOKEN` - Test token for server-side scripts
 
 ## Steps to Deploy
 
