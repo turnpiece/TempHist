@@ -26,7 +26,6 @@ export function getApiUrl(path: string): string {
  */
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
   debugLog('apiFetch called with URL:', url);
-  debugLog('apiFetch: window.currentUser exists?', !!window.currentUser);
   
   // Use Firebase token for authentication
   if (!window.currentUser) {
@@ -34,18 +33,17 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
     throw new Error('No authenticated user available');
   }
 
-  debugLog('apiFetch: currentUser available, getting token...');
   let authToken: string;
   try {
     authToken = await window.currentUser.getIdToken();
-    debugLog('apiFetch: Got token (length:', authToken.length, '), making request to:', url);
+    //debugLog('apiFetch: Got token (length:', authToken.length, '), making request to:', url);
     
     // Decode token to see the project ID (first part is header, second is payload)
     try {
       const tokenParts = authToken.split('.');
       if (tokenParts.length === 3) {
         const payload = JSON.parse(atob(tokenParts[1]));
-        debugLog('Token payload project ID:', payload.aud, 'issuer:', payload.iss);
+        //debugLog('Token payload project ID:', payload.aud, 'issuer:', payload.iss);
       }
     } catch (decodeError) {
       debugLog('Could not decode token payload:', decodeError);

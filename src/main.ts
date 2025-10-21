@@ -201,27 +201,8 @@ function startAppWithFirebaseUser(user: FirebaseUser): void {
 function setupAnalyticsReporting(): void {
   // Send analytics when page is about to unload
   window.addEventListener('beforeunload', () => {
-    // Use sendBeacon for reliable delivery on page unload
-    if (navigator.sendBeacon) {
-      const analyticsData = reportAnalytics();
-      const payload = {
-        session_duration: analyticsData.sessionDuration,
-        api_calls: analyticsData.apiCalls,
-        api_failure_rate: analyticsData.apiFailureRate,
-        retry_attempts: analyticsData.retryAttempts,
-        location_failures: analyticsData.locationFailures,
-        error_count: analyticsData.errorCount,
-        error_type: analyticsData.errorType,
-        recent_errors: analyticsData.recentErrors,
-        app_version: __APP_VERSION__,
-        platform: "web"
-      };
-      
-      navigator.sendBeacon(getApiUrl('/analytics'), JSON.stringify(payload));
-    } else {
-      // Fallback for browsers without sendBeacon
-      sendAnalytics();
-    }
+    // Send analytics data on page unload
+    sendAnalytics();
   });
 
   // Send analytics periodically (every 5 minutes) for long sessions
@@ -379,8 +360,12 @@ function setupMobileNavigation(): void {
   
   debugLog('Setting up mobile navigation - burgerBtn and sidebar found');
   
+  // Remove any existing event listeners to prevent duplicates
+  const newBurgerBtn = burgerBtn.cloneNode(true);
+  burgerBtn.parentNode?.replaceChild(newBurgerBtn, burgerBtn);
+  
   // Handle burger button click
-  burgerBtn.addEventListener('click', (e) => {
+  newBurgerBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -389,15 +374,15 @@ function setupMobileNavigation(): void {
     if (isOpen) {
       // Close the sidebar
       sidebar.classList.remove('open');
-      burgerBtn.setAttribute('aria-expanded', 'false');
-      burgerBtn.setAttribute('aria-label', 'Open menu');
+      newBurgerBtn.setAttribute('aria-expanded', 'false');
+      newBurgerBtn.setAttribute('aria-label', 'Open menu');
       document.body.classList.remove('menu-open');
       debugLog('Mobile menu closed');
     } else {
       // Open the sidebar
       sidebar.classList.add('open');
-      burgerBtn.setAttribute('aria-expanded', 'true');
-      burgerBtn.setAttribute('aria-label', 'Close menu');
+      newBurgerBtn.setAttribute('aria-expanded', 'true');
+      newBurgerBtn.setAttribute('aria-label', 'Close menu');
       document.body.classList.add('menu-open');
       debugLog('Mobile menu opened');
     }
@@ -406,10 +391,10 @@ function setupMobileNavigation(): void {
   // Handle clicking outside the sidebar to close it
   document.addEventListener('click', (e) => {
     const isOpen = sidebar.classList.contains('open');
-    if (isOpen && !sidebar.contains(e.target as Node) && !burgerBtn.contains(e.target as Node)) {
+    if (isOpen && !sidebar.contains(e.target as Node) && !newBurgerBtn.contains(e.target as Node)) {
       sidebar.classList.remove('open');
-      burgerBtn.setAttribute('aria-expanded', 'false');
-      burgerBtn.setAttribute('aria-label', 'Open menu');
+      newBurgerBtn.setAttribute('aria-expanded', 'false');
+      newBurgerBtn.setAttribute('aria-label', 'Open menu');
       document.body.classList.remove('menu-open');
       debugLog('Mobile menu closed by clicking outside');
     }
@@ -420,8 +405,8 @@ function setupMobileNavigation(): void {
   sidebarLinks.forEach(link => {
     link.addEventListener('click', () => {
       sidebar.classList.remove('open');
-      burgerBtn.setAttribute('aria-expanded', 'false');
-      burgerBtn.setAttribute('aria-label', 'Open menu');
+      newBurgerBtn.setAttribute('aria-expanded', 'false');
+      newBurgerBtn.setAttribute('aria-label', 'Open menu');
       document.body.classList.remove('menu-open');
       debugLog('Mobile menu closed by link click');
     });
@@ -431,12 +416,27 @@ function setupMobileNavigation(): void {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && sidebar.classList.contains('open')) {
       sidebar.classList.remove('open');
-      burgerBtn.setAttribute('aria-expanded', 'false');
-      burgerBtn.setAttribute('aria-label', 'Open menu');
+      newBurgerBtn.setAttribute('aria-expanded', 'false');
+      newBurgerBtn.setAttribute('aria-label', 'Open menu');
       document.body.classList.remove('menu-open');
       debugLog('Mobile menu closed by escape key');
     }
   });
+}
+
+/**
+ * Handle window resize to re-setup mobile navigation if needed
+ */
+function handleWindowResize(): void {
+  const burgerBtn = document.getElementById('burgerBtn');
+  if (burgerBtn && window.innerWidth <= 900) {
+    // Only re-setup if we're in mobile view and the button is visible
+    const computedStyle = window.getComputedStyle(burgerBtn);
+    if (computedStyle.display !== 'none') {
+      debugLog('Window resized to mobile view, re-setting up mobile navigation');
+      setupMobileNavigation();
+    }
+  }
 }
 
 /**
@@ -2370,6 +2370,9 @@ window.TempHistSendAnalytics = sendAnalytics;
 // Initialize mobile navigation for all pages
 document.addEventListener('DOMContentLoaded', () => {
   setupMobileNavigation();
+  
+  // Add window resize listener to handle dynamic burger button visibility
+  window.addEventListener('resize', handleWindowResize);
 });
 
 // Also set it up immediately if DOM is already loaded
@@ -2378,4 +2381,7 @@ if (document.readyState === 'loading') {
 } else {
   // DOM is already loaded
   setupMobileNavigation();
+  
+  // Add window resize listener to handle dynamic burger button visibility
+  window.addEventListener('resize', handleWindowResize);
 }

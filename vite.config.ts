@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import { copyFileSync, readFileSync } from 'fs'
 import { resolve } from 'path'
 import { execSync } from 'child_process'
@@ -6,10 +6,14 @@ import { execSync } from 'child_process'
 // Read package.json to get version
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8'))
 
-export default defineConfig({
-  define: {
-    __APP_VERSION__: JSON.stringify(packageJson.version)
-  },
+export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current working directory.
+  const env = loadEnv(mode, process.cwd(), '')
+  
+  return {
+    define: {
+      __APP_VERSION__: JSON.stringify(packageJson.version)
+    },
   publicDir: 'public',
   build: {
     outDir: 'dist',
@@ -26,6 +30,14 @@ export default defineConfig({
     target: 'es2015'
   },
   plugins: [
+    {
+      name: 'replace-env-vars',
+      transformIndexHtml(html) {
+        // Replace %VITE_API_BASE% with actual environment variable
+        const apiBase = env.VITE_API_BASE || 'https://api.temphist.com'
+        return html.replace(/%VITE_API_BASE%/g, apiBase)
+      }
+    },
     {
       name: 'copy-static-files',
       writeBundle() {
@@ -52,4 +64,5 @@ export default defineConfig({
       }
     }
   ]
+  }
 })
