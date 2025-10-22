@@ -6,6 +6,9 @@
   --thisYear: #51cf66;
   --trend: #aaaa00;
   --avg: #4dabf7;
+  --warning: #ff6b6b;
+  --error: #dc3545;
+  --error-bg: rgba(36, 36, 86, 0.9);
   --sidebar-w: 240px;
 }
 
@@ -160,29 +163,6 @@ a {
   padding: 16px;
 }
 
-.location-link {
-  display: inline-block;
-  font-size: 0.7em;
-  color: var(--error);
-  background-color: rgba(255, 107, 107, 0.1);
-  border: 1px solid var(--error);
-  border-radius: 4px;
-  padding: 4px 8px;
-  margin-left: 8px;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-.location-link:hover {
-  background-color: rgba(255, 107, 107, 0.2);
-  border-color: var(--error);
-  text-decoration: none;
-  transform: translateY(-1px);
-}
-.location-link:active {
-  transform: translateY(0);
-}
-
 .location-edit-icon {
   display: inline-flex;
   align-items: center;
@@ -193,7 +173,7 @@ a {
   margin-left: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #ff6b6b;
+  color: var(--warning);
   vertical-align: middle;
 }
 .location-edit-icon svg {
@@ -379,12 +359,15 @@ body.privacy-page .header-left a {
   border-color: rgba(81, 207, 102, 0.3);
 }
 .notice .notice-content.error {
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.1);
-  border-color: rgba(255, 107, 107, 0.3);
+  color: var(--error);
+  background: var(--error-bg);
+  border-color: var(--error);
+  padding: 20px;
+  border-radius: 8px;
+  border-width: 2px;
 }
 .notice .notice-content.warning {
-  color: #ff6b6b;
+  color: var(--warning);
   background: rgba(255, 107, 107, 0.1);
   border-color: rgba(255, 107, 107, 0.3);
   padding: 20px;
@@ -410,10 +393,24 @@ body.privacy-page .header-left a {
 }
 
 .notice.status-warning .notice-content.warning .notice-title.large {
-  color: #dc3545;
+  color: var(--warning);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
 }
 .notice.status-warning .notice-content.warning .notice-subtitle.secondary {
-  color: #dc3545;
+  color: var(--warning);
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+.notice.status-warning .notice-content.warning p {
+  color: var(--warning);
+  font-size: 14px;
+  font-weight: 400;
+  margin: 0 0 15px 0;
+  line-height: 1.4;
 }
 
 .permission-box {
@@ -423,12 +420,12 @@ body.privacy-page .header-left a {
   border: 2px solid;
 }
 .permission-box.denied {
-  color: #ff6b6b;
+  color: var(--warning);
   background: rgba(255, 107, 107, 0.1);
   border-color: rgba(255, 107, 107, 0.3);
 }
 .permission-box.prompt {
-  color: #4dabf7;
+  color: var(--avg);
   background: rgba(77, 171, 247, 0.1);
   border-color: rgba(77, 171, 247, 0.3);
 }
@@ -467,7 +464,7 @@ body.privacy-page .header-left a {
 }
 
 .refresh-button {
-  background: #ff6b6b;
+  background: var(--warning);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -481,7 +478,7 @@ body.privacy-page .header-left a {
   background: #ff3838;
 }
 .refresh-button.info {
-  background: #4dabf7;
+  background: var(--avg);
 }
 .refresh-button.info:hover {
   background: rgb(28.1935483871, 147.9677419355, 244.8064516129);
@@ -626,17 +623,6 @@ h2, .date-heading {
   animation: spin 1s linear infinite;
 }
 
-/* Skeleton loader styles */
-.skeleton {
-  z-index: 2;
-  opacity: 1;
-  transition: opacity 0.4s;
-}
-.skeleton.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
 #tempChart {
   z-index: 1;
   opacity: 0;
@@ -671,12 +657,12 @@ h2, .date-heading {
   padding: 15px 30px;
   border-radius: 6px;
   border: 1px solid;
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.1);
-  border-color: rgba(255, 107, 107, 0.3);
+  color: var(--error);
+  background: var(--error-bg);
+  border-color: var(--error);
 }
 .error-container .error-content .error-message {
-  color: #ff6b6b;
+  color: var(--error);
   font-size: 1.1em;
   margin-bottom: 10px;
 }
@@ -685,7 +671,7 @@ h2, .date-heading {
   margin-right: 8px;
 }
 .error-container .error-content .reload-button {
-  background: #ff6b6b;
+  background: #dc3545;
   color: #ececec;
   border: none;
   padding: 10px 20px;
@@ -694,7 +680,7 @@ h2, .date-heading {
   font-size: 1em;
 }
 .error-container .error-content .reload-button:hover {
-  background: #ff3838;
+  background: rgb(189.2151898734, 32.7848101266, 47.7721518987);
 }
 
 .visible {
@@ -706,10 +692,6 @@ h2, .date-heading {
   opacity: 0;
   pointer-events: none;
   /* Optionally: visibility: hidden; */
-}
-
-.gone {
-  display: none !important;
 }
 
 .splash-screen {

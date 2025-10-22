@@ -51,6 +51,7 @@ window.TempHistViews = window.TempHistViews || {};
 // Global loading interval management
 const activeLoadingIntervals = new Set<NodeJS.Timeout>();
 let globalLoadingCheckInterval: NodeJS.Timeout | null = null;
+let globalLoadingStartTime: number | null = null;
 
 // Clear all loading intervals (useful when navigating between pages)
   function clearAllLoadingIntervals(): void {
@@ -975,6 +976,11 @@ function clearAllCachedData(): void {
   errorContainers.forEach(el => {
     (el as HTMLElement).style.display = 'none';
   });
+  
+  // Clear loading intervals and reset loading state
+  clearAllLoadingIntervals();
+  globalLoadingStartTime = null;
+  globalLoadingCheckInterval = null;
   
   debugLog('All cached data cleared');
 }
@@ -2003,13 +2009,12 @@ window.mainAppLogic = function(): void {
   window.fetchHistoricalData = fetchHistoricalData;
 
   // Add loading state management (using global variables)
-  let loadingStartTime: number | null = null;
-  let loadingCheckInterval: NodeJS.Timeout | null = null;
+  // Note: loadingStartTime and loadingCheckInterval are now global variables
 
   function updateLoadingMessage(): void {
-    if (!loadingStartTime) return;
+    if (!globalLoadingStartTime) return;
     
-    const elapsedSeconds = Math.floor((Date.now() - loadingStartTime) / 1000);
+    const elapsedSeconds = Math.floor((Date.now() - globalLoadingStartTime) / 1000);
     const loadingText = document.getElementById('loadingText');
     
     // Get current page/period
@@ -2117,10 +2122,9 @@ window.mainAppLogic = function(): void {
     // Clear any existing loading intervals
     clearAllLoadingIntervals();
     
-    loadingStartTime = Date.now();
-    loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
-    globalLoadingCheckInterval = loadingCheckInterval;
-    activeLoadingIntervals.add(loadingCheckInterval);
+    globalLoadingStartTime = Date.now();
+    globalLoadingCheckInterval = setInterval(updateLoadingMessage, 1000);
+    activeLoadingIntervals.add(globalLoadingCheckInterval);
     
     // Ensure loading is visible for at least 3 seconds to show cycling messages
 
@@ -2178,7 +2182,7 @@ window.mainAppLogic = function(): void {
   function showChart(): void {
     // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages
     const minLoadingTime = 3000; // 3 seconds
-    const elapsedTime = loadingStartTime ? Date.now() - loadingStartTime : 0;
+    const elapsedTime = globalLoadingStartTime ? Date.now() - globalLoadingStartTime : 0;
     const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
     
     if (remainingTime > 0) {
@@ -2191,13 +2195,12 @@ window.mainAppLogic = function(): void {
   }
   
   function actuallyShowChart(): void {
-    if (loadingCheckInterval) {
-      clearInterval(loadingCheckInterval);
-      activeLoadingIntervals.delete(loadingCheckInterval);
-      loadingCheckInterval = null;
+    if (globalLoadingCheckInterval) {
+      clearInterval(globalLoadingCheckInterval);
+      activeLoadingIntervals.delete(globalLoadingCheckInterval);
+      globalLoadingCheckInterval = null;
     }
-    loadingStartTime = null;
-    globalLoadingCheckInterval = null;
+    globalLoadingStartTime = null;
 
     if (loadingEl) {
       loadingEl.classList.add('hidden');

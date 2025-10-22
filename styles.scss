@@ -7,6 +7,9 @@
   --thisYear: #51cf66;
   --trend: #aaaa00;
   --avg: #4dabf7;
+  --warning: #ff6b6b;
+  --error: #dc3545;
+  --error-bg: rgba(36, 36, 86, 0.9);
   --sidebar-w: 240px;
 }
 
@@ -20,7 +23,14 @@ $colour-border: $colour-primary;
 $colour-loading-text: #51cf66;
 $colour-spinner: $colour-loading-text;
 $colour-spinner-bg: rgba(186, 0, 0, 0.2);
-$colour-error: $colour-primary;
+$colour-warning: #ff6b6b;
+$colour-error: #dc3545;
+$colour-error-bg: rgba(36, 36, 86, 0.9);
+$colour-avg: #4dabf7;
+
+// Layout variables
+$max-content-width: 600px;
+$max-chart-height: 1800px;
 
 html {
   background-color: $colour-bg;
@@ -55,7 +65,7 @@ a {
   width: 100%;
   height: 800px;
   min-width: 300px;
-  max-height: 1800px;
+  max-height: $max-chart-height;
   overflow: visible;
 
   canvas {
@@ -78,7 +88,7 @@ a {
     top: 0;
     left: 0;
     width: 100%;
-    max-width: 600px;
+    max-width: $max-content-width;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -108,7 +118,7 @@ a {
 
 @media (max-width: 500px) {
   .chart-container {
-    max-height: 1800px;
+    max-height: $max-chart-height;
   }
 }
 
@@ -177,35 +187,10 @@ a {
 }
 
 #sidebar { 
-  border-right: 1px solid rgba(81, 207, 102, 0.1); 
+  border-right: 1px solid rgba($colour-loading-text, 0.1); 
   padding: 16px; 
 }
 
-// Location link styling (legacy - kept for backward compatibility)
-.location-link {
-  display: inline-block;
-  font-size: 0.7em;
-  color: var(--error);
-  background-color: rgba(255, 107, 107, 0.1);
-  border: 1px solid var(--error);
-  border-radius: 4px;
-  padding: 4px 8px;
-  margin-left: 8px;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: rgba(255, 107, 107, 0.2);
-    border-color: var(--error);
-    text-decoration: none;
-    transform: translateY(-1px);
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
-}
 
 // Location edit icon styling
 .location-edit-icon {
@@ -218,7 +203,7 @@ a {
   margin-left: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #ff6b6b; // Red by default
+  color: var(--warning); // Red by default
   vertical-align: middle;
   
   svg {
@@ -294,7 +279,7 @@ a {
 
 #sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .menu-selected-bg {
-  background: rgba(81, 207, 102, 0.1);
+  background: rgba($colour-loading-text, 0.1);
 }
 
 #sidebar a { 
@@ -372,7 +357,7 @@ body.privacy-page {
   font-size: 1em;
   padding: .4em 0;
   min-height: 2.2em; /* desktop default, enough for one line + padding */
-  max-width: 600px;
+  max-width: $max-content-width;
 }
 
 .summary-text {
@@ -421,19 +406,22 @@ body.privacy-page {
     border: 1px solid;
     
     &.success {
-      color: #51cf66;
-      background: rgba(81,207,102,0.1);
-      border-color: rgba(81,207,102,0.3);
+      color: $colour-loading-text;
+      background: rgba($colour-loading-text, 0.1);
+      border-color: rgba($colour-loading-text, 0.3);
     }
     
     &.error {
-      color: #ff6b6b;
-      background: rgba(255,107,107,0.1);
-      border-color: rgba(255,107,107,0.3);
+      color: var(--error);
+      background: var(--error-bg);
+      border-color: var(--error);
+      padding: 20px;
+      border-radius: 8px;
+      border-width: 2px;
     }
     
     &.warning {
-      color: #ff6b6b;
+      color: var(--warning);
       background: rgba(255,107,107,0.1);
       border-color: rgba(255,107,107,0.3);
       padding: 20px;
@@ -468,11 +456,26 @@ body.privacy-page {
 .notice.status-warning {
   .notice-content.warning {
     .notice-title.large {
-      color: #dc3545; // Red color for the title
+      color: var(--warning);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
     }
     
     .notice-subtitle.secondary {
-      color: #dc3545; // Red color for the subtitle
+      color: var(--warning);
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    
+    p {
+      color: var(--warning);
+      font-size: 14px;
+      font-weight: 400;
+      margin: 0 0 15px 0;
+      line-height: 1.4;
     }
   }
 }
@@ -485,15 +488,15 @@ body.privacy-page {
   border: 2px solid;
   
   &.denied {
-    color: #ff6b6b;
+    color: var(--warning);
     background: rgba(255,107,107,0.1);
     border-color: rgba(255,107,107,0.3);
   }
   
   &.prompt {
-    color: #4dabf7;
-    background: rgba(77,171,247,0.1);
-    border-color: rgba(77,171,247,0.3);
+    color: var(--avg);
+    background: rgba($colour-avg, 0.1);
+    border-color: rgba($colour-avg, 0.3);
   }
   
   .permission-title {
@@ -538,7 +541,7 @@ body.privacy-page {
 
 // Refresh button
 .refresh-button {
-  background: #ff6b6b;
+  background: var(--warning);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -549,14 +552,14 @@ body.privacy-page {
   margin-top: 10px;
   
   &:hover {
-    background: color.adjust(#ff6b6b, $lightness: -10%);
+    background: color.adjust($colour-warning, $lightness: -10%);
   }
   
   &.info {
-    background: #4dabf7;
+    background: var(--avg);
     
     &:hover {
-      background: color.adjust(#4dabf7, $lightness: -10%);
+      background: color.adjust($colour-avg, $lightness: -10%);
     }
   }
 }
@@ -571,7 +574,7 @@ h2, .date-heading {
   font-weight: normal;
 } 
 
-@media (max-width: 600px) {
+@media (max-width: $max-content-width) {
   .standard-text {
     min-height: 2em;
   }
@@ -594,7 +597,7 @@ h2, .date-heading {
     inset: 0 auto 0 0; 
     width: min(30vw, 200px); // Optimized width for small screens
     transform: translateX(-100%);
-    background: #242456; 
+    background: $colour-bg; 
     z-index: 1000; 
     transition: transform .2s ease-out; 
     box-shadow: 4px 0 24px rgba(0,0,0,.08);
@@ -650,7 +653,7 @@ h2, .date-heading {
   position: absolute;
   top: 0; left: 0;
   width: 100%;
-  max-width: 600px;
+  max-width: $max-content-width;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -707,17 +710,6 @@ h2, .date-heading {
   animation: spin 1s linear infinite;
 }
 
-/* Skeleton loader styles */
-.skeleton {
-  z-index: 2;
-  opacity: 1;
-  transition: opacity 0.4s;
-
-  &.hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
-}
 
 #tempChart {
   z-index: 1;
@@ -754,12 +746,12 @@ h2, .date-heading {
     padding: 15px 30px;
     border-radius: 6px;
     border: 1px solid;
-    color: #ff6b6b;
-    background: rgba(255,107,107,0.1);
-    border-color: rgba(255,107,107,0.3);
+    color: var(--error);
+    background: var(--error-bg);
+    border-color: var(--error);
     
     .error-message {
-      color: $colour-error;
+      color: var(--error);
       font-size: 1.1em;
       margin-bottom: 10px;
       
@@ -796,9 +788,6 @@ h2, .date-heading {
   /* Optionally: visibility: hidden; */
 }
 
-.gone {
-  display: none !important;
-}
 
 // Splash Screen Styles
 .splash-screen {
@@ -1074,7 +1063,7 @@ nav a.active {
 }
 
 // Responsive Design
-@media (max-width: 600px) {
+@media (max-width: $max-content-width) {
   .splash-content {
     padding: 1rem;
     max-width: 100%;
