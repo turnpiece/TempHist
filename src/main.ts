@@ -26,6 +26,9 @@ const CHART_FONT_SIZE_MEDIUM = 12;
 // Default location constant
 const DEFAULT_LOCATION = 'London, England, United Kingdom';
 
+// Loading text constant
+const INITIAL_LOADING_TEXT = 'Loading temperature data…';
+
 // Import types
 import type { 
   ChartDataPoint, 
@@ -181,9 +184,9 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata): void {
       <h3 class="notice-title large">Incomplete Data</h3>
       <p class="notice-subtitle secondary">
         Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).
-        ${missingCount > 0 ? `${missingCount} years are missing from the dataset.` : ''}
+        ${missingCount > 0 ? `${missingCount} years are missing.` : ''}
       </p>
-      <p>This will affect the accuracy of the temperature trend analysis.</p>
+      <p>This will affect the accuracy of the temperature trend.</p>
       <button class="btn btn-primary" onclick="retryDataFetch()">
         Try Again
       </button>
@@ -1496,7 +1499,7 @@ window.mainAppLogic = function(): void {
         <div class="chart-container">
           <div id="${periodKey}Loading" class="loading">
             <div class="spinner"></div>
-            <p id="${periodKey}LoadingText" class="loading-text">Loading temperature data…</p>
+            <p id="${periodKey}LoadingText" class="loading-text">${INITIAL_LOADING_TEXT}</p>
           </div>
           
           <div id="${periodKey}ErrorContainer" class="error-container" style="display: none;">
@@ -1669,71 +1672,90 @@ window.mainAppLogic = function(): void {
       const minYear = Math.min(...years);
       const maxYear = Math.max(...years);
       
-      // Hide loading and show chart
-      loadingEl.classList.add('hidden');
-      loadingEl.classList.remove('visible');
-      canvas.classList.add('visible');
-      canvas.classList.remove('hidden');
+      // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages
+      const minLoadingTime = 3000; // 3 seconds
+      const elapsedTime = Date.now() - periodLoadingStartTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
       
-      // Clear the loading message interval
-      if (periodLoadingInterval) {
-        clearInterval(periodLoadingInterval);
-        activeLoadingIntervals.delete(periodLoadingInterval);
-      }
-
-      // Create chart using shared function
-      const chart = createTemperatureChart(
-        ctx,
-        chartData,
-        averageData,
-        title,
-        friendlyDate,
-        minTemp,
-        maxTemp,
-        minYear,
-        maxYear
-      );
-
-      // Update trend line if enabled
-      if (chart && chart.data && chart.data.datasets) {
-        // chartData is now {x: temperature, y: year} (after transformation), but calculateTrendLine expects {x: year, y: temperature}
-        const calculatedTrendData = calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
-          minYear - 0.5, maxYear + 0.5);
-        chart.data.datasets[0].data = calculatedTrendData.points.map(p => ({ x: p.y, y: p.x }));
-        chart.update();
-      }
-
-      // Update summary, average, and trend text
-      const summaryTextEl = document.getElementById(`${periodKey}SummaryText`);
-      const avgTextEl = document.getElementById(`${periodKey}AvgText`);
-      const trendTextEl = document.getElementById(`${periodKey}TrendText`);
-      
-      if (summaryTextEl) {
-        summaryTextEl.textContent = summaryData || 'No summary available.';
-        summaryTextEl.classList.add('summary-text');
+      if (remainingTime > 0) {
+        setTimeout(() => {
+          actuallyShowPeriodChart();
+        }, remainingTime);
+      } else {
+        actuallyShowPeriodChart();
       }
       
-      if (avgTextEl) {
-        avgTextEl.textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
-        avgTextEl.classList.add('avg-text');
-      }
-      
-      if (trendTextEl) {
-        // Use actual slope value for direction determination, not rounded display value
-        const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
-                         trendData.slope > 0 ? 'rising' : 'falling';
-        const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${trendData.unit || '°C/decade'}`;
-        trendTextEl.textContent = formatted;
-        trendTextEl.classList.add('trend-text');
-      }
+      function actuallyShowPeriodChart() {
+        // Hide loading and show chart
+        loadingEl.classList.add('hidden');
+        loadingEl.classList.remove('visible');
+        canvas.classList.add('visible');
+        canvas.classList.remove('hidden');
+        
+        // Clear the loading message interval
+        if (periodLoadingInterval) {
+          clearInterval(periodLoadingInterval);
+          activeLoadingIntervals.delete(periodLoadingInterval);
+        }
 
-      // Add reload button functionality
-      const reloadButton = document.getElementById(`${periodKey}ReloadButton`);
-      if (reloadButton) {
-        reloadButton.addEventListener('click', () => {
-          // Re-trigger the render function
-          window.TempHistViews[periodKey]?.render?.();
-        });
+        // Create chart using shared function
+        if (!ctx) {
+          throw new Error('Canvas context not available');
+        }
+        
+        const chart = createTemperatureChart(
+          ctx,
+          chartData,
+          averageData,
+          title,
+          friendlyDate,
+          minTemp,
+          maxTemp,
+          minYear,
+          maxYear
+        );
+
+        // Update trend line if enabled
+        if (chart && chart.data && chart.data.datasets) {
+          // chartData is now {x: temperature, y: year} (after transformation), but calculateTrendLine expects {x: year, y: temperature}
+          const calculatedTrendData = calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
+            minYear - 0.5, maxYear + 0.5);
+          chart.data.datasets[0].data = calculatedTrendData.points.map(p => ({ x: p.y, y: p.x }));
+          chart.update();
+        }
+
+        // Update summary, average, and trend text
+        const summaryTextEl = document.getElementById(`${periodKey}SummaryText`);
+        const avgTextEl = document.getElementById(`${periodKey}AvgText`);
+        const trendTextEl = document.getElementById(`${periodKey}TrendText`);
+        
+        if (summaryTextEl) {
+          summaryTextEl.textContent = summaryData || 'No summary available.';
+          summaryTextEl.classList.add('summary-text');
+        }
+        
+        if (avgTextEl) {
+          avgTextEl.textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
+          avgTextEl.classList.add('avg-text');
+        }
+        
+        if (trendTextEl) {
+          // Use actual slope value for direction determination, not rounded display value
+          const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
+                           trendData.slope > 0 ? 'rising' : 'falling';
+          const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${trendData.unit || '°C/decade'}`;
+          trendTextEl.textContent = formatted;
+          trendTextEl.classList.add('trend-text');
+        }
+
+        // Add reload button functionality
+        const reloadButton = document.getElementById(`${periodKey}ReloadButton`);
+        if (reloadButton) {
+          reloadButton.addEventListener('click', () => {
+            // Re-trigger the render function
+            window.TempHistViews[periodKey]?.render?.();
+          });
+        }
       }
 
     } catch (error) {
@@ -2099,6 +2121,8 @@ window.mainAppLogic = function(): void {
     loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
     globalLoadingCheckInterval = loadingCheckInterval;
     activeLoadingIntervals.add(loadingCheckInterval);
+    
+    // Ensure loading is visible for at least 3 seconds to show cycling messages
 
     if (loadingEl) {
       loadingEl.classList.add('visible');
@@ -2112,7 +2136,9 @@ window.mainAppLogic = function(): void {
     
     // Update loading message for fetching stage
     const loadingText = document.getElementById('loadingText');
-    if (loadingText) loadingText.textContent = 'Loading temperature data...';
+    if (loadingText) {
+      loadingText.textContent = INITIAL_LOADING_TEXT;
+    }
   }
 
   // Utility functions for error UI
@@ -2150,6 +2176,21 @@ window.mainAppLogic = function(): void {
   }
 
   function showChart(): void {
+    // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages
+    const minLoadingTime = 3000; // 3 seconds
+    const elapsedTime = loadingStartTime ? Date.now() - loadingStartTime : 0;
+    const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+    
+    if (remainingTime > 0) {
+      setTimeout(() => {
+        actuallyShowChart();
+      }, remainingTime);
+    } else {
+      actuallyShowChart();
+    }
+  }
+  
+  function actuallyShowChart(): void {
     if (loadingCheckInterval) {
       clearInterval(loadingCheckInterval);
       activeLoadingIntervals.delete(loadingCheckInterval);
@@ -2262,7 +2303,7 @@ window.mainAppLogic = function(): void {
       useStructuredHtml: true,
       type: 'success',
       title: locationMessage,
-      subtitle: 'Loading temperature data...'
+      subtitle: INITIAL_LOADING_TEXT
     });
     
     setLocationCookie(window.tempLocation!, window.tempLocationSource!);
