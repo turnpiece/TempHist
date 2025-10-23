@@ -474,8 +474,8 @@ function setupMobileNavigation(): void {
   const newBurgerBtn = burgerBtn.cloneNode(true) as HTMLElement;
   burgerBtn.parentNode?.replaceChild(newBurgerBtn, burgerBtn);
   
-  // Handle burger button click
-  newBurgerBtn.addEventListener('click', (e) => {
+  // Handle burger button interaction (both touch and click for mobile compatibility)
+  const handleBurgerClick = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -496,7 +496,11 @@ function setupMobileNavigation(): void {
       document.body.classList.add('menu-open');
       debugLog('Mobile menu opened');
     }
-  });
+  };
+  
+  // Add both touchstart and click listeners for better mobile support
+  newBurgerBtn.addEventListener('touchstart', handleBurgerClick, { passive: false });
+  newBurgerBtn.addEventListener('click', handleBurgerClick);
   
   // Handle clicking outside the sidebar to close it
   document.addEventListener('click', (e) => {
