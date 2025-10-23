@@ -718,7 +718,7 @@ h2, .date-heading {
 .splash-content {
   text-align: left;
   max-width: 500px;
-  padding: 2rem;
+  padding: 2rem 2.625rem;
   margin-bottom: 3rem;
   animation: fadeInUp 0.6s ease-out;
 }
@@ -944,7 +944,7 @@ nav a.active {
 
 @media (max-width: 600px) {
   .splash-content {
-    padding: 1rem;
+    padding: 1rem 1.625rem;
     max-width: 100%;
   }
   .splash-header {

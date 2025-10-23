@@ -64,13 +64,23 @@ Object.defineProperty(document, 'cookie', {
 })
 
 // Mock window.location
-delete window.location
-window.location = {
-  href: 'http://localhost:3000',
-  hostname: 'localhost',
-  protocol: 'http:',
-  hash: ''
-}
+Object.defineProperty(window, 'location', {
+  value: {
+    href: 'http://localhost:3000',
+    hostname: 'localhost',
+    protocol: 'http:',
+    hash: '',
+    pathname: '/',
+    search: '',
+    port: '3000',
+    host: 'localhost:3000',
+    origin: 'http://localhost:3000',
+    assign: vi.fn(),
+    replace: vi.fn(),
+    reload: vi.fn()
+  },
+  writable: true
+})
 
 // Mock console methods to avoid noise in tests
 global.console = {

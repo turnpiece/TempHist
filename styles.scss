@@ -815,7 +815,7 @@ h2, .date-heading {
 .splash-content {
   text-align: left;
   max-width: 500px;
-  padding: 2rem;
+  padding: 2rem 2.625rem; // Added extra 10px horizontal padding to compensate for missing body padding (2rem + 0.625rem = 42px total)
   margin-bottom: 3rem;
   animation: fadeInUp 0.6s ease-out;
 }
@@ -839,7 +839,7 @@ h2, .date-heading {
 }
 
 .splash-logo {
-  margin-left: -20px;
+  margin-left: -20px; // Reset to original to compensate for SVG's 10px left space
   flex-shrink: 0;
   
   object, img {
@@ -1064,8 +1064,7 @@ nav a.active {
 
 // Responsive Design
 @media (max-width: $max-content-width) {
-  .splash-content {
-    padding: 1rem;
+  .splash-content {// 16px + 10px body padding = 26px total horizontal padding
     max-width: 100%;
   }
   
@@ -1074,7 +1073,7 @@ nav a.active {
   }
   
   .splash-logo {
-    margin-left: 0;
+    margin-left: -10px; // compensate for the 10px left space of the SVG
     
     object, img {
       width: 60px;
