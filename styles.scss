@@ -7,6 +7,9 @@
   --thisYear: #51cf66;
   --trend: #aaaa00;
   --avg: #4dabf7;
+  --warning: #ff6b6b;
+  --error: #dc3545;
+  --error-bg: rgba(36, 36, 86, 0.9);
   --sidebar-w: 240px;
 }
 
@@ -20,16 +23,30 @@ $colour-border: $colour-primary;
 $colour-loading-text: #51cf66;
 $colour-spinner: $colour-loading-text;
 $colour-spinner-bg: rgba(186, 0, 0, 0.2);
-$colour-error: $colour-primary;
+$colour-warning: #ff6b6b;
+$colour-error: #dc3545;
+$colour-error-bg: rgba(36, 36, 86, 0.9);
+$colour-avg: #4dabf7;
+
+// Layout variables
+$max-content-width: 600px;
+$max-chart-height: 1800px;
+
+html {
+  background-color: $colour-bg;
+  background-image: linear-gradient($colour-bg, $colour-bg-bottom);
+  min-height: 100vh;
+}
 
 body {
   background-color: $colour-bg;
   background-image: linear-gradient($colour-bg, $colour-bg-bottom);
   color: $colour-text;
-  padding: 20px;
+  padding: 10px;
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.4;
   min-height: 100vh;
+  padding-bottom: 3rem; // Extra bottom padding for mobile browser bar
 }
 
 a {
@@ -48,7 +65,7 @@ a {
   width: 100%;
   height: 800px;
   min-width: 300px;
-  max-height: 1800px;
+  max-height: $max-chart-height;
   overflow: visible;
 
   canvas {
@@ -71,7 +88,7 @@ a {
     top: 0;
     left: 0;
     width: 100%;
-    max-width: 600px;
+    max-width: $max-content-width;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -101,12 +118,12 @@ a {
 
 @media (max-width: 500px) {
   .chart-container {
-    max-height: 1800px;
+    max-height: $max-chart-height;
   }
 }
 
 #header { 
-  padding: 12px 16px; 
+  padding: 12px 16px 12px 6px; // Reduced left padding by 10px to align logo with content
   color: var(--accent); 
   display: flex; 
   align-items: center; 
@@ -170,35 +187,10 @@ a {
 }
 
 #sidebar { 
-  border-right: 1px solid rgba(81, 207, 102, 0.1); 
+  border-right: 1px solid rgba($colour-loading-text, 0.1); 
   padding: 16px; 
 }
 
-// Location link styling (legacy - kept for backward compatibility)
-.location-link {
-  display: inline-block;
-  font-size: 0.7em;
-  color: var(--error);
-  background-color: rgba(255, 107, 107, 0.1);
-  border: 1px solid var(--error);
-  border-radius: 4px;
-  padding: 4px 8px;
-  margin-left: 8px;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: rgba(255, 107, 107, 0.2);
-    border-color: var(--error);
-    text-decoration: none;
-    transform: translateY(-1px);
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
-}
 
 // Location edit icon styling
 .location-edit-icon {
@@ -211,7 +203,7 @@ a {
   margin-left: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #ff6b6b; // Red by default
+  color: var(--warning); // Red by default
   vertical-align: middle;
   
   svg {
@@ -287,7 +279,7 @@ a {
 
 #sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .menu-selected-bg {
-  background: rgba(81, 207, 102, 0.1);
+  background: rgba($colour-loading-text, 0.1);
 }
 
 #sidebar a { 
@@ -322,6 +314,7 @@ a {
 #viewOutlet { 
   padding: 0 16px 16px 16px; 
   position: relative;
+  padding-bottom: 4rem; // Extra bottom padding for mobile browser bar
 }
 
 /* Page-specific styles for privacy and about pages */
@@ -364,7 +357,7 @@ body.privacy-page {
   font-size: 1em;
   padding: .4em 0;
   min-height: 2.2em; /* desktop default, enough for one line + padding */
-  max-width: 600px;
+  max-width: $max-content-width;
 }
 
 .summary-text {
@@ -413,19 +406,22 @@ body.privacy-page {
     border: 1px solid;
     
     &.success {
-      color: #51cf66;
-      background: rgba(81,207,102,0.1);
-      border-color: rgba(81,207,102,0.3);
+      color: $colour-loading-text;
+      background: rgba($colour-loading-text, 0.1);
+      border-color: rgba($colour-loading-text, 0.3);
     }
     
     &.error {
-      color: #ff6b6b;
-      background: rgba(255,107,107,0.1);
-      border-color: rgba(255,107,107,0.3);
+      color: var(--error);
+      background: var(--error-bg);
+      border-color: var(--error);
+      padding: 20px;
+      border-radius: 8px;
+      border-width: 2px;
     }
     
     &.warning {
-      color: #ff6b6b;
+      color: var(--warning);
       background: rgba(255,107,107,0.1);
       border-color: rgba(255,107,107,0.3);
       padding: 20px;
@@ -454,11 +450,33 @@ body.privacy-page {
       color: #666;
     }
   }
-  
-  .notice-extra-info {
-    margin: 0;
-    font-size: 12px;
-    color: #888;
+}
+
+// Incomplete data warning specific styles
+.notice.status-warning {
+  .notice-content.warning {
+    .notice-title.large {
+      color: var(--warning);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .notice-subtitle.secondary {
+      color: var(--warning);
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    
+    p {
+      color: var(--warning);
+      font-size: 14px;
+      font-weight: 400;
+      margin: 0 0 15px 0;
+      line-height: 1.4;
+    }
   }
 }
 
@@ -470,15 +488,15 @@ body.privacy-page {
   border: 2px solid;
   
   &.denied {
-    color: #ff6b6b;
+    color: var(--warning);
     background: rgba(255,107,107,0.1);
     border-color: rgba(255,107,107,0.3);
   }
   
   &.prompt {
-    color: #4dabf7;
-    background: rgba(77,171,247,0.1);
-    border-color: rgba(77,171,247,0.3);
+    color: var(--avg);
+    background: rgba($colour-avg, 0.1);
+    border-color: rgba($colour-avg, 0.3);
   }
   
   .permission-title {
@@ -523,7 +541,7 @@ body.privacy-page {
 
 // Refresh button
 .refresh-button {
-  background: #ff6b6b;
+  background: var(--warning);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -534,14 +552,14 @@ body.privacy-page {
   margin-top: 10px;
   
   &:hover {
-    background: color.adjust(#ff6b6b, $lightness: -10%);
+    background: color.adjust($colour-warning, $lightness: -10%);
   }
   
   &.info {
-    background: #4dabf7;
+    background: var(--avg);
     
     &:hover {
-      background: color.adjust(#4dabf7, $lightness: -10%);
+      background: color.adjust($colour-avg, $lightness: -10%);
     }
   }
 }
@@ -556,42 +574,86 @@ h2, .date-heading {
   font-weight: normal;
 } 
 
-@media (max-width: 600px) {
+@media (max-width: $max-content-width) {
   .standard-text {
-    min-height: 3.2em; /* enough for two lines + padding on mobile */
+    min-height: 2em;
   }
   
   .summary-text {
     min-height: 3.5em; /* slightly more space for longer summaries on mobile */
+  }
+
+  h2, .date-heading {
+    font-size: 1.5em;
   }
 }
 
 @media (max-width: 900px) {
   #appShell { grid-template-columns: 1fr; }
   #burgerBtn { display: flex; }
-  #viewOutlet {
-    padding-left: 26px;
-  }
+
   #sidebar {
     position: fixed; 
     inset: 0 auto 0 0; 
-    width: min(80vw, 300px); 
+    width: min(30vw, 200px); // Optimized width for small screens
     transform: translateX(-100%);
-    background: #242456; 
+    background: $colour-bg; 
     z-index: 1000; 
     transition: transform .2s ease-out; 
     box-shadow: 4px 0 24px rgba(0,0,0,.08);
     padding-top: 80px;
+    
+    // Ensure menu items fit with larger fonts
+    ul {
+      padding: 0 8px; // Add some padding for larger text
+    }
+    
+    a {
+      padding: 12px 10px; // Increased padding for better touch targets
+      font-size: 1rem; // Ensure consistent font size
+      line-height: 1.4; // Better line height for larger text
+      white-space: nowrap; // Prevent text wrapping
+      overflow: hidden;
+      text-overflow: ellipsis; // Show ellipsis if text is too long
+    }
   }
   #sidebar.open { transform: translateX(0); }
-  body.menu-open { overflow: hidden; }
+  body.menu-open { 
+    overflow: hidden;
+    
+    // Blur the main content when sidebar is open
+    #viewOutlet {
+      filter: blur(2px);
+      transition: filter 0.2s ease-out;
+    }
+    
+    // Also blur the header
+    #header {
+      filter: blur(2px);
+      transition: filter 0.2s ease-out;
+    }
+    
+    // Add a subtle overlay to darken the background
+    &::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 999;
+      pointer-events: none;
+      animation: fadeIn 0.2s ease-out;
+    }
+  }
 }
 
 #loading {
   position: absolute;
   top: 0; left: 0;
   width: 100%;
-  max-width: 600px;
+  max-width: $max-content-width;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -648,17 +710,6 @@ h2, .date-heading {
   animation: spin 1s linear infinite;
 }
 
-/* Skeleton loader styles */
-.skeleton {
-  z-index: 2;
-  opacity: 1;
-  transition: opacity 0.4s;
-
-  &.hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
-}
 
 #tempChart {
   z-index: 1;
@@ -695,12 +746,12 @@ h2, .date-heading {
     padding: 15px 30px;
     border-radius: 6px;
     border: 1px solid;
-    color: #ff6b6b;
-    background: rgba(255,107,107,0.1);
-    border-color: rgba(255,107,107,0.3);
+    color: var(--error);
+    background: var(--error-bg);
+    border-color: var(--error);
     
     .error-message {
-      color: $colour-error;
+      color: var(--error);
       font-size: 1.1em;
       margin-bottom: 10px;
       
@@ -737,9 +788,6 @@ h2, .date-heading {
   /* Optionally: visibility: hidden; */
 }
 
-.gone {
-  display: none !important;
-}
 
 // Splash Screen Styles
 .splash-screen {
@@ -767,7 +815,8 @@ h2, .date-heading {
 .splash-content {
   text-align: left;
   max-width: 500px;
-  padding: 2rem;
+  padding: 2rem 2.625rem; // Added extra 10px horizontal padding to compensate for missing body padding (2rem + 0.625rem = 42px total)
+  margin-bottom: 3rem;
   animation: fadeInUp 0.6s ease-out;
 }
 
@@ -782,8 +831,16 @@ h2, .date-heading {
   }
 }
 
+.splash-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 .splash-logo {
-  margin-left: -20px;
+  margin-left: -20px; // Reset to original to compensate for SVG's 10px left space
+  flex-shrink: 0;
   
   object, img {
     width: 100px;
@@ -795,18 +852,23 @@ h2, .date-heading {
   font-size: 2.5rem;
   font-weight: bold;
   color: $colour-primary;
-  margin: 0 0 1rem 0;
+  margin: 0;
+  flex: 1;
 }
 
 .splash-subtitle {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
 }
 
 .splash-intro {
-  font-size: 1.05rem;
+  font-size: 1rem;
   color: $colour-text;
   margin: 2rem 0;
   line-height: 1.5;
+
+  ul {
+    max-width: 85%;
+  }
 }
 
 .splash-description {
@@ -894,6 +956,7 @@ h2, .date-heading {
 .manual-location-section {
   margin-top: 2rem;
   padding-top: 2rem;
+  padding-bottom: 2rem; // Add bottom padding for mobile browser bar
   border-top: 1px solid rgba($colour-text, 0.2);
   animation: slideInDown 0.4s ease-out;
   
@@ -922,6 +985,15 @@ nav a.active {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -991,18 +1063,26 @@ nav a.active {
 }
 
 // Responsive Design
-@media (max-width: 600px) {
-  .splash-content {
-    padding: 1rem;
+@media (max-width: $max-content-width) {
+  .splash-content {// 16px + 10px body padding = 26px total horizontal padding
     max-width: 100%;
   }
   
-  .splash-title {
-    font-size: 2rem;
+  .splash-header {
+    gap: 0.75rem;
   }
   
-  .splash-intro {
-    font-size: 1.1rem;
+  .splash-logo {
+    margin-left: -10px; // compensate for the 10px left space of the SVG
+    
+    object, img {
+      width: 60px;
+      height: 60px;
+    }
+  }
+  
+  .splash-title {
+    font-size: 1.8rem;
   }
   
   .btn {
@@ -1012,5 +1092,27 @@ nav a.active {
   
   .location-select {
     max-width: 100%;
+  }
+  
+  // Extra bottom padding for mobile browser bar
+  #viewOutlet {
+    padding-bottom: 6rem; // Increased padding on mobile
+  }
+  
+  .manual-location-section {
+    padding-bottom: 3rem; // Extra padding for location section on mobile
+  }
+  
+  // Responsive sidebar width based on screen size
+  #sidebar {
+    // For very small screens (phones in portrait)
+    @media (max-width: 480px) {
+      width: min(35vw, 180px); // Slightly wider on very small screens
+    }
+    
+    // For small screens (phones in landscape, small tablets)
+    @media (min-width: 481px) and (max-width: 768px) {
+      width: min(30vw, 200px); // Standard mobile width
+    }
   }
 }

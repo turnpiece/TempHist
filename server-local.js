@@ -12,19 +12,35 @@ const port = process.env.PORT || 3000;
 
 // Add CORS headers middleware
 app.use((req, res, next) => {
+  // Allow specific origins for development
+  const allowedOrigins = [
+    'http://localhost:5173',  // Vite dev server
+    'http://localhost:3000',  // This proxy server
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000'
+  ];
+  
+  const origin = req.headers.origin;
+  const isAllowedOrigin = !origin || allowedOrigins.includes(origin);
+  
+  if (isAllowedOrigin && origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (isAllowedOrigin) {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Token, Accept, Authorization, X-Requested-With');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
+  
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Token, Accept, Authorization');
-    res.header('Access-Control-Max-Age', '600');
+    console.log('🔍 CORS preflight request from:', origin);
     return res.sendStatus(200);
   }
-
-  // Handle regular requests
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Token, Accept, Authorization');
+  
+  console.log('🌐 CORS request from:', origin, 'to:', req.path);
   next();
 });
 
@@ -51,8 +67,22 @@ app.use('/api', createProxyMiddleware({
   pathRewrite: {
     '^/api': '' // Remove /api prefix when forwarding
   },
+  onProxyReq: (proxyReq, req, res) => {
+    // For local development, inject test token if no Authorization header is present
+    const authHeader = req.headers.authorization;
+    if (!authHeader && process.env.VITE_TEST_TOKEN) {
+      console.log('🔑 Injecting test token for local development');
+      proxyReq.setHeader('Authorization', `Bearer ${process.env.VITE_TEST_TOKEN}`);
+    }
+    
+    console.log('🔄 Proxying request:', req.method, req.url, '→', `${apiBase}${req.url.replace('/api', '')}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log('✅ Proxy response:', proxyRes.statusCode, 'for', req.url);
+  },
   onError: (err, req, res) => {
-    console.error('Proxy error:', err.message);
+    console.error('❌ Proxy error:', err.message);
+    console.error('❌ Request details:', req.method, req.url, 'from origin:', req.headers.origin);
     if (err.code === 'ECONNREFUSED') {
       res.status(503).json({
         error: 'Backend service unavailable',
@@ -70,8 +100,13 @@ app.use('/api', createProxyMiddleware({
 
 // SPA fallback - serve index.html for all other routes
 // This replaces .htaccess rewrite rules
-app.get('*', (req, res) => {
+app.use((req, res, next) => {
   const requestedPath = req.path;
+  
+  // Skip if this is an API request (should be handled by proxy)
+  if (requestedPath.startsWith('/api/')) {
+    return next();
+  }
   
   // Handle specific HTML pages
   if (requestedPath === '/about' || requestedPath === '/about.html') {

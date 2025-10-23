@@ -17,6 +17,20 @@ export interface TemperatureDataPoint {
   temperature: number;
 }
 
+export interface MissingYear {
+  year: number;
+  reason: string;
+}
+
+export interface TemperatureDataMetadata {
+  total_years: number;
+  available_years: number;
+  missing_years: MissingYear[];
+  completeness: number;
+  period_days: number;
+  end_date: string;
+}
+
 export interface TemperatureDataResponse {
   period: string;
   location: string;
@@ -36,6 +50,7 @@ export interface TemperatureDataResponse {
     unit: string;
   };
   summary: string;
+  metadata?: TemperatureDataMetadata;
 }
 
 export interface JobResultResponse {
@@ -205,7 +220,6 @@ declare global {
     debugTime: (label: string) => void;
     debugTimeEnd: (label: string) => void;
     getApiUrl: (path: string) => string;
-    getCurrentLocation: () => string;
     getDisplayCity: (fullLocation: string) => string;
     getOrdinal: (n: number) => string;
     mainAppLogic: () => void;
@@ -215,6 +229,8 @@ declare global {
     };
     TempHistAnalytics: () => any;
     TempHistSendAnalytics: () => Promise<void>;
+    fetchHistoricalData: () => Promise<void>;
+    retryDataFetch: () => void;
   }
 }
 

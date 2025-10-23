@@ -14,7 +14,6 @@ declare const Chart: any;
 
 // Import our TypeScript modules
 import { setLocationCookie, getLocationCookie, getDisplayCity, getOrdinal } from './utils/location';
-import { detectDeviceAndPlatform, isMobileDevice } from './utils/platform';
 import { updateDataNotice } from './utils/dataNotice';
 import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP, getFallbackLocations } from './services/locationDetection';
@@ -24,11 +23,18 @@ const CHART_AXIS_COLOR = '#ECECEC';
 const CHART_FONT_SIZE_SMALL = 11;
 const CHART_FONT_SIZE_MEDIUM = 12;
 
+// Default location constant
+const DEFAULT_LOCATION = 'London, England, United Kingdom';
+
+// Loading text constant
+const INITIAL_LOADING_TEXT = 'Loading temperature data…';
+
 // Import types
 import type { 
   ChartDataPoint, 
   AsyncJobResponse,
-  FirebaseUser
+  FirebaseUser,
+  TemperatureDataMetadata
 } from './types/index.js';
 
 // Global namespace and cache
@@ -45,6 +51,7 @@ window.TempHistViews = window.TempHistViews || {};
 // Global loading interval management
 const activeLoadingIntervals = new Set<NodeJS.Timeout>();
 let globalLoadingCheckInterval: NodeJS.Timeout | null = null;
+let globalLoadingStartTime: number | null = null;
 
 // Clear all loading intervals (useful when navigating between pages)
   function clearAllLoadingIntervals(): void {
@@ -133,12 +140,113 @@ function generateErrorMessage(error: unknown): string {
   return errorMessage;
 }
 
+/**
+ * Check if data is incomplete and show appropriate UI
+ */
+function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined): boolean {
+  debugLog('checkDataCompleteness called with metadata:', metadata);
+  
+  if (!metadata) {
+    debugLog('No metadata provided, assuming data is complete');
+    return true; // No metadata means we assume data is complete
+  }
+  
+  debugLog('Metadata completeness:', metadata.completeness, '%');
+  
+  // Consider data incomplete if completeness is less than 100%
+  const isIncomplete = metadata.completeness < 100;
+  
+  debugLog('Is data incomplete?', isIncomplete);
+  
+  if (isIncomplete) {
+    debugLog('Showing incomplete data notice');
+    showIncompleteDataNotice(metadata);
+    return false;
+  }
+  
+  debugLog('Data is complete, no notice needed');
+  return true;
+}
+
+/**
+ * Show notice for incomplete data with retry option
+ */
+function showIncompleteDataNotice(metadata: TemperatureDataMetadata): void {
+  debugLog('showIncompleteDataNotice called with metadata:', metadata);
+  
+  const missingCount = metadata.missing_years.length;
+  const completeness = Math.round(metadata.completeness);
+  
+  debugLog('Missing years count:', missingCount);
+  debugLog('Completeness:', completeness, '%');
+  
+  const noticeHtml = `
+    <div class="notice-content warning">
+      <h3 class="notice-title large">Incomplete Data</h3>
+      <p class="notice-subtitle secondary">
+        Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).
+        ${missingCount > 0 ? `${missingCount} years are missing.` : ''}
+      </p>
+      <p>This will affect the accuracy of the temperature trend.</p>
+      <button class="btn btn-primary" onclick="retryDataFetch()">
+        Try Again
+      </button>
+    </div>
+  `;
+  
+  debugLog('Calling updateDataNotice with HTML:', noticeHtml);
+  
+  // Create a new warning element and insert it after the trend text
+  const trendTextEl = document.getElementById('trendText');
+  if (trendTextEl) {
+    // Remove any existing warning notice first
+    const existingWarning = document.getElementById('incompleteDataWarning');
+    if (existingWarning) {
+      existingWarning.remove();
+    }
+    
+    // Create the warning element
+    const warningEl = document.createElement('div');
+    warningEl.id = 'incompleteDataWarning';
+    warningEl.className = 'notice status-warning';
+    warningEl.innerHTML = noticeHtml;
+    
+    // Insert after the trend text
+    trendTextEl.parentNode?.insertBefore(warningEl, trendTextEl.nextSibling);
+    debugLog('Incomplete data warning inserted after trend text');
+  } else {
+    debugLog('Trend text element not found, cannot place warning');
+  }
+  
+  debugLog('updateDataNotice called');
+}
+
+/**
+ * Retry data fetch (called from the retry button)
+ */
+function retryDataFetch(): void {
+  // Remove the incomplete data warning
+  const incompleteDataWarning = document.getElementById('incompleteDataWarning');
+  if (incompleteDataWarning) {
+    incompleteDataWarning.remove();
+  }
+  
+  updateDataNotice(null); // Clear the notice
+  // Call the global fetchHistoricalData function if available
+  if (window.fetchHistoricalData && typeof window.fetchHistoricalData === 'function') {
+    window.fetchHistoricalData();
+  } else {
+    // Fallback to page reload if function not available
+    window.location.reload();
+  }
+}
+
 // Make utility functions globally available
 window.getApiUrl = getApiUrl;
-window.getCurrentLocation = () => window.tempLocation || 'London, England, United Kingdom';
 window.getOrdinal = getOrdinal;
 window.getDisplayCity = getDisplayCity;
 window.updateDataNotice = updateDataNotice;
+window.retryDataFetch = retryDataFetch;
 
 // Firebase config
 const firebaseConfig = {
@@ -203,27 +311,8 @@ function startAppWithFirebaseUser(user: FirebaseUser): void {
 function setupAnalyticsReporting(): void {
   // Send analytics when page is about to unload
   window.addEventListener('beforeunload', () => {
-    // Use sendBeacon for reliable delivery on page unload
-    if (navigator.sendBeacon) {
-      const analyticsData = reportAnalytics();
-      const payload = {
-        session_duration: analyticsData.sessionDuration,
-        api_calls: analyticsData.apiCalls,
-        api_failure_rate: analyticsData.apiFailureRate,
-        retry_attempts: analyticsData.retryAttempts,
-        location_failures: analyticsData.locationFailures,
-        error_count: analyticsData.errorCount,
-        error_type: analyticsData.errorType,
-        recent_errors: analyticsData.recentErrors,
-        app_version: __APP_VERSION__,
-        platform: "web"
-      };
-      
-      navigator.sendBeacon(getApiUrl('/analytics'), JSON.stringify(payload));
-    } else {
-      // Fallback for browsers without sendBeacon
-      sendAnalytics();
-    }
+    // Send analytics data on page unload
+    sendAnalytics();
   });
 
   // Send analytics periodically (every 5 minutes) for long sessions
@@ -362,6 +451,102 @@ function initializeSplashScreen(): void {
 
   // Set up splash screen event listeners
   setupSplashScreenListeners();
+  
+  // Set up mobile navigation
+  setupMobileNavigation();
+}
+
+/**
+ * Set up mobile navigation functionality
+ */
+function setupMobileNavigation(): void {
+  const burgerBtn = document.getElementById('burgerBtn');
+  const sidebar = document.getElementById('sidebar');
+  
+  if (!burgerBtn || !sidebar) {
+    debugLog('Mobile navigation elements not found - burgerBtn:', !!burgerBtn, 'sidebar:', !!sidebar);
+    return;
+  }
+  
+  debugLog('Setting up mobile navigation - burgerBtn and sidebar found');
+  
+  // Remove any existing event listeners to prevent duplicates
+  const newBurgerBtn = burgerBtn.cloneNode(true) as HTMLElement;
+  burgerBtn.parentNode?.replaceChild(newBurgerBtn, burgerBtn);
+  
+  // Handle burger button click
+  newBurgerBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const isOpen = sidebar.classList.contains('open');
+    
+    if (isOpen) {
+      // Close the sidebar
+      sidebar.classList.remove('open');
+      newBurgerBtn.setAttribute('aria-expanded', 'false');
+      newBurgerBtn.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('menu-open');
+      debugLog('Mobile menu closed');
+    } else {
+      // Open the sidebar
+      sidebar.classList.add('open');
+      newBurgerBtn.setAttribute('aria-expanded', 'true');
+      newBurgerBtn.setAttribute('aria-label', 'Close menu');
+      document.body.classList.add('menu-open');
+      debugLog('Mobile menu opened');
+    }
+  });
+  
+  // Handle clicking outside the sidebar to close it
+  document.addEventListener('click', (e) => {
+    const isOpen = sidebar.classList.contains('open');
+    if (isOpen && !sidebar.contains(e.target as Node) && !newBurgerBtn.contains(e.target as Node)) {
+      sidebar.classList.remove('open');
+      newBurgerBtn.setAttribute('aria-expanded', 'false');
+      newBurgerBtn.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('menu-open');
+      debugLog('Mobile menu closed by clicking outside');
+    }
+  });
+  
+  // Handle sidebar link clicks to close the menu
+  const sidebarLinks = sidebar.querySelectorAll('a');
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      newBurgerBtn.setAttribute('aria-expanded', 'false');
+      newBurgerBtn.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('menu-open');
+      debugLog('Mobile menu closed by link click');
+    });
+  });
+  
+  // Handle escape key to close menu
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+      sidebar.classList.remove('open');
+      newBurgerBtn.setAttribute('aria-expanded', 'false');
+      newBurgerBtn.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('menu-open');
+      debugLog('Mobile menu closed by escape key');
+    }
+  });
+}
+
+/**
+ * Handle window resize to re-setup mobile navigation if needed
+ */
+function handleWindowResize(): void {
+  const burgerBtn = document.getElementById('burgerBtn');
+  if (burgerBtn && window.innerWidth <= 900) {
+    // Only re-setup if we're in mobile view and the button is visible
+    const computedStyle = window.getComputedStyle(burgerBtn);
+    if (computedStyle.display !== 'none') {
+      //debugLog('Window resized to mobile view, re-setting up mobile navigation');
+      setupMobileNavigation();
+    }
+  }
 }
 
 /**
@@ -763,6 +948,8 @@ function clearAllCachedData(): void {
     }
   });
   
+  // Note: Main chart variable will be reset when fetchHistoricalData is called
+  
   // Clear text content of summary, average, and trend elements
   const textElements = [
     'summaryText', 'avgText', 'trendText',
@@ -789,6 +976,11 @@ function clearAllCachedData(): void {
   errorContainers.forEach(el => {
     (el as HTMLElement).style.display = 'none';
   });
+  
+  // Clear loading intervals and reset loading state
+  clearAllLoadingIntervals();
+  globalLoadingStartTime = null;
+  globalLoadingCheckInterval = null;
   
   debugLog('All cached data cleared');
 }
@@ -936,9 +1128,6 @@ function renderAboutPage(): void {
       <h3>Data sources</h3>
       <p>Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted meteorological providers.</p>
 
-      <h3>Privacy</h3>
-      <p>TempHist respects your privacy. We don't collect, store, or share any personal information. Location data is used only once to fetch weather data.</p>
-
       <h3>Contact</h3>
       <p>TempHist is operated by Turnpiece Ltd. For questions or feedback, please visit <a href="https://turnpiece.com">turnpiece.com</a>.</p>
     </div>
@@ -986,6 +1175,8 @@ window.mainAppLogic = function(): void {
   const isStandalonePage = !document.querySelector('#todayView');
   if (isStandalonePage) {
     debugLog('Standalone page detected, skipping main app logic');
+    // Still set up mobile navigation for standalone pages
+    setupMobileNavigation();
     return;
   }
   
@@ -1100,7 +1291,7 @@ window.mainAppLogic = function(): void {
   // Use global tempLocation - it should be set by splash screen or cookie
   // If not set, use default (this should only happen in error cases)
   if (!window.tempLocation) {
-    window.tempLocation = 'London, England, United Kingdom';
+    window.tempLocation = DEFAULT_LOCATION;
   }
 
   // Shared chart creation function for both Today and period pages
@@ -1270,7 +1461,7 @@ window.mainAppLogic = function(): void {
       await new Promise(resolve => setTimeout(resolve, 100));
       if (!window.tempLocation) {
         debugLog('renderPeriod: No location found, using default');
-        window.tempLocation = 'London, England, United Kingdom';
+        window.tempLocation = DEFAULT_LOCATION;
       }
     } else {
       debugLog('renderPeriod: Using existing location:', window.tempLocation);
@@ -1306,12 +1497,12 @@ window.mainAppLogic = function(): void {
         <h2 id="${periodKey}DateText" class="date-heading"></h2>
         <div id="${periodKey}LocationText" class="standard-text"></div>
         <div id="${periodKey}DataNotice" class="notice"></div>
-        <div id="${periodKey}SummaryText" class="standard-text"></div>
+        <div id="${periodKey}SummaryText" class="standard-text summary-text"></div>
         
         <div class="chart-container">
           <div id="${periodKey}Loading" class="loading">
             <div class="spinner"></div>
-            <p id="${periodKey}LoadingText" class="loading-text">Loading temperature data…</p>
+            <p id="${periodKey}LoadingText" class="loading-text">${INITIAL_LOADING_TEXT}</p>
           </div>
           
           <div id="${periodKey}ErrorContainer" class="error-container" style="display: none;">
@@ -1324,8 +1515,8 @@ window.mainAppLogic = function(): void {
           <canvas id="${periodKey}Chart"></canvas>
         </div>
         
-        <div id="${periodKey}AvgText" class="standard-text"></div>
-        <div id="${periodKey}TrendText" class="standard-text"></div>
+        <div id="${periodKey}AvgText" class="standard-text avg-text"></div>
+        <div id="${periodKey}TrendText" class="standard-text trend-text"></div>
       </div>
     `;
 
@@ -1435,7 +1626,7 @@ window.mainAppLogic = function(): void {
       debugLog(`${periodKey} data structure:`, weatherData);
       
       // Handle both prefetched data (direct format) and fresh API data (job result format)
-      let temperatureData: any[], averageData: any, trendData: any, summaryData: any;
+      let temperatureData: any[], averageData: any, trendData: any, summaryData: any, metadata: any;
       
       if (weatherData.data && weatherData.data.values) {
         // Fresh API data (job result format)
@@ -1443,18 +1634,29 @@ window.mainAppLogic = function(): void {
         averageData = { temp: weatherData.data.average.mean };
         trendData = weatherData.data.trend;
         summaryData = weatherData.data.summary;
+        metadata = weatherData.data.metadata;
       } else if (weatherData.values) {
         // Prefetched data (direct format)
         temperatureData = weatherData.values;
         averageData = { temp: weatherData.average.mean };
         trendData = weatherData.trend;
         summaryData = weatherData.summary;
+        metadata = weatherData.metadata;
       } else {
         throw new Error('Invalid data format received. Expected values array.');
       }
       
       if (!Array.isArray(temperatureData)) {
         throw new Error('Temperature data is not an array.');
+      }
+      
+      // Check data completeness and show warning if needed
+      debugLog(`Checking data completeness for ${periodKey} data, metadata:`, metadata);
+      const isDataComplete = checkDataCompleteness(metadata);
+      if (!isDataComplete) {
+        debugLog(`${periodKey}: Data is incomplete, showing warning notice`);
+      } else {
+        debugLog(`${periodKey}: Data is complete, no warning needed`);
       }
 
       // Update the chart with the weather data
@@ -1473,71 +1675,90 @@ window.mainAppLogic = function(): void {
       const minYear = Math.min(...years);
       const maxYear = Math.max(...years);
       
-      // Hide loading and show chart
-      loadingEl.classList.add('hidden');
-      loadingEl.classList.remove('visible');
-      canvas.classList.add('visible');
-      canvas.classList.remove('hidden');
+      // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages
+      const minLoadingTime = 3000; // 3 seconds
+      const elapsedTime = Date.now() - periodLoadingStartTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
       
-      // Clear the loading message interval
-      if (periodLoadingInterval) {
-        clearInterval(periodLoadingInterval);
-        activeLoadingIntervals.delete(periodLoadingInterval);
-      }
-
-      // Create chart using shared function
-      const chart = createTemperatureChart(
-        ctx,
-        chartData,
-        averageData,
-        title,
-        friendlyDate,
-        minTemp,
-        maxTemp,
-        minYear,
-        maxYear
-      );
-
-      // Update trend line if enabled
-      if (chart && chart.data && chart.data.datasets) {
-        // chartData is now {x: temperature, y: year} (after transformation), but calculateTrendLine expects {x: year, y: temperature}
-        const calculatedTrendData = calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
-          minYear - 0.5, maxYear + 0.5);
-        chart.data.datasets[0].data = calculatedTrendData.points.map(p => ({ x: p.y, y: p.x }));
-        chart.update();
-      }
-
-      // Update summary, average, and trend text
-      const summaryTextEl = document.getElementById(`${periodKey}SummaryText`);
-      const avgTextEl = document.getElementById(`${periodKey}AvgText`);
-      const trendTextEl = document.getElementById(`${periodKey}TrendText`);
-      
-      if (summaryTextEl) {
-        summaryTextEl.textContent = summaryData || 'No summary available.';
-        summaryTextEl.classList.add('summary-text');
+      if (remainingTime > 0) {
+        setTimeout(() => {
+          actuallyShowPeriodChart();
+        }, remainingTime);
+      } else {
+        actuallyShowPeriodChart();
       }
       
-      if (avgTextEl) {
-        avgTextEl.textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
-        avgTextEl.classList.add('avg-text');
-      }
-      
-      if (trendTextEl) {
-        // Use actual slope value for direction determination, not rounded display value
-        const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
-                         trendData.slope > 0 ? 'rising' : 'falling';
-        const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${trendData.unit || '°C/decade'}`;
-        trendTextEl.textContent = formatted;
-        trendTextEl.classList.add('trend-text');
-      }
+      function actuallyShowPeriodChart() {
+        // Hide loading and show chart
+        loadingEl.classList.add('hidden');
+        loadingEl.classList.remove('visible');
+        canvas.classList.add('visible');
+        canvas.classList.remove('hidden');
+        
+        // Clear the loading message interval
+        if (periodLoadingInterval) {
+          clearInterval(periodLoadingInterval);
+          activeLoadingIntervals.delete(periodLoadingInterval);
+        }
 
-      // Add reload button functionality
-      const reloadButton = document.getElementById(`${periodKey}ReloadButton`);
-      if (reloadButton) {
-        reloadButton.addEventListener('click', () => {
-          // Re-trigger the render function
-          window.TempHistViews[periodKey]?.render?.();
-        });
+        // Create chart using shared function
+        if (!ctx) {
+          throw new Error('Canvas context not available');
+        }
+        
+        const chart = createTemperatureChart(
+          ctx,
+          chartData,
+          averageData,
+          title,
+          friendlyDate,
+          minTemp,
+          maxTemp,
+          minYear,
+          maxYear
+        );
+
+        // Update trend line if enabled
+        if (chart && chart.data && chart.data.datasets) {
+          // chartData is now {x: temperature, y: year} (after transformation), but calculateTrendLine expects {x: year, y: temperature}
+          const calculatedTrendData = calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
+            minYear - 0.5, maxYear + 0.5);
+          chart.data.datasets[0].data = calculatedTrendData.points.map(p => ({ x: p.y, y: p.x }));
+          chart.update();
+        }
+
+        // Update summary, average, and trend text
+        const summaryTextEl = document.getElementById(`${periodKey}SummaryText`);
+        const avgTextEl = document.getElementById(`${periodKey}AvgText`);
+        const trendTextEl = document.getElementById(`${periodKey}TrendText`);
+        
+        if (summaryTextEl) {
+          summaryTextEl.textContent = summaryData || 'No summary available.';
+          summaryTextEl.classList.add('summary-text');
+        }
+        
+        if (avgTextEl) {
+          avgTextEl.textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
+          avgTextEl.classList.add('avg-text');
+        }
+        
+        if (trendTextEl) {
+          // Use actual slope value for direction determination, not rounded display value
+          const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
+                           trendData.slope > 0 ? 'rising' : 'falling';
+          const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${trendData.unit || '°C/decade'}`;
+          trendTextEl.textContent = formatted;
+          trendTextEl.classList.add('trend-text');
+        }
+
+        // Add reload button functionality
+        const reloadButton = document.getElementById(`${periodKey}ReloadButton`);
+        if (reloadButton) {
+          reloadButton.addEventListener('click', () => {
+            // Re-trigger the render function
+            window.TempHistViews[periodKey]?.render?.();
+          });
+        }
       }
 
     } catch (error) {
@@ -1592,6 +1813,16 @@ window.mainAppLogic = function(): void {
   async function fetchHistoricalData(): Promise<void> {
     debugTime('Total fetch time');
     
+    // Destroy any existing chart before starting
+    if (canvasEl) {
+      const existingChart = Chart.getChart(canvasEl);
+      if (existingChart) {
+        debugLog('Destroying existing chart before fetching new data');
+        existingChart.destroy();
+        chart = null; // Reset the chart variable
+      }
+    }
+    
     showInitialLoadingState();
     hideError();
 
@@ -1634,9 +1865,19 @@ window.mainAppLogic = function(): void {
       const averageData = { temp: jobResultData.data.average.mean };
       const trendData = jobResultData.data.trend;
       const summaryData = jobResultData.data.summary;
+      const metadata = jobResultData.data.metadata;
       
       if (!Array.isArray(temperatureData)) {
         throw new Error('Temperature data is not an array.');
+      }
+      
+      // Check data completeness and show warning if needed
+      debugLog('Checking data completeness for daily data, metadata:', metadata);
+      const isDataComplete = checkDataCompleteness(metadata);
+      if (!isDataComplete) {
+        debugLog('Daily data is incomplete, showing warning notice');
+      } else {
+        debugLog('Daily data is complete, no warning needed');
       }
 
       // Update the chart with the weather data
@@ -1649,6 +1890,14 @@ window.mainAppLogic = function(): void {
       // Create or update chart
       if (!chart) {
         debugTime('Chart initialization');
+        
+        // Double-check that no chart exists on this canvas
+        const existingChart = Chart.getChart(canvasEl);
+        if (existingChart) {
+          debugLog('Found existing chart during creation, destroying it first');
+          existingChart.destroy();
+        }
+        
         const ctx = (canvasEl as HTMLCanvasElement).getContext('2d');
         if (!ctx) {
           throw new Error('Could not get canvas context');
@@ -1753,14 +2002,16 @@ window.mainAppLogic = function(): void {
     debugTimeEnd('Total fetch time');
   }
 
+  // Make fetchHistoricalData globally accessible
+  window.fetchHistoricalData = fetchHistoricalData;
+
   // Add loading state management (using global variables)
-  let loadingStartTime: number | null = null;
-  let loadingCheckInterval: NodeJS.Timeout | null = null;
+  // Note: loadingStartTime and loadingCheckInterval are now global variables
 
   function updateLoadingMessage(): void {
-    if (!loadingStartTime) return;
+    if (!globalLoadingStartTime) return;
     
-    const elapsedSeconds = Math.floor((Date.now() - loadingStartTime) / 1000);
+    const elapsedSeconds = Math.floor((Date.now() - globalLoadingStartTime) / 1000);
     const loadingText = document.getElementById('loadingText');
     
     // Get current page/period
@@ -1868,10 +2119,11 @@ window.mainAppLogic = function(): void {
     // Clear any existing loading intervals
     clearAllLoadingIntervals();
     
-    loadingStartTime = Date.now();
-    loadingCheckInterval = setInterval(updateLoadingMessage, 1000);
-    globalLoadingCheckInterval = loadingCheckInterval;
-    activeLoadingIntervals.add(loadingCheckInterval);
+    globalLoadingStartTime = Date.now();
+    globalLoadingCheckInterval = setInterval(updateLoadingMessage, 1000);
+    activeLoadingIntervals.add(globalLoadingCheckInterval);
+    
+    // Ensure loading is visible for at least 3 seconds to show cycling messages
 
     if (loadingEl) {
       loadingEl.classList.add('visible');
@@ -1885,7 +2137,9 @@ window.mainAppLogic = function(): void {
     
     // Update loading message for fetching stage
     const loadingText = document.getElementById('loadingText');
-    if (loadingText) loadingText.textContent = 'Loading temperature data...';
+    if (loadingText) {
+      loadingText.textContent = INITIAL_LOADING_TEXT;
+    }
   }
 
   // Utility functions for error UI
@@ -1923,13 +2177,27 @@ window.mainAppLogic = function(): void {
   }
 
   function showChart(): void {
-    if (loadingCheckInterval) {
-      clearInterval(loadingCheckInterval);
-      activeLoadingIntervals.delete(loadingCheckInterval);
-      loadingCheckInterval = null;
+    // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages
+    const minLoadingTime = 3000; // 3 seconds
+    const elapsedTime = globalLoadingStartTime ? Date.now() - globalLoadingStartTime : 0;
+    const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+    
+    if (remainingTime > 0) {
+      setTimeout(() => {
+        actuallyShowChart();
+      }, remainingTime);
+    } else {
+      actuallyShowChart();
     }
-    loadingStartTime = null;
-    globalLoadingCheckInterval = null;
+  }
+  
+  function actuallyShowChart(): void {
+    if (globalLoadingCheckInterval) {
+      clearInterval(globalLoadingCheckInterval);
+      activeLoadingIntervals.delete(globalLoadingCheckInterval);
+      globalLoadingCheckInterval = null;
+    }
+    globalLoadingStartTime = null;
 
     if (loadingEl) {
       loadingEl.classList.add('hidden');
@@ -1941,14 +2209,21 @@ window.mainAppLogic = function(): void {
       canvasEl.classList.remove('hidden');
     }
     
-    // Clear the data notice
-    updateDataNotice('', {
-      debugOnly: true,
-      useStructuredHtml: true,
-      type: 'success',
-      title: '✅ Temperature data loaded successfully!',
-      subtitle: `Showing data for ${getDisplayCity(window.tempLocation!)}`
-    });
+    // Only show success message if there's no incomplete data notice
+    const incompleteDataWarning = document.getElementById('incompleteDataWarning');
+    
+    if (!incompleteDataWarning) {
+      // Clear the data notice
+      updateDataNotice('', {
+        debugOnly: true,
+        useStructuredHtml: true,
+        type: 'success',
+        title: '✅ Temperature data loaded successfully!',
+        subtitle: `Showing data for ${getDisplayCity(window.tempLocation!)}`
+      });
+    } else {
+      debugLog('Skipping success message because incomplete data warning is present');
+    }
     
     if (chart) {
       chart.update();
@@ -1992,7 +2267,7 @@ window.mainAppLogic = function(): void {
     debugLog('displayLocationAndFetchData called with window.tempLocation:', window.tempLocation);
     
     // Check if using the hardcoded default fallback location
-    const isDefaultLocation = window.tempLocation === 'London, England, United Kingdom' && 
+    const isDefaultLocation = window.tempLocation === DEFAULT_LOCATION && 
                               window.tempLocationIsDetected === false;
     const cityName = getDisplayCity(window.tempLocation!);
     const locationDisplay = isDefaultLocation ? 
@@ -2028,7 +2303,7 @@ window.mainAppLogic = function(): void {
       useStructuredHtml: true,
       type: 'success',
       title: locationMessage,
-      subtitle: 'Loading temperature data...'
+      subtitle: INITIAL_LOADING_TEXT
     });
     
     setLocationCookie(window.tempLocation!, window.tempLocationSource!);
@@ -2269,3 +2544,22 @@ window.TempHistRouter = new TempHistRouter();
 // Make analytics functions globally available
 window.TempHistAnalytics = reportAnalytics;
 window.TempHistSendAnalytics = sendAnalytics;
+
+// Initialize mobile navigation for all pages
+document.addEventListener('DOMContentLoaded', () => {
+  setupMobileNavigation();
+  
+  // Add window resize listener to handle dynamic burger button visibility
+  window.addEventListener('resize', handleWindowResize);
+});
+
+// Also set it up immediately if DOM is already loaded
+if (document.readyState === 'loading') {
+  // DOM is still loading, wait for DOMContentLoaded
+} else {
+  // DOM is already loaded
+  setupMobileNavigation();
+  
+  // Add window resize listener to handle dynamic burger button visibility
+  window.addEventListener('resize', handleWindowResize);
+}

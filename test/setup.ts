@@ -64,13 +64,23 @@ Object.defineProperty(document, 'cookie', {
 })
 
 // Mock window.location
-delete window.location
-window.location = {
-  href: 'http://localhost:3000',
-  hostname: 'localhost',
-  protocol: 'http:',
-  hash: ''
-}
+Object.defineProperty(window, 'location', {
+  value: {
+    href: 'http://localhost:3000',
+    hostname: 'localhost',
+    protocol: 'http:',
+    hash: '',
+    pathname: '/',
+    search: '',
+    port: '3000',
+    host: 'localhost:3000',
+    origin: 'http://localhost:3000',
+    assign: vi.fn(),
+    replace: vi.fn(),
+    reload: vi.fn()
+  },
+  writable: true
+})
 
 // Mock console methods to avoid noise in tests
 global.console = {
@@ -83,6 +93,21 @@ global.console = {
 
 // Mock debugLog function used by TypeScript modules
 global.debugLog = vi.fn();
+
+// Mock import.meta.env for Vite environment variables
+Object.defineProperty(global, 'import', {
+  value: {
+    meta: {
+      env: {
+        VITE_API_BASE: 'http://localhost:3000/api',
+        DEV: false,
+        PROD: true,
+        SSR: false
+      }
+    }
+  },
+  writable: true
+});
 
 // Helper to clear cookies between tests
 global.clearCookies = () => {

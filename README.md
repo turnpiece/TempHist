@@ -13,15 +13,15 @@ A web application that visualizes historical temperature data for any location, 
 - All API requests are authenticated via Firebase
 - Manual location input is disabled for security
 
-## Server-Side Caching
+## Performance Strategy
 
-For production deployments, the application includes server-side caching scripts to improve performance:
+The application relies on efficient caching strategies for optimal performance:
 
-- **Location Caching**: Preapproved locations are fetched from the API and saved to static JSON files
-- **Daily Data Prefetching**: Temperature data for all locations can be prefetched and cached
-- **Cron Job Support**: Scripts are designed to run via cron jobs for automatic updates
+- **API-level caching**: The backend API uses Redis caching with cache warming
+- **Client-side caching**: Browser caching and service workers for static assets
+- **CDN caching**: For API responses and static files
 
-See [`scripts/README.md`](scripts/README.md) for detailed setup and configuration instructions.
+This approach provides excellent performance (1-5ms API response times) while maintaining a simple, maintainable architecture.
 
 ## Features
 
@@ -65,9 +65,10 @@ See [`scripts/README.md`](scripts/README.md) for detailed setup and configuratio
 3. Create a `.env` file in the root directory with your configuration:
 
    ```
+   VITE_API_BASE=http://localhost:3000/api
+   VITE_TEST_TOKEN=your_test_token_here
    PORT=3000
-   NODE_ENV=development
-   API_BASE=http://localhost:3000
+   API_BASE=http://localhost:8000
    ```
 
 4. Start the development server with Vite:
@@ -82,6 +83,56 @@ See [`scripts/README.md`](scripts/README.md) for detailed setup and configuratio
    ```
 
 The application will be available at `http://localhost:5173`
+
+## Environment Variables
+
+### Required Variables
+
+- **`VITE_API_BASE`** - The base URL for the API server
+  - Local development: `http://localhost:3000/api`
+  - Production: `https://api.temphist.com`
+  - Dev/Staging: Your respective API server URL
+
+### Optional Variables
+
+- **`VITE_TEST_TOKEN`** - Test token for local development (used by `server-local.js`)
+
+  - Only needed for local development
+  - Automatically injected by the proxy server when no Firebase auth is available
+
+- **`PORT`** - Server port (default: 3000)
+
+  - Used by both `server.js` and `server-local.js`
+  - Railway automatically sets this
+
+- **`API_BASE`** - Backend API URL for local development proxy (default: `http://localhost:8000`)
+  - Only used by `server-local.js`
+  - Points to your local FastAPI/backend server
+
+### Environment-Specific Configuration
+
+**Local Development:**
+
+```bash
+VITE_API_BASE=http://localhost:3000/api
+VITE_TEST_TOKEN=your_test_token_here
+PORT=3000
+API_BASE=http://localhost:8000
+```
+
+**Production:**
+
+```bash
+VITE_API_BASE=https://api.temphist.com
+PORT=3000
+```
+
+**Dev/Staging:**
+
+```bash
+VITE_API_BASE=https://dev-api.temphist.com
+PORT=3000
+```
 
 ## Building for Production
 
@@ -104,8 +155,7 @@ The application will be available at `http://localhost:5173`
 4. Set environment variables for production:
 
    ```bash
-   NODE_ENV=production
-   API_BASE=https://api.temphist.com
+   VITE_API_BASE=https://api.temphist.com
    PORT=3000
    ```
 
@@ -117,21 +167,6 @@ The project uses GitHub webhooks for automated deployment:
 
 - **Production**: Push to `main` branch → automatically deploys to production
 - **Development**: Push to `develop` branch → automatically deploys to dev environment
-
-#### Webhook Setup
-
-1. **Create webhook in GitHub:**
-
-   - Go to your repository → Settings → Webhooks
-   - Add webhook: `https://yourdomain.com/webhook.php`
-   - Set content type to `application/json`
-   - Add your webhook secret
-
-2. **Server Requirements:**
-   - PHP 7.4+ with `exec()` enabled
-   - SSH access for git operations
-   - Node.js and npm for building
-   - Proper file permissions
 
 #### Manual Deployment
 
@@ -152,22 +187,6 @@ npm install
 npm run build
 # Copy dist/ contents to dev web root
 ```
-
-### Deployment Scripts
-
-The project includes deployment scripts (not committed to Git for security):
-
-- `deploy.sh` - Production deployment script
-- `deploy-dev.sh` - Development deployment script
-
-These scripts handle:
-
-- Git operations with SSH keys
-- Dependency installation
-- Build process
-- File copying to web directories
-
-**Note**: Deployment scripts contain server-specific paths and should not be committed to version control.
 
 ## Static Site Deployment and .htaccess
 
@@ -199,7 +218,7 @@ This allows:
 3. Add your Firebase config to `src/main.ts`.
 4. The app will sign in users anonymously and use the Firebase ID token for API requests.
 
-**Note**: For local development, the app uses a test token instead of Firebase authentication to avoid requiring Firebase setup during development.
+**Note**: For local development, the proxy server (`server-local.js`) automatically injects a test token to avoid requiring Firebase setup during development.
 
 ## Lighthouse/CLS Optimization
 
