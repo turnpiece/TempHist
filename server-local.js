@@ -35,6 +35,7 @@ app.use((req, res, next) => {
   res.header('Content-Security-Policy', cspDirectives);
   res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.header('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   
   // CORS headers for development
   const allowedOrigins = [
