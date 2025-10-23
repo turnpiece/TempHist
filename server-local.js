@@ -29,7 +29,9 @@ app.use((req, res, next) => {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'"
+    "frame-ancestors 'none'",
+    "require-trusted-types-for 'script'",
+    "trusted-types 'none'"
   ].join('; ');
   
   res.header('Content-Security-Policy', cspDirectives);

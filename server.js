@@ -24,6 +24,8 @@ app.use((req, res, next) => {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
+    "require-trusted-types-for 'script'",
+    "trusted-types 'none'",
     "upgrade-insecure-requests"
   ].join('; ');
   
