@@ -1500,7 +1500,7 @@ window.mainAppLogic = function(): void {
         <h2 id="${periodKey}DateText" class="date-heading"></h2>
         <div id="${periodKey}LocationText" class="standard-text"></div>
         <div id="${periodKey}DataNotice" class="notice"></div>
-        <div id="${periodKey}SummaryText" class="standard-text"></div>
+        <div id="${periodKey}SummaryText" class="standard-text summary-text"></div>
         
         <div class="chart-container">
           <div id="${periodKey}Loading" class="loading">
@@ -1518,8 +1518,8 @@ window.mainAppLogic = function(): void {
           <canvas id="${periodKey}Chart"></canvas>
         </div>
         
-        <div id="${periodKey}AvgText" class="standard-text"></div>
-        <div id="${periodKey}TrendText" class="standard-text"></div>
+        <div id="${periodKey}AvgText" class="standard-text avg-text"></div>
+        <div id="${periodKey}TrendText" class="standard-text trend-text"></div>
       </div>
     `;
 
