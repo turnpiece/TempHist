@@ -1128,9 +1128,6 @@ function renderAboutPage(): void {
       <h3>Data sources</h3>
       <p>Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted meteorological providers.</p>
 
-      <h3>Privacy</h3>
-      <p>TempHist respects your privacy. We don't collect, store, or share any personal information. Location data is used only once to fetch weather data.</p>
-
       <h3>Contact</h3>
       <p>TempHist is operated by Turnpiece Ltd. For questions or feedback, please visit <a href="https://turnpiece.com">turnpiece.com</a>.</p>
     </div>
