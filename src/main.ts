@@ -897,6 +897,7 @@ async function proceedWithLocation(
   }
 
   // Initialize the main app FIRST (this sets up the DOM elements)
+  debugLog('Calling mainAppLogic after location change');
   window.mainAppLogic();
 
   // THEN navigate to Today page (router will now see window.tempLocation is set)
@@ -982,6 +983,13 @@ function clearAllCachedData(): void {
   errorContainers.forEach(el => {
     (el as HTMLElement).style.display = 'none';
   });
+  
+  // Clear any incomplete data warnings from previous location
+  const incompleteDataWarning = document.getElementById('incompleteDataWarning');
+  if (incompleteDataWarning) {
+    incompleteDataWarning.remove();
+    debugLog('Removed incomplete data warning from previous location');
+  }
   
   // Clear loading intervals and reset loading state
   clearAllLoadingIntervals();
@@ -2029,10 +2037,14 @@ window.mainAppLogic = function(): void {
   // Note: loadingStartTime and loadingCheckInterval are now global variables
 
   function updateLoadingMessage(): void {
-    if (!globalLoadingStartTime) return;
+    if (!globalLoadingStartTime) {
+      debugLog('updateLoadingMessage: globalLoadingStartTime is null, skipping');
+      return;
+    }
     
     const elapsedSeconds = Math.floor((Date.now() - globalLoadingStartTime) / 1000);
     const loadingText = document.getElementById('loadingText');
+    debugLog('updateLoadingMessage called, elapsedSeconds:', elapsedSeconds);
     
     // Get current page/period
     const currentHash = window.location.hash;
@@ -2136,12 +2148,14 @@ window.mainAppLogic = function(): void {
 
   // Show initial loading state (only after date and location are known)
   function showInitialLoadingState(): void {
+    debugLog('showInitialLoadingState called');
     // Clear any existing loading intervals
     clearAllLoadingIntervals();
     
     globalLoadingStartTime = Date.now();
     globalLoadingCheckInterval = setInterval(updateLoadingMessage, 1000);
     activeLoadingIntervals.add(globalLoadingCheckInterval);
+    debugLog('Loading system started, globalLoadingStartTime:', globalLoadingStartTime);
     
     // Ensure loading is visible for at least 3 seconds to show cycling messages
 
