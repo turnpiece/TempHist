@@ -1160,11 +1160,13 @@ function renderPrivacyPage(): void {
       <h3>Location use</h3>
       <p>If you grant permission, the app uses your current location once to retrieve historical weather data for your area. Location data is never shared but is temporarily stored in a cookie on your machine for one hour.</p>
 
-      <h3>Third-party services</h3>
-      <p>TempHist uses Firebase for anonymous authentication and may set third-party cookies from Google services. These cookies are used solely for authentication purposes and do not track personal information.</p>
+      <h3>Third-party services and cookies</h3>
+      <p>TempHist uses Firebase for anonymous authentication, which may set third-party cookies from Google services (including identitytoolkit.googleapis.com and securetoken.googleapis.com). These cookies are used solely for authentication purposes and do not track personal information or enable cross-site tracking.</p>
+      
+      <p><strong>Third-party cookie usage:</strong> Firebase authentication may use third-party cookies to maintain your anonymous session. These cookies are essential for the app's authentication functionality and are not used for advertising or tracking purposes.</p>
 
       <h3>No tracking or analytics</h3>
-      <p>The app does not include analytics, advertising or third-party tracking beyond the authentication service mentioned above.</p>
+      <p>The app does not include analytics, advertising or third-party tracking beyond the authentication service mentioned above. We do not use cookies for tracking, advertising, or cross-site user profiling.</p>
 
       <h3>Data sources</h3>
       <p>Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted providers. Requests are processed anonymously.</p>
