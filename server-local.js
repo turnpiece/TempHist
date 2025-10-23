@@ -10,9 +10,33 @@ require('dotenv').config();
 const apiBase = process.env.API_BASE || 'http://localhost:8000';
 const port = process.env.PORT || 3000;
 
-// Add CORS headers middleware
+// Add security headers and CORS middleware
 app.use((req, res, next) => {
-  // Allow specific origins for development
+  // Security headers
+  res.header('X-Content-Type-Options', 'nosniff');
+  res.header('X-Frame-Options', 'DENY');
+  res.header('X-XSS-Protection', '1; mode=block');
+  
+  // Content Security Policy (relaxed for development)
+  const cspDirectives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://www.gstatic.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self'",
+    "connect-src 'self' http://localhost:* https://stagingapi.temphist.com https://devapi.temphist.com https://api.temphist.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
+    "frame-src 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'"
+  ].join('; ');
+  
+  res.header('Content-Security-Policy', cspDirectives);
+  res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.header('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  
+  // CORS headers for development
   const allowedOrigins = [
     'http://localhost:5173',  // Vite dev server
     'http://localhost:3000',  // This proxy server
