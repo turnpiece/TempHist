@@ -952,7 +952,9 @@ function clearAllCachedData(): void {
     }
   });
   
-  // Note: Main chart variable will be reset when fetchHistoricalData is called
+  // Reset the global chart variable to ensure clean state
+  window.TempHist = window.TempHist || {};
+  window.TempHist.mainChart = null;
   
   // Clear text content of summary, average, and trend elements
   const textElements = [
@@ -1239,12 +1241,20 @@ window.mainAppLogic = function(): void {
       existingChart.destroy();
     }
   }
+  
+  // Also reset the global chart reference
+  window.TempHist = window.TempHist || {};
+  window.TempHist.mainChart = null;
 
   const barColour = '#ff6b6b';
   const showTrend = true;
 
   // whether or not to show the chart
   let chart: any;
+  
+  // Reset the global chart variable to ensure clean state
+  window.TempHist = window.TempHist || {};
+  window.TempHist.mainChart = null;
 
   const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
 
@@ -1941,6 +1951,10 @@ window.mainAppLogic = function(): void {
           startYear,
           currentYear
         );
+        
+        // Store the chart reference globally for proper cleanup
+        window.TempHist = window.TempHist || {};
+        window.TempHist.mainChart = chart;
         
         debugTimeEnd('Chart initialization');
       }
