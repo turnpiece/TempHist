@@ -196,6 +196,7 @@ declare global {
       };
       prefetchedLocations?: string[];
       lastIdentifier?: string;
+      mainChart?: any; // Chart.js instance for the main temperature chart
       analytics: {
         errors: ErrorLog[];
         apiCalls: number;
