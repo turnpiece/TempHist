@@ -16,6 +16,13 @@ declare const Chart: any;
 import { setLocationCookie, getLocationCookie, getDisplayCity, getOrdinal } from './utils/location';
 import { updateDataNotice } from './utils/dataNotice';
 import { LoadingManager } from './utils/LoadingManager';
+import { LazyLoader } from './utils/LazyLoader';
+import { Debouncer } from './utils/Debouncer';
+import { DataCache } from './utils/DataCache';
+import { ErrorBoundary } from './utils/ErrorBoundary';
+import { Logger, LogLevel } from './utils/Logger';
+import { FeatureFlags } from './utils/FeatureFlags';
+import { PerformanceMonitor } from './utils/PerformanceMonitor';
 import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP, getFallbackLocations } from './services/locationDetection';
 
@@ -55,9 +62,9 @@ window.TempHistViews = window.TempHistViews || {};
 
 // Global loading interval management - now handled by LoadingManager
 // Legacy functions for backward compatibility
-function clearAllLoadingIntervals(): void {
+  function clearAllLoadingIntervals(): void {
   LoadingManager.clearAllIntervals();
-}
+  }
 
 // Error monitoring and analytics
 window.TempHist.analytics = window.TempHist.analytics || {
@@ -71,6 +78,34 @@ window.TempHist.analytics = window.TempHist.analytics || {
 
 // Global debug configuration - only enabled in development
 const DEBUGGING = import.meta.env.DEV || false;
+
+// Configure data cache
+DataCache.configure({
+  ttl: 10 * 60 * 1000, // 10 minutes for temperature data
+  maxSize: 50, // Maximum 50 cached entries
+  maxAge: 60 * 60 * 1000 // 1 hour maximum age
+});
+
+// Set up error reporting
+ErrorBoundary.onError((error, errorInfo) => {
+  console.error('ErrorBoundary: Error caught:', error, errorInfo);
+  
+  // Report to analytics
+  if (window.TempHist?.analytics) {
+    window.TempHist.analytics.errors.push({
+      timestamp: new Date().toISOString(),
+      error: error.message,
+      stack: error.stack,
+      context: {
+        type: 'error_boundary',
+        component: errorInfo.errorBoundary || 'unknown',
+        componentStack: errorInfo.componentStack
+      },
+      userAgent: navigator.userAgent,
+      url: window.location.href
+    });
+  }
+});
 
 // Helper functions for debug logging (global scope)
 function debugLog(...args: any[]): void {
@@ -1135,6 +1170,12 @@ function clearAllCachedData(): void {
     window.TempHist.cache.prefetchPromise = undefined;
   }
   
+  // Clear lazy loader cache
+  LazyLoader.clearCache();
+  
+  // Clear data cache
+  DataCache.clear();
+  
   // Destroy any existing charts to prevent stale data display
   const chartElements = [
     document.getElementById('tempChart'),
@@ -1256,18 +1297,7 @@ function processPrefetchResult(
  * Start prefetching period data (week, month, year) in background
  */
 function startPeriodDataPrefetch(): void {
-  debugLog('Starting period data prefetch in background...');
-  
-  // Use requestIdleCallback for better performance, fallback to setTimeout
-  const ric = window.requestIdleCallback || ((callback: () => void) => setTimeout(callback, 0));
-  
-  const prefetchStartTime = Date.now();
-  
-  ric(() => {
-    const bundlePrefetchPromise = (async () => {
-      try {
-        debugLog('Prefetch: Starting parallel period data fetch...');
-        const fetchStartTime = Date.now();
+  debugLog('Starting lazy preload for period data...');
         
         // Get current date for identifier
         const now = new Date();
@@ -1286,40 +1316,12 @@ function startPeriodDataPrefetch(): void {
         const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
         const location = window.tempLocation!;
         
-        // Fetch all period data in parallel
-        const [weeklyData, monthlyData, yearlyData] = await Promise.allSettled([
-          fetchTemperatureDataAsync('week', location, identifier),
-          fetchTemperatureDataAsync('month', location, identifier),
-          fetchTemperatureDataAsync('year', location, identifier)
-        ]);
-        
-        const fetchEndTime = Date.now();
-        debugLog('Prefetch: Parallel async jobs completed in', fetchEndTime - fetchStartTime, 'ms');
-        
-        // Process all results using helper function
-        processPrefetchResult('Weekly', weeklyData, 'week');
-        processPrefetchResult('Monthly', monthlyData, 'month');
-        processPrefetchResult('Yearly', yearlyData, 'year');
-        
-      } catch (e: any) {
-        debugLog('Prefetch: Period data prefetch error', e.message);
-      }
-    })();
-    
-    // Store the promise so other parts can wait for it
-    window.TempHist.cache.prefetchPromise = bundlePrefetchPromise;
-    
-    debugLog('Prefetch: Stored prefetch promise, scheduling execution');
-    ric(() => {
-      bundlePrefetchPromise.then(() => {
-        const totalTime = Date.now() - prefetchStartTime;
-        debugLog('Prefetch: Total prefetch operation completed in', totalTime, 'ms');
-      }).catch(() => {
-        const totalTime = Date.now() - prefetchStartTime;
-        debugLog('Prefetch: Total prefetch operation failed after', totalTime, 'ms');
-      });
-    });
-  });
+  // Use lazy loader for background preloading
+  LazyLoader.preloadPeriodData('week', location, identifier);
+  LazyLoader.preloadPeriodData('month', location, identifier);
+  LazyLoader.preloadPeriodData('year', location, identifier);
+  
+  debugLog('Lazy preload initiated for all period data');
 }
 
 /**
@@ -1615,7 +1617,15 @@ window.mainAppLogic = function(): void {
     startYear: number,
     currentYear: number
   ): any {
-  const barColour = CHART_COLORS.BAR;
+    // Safety check: ensure context is valid
+    if (!ctx || !ctx.canvas) {
+      throw new Error('Invalid canvas context provided to createTemperatureChart');
+    }
+    
+    // Start performance measurement
+    const endChartMeasurement = PerformanceMonitor.startMeasurement('chart_creation');
+    
+    const barColour = CHART_COLORS.BAR;
   const thisYearColour = CHART_COLORS.THIS_YEAR;
   const trendColour = CHART_COLORS.TREND;
   const avgColour = CHART_COLORS.AVERAGE;
@@ -1831,8 +1841,18 @@ window.mainAppLogic = function(): void {
 
     const loadingEl = document.getElementById(`${periodKey}Loading`) as HTMLElement;
     const canvas = document.getElementById(`${periodKey}Chart`) as HTMLCanvasElement;
+    
+    // Ensure canvas element exists and is in the DOM
+    if (!canvas || !canvas.parentNode || !document.contains(canvas)) {
+      debugLog(`${periodKey}: Canvas element not found or not in DOM`);
+      return;
+    }
+    
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      debugLog(`${periodKey}: Could not get canvas context`);
+      return;
+    }
     
     debugLog(`${periodKey} canvas dimensions:`, {
       width: canvas.clientWidth,
@@ -1885,40 +1905,38 @@ window.mainAppLogic = function(): void {
     const periodLoadingInterval = LoadingManager.startPeriodLoading(periodKey);
 
     try {
-      // Check for prefetched data first
-      let weatherData: any;
+      // Use lazy loading for period data
+      const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
       
-      if (window.TempHist.cache.prefetch[periodKey]) {
-        debugLog(`${periodKey}: Using prefetched data`);
-        weatherData = window.TempHist.cache.prefetch[periodKey];
-      } else {
-        // Check if prefetch is in progress and wait for it
-        const prefetchPromise = window.TempHist.cache.prefetchPromise;
-        if (prefetchPromise) {
-          debugLog(`${periodKey}: Waiting for prefetch to complete...`);
-          try {
-            await prefetchPromise;
-            weatherData = window.TempHist.cache.prefetch[periodKey];
+      // Check cache first (if feature flag is enabled)
+      let weatherData;
+      if (FeatureFlags.isEnabled('data_caching')) {
+        const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier);
+        weatherData = DataCache.get(cacheKey);
+        
             if (weatherData) {
-              debugLog(`${periodKey}: Got prefetched data after waiting`);
-            }
-          } catch (e) {
-            debugLog(`${periodKey}: Prefetch failed, proceeding with direct API call`);
+          debugLog(`${periodKey}: Using cached data`);
           }
         }
         
-        // If still no prefetched data, fetch directly
         if (!weatherData) {
-          const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
-          
           // Progress callback for async job
           const onProgress = (status: AsyncJobResponse) => {
             debugLog(`${periodKey} job progress:`, status);
           };
 
-          debugLog(`Starting async ${periodKey} data fetch...`);
-          const jobResult = await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress);
+        debugLog(`Starting ${FeatureFlags.isEnabled('lazy_loading') ? 'lazy' : 'direct'} load for ${periodKey} data...`);
+        const jobResult = FeatureFlags.isEnabled('lazy_loading') 
+          ? await LazyLoader.loadPeriodData(periodKey, window.tempLocation!, identifier, { onProgress })
+          : await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress);
+        
           weatherData = jobResult;
+        
+        // Cache the result (if feature flag is enabled)
+        if (FeatureFlags.isEnabled('data_caching')) {
+          const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier);
+          DataCache.set(cacheKey, weatherData, 10 * 60 * 1000); // 10 minutes TTL
+          debugLog(`${periodKey}: Data cached for future use`);
         }
       }
       
@@ -2105,6 +2123,7 @@ window.mainAppLogic = function(): void {
 
   // Main async data fetching function
   async function fetchHistoricalData(): Promise<void> {
+    Logger.startPerformance('fetchHistoricalData');
     debugTime('Total fetch time');
     
     // Destroy any existing chart before starting
@@ -2137,16 +2156,36 @@ window.mainAppLogic = function(): void {
       // Fetch weather data using async jobs
       const identifier = `${month}-${day}`;
       
+      // Check cache first (if feature flag is enabled)
+      let jobResult;
+      if (FeatureFlags.isEnabled('data_caching')) {
+        const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier);
+        jobResult = DataCache.get(cacheKey);
+        
+        if (jobResult) {
+          debugLog('Daily: Using cached data');
+        }
+      }
+      
+      if (!jobResult) {
       // Progress callback for async job
       const onProgress = (status: AsyncJobResponse) => {
         debugLog('Daily job progress:', status);
       };
 
       debugLog('Starting async daily data fetch...');
-      const jobResult = await fetchTemperatureDataAsync('daily', window.tempLocation!, identifier, onProgress);
+        jobResult = await fetchTemperatureDataAsync('daily', window.tempLocation!, identifier, onProgress);
+        
+        // Cache the result (if feature flag is enabled)
+        if (FeatureFlags.isEnabled('data_caching')) {
+          const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier);
+          DataCache.set(cacheKey, jobResult, 10 * 60 * 1000); // 10 minutes TTL
+          debugLog('Daily: Data cached for future use');
+        }
+      }
       
       // Extract the data from the job result
-      const jobResultData = jobResult;
+      const jobResultData = jobResult as any;
       debugLog('Job result structure:', jobResult);
       debugLog('Extracted weather data:', jobResultData);
       
@@ -2190,6 +2229,11 @@ window.mainAppLogic = function(): void {
         if (existingChart) {
           debugLog('Found existing chart during creation, destroying it first');
           existingChart.destroy();
+        }
+        
+        // Ensure canvas element is still in the DOM
+        if (!canvasEl || !canvasEl.parentNode || !document.contains(canvasEl)) {
+          throw new Error('Canvas element is not in the DOM');
         }
         
         const ctx = (canvasEl as HTMLCanvasElement).getContext('2d');
@@ -2298,10 +2342,9 @@ window.mainAppLogic = function(): void {
     }
 
     debugTimeEnd('Total fetch time');
+    // End chart creation measurement
+    PerformanceMonitor.recordMetric('chart_creation_complete', performance.now());
   }
-
-  // Make fetchHistoricalData globally accessible
-  window.fetchHistoricalData = fetchHistoricalData;
 
   // Loading message functions are now handled by LoadingManager
 
@@ -2309,31 +2352,30 @@ window.mainAppLogic = function(): void {
 
   // Show initial loading state (only after date and location are known)
   function showInitialLoadingState(): void {
-    debugLog('showInitialLoadingState called');
-    // Clear any existing loading intervals
-    clearAllLoadingIntervals();
+    const loadingEl = document.getElementById('loading');
+    const canvasEl = document.getElementById('tempChart');
     
-    LoadingManager.startGlobalLoading();
-    debugLog('Loading system started');
-    
-    // Ensure loading is visible for at least 3 seconds to show cycling messages
-
     if (loadingEl) {
       loadingEl.classList.add('visible');
       loadingEl.classList.remove('hidden');
     }
-
+    
     if (canvasEl) {
-      canvasEl.classList.remove('visible');
       canvasEl.classList.add('hidden');
+      canvasEl.classList.remove('visible');
     }
     
-    // Update loading message for fetching stage
+    // Start global loading messages
+    LoadingManager.startGlobalLoading();
+    
+    // Set initial loading text
     const loadingText = document.getElementById('loadingText');
     if (loadingText) {
       loadingText.textContent = INITIAL_LOADING_TEXT;
     }
   }
+
+
 
   // Utility functions for error UI
   function showError(message: string): void {
@@ -2396,6 +2438,16 @@ window.mainAppLogic = function(): void {
       canvasEl.classList.add('visible');
       canvasEl.classList.remove('hidden');
     }
+
+    // Log performance and completion
+    const duration = Logger.endPerformance('fetchHistoricalData');
+    // End performance measurement
+    PerformanceMonitor.recordMetric('data_fetch_complete', performance.now());
+    Logger.info('Historical data fetch completed', {
+      duration,
+      location: window.tempLocation,
+      dataPoints: 0 // Will be updated when data is available
+    });
     
     // Only show success message if there's no incomplete data notice
     const incompleteDataWarning = document.getElementById('incompleteDataWarning');
@@ -2413,8 +2465,13 @@ window.mainAppLogic = function(): void {
       debugLog('Skipping success message because incomplete data warning is present');
     }
     
-    if (chart) {
+    if (chart && canvasEl) {
+      // Ensure the canvas element still exists before updating
+      if (canvasEl.parentNode && document.contains(canvasEl)) {
       chart.update();
+      } else {
+        debugLog('Canvas element no longer in DOM, skipping chart update');
+      }
     }
   }
 
@@ -2499,9 +2556,27 @@ window.mainAppLogic = function(): void {
     fetchHistoricalData();
   }
 
+  // Debounced location change handler
+  const debouncedLocationChange = Debouncer.debounce(
+    'location-change',
+    () => {
+      debugLog('Debounced location change triggered');
+      handleLocationChangeInternal();
+    },
+    500, // 500ms debounce
+    false
+  );
+
   // Handle change location - navigate to splash screen
   function handleChangeLocation(): void {
-    debugLog('Change location clicked, navigating to splash screen');
+    Logger.logUserInteraction('change_location_clicked');
+    debugLog('Change location clicked, debouncing...');
+    debouncedLocationChange();
+  }
+
+  // Internal location change handler (called after debounce)
+  function handleLocationChangeInternal(): void {
+    debugLog('Change location executed, navigating to splash screen');
     
     // Show splash screen
     const splashScreen = document.getElementById('splashScreen');
@@ -2524,6 +2599,7 @@ window.mainAppLogic = function(): void {
     if (manualLocationSection) manualLocationSection.style.display = 'none';
     
     // Navigate to today page
+    Logger.logNavigation('location_change', '/today');
     if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
       window.TempHistRouter.navigate('/today');
     } else {
