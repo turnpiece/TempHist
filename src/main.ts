@@ -15,19 +15,24 @@ declare const Chart: any;
 // Import our TypeScript modules
 import { setLocationCookie, getLocationCookie, getDisplayCity, getOrdinal } from './utils/location';
 import { updateDataNotice } from './utils/dataNotice';
+import { LoadingManager } from './utils/LoadingManager';
 import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP, getFallbackLocations } from './services/locationDetection';
 
-// Chart styling constants
-const CHART_AXIS_COLOR = '#ECECEC';
-const CHART_FONT_SIZE_SMALL = 11;
-const CHART_FONT_SIZE_MEDIUM = 12;
-
-// Default location constant
-const DEFAULT_LOCATION = 'London, England, United Kingdom';
-
-// Loading text constant
-const INITIAL_LOADING_TEXT = 'Loading temperature data…';
+// Import constants
+import { 
+  DEFAULT_LOCATION, 
+  CHART_AXIS_COLOR, 
+  CHART_FONT_SIZE_SMALL, 
+  CHART_FONT_SIZE_MEDIUM, 
+  INITIAL_LOADING_TEXT,
+  CHART_COLORS,
+  LOADING_TIMEOUTS,
+  API_CONFIG,
+  GEOLOCATION_CONFIG,
+  NOMINATIM_CONFIG,
+  CACHE_CONFIG
+} from './constants/index';
 
 // Import types
 import type { 
@@ -48,20 +53,11 @@ window.TempHist.cache = window.TempHist.cache || {
 };
 window.TempHistViews = window.TempHistViews || {};
 
-// Global loading interval management
-const activeLoadingIntervals = new Set<NodeJS.Timeout>();
-let globalLoadingCheckInterval: NodeJS.Timeout | null = null;
-let globalLoadingStartTime: number | null = null;
-
-// Clear all loading intervals (useful when navigating between pages)
-  function clearAllLoadingIntervals(): void {
-    activeLoadingIntervals.forEach(interval => clearInterval(interval));
-    activeLoadingIntervals.clear();
-    if (globalLoadingCheckInterval) {
-      clearInterval(globalLoadingCheckInterval);
-      globalLoadingCheckInterval = null;
-    }
-  }
+// Global loading interval management - now handled by LoadingManager
+// Legacy functions for backward compatibility
+function clearAllLoadingIntervals(): void {
+  LoadingManager.clearAllIntervals();
+}
 
 // Error monitoring and analytics
 window.TempHist.analytics = window.TempHist.analytics || {
@@ -966,13 +962,13 @@ function showManualLocationSelection(): void {
   } else {
     debugLog('No prefetched locations found, loading now...');
     
-    // Set up timeout to use fallback locations after 7 seconds
+    // Set up timeout to use fallback locations after configured timeout
     const timeoutId = setTimeout(() => {
       debugLog('Location loading timeout reached, using fallback locations');
       const fallbackLocations = getFallbackLocations();
       debugLog('Using fallback locations due to timeout:', fallbackLocations);
       populateLocationDropdown(fallbackLocations);
-    }, 7000); // 7 second timeout
+    }, CACHE_CONFIG.PREFETCH_TIMEOUT); // Configurable timeout
 
     loadPreapprovedLocations()
       .then(locations => {
@@ -1197,8 +1193,6 @@ function clearAllCachedData(): void {
   
   // Clear loading intervals and reset loading state
   clearAllLoadingIntervals();
-  globalLoadingStartTime = null;
-  globalLoadingCheckInterval = null;
   
   debugLog('All cached data cleared');
 }
@@ -1621,10 +1615,10 @@ window.mainAppLogic = function(): void {
     startYear: number,
     currentYear: number
   ): any {
-    const barColour = '#ff6b6b';
-    const thisYearColour = '#51cf66';
-    const trendColour = '#aaaa00';
-    const avgColour = '#4dabf7';
+  const barColour = CHART_COLORS.BAR;
+  const thisYearColour = CHART_COLORS.THIS_YEAR;
+  const trendColour = CHART_COLORS.TREND;
+  const avgColour = CHART_COLORS.AVERAGE;
     const showTrend = true;
 
     return new Chart(ctx, {
@@ -1888,16 +1882,7 @@ window.mainAppLogic = function(): void {
     clearAllLoadingIntervals();
     
     // Start dynamic loading messages for this period
-    const periodLoadingStartTime = Date.now();
-    let periodLoadingInterval: NodeJS.Timeout | null = null;
-    
-    // Set up the interval after all early returns
-    periodLoadingInterval = setInterval(() => {
-      updatePeriodLoadingMessage(periodKey, periodLoadingStartTime);
-    }, 1000);
-    
-    // Track this interval
-    activeLoadingIntervals.add(periodLoadingInterval);
+    const periodLoadingInterval = LoadingManager.startPeriodLoading(periodKey);
 
     try {
       // Check for prefetched data first
@@ -1991,8 +1976,8 @@ window.mainAppLogic = function(): void {
       const maxYear = Math.max(...years);
       
       // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages
-      const minLoadingTime = 3000; // 3 seconds
-      const elapsedTime = Date.now() - periodLoadingStartTime;
+      const minLoadingTime = LOADING_TIMEOUTS.MIN_LOADING_TIME * 1000; // Convert to milliseconds
+      const elapsedTime = 0; // LoadingManager handles timing internally
       const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
       
       if (remainingTime > 0) {
@@ -2011,10 +1996,7 @@ window.mainAppLogic = function(): void {
         canvas.classList.remove('hidden');
         
         // Clear the loading message interval
-        if (periodLoadingInterval) {
-          clearInterval(periodLoadingInterval);
-          activeLoadingIntervals.delete(periodLoadingInterval);
-        }
+        LoadingManager.stopPeriodLoading(periodLoadingInterval);
 
         // Create chart using shared function
         if (!ctx) {
@@ -2097,10 +2079,7 @@ window.mainAppLogic = function(): void {
       loadingEl.classList.remove('visible');
       
       // Clear the loading message interval
-      if (periodLoadingInterval) {
-        clearInterval(periodLoadingInterval);
-        activeLoadingIntervals.delete(periodLoadingInterval);
-      }
+      LoadingManager.stopPeriodLoading(periodLoadingInterval);
       
       const errorContainer = document.getElementById(`${periodKey}ErrorContainer`);
       const errorMessageElement = document.getElementById(`${periodKey}ErrorMessage`);
@@ -2145,7 +2124,7 @@ window.mainAppLogic = function(): void {
       // Check temperature data server health first (with timeout)
       const isApiHealthy = await Promise.race([
         checkApiHealth(),
-        new Promise<boolean>((_, reject) => setTimeout(() => reject(new Error('Health check timeout')), 5000))
+        new Promise<boolean>((_, reject) => setTimeout(() => reject(new Error('Health check timeout')), API_CONFIG.HEALTH_CHECK_TIMEOUT))
       ]).catch(() => {
         console.warn('Health check failed or timed out, proceeding anyway...');
         return true; // Proceed anyway if health check fails
@@ -2324,118 +2303,9 @@ window.mainAppLogic = function(): void {
   // Make fetchHistoricalData globally accessible
   window.fetchHistoricalData = fetchHistoricalData;
 
-  // Add loading state management (using global variables)
-  // Note: loadingStartTime and loadingCheckInterval are now global variables
+  // Loading message functions are now handled by LoadingManager
 
-  function updateLoadingMessage(): void {
-    if (!globalLoadingStartTime) {
-      debugLog('updateLoadingMessage: globalLoadingStartTime is null, skipping');
-      return;
-    }
-    
-    const elapsedSeconds = Math.floor((Date.now() - globalLoadingStartTime) / 1000);
-    const loadingText = document.getElementById('loadingText');
-    debugLog('updateLoadingMessage called, elapsedSeconds:', elapsedSeconds);
-    
-    // Get current page/period
-    const currentHash = window.location.hash;
-    const isTodayPage = currentHash === '' || currentHash === '#today' || currentHash === '#/today';
-    const isWeekPage = currentHash === '#week' || currentHash === '#/week';
-    const isMonthPage = currentHash === '#month' || currentHash === '#/month';
-    const isYearPage = currentHash === '#year' || currentHash === '#/year';
-    
-    const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
-    
-    if (elapsedSeconds < 5) {
-      if (loadingText) loadingText.textContent = 'Connecting to the temperature data server...';
-    } else if (elapsedSeconds < 15) {
-      if (isTodayPage) {
-        if (loadingText) loadingText.textContent = `Is today warmer or cooler than average in ${displayCity}?`;
-      } else if (isWeekPage) {
-        if (loadingText) loadingText.textContent = `Has this past week been warmer or cooler than average in ${displayCity}?`;
-      } else if (isMonthPage) {
-        if (loadingText) loadingText.textContent = `Has this past month been warmer or cooler than average in ${displayCity}?`;
-      } else if (isYearPage) {
-        if (loadingText) loadingText.textContent = `Has this past year been warmer or cooler than average in ${displayCity}?`;
-      } else {
-        if (loadingText) loadingText.textContent = 'Getting temperature data for '+friendlyDate+' over the past 50 years...';
-      }
-    } else if (elapsedSeconds < 30) {
-      if (isTodayPage) {
-        if (loadingText) loadingText.textContent = `Analysing today's temperature in ${displayCity}...`;
-      } else if (isWeekPage) {
-        if (loadingText) loadingText.textContent = `Analysing this week's temperatures in ${displayCity}...`;
-      } else if (isMonthPage) {
-        if (loadingText) loadingText.textContent = `Analysing this month's temperatures in ${displayCity}...`;
-      } else if (isYearPage) {
-        if (loadingText) loadingText.textContent = `Analysing this year's temperatures in ${displayCity}...`;
-      } else {
-        if (loadingText) loadingText.textContent = 'Analysing historical data for '+displayCity+'...';
-      }
-    } else if (elapsedSeconds < 45) {
-      if (isTodayPage) {
-        if (loadingText) loadingText.textContent = 'Generating today\'s temperature comparison...';
-      } else if (isWeekPage) {
-        if (loadingText) loadingText.textContent = 'Generating weekly temperature comparison...';
-      } else if (isMonthPage) {
-        if (loadingText) loadingText.textContent = 'Generating monthly temperature comparison...';
-      } else if (isYearPage) {
-        if (loadingText) loadingText.textContent = 'Generating yearly temperature comparison...';
-      } else {
-        if (loadingText) loadingText.textContent = 'Generating temperature comparison chart...';
-      }
-    } else if (elapsedSeconds < 60) {
-      if (loadingText) loadingText.textContent = 'You should be seeing a bar chart soon...';
-    } else if (elapsedSeconds < 90) {
-      if (loadingText) loadingText.textContent = 'This is taking longer than usual. Please wait...';
-    } else {
-      if (loadingText) loadingText.textContent = 'This really is taking a while, maybe due to a slow internet connection, high server load or something may have gone wrong.';
-    }
-  }
-
-  // Dynamic loading messages for period pages
-  function updatePeriodLoadingMessage(periodKey: 'week' | 'month' | 'year', startTime: number): void {
-    const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-    const loadingText = document.getElementById(`${periodKey}LoadingText`);
-    
-    if (!loadingText) return;
-    
-    const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
-    
-    if (elapsedSeconds < 5) {
-      loadingText.textContent = 'Connecting to the temperature data server...';
-    } else if (elapsedSeconds < 15) {
-      if (periodKey === 'week') {
-        loadingText.textContent = `Has this past week been warmer or cooler than average in ${displayCity}?`;
-      } else if (periodKey === 'month') {
-        loadingText.textContent = `Has this past month been warmer or cooler than average in ${displayCity}?`;
-      } else if (periodKey === 'year') {
-        loadingText.textContent = `Has this past year been warmer or cooler than average in ${displayCity}?`;
-      }
-    } else if (elapsedSeconds < 30) {
-      if (periodKey === 'week') {
-        loadingText.textContent = `Analysing this week's temperatures in ${displayCity}...`;
-      } else if (periodKey === 'month') {
-        loadingText.textContent = `Analysing this month's temperatures in ${displayCity}...`;
-      } else if (periodKey === 'year') {
-        loadingText.textContent = `Analysing this year's temperatures in ${displayCity}...`;
-      }
-    } else if (elapsedSeconds < 45) {
-      if (periodKey === 'week') {
-        loadingText.textContent = 'Generating weekly temperature comparison...';
-      } else if (periodKey === 'month') {
-        loadingText.textContent = 'Generating monthly temperature comparison...';
-      } else if (periodKey === 'year') {
-        loadingText.textContent = 'Generating yearly temperature comparison...';
-      }
-    } else if (elapsedSeconds < 60) {
-      loadingText.textContent = 'You should be seeing a bar chart soon...';
-    } else if (elapsedSeconds < 90) {
-      loadingText.textContent = 'This is taking longer than usual. Please wait...';
-    } else {
-      loadingText.textContent = 'The data processing is taking a while. This may be due to high server load.';
-    }
-  }
+  // Legacy function removed - LoadingManager handles this
 
   // Show initial loading state (only after date and location are known)
   function showInitialLoadingState(): void {
@@ -2443,10 +2313,8 @@ window.mainAppLogic = function(): void {
     // Clear any existing loading intervals
     clearAllLoadingIntervals();
     
-    globalLoadingStartTime = Date.now();
-    globalLoadingCheckInterval = setInterval(updateLoadingMessage, 1000);
-    activeLoadingIntervals.add(globalLoadingCheckInterval);
-    debugLog('Loading system started, globalLoadingStartTime:', globalLoadingStartTime);
+    LoadingManager.startGlobalLoading();
+    debugLog('Loading system started');
     
     // Ensure loading is visible for at least 3 seconds to show cycling messages
 
@@ -2503,8 +2371,8 @@ window.mainAppLogic = function(): void {
 
   function showChart(): void {
     // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages
-    const minLoadingTime = 3000; // 3 seconds
-    const elapsedTime = globalLoadingStartTime ? Date.now() - globalLoadingStartTime : 0;
+    const minLoadingTime = LOADING_TIMEOUTS.MIN_LOADING_TIME * 1000; // Convert to milliseconds
+    const elapsedTime = 0; // LoadingManager handles timing internally
     const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
     
     if (remainingTime > 0) {
@@ -2517,12 +2385,7 @@ window.mainAppLogic = function(): void {
   }
   
   function actuallyShowChart(): void {
-    if (globalLoadingCheckInterval) {
-      clearInterval(globalLoadingCheckInterval);
-      activeLoadingIntervals.delete(globalLoadingCheckInterval);
-      globalLoadingCheckInterval = null;
-    }
-    globalLoadingStartTime = null;
+    LoadingManager.stopGlobalLoading();
 
     if (loadingEl) {
       loadingEl.classList.add('hidden');

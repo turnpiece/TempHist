@@ -1,8 +1,6 @@
 import type { NominatimResponse, IPLocationResponse, GeolocationPosition, GeolocationError } from '../types/index';
 import { detectDeviceAndPlatform } from '../utils/platform';
-
-// Default location constant
-const DEFAULT_LOCATION = 'London, England, United Kingdom';
+import { DEFAULT_LOCATION, NOMINATIM_CONFIG, GEOLOCATION_CONFIG } from '../constants/index';
 
 /**
  * Get city name from coordinates using OpenStreetMap Nominatim API
@@ -11,7 +9,7 @@ export async function getCityFromCoords(lat: number, lon: number): Promise<strin
   try {
     // Add timeout to the OpenStreetMap API call - longer timeout for mobile
     const platform = detectDeviceAndPlatform();
-    const timeoutMs = platform.isMobile ? 15000 : 10000; // 15 seconds for mobile, 10 for desktop
+    const timeoutMs = platform.isMobile ? NOMINATIM_CONFIG.TIMEOUT_MOBILE : NOMINATIM_CONFIG.TIMEOUT_DESKTOP;
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -20,7 +18,7 @@ export async function getCityFromCoords(lat: number, lon: number): Promise<strin
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'TempHist/1.0'
+        'User-Agent': NOMINATIM_CONFIG.USER_AGENT
       }
     });
     
@@ -104,7 +102,7 @@ export function detectUserLocationWithGeolocation(): Promise<string> {
     }
 
     const platform = detectDeviceAndPlatform();
-    const timeout = platform.isMobile ? 20000 : 25000;
+    const timeout = platform.isMobile ? GEOLOCATION_CONFIG.TIMEOUT_MOBILE : GEOLOCATION_CONFIG.TIMEOUT_DESKTOP;
 
     navigator.geolocation.getCurrentPosition(
       async (position: GeolocationPosition) => {
@@ -122,7 +120,7 @@ export function detectUserLocationWithGeolocation(): Promise<string> {
       {
         enableHighAccuracy: false,
         timeout: timeout,
-        maximumAge: 300000
+        maximumAge: GEOLOCATION_CONFIG.MAX_AGE
       }
     );
   });

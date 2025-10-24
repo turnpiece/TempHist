@@ -4,6 +4,7 @@ import type {
   ChartDataPoint,
   JobResultResponse
 } from '../types/index';
+import { API_CONFIG } from '../constants/index';
 
 // Import debug function
 declare const debugLog: (...args: any[]) => void;
@@ -150,8 +151,8 @@ export async function pollJobStatus(
   onProgress?: (status: AsyncJobResponse) => void
 ): Promise<JobResultResponse> {
   let pollCount = 0;
-  const maxPolls = 100; // Maximum 5 minutes of polling
-  const pollInterval = 3000; // 3 seconds between polls
+  const maxPolls = API_CONFIG.MAX_POLLS; // Maximum 5 minutes of polling
+  const pollInterval = API_CONFIG.POLL_INTERVAL; // 3 seconds between polls
   
   while (pollCount < maxPolls) {
     try {

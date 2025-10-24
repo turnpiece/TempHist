@@ -1,11 +1,12 @@
 import type { CookieData, TempHistLocation } from '../types/index';
+import { CACHE_CONFIG } from '../constants/index';
 
 /**
  * Cookie management functions with proper TypeScript types
  */
 export function setLocationCookie(city: string, source: string | null = null): void {
   const expiry = new Date();
-  expiry.setHours(expiry.getHours() + 1); // Expire after 1 hour
+  expiry.setHours(expiry.getHours() + CACHE_CONFIG.LOCATION_COOKIE_HOURS); // Expire after configured hours
   
   // Safety check: if city is an object, don't store it
   if (typeof city === 'object' && city !== null) {
