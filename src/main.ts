@@ -409,6 +409,78 @@ function initializeSplashScreen(): void {
   const isStandalonePage = !document.querySelector('#todayView');
   if (isStandalonePage) {
     debugLog('Standalone page detected, skipping splash screen');
+    
+    // Handle standalone pages by populating their content
+    const currentPath = window.location.pathname;
+    if (currentPath === '/privacy' || currentPath === '/about') {
+      debugLog('Populating content for standalone page:', currentPath);
+      
+      // Set up mobile navigation for standalone pages
+      setupMobileNavigation();
+      
+      // Populate content based on the page
+      if (currentPath === '/privacy') {
+        const contentDiv = document.getElementById('content');
+        if (contentDiv) {
+          contentDiv.innerHTML = `
+            <div class="container">
+              <h2>Privacy Policy</h2>
+              <p>Effective date: September 2025</p>
+
+              <p>TempHist, operated by Turnpiece Ltd., respects your privacy.</p>
+
+              <h3>No personal data collected</h3>
+              <p>TempHist does not collect, store, or share any personal information.</p>
+
+              <h3>Location use</h3>
+              <p>If you grant permission, the app uses your current location once to retrieve historical weather data for your area. Location data is never shared but is temporarily stored in a cookie on your machine for one hour.</p>
+
+              <h3>Third-party services and cookies</h3>
+              <p>TempHist uses Firebase for anonymous authentication, which may set third-party cookies from Google services (including identitytoolkit.googleapis.com and securetoken.googleapis.com). These cookies are used solely for authentication purposes and do not track personal information or enable cross-site tracking.</p>
+              
+              <p><strong>Third-party cookie usage:</strong> Firebase authentication may use third-party cookies to maintain your anonymous session. These cookies are essential for the app's authentication functionality and are not used for advertising or tracking purposes.</p>
+
+              <h3>No tracking or analytics</h3>
+              <p>The app does not include analytics, advertising or third-party tracking beyond the authentication service mentioned above. We do not use cookies for tracking, advertising, or cross-site user profiling.</p>
+
+              <h3>Data sources</h3>
+              <p>Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted providers. Requests are processed anonymously.</p>
+
+              <h3>Contact</h3>
+              <p>If you have questions, please contact Turnpiece Ltd. at <a href="https://turnpiece.com">https://turnpiece.com</a>.</p>
+            </div>
+          `;
+        }
+      } else if (currentPath === '/about') {
+        const contentDiv = document.getElementById('content');
+        if (contentDiv) {
+          contentDiv.innerHTML = `
+            <div class="container">
+              <h2>About TempHist</h2>
+              <p>TempHist shows how today's temperature compares to the same date over the past 50 years for your location.</p>
+
+              <h3>How it works</h3>
+              <p>TempHist uses historical weather data to create a chart showing temperature trends for your location. The chart displays:</p>
+              <ul>
+                <li><strong>Today's temperature</strong> - the current temperature for your location</li>
+                <li><strong>Historical range</strong> - the highest and lowest temperatures recorded on this date over the past 50 years</li>
+                <li><strong>Average temperature</strong> - the average temperature for this date over the past 50 years</li>
+                <li><strong>Temperature trend</strong> - how today's temperature compares to the historical average</li>
+              </ul>
+
+              <h3>Data sources</h3>
+              <p>Temperature data is sourced from trusted weather services and processed through the TempHist API. The data includes daily temperature records going back 50 years for thousands of locations worldwide.</p>
+
+              <h3>Privacy</h3>
+              <p>TempHist does not collect, store, or share any personal information. Your location is used only to retrieve weather data and is not stored or transmitted to third parties.</p>
+
+              <h3>Contact</h3>
+              <p>TempHist is developed by <a href="https://turnpiece.com">Turnpiece Ltd.</a> For questions or feedback, please visit our website.</p>
+            </div>
+          `;
+        }
+      }
+    }
     return;
   }
 
