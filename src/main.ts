@@ -367,13 +367,16 @@ function startAppWithFirebaseUser(user: FirebaseUser): void {
 function setupAnalyticsReporting(): void {
   // Send analytics when page is about to unload
   window.addEventListener('beforeunload', () => {
-    // Send analytics data on page unload
-    sendAnalytics();
+    // Send analytics data on page unload (only if Firebase is authenticated)
+    if (window.currentUser) {
+      sendAnalytics();
+    }
   });
 
   // Send analytics periodically (every 5 minutes) for long sessions
   setInterval(() => {
-    if (window.TempHist.analytics.apiCalls > 0 || window.TempHist.analytics.errors.length > 0) {
+    // Only send analytics if Firebase is authenticated and we have meaningful data
+    if (window.currentUser && (window.TempHist.analytics.apiCalls > 0 || window.TempHist.analytics.errors.length > 0)) {
       sendAnalytics();
     }
   }, 5 * 60 * 1000); // 5 minutes
@@ -418,7 +421,19 @@ function reportAnalytics() {
  */
 async function sendAnalytics(): Promise<void> {
   try {
+    // Check if API is ready and Firebase is authenticated
+    if (!window.currentUser) {
+      debugLog('Analytics: Skipping send - Firebase not authenticated yet');
+      return;
+    }
+
+    // Check if we have any meaningful analytics data
     const analyticsData = reportAnalytics();
+    if (analyticsData.apiCalls === 0 && analyticsData.errorCount === 0) {
+      debugLog('Analytics: Skipping send - no meaningful data to report');
+      return;
+    }
+
     const payload = {
       session_duration: analyticsData.sessionDuration,
       api_calls: analyticsData.apiCalls,
@@ -2311,8 +2326,10 @@ window.mainAppLogic = function(): void {
       showChart();
       chart.update();
 
-      // Send analytics after successful data load
-      sendAnalytics();
+      // Send analytics after successful data load (only if Firebase is authenticated)
+      if (window.currentUser) {
+        sendAnalytics();
+      }
 
       // Start prefetching period data in background after Today page data is loaded
       startPeriodDataPrefetch();
