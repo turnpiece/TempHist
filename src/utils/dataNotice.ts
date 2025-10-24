@@ -32,15 +32,39 @@ export function updateDataNotice(message: string | null, options: DataNoticeOpti
     const typeClass = options.type || 'info';
     const title = options.title || '';
     const subtitle = options.subtitle || message || '';
-    const extraInfo = options.extraInfo ? `<p class="notice-extra-info">${options.extraInfo}</p>` : '';
     
-    dataNotice.innerHTML = `
-      <div class="notice-content ${typeClass}">
-        ${title ? `<p class="notice-title${options.largeTitle ? ' large' : ''}">${title}</p>` : ''}
-        ${subtitle ? `<p class="notice-subtitle${options.secondarySubtitle ? ' secondary' : ''}">${subtitle}</p>` : ''}
-        ${extraInfo}
-      </div>
-    `.trim();
+    // Clear existing content
+    dataNotice.textContent = '';
+    
+    // Create content container
+    const contentEl = document.createElement('div');
+    contentEl.className = `notice-content ${typeClass}`;
+    
+    // Add title if provided
+    if (title) {
+      const titleEl = document.createElement('p');
+      titleEl.className = `notice-title${options.largeTitle ? ' large' : ''}`;
+      titleEl.textContent = title;
+      contentEl.appendChild(titleEl);
+    }
+    
+    // Add subtitle if provided
+    if (subtitle) {
+      const subtitleEl = document.createElement('p');
+      subtitleEl.className = `notice-subtitle${options.secondarySubtitle ? ' secondary' : ''}`;
+      subtitleEl.textContent = subtitle;
+      contentEl.appendChild(subtitleEl);
+    }
+    
+    // Add extra info if provided
+    if (options.extraInfo) {
+      const extraInfoEl = document.createElement('p');
+      extraInfoEl.className = 'notice-extra-info';
+      extraInfoEl.textContent = options.extraInfo;
+      contentEl.appendChild(extraInfoEl);
+    }
+    
+    dataNotice.appendChild(contentEl);
   } else {
     // Simple text format
     dataNotice.textContent = message;
