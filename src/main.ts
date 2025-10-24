@@ -1312,31 +1312,50 @@ function processPrefetchResult(
  * Start prefetching period data (week, month, year) in background
  */
 function startPeriodDataPrefetch(): void {
-  debugLog('Starting lazy preload for period data...');
+  debugLog('Starting background prefetch for period data...');
         
-        // Get current date for identifier
-        const now = new Date();
-        const useYesterday = now.getHours() < 1;
-        const dateToUse = new Date(now);
-        if (useYesterday) {
-          dateToUse.setDate(dateToUse.getDate() - 1);
-        }
-        
-        // Handle 29 Feb fallback to 28 Feb if not a leap year
-        const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
-        if (isLeapDay) {
-          dateToUse.setDate(28);
-        }
-        
-        const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
-        const location = window.tempLocation!;
-        
-  // Use lazy loader for background preloading
-  LazyLoader.preloadPeriodData('week', location, identifier);
-  LazyLoader.preloadPeriodData('month', location, identifier);
-  LazyLoader.preloadPeriodData('year', location, identifier);
+  // Get current date for identifier
+  const now = new Date();
+  const useYesterday = now.getHours() < 1;
+  const dateToUse = new Date(now);
+  if (useYesterday) {
+    dateToUse.setDate(dateToUse.getDate() - 1);
+  }
   
-  debugLog('Lazy preload initiated for all period data');
+  // Handle 29 Feb fallback to 28 Feb if not a leap year
+  const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
+  if (isLeapDay) {
+    dateToUse.setDate(28);
+  }
+  
+  const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+  const location = window.tempLocation!;
+  
+  // Prefetch period data using DataCache (same system as period pages)
+  const periods: ('week' | 'month' | 'year')[] = ['week', 'month', 'year'];
+  
+  periods.forEach(periodKey => {
+    // Check if already cached
+    const cacheKey = DataCache.generateTemperatureKey(periodKey, location, identifier);
+    if (DataCache.get(cacheKey)) {
+      debugLog(`Prefetch: ${periodKey} data already cached, skipping`);
+      return;
+    }
+    
+    // Start background fetch
+    debugLog(`Prefetch: Starting background fetch for ${periodKey} data`);
+    fetchTemperatureDataAsync(periodKey, location, identifier)
+      .then(data => {
+        // Cache the result
+        DataCache.set(cacheKey, data, 10 * 60 * 1000); // 10 minutes TTL
+        debugLog(`Prefetch: ${periodKey} data cached successfully`);
+      })
+      .catch(error => {
+        debugLog(`Prefetch: Failed to fetch ${periodKey} data:`, error);
+      });
+  });
+  
+  debugLog('Background prefetch initiated for all period data');
 }
 
 /**
@@ -1786,9 +1805,6 @@ window.mainAppLogic = function(): void {
     const sec = document.getElementById(sectionId);
     if (!sec) return;
 
-    // Check for date changes and clear cache if needed
-    checkAndHandleDateChange();
-
     // Check if the app is properly initialized
     if (!window.tempLocation) {
       // Wait a bit for the app to initialize
@@ -1920,40 +1936,39 @@ window.mainAppLogic = function(): void {
     const periodLoadingInterval = LoadingManager.startPeriodLoading(periodKey);
 
     try {
-      // Check global cache first (same as Today page)
-      let weatherData: any;
+      // Use same caching system as Today page (DataCache)
+      const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
       
-      if (window.TempHist.cache.prefetch[periodKey]) {
-        debugLog(`${periodKey}: Using global prefetched data`);
-        weatherData = window.TempHist.cache.prefetch[periodKey];
-      } else {
-        // Check if prefetch is in progress and wait for it
-        const prefetchPromise = window.TempHist.cache.prefetchPromise;
-        if (prefetchPromise) {
-          debugLog(`${periodKey}: Waiting for prefetch to complete...`);
-          try {
-            await prefetchPromise;
-            weatherData = window.TempHist.cache.prefetch[periodKey];
-            if (weatherData) {
-              debugLog(`${periodKey}: Got prefetched data after waiting`);
-            }
-          } catch (e) {
-            debugLog(`${periodKey}: Prefetch failed, proceeding with direct API call`);
-          }
-        }
+      // Check cache first (if feature flag is enabled)
+      let weatherData: any;
+      if (FeatureFlags.isEnabled('data_caching')) {
+        const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier);
+        debugLog(`${periodKey}: Checking cache with key:`, cacheKey);
+        weatherData = DataCache.get(cacheKey);
         
-        // If still no prefetched data, fetch directly
-        if (!weatherData) {
-          const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
-          
-          // Progress callback for async job
-          const onProgress = (status: AsyncJobResponse) => {
-            debugLog(`${periodKey} job progress:`, status);
-          };
+        if (weatherData) {
+          debugLog(`${periodKey}: Using cached data`);
+        } else {
+          debugLog(`${periodKey}: No cached data found`);
+        }
+      } else {
+        debugLog(`${periodKey}: Data caching disabled by feature flag`);
+      }
+      
+      if (!weatherData) {
+        // Progress callback for async job
+        const onProgress = (status: AsyncJobResponse) => {
+          debugLog(`${periodKey} job progress:`, status);
+        };
 
-          debugLog(`Starting direct load for ${periodKey} data...`);
-          const jobResult = await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress);
-          weatherData = jobResult;
+        debugLog(`Starting ${periodKey} data fetch...`);
+        weatherData = await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress);
+        
+        // Cache the result (if feature flag is enabled)
+        if (FeatureFlags.isEnabled('data_caching')) {
+          const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier);
+          DataCache.set(cacheKey, weatherData, 10 * 60 * 1000); // 10 minutes TTL
+          debugLog(`${periodKey}: Data cached for future use`);
         }
       }
       
@@ -2010,17 +2025,25 @@ window.mainAppLogic = function(): void {
       const minYear = Math.min(...years);
       const maxYear = Math.max(...years);
       
-      // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages
-      const minLoadingTime = LOADING_TIMEOUTS.MIN_LOADING_TIME * 1000; // Convert to milliseconds
-      const elapsedTime = 0; // LoadingManager handles timing internally
-      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+      // Skip minimum loading time if using cached data for instant display
+      const isUsingCachedData = weatherData && FeatureFlags.isEnabled('data_caching');
       
-      if (remainingTime > 0) {
-        setTimeout(() => {
-          actuallyShowPeriodChart();
-        }, remainingTime);
-      } else {
+      if (isUsingCachedData) {
+        // Show chart immediately for cached data
         actuallyShowPeriodChart();
+      } else {
+        // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages for fresh data
+        const minLoadingTime = LOADING_TIMEOUTS.MIN_LOADING_TIME * 1000; // Convert to milliseconds
+        const elapsedTime = 0; // LoadingManager handles timing internally
+        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+        
+        if (remainingTime > 0) {
+          setTimeout(() => {
+            actuallyShowPeriodChart();
+          }, remainingTime);
+        } else {
+          actuallyShowPeriodChart();
+        }
       }
       
       function actuallyShowPeriodChart() {
