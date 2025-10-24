@@ -1896,7 +1896,34 @@ window.mainAppLogic = function(): void {
     canvas.width = canvas.clientWidth || 800;
     canvas.height = canvas.clientHeight || 400;
 
-    // Show loading state immediately (before setting date/location text to match Today page)
+    // Set the date text immediately (needed for page title)
+    const dateTextEl = document.getElementById(`${periodKey}DateText`);
+    if (dateTextEl) {
+      dateTextEl.textContent = `${title} ending ${friendlyDate}`;
+    }
+    
+    // Set location text immediately (like Today page)
+    const currentLocation = window.tempLocation!;
+    const displayLocation = getDisplayCity(currentLocation);
+    const locationTextElement = document.getElementById(`${periodKey}LocationText`);
+    if (locationTextElement) {
+      // Add classes based on location source
+      locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
+      
+      // Show location with edit icon
+      locationTextElement.innerHTML = generateLocationDisplayHTML(displayLocation, periodKey);
+      
+      // Add click handler for the edit icon
+      const changeLocationBtn = document.getElementById(`changeLocationBtn-${periodKey}`);
+      if (changeLocationBtn) {
+        changeLocationBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          handleChangeLocation();
+        });
+      }
+    }
+    
+    // Show loading state
     loadingEl.classList.add('visible');
     loadingEl.classList.remove('hidden');
     canvas.classList.add('hidden');
@@ -2055,31 +2082,7 @@ window.mainAppLogic = function(): void {
           chart.update();
         }
 
-        // Set date and location text after data loads (to match Today page behavior)
-        const dateTextEl = document.getElementById(`${periodKey}DateText`);
-        if (dateTextEl) {
-          dateTextEl.textContent = `${title} ending ${friendlyDate}`;
-        }
-        
-        const currentLocation = window.tempLocation!;
-        const displayLocation = getDisplayCity(currentLocation);
-        const locationTextElement = document.getElementById(`${periodKey}LocationText`);
-        if (locationTextElement) {
-          // Add classes based on location source
-          locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
-          
-          // Show location with edit icon
-          locationTextElement.innerHTML = generateLocationDisplayHTML(displayLocation, periodKey);
-          
-          // Add click handler for the edit icon
-          const changeLocationBtn = document.getElementById(`changeLocationBtn-${periodKey}`);
-          if (changeLocationBtn) {
-            changeLocationBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              handleChangeLocation();
-            });
-          }
-        }
+        // Location text is already set at the beginning (like Today page)
         
         // Update summary, average, and trend text
         const summaryTextEl = document.getElementById(`${periodKey}SummaryText`);
