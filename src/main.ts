@@ -1920,38 +1920,40 @@ window.mainAppLogic = function(): void {
     const periodLoadingInterval = LoadingManager.startPeriodLoading(periodKey);
 
     try {
-      // Use lazy loading for period data
-      const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+      // Check global cache first (same as Today page)
+      let weatherData: any;
       
-      // Check cache first (if feature flag is enabled)
-      let weatherData;
-      if (FeatureFlags.isEnabled('data_caching')) {
-        const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier);
-        weatherData = DataCache.get(cacheKey);
-        
+      if (window.TempHist.cache.prefetch[periodKey]) {
+        debugLog(`${periodKey}: Using global prefetched data`);
+        weatherData = window.TempHist.cache.prefetch[periodKey];
+      } else {
+        // Check if prefetch is in progress and wait for it
+        const prefetchPromise = window.TempHist.cache.prefetchPromise;
+        if (prefetchPromise) {
+          debugLog(`${periodKey}: Waiting for prefetch to complete...`);
+          try {
+            await prefetchPromise;
+            weatherData = window.TempHist.cache.prefetch[periodKey];
             if (weatherData) {
-          debugLog(`${periodKey}: Using cached data`);
+              debugLog(`${periodKey}: Got prefetched data after waiting`);
+            }
+          } catch (e) {
+            debugLog(`${periodKey}: Prefetch failed, proceeding with direct API call`);
           }
         }
         
+        // If still no prefetched data, fetch directly
         if (!weatherData) {
+          const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+          
           // Progress callback for async job
           const onProgress = (status: AsyncJobResponse) => {
             debugLog(`${periodKey} job progress:`, status);
           };
 
-        debugLog(`Starting ${FeatureFlags.isEnabled('lazy_loading') ? 'lazy' : 'direct'} load for ${periodKey} data...`);
-        const jobResult = FeatureFlags.isEnabled('lazy_loading') 
-          ? await LazyLoader.loadPeriodData(periodKey, window.tempLocation!, identifier, { onProgress })
-          : await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress);
-        
+          debugLog(`Starting direct load for ${periodKey} data...`);
+          const jobResult = await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress);
           weatherData = jobResult;
-        
-        // Cache the result (if feature flag is enabled)
-        if (FeatureFlags.isEnabled('data_caching')) {
-          const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier);
-          DataCache.set(cacheKey, weatherData, 10 * 60 * 1000); // 10 minutes TTL
-          debugLog(`${periodKey}: Data cached for future use`);
         }
       }
       
