@@ -152,6 +152,65 @@ window.testIncompleteData = function() {
   checkDataCompleteness(testMetadata, 'today');
 };
 
+// Test function to simulate fatal error (no data)
+window.testFatalError = function() {
+  console.log('Testing fatal error scenario...');
+  console.log('testFatalError function called');
+  
+  const testMetadata = {
+    total_years: 51,
+    available_years: 0,
+    missing_years: [],
+    completeness: 0,
+    period_days: 1,
+    end_date: '2024-01-01'
+  };
+  
+  console.log('Test metadata:', testMetadata);
+  console.log('About to call checkDataCompleteness...');
+  
+  const result = checkDataCompleteness(testMetadata, 'today');
+  console.log('checkDataCompleteness returned:', result);
+  
+  // Also test the showFatalError function directly
+  console.log('Testing showFatalError directly...');
+  showFatalError('today');
+};
+
+// Simple test function to test basic functionality
+window.testBasicFunctions = function() {
+  console.log('Testing basic functions...');
+  console.log('Testing showFatalError with no periodKey...');
+  showFatalError();
+  
+  console.log('Testing hideChartElements with no periodKey...');
+  hideChartElements();
+  
+  console.log('Testing showChartElements with no periodKey...');
+  showChartElements();
+  
+  console.log('Testing showFatalError with "today" periodKey...');
+  showFatalError('today');
+  
+  console.log('Basic function tests complete');
+};
+
+// Test function to test retry button functionality
+window.testRetryButton = function() {
+  console.log('Testing retry button functionality...');
+  
+  // Show fatal error
+  showFatalError();
+  
+  // Wait a moment, then simulate clicking retry
+  setTimeout(() => {
+    console.log('Simulating retry button click...');
+    retryDataFetch();
+  }, 2000);
+  
+  console.log('Retry button test complete');
+};
+
 // Helper function to generate location display with edit icon
 function generateLocationDisplayHTML(displayText: string, periodKey: string = ''): string {
   const buttonId = periodKey ? `changeLocationBtn-${periodKey}` : 'changeLocationBtn';
@@ -207,6 +266,14 @@ function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined, pe
   debugLog('Metadata completeness:', metadata.completeness, '%');
   console.log('Metadata completeness:', metadata.completeness, '%');
   
+  // Check for fatal error (0% completeness - no data at all)
+  if (metadata.completeness === 0) {
+    debugLog('Fatal error: No data available (0% completeness)');
+    console.log('Fatal error: No data available (0% completeness)');
+    showFatalError(periodKey);
+    return false;
+  }
+  
   // Consider data incomplete if completeness is less than 100%
   const isIncomplete = metadata.completeness < 100;
   
@@ -226,6 +293,196 @@ function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined, pe
   debugLog('Data is complete, no notice needed');
   console.log('Data is complete, no notice needed');
   return true;
+}
+
+/**
+ * Show fatal error when no data is available (0% completeness)
+ */
+function showFatalError(periodKey?: string): void {
+  debugLog('showFatalError called for periodKey:', periodKey);
+  console.log('showFatalError called for periodKey:', periodKey);
+  console.log('showFatalError: Starting to hide chart elements...');
+  
+  // Hide chart and summary elements
+  hideChartElements(periodKey);
+  console.log('showFatalError: Chart elements hidden');
+  
+  // Show error message at the top using dataNotice
+  const errorMessage = 'Unable to load temperature data. Please check your connection and try again.';
+  
+  if (periodKey && periodKey !== 'today') {
+    console.log('showFatalError: Using period-specific dataNotice for', periodKey);
+    // For period-specific views, use the period-specific dataNotice
+    const noticeEl = document.getElementById(`${periodKey}DataNotice`);
+    console.log('showFatalError: Found noticeEl:', noticeEl);
+    if (noticeEl) {
+      noticeEl.innerHTML = '';
+      noticeEl.className = 'notice status-error';
+      noticeEl.style.display = 'block';
+      console.log('showFatalError: Set noticeEl display to block');
+      
+      const contentEl = document.createElement('div');
+      contentEl.className = 'notice-content error';
+      
+      const titleEl = document.createElement('h3');
+      titleEl.className = 'notice-title large';
+      titleEl.textContent = 'Data Unavailable';
+      
+      const messageEl = document.createElement('p');
+      messageEl.className = 'notice-subtitle';
+      messageEl.textContent = errorMessage;
+      
+      const retryButton = document.createElement('button');
+      retryButton.className = 'btn btn-primary';
+      retryButton.textContent = 'Try Again';
+      retryButton.onclick = retryDataFetch;
+      
+      contentEl.appendChild(titleEl);
+      contentEl.appendChild(messageEl);
+      contentEl.appendChild(retryButton);
+      noticeEl.appendChild(contentEl);
+      
+      debugLog('Fatal error notice displayed for', periodKey);
+      console.log('Fatal error notice displayed for', periodKey);
+    }
+  } else {
+    console.log('showFatalError: Using Today view updateDataNotice');
+    // For Today view, use the existing updateDataNotice function
+    updateDataNotice(errorMessage, {
+      type: 'error',
+      title: 'Data Unavailable',
+      useStructuredHtml: true,
+      largeTitle: true
+    });
+    
+    // Add retry button to the dataNotice element
+    const dataNotice = document.getElementById('dataNotice');
+    if (dataNotice) {
+      // Check if we need to add a retry button
+      const existingButton = dataNotice.querySelector('.btn');
+      if (!existingButton) {
+        const retryButton = document.createElement('button');
+        retryButton.className = 'btn btn-primary';
+        retryButton.textContent = 'Try Again';
+        retryButton.onclick = retryDataFetch;
+        retryButton.style.marginTop = '10px';
+        
+        // Add the button to the notice content
+        const contentEl = dataNotice.querySelector('.notice-content');
+        if (contentEl) {
+          contentEl.appendChild(retryButton);
+          console.log('showFatalError: Added retry button to Today view');
+        } else {
+          // Fallback: add directly to dataNotice
+          dataNotice.appendChild(retryButton);
+          console.log('showFatalError: Added retry button directly to dataNotice');
+        }
+      }
+    }
+    
+    debugLog('Fatal error notice displayed for Today view');
+    console.log('Fatal error notice displayed for Today view');
+    console.log('showFatalError: Called updateDataNotice for Today view');
+  }
+}
+
+/**
+ * Hide chart and summary elements when fatal error occurs
+ */
+function hideChartElements(periodKey?: string): void {
+  debugLog('hideChartElements called for periodKey:', periodKey);
+  console.log('hideChartElements called for periodKey:', periodKey);
+  console.log('hideChartElements: periodKey is', periodKey);
+  
+  if (periodKey && periodKey !== 'today') {
+    console.log('hideChartElements: Hiding period-specific elements for', periodKey);
+    // Hide period-specific elements
+    const elementsToHide = [
+      `${periodKey}Chart`,
+      `${periodKey}Loading`,
+      `${periodKey}SummaryText`,
+      `${periodKey}AvgText`,
+      `${periodKey}TrendText`,
+      `${periodKey}IncompleteDataNotice`
+    ];
+    
+    elementsToHide.forEach(id => {
+      const element = document.getElementById(id);
+      console.log(`hideChartElements: Looking for element ${id}, found:`, element);
+      if (element) {
+        element.style.display = 'none';
+        debugLog(`Hidden element: ${id}`);
+        console.log(`hideChartElements: Hidden element ${id}`);
+      } else {
+        console.log(`hideChartElements: Element ${id} not found`);
+      }
+    });
+  } else {
+    console.log('hideChartElements: Hiding Today view elements');
+    // Hide Today view elements
+    const elementsToHide = [
+      'tempChart',
+      'loading',
+      'summaryText',
+      'avgText',
+      'trendText',
+      'incompleteDataNotice'
+    ];
+    
+    elementsToHide.forEach(id => {
+      const element = document.getElementById(id);
+      console.log(`hideChartElements: Looking for Today element ${id}, found:`, element);
+      if (element) {
+        element.style.display = 'none';
+        debugLog(`Hidden element: ${id}`);
+        console.log(`hideChartElements: Hidden Today element ${id}`);
+      } else {
+        console.log(`hideChartElements: Today element ${id} not found`);
+      }
+    });
+  }
+}
+
+/**
+ * Show chart and summary elements when data is available
+ */
+function showChartElements(periodKey?: string): void {
+  debugLog('showChartElements called for periodKey:', periodKey);
+  console.log('showChartElements called for periodKey:', periodKey);
+  
+  if (periodKey && periodKey !== 'today') {
+    // Show period-specific elements
+    const elementsToShow = [
+      `${periodKey}Chart`,
+      `${periodKey}SummaryText`,
+      `${periodKey}AvgText`,
+      `${periodKey}TrendText`
+    ];
+    
+    elementsToShow.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.style.display = '';
+        debugLog(`Shown element: ${id}`);
+      }
+    });
+  } else {
+    // Show Today view elements
+    const elementsToShow = [
+      'tempChart',
+      'summaryText',
+      'avgText',
+      'trendText'
+    ];
+    
+    elementsToShow.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.style.display = '';
+        debugLog(`Shown element: ${id}`);
+      }
+    });
+  }
 }
 
 /**
@@ -369,6 +626,13 @@ function retryDataFetch(): void {
       noticeEl.className = 'notice';
     }
   }
+  
+  // Show chart elements in case they were hidden due to fatal error
+  if (currentView === 'today') {
+    showChartElements();
+  } else if (currentView) {
+    showChartElements(currentView);
+  }
   // Call the global fetchHistoricalData function if available
   if (window.fetchHistoricalData && typeof window.fetchHistoricalData === 'function') {
     window.fetchHistoricalData();
@@ -384,6 +648,9 @@ window.getOrdinal = getOrdinal;
 window.getDisplayCity = getDisplayCity;
 window.updateDataNotice = updateDataNotice;
 window.retryDataFetch = retryDataFetch;
+window.showFatalError = showFatalError;
+window.hideChartElements = hideChartElements;
+window.showChartElements = showChartElements;
 
 // Firebase config
 const firebaseConfig = {
@@ -2163,6 +2430,9 @@ window.mainAppLogic = function(): void {
           chart.data.datasets[0].data = calculatedTrendData.points.map(p => ({ x: p.y, y: p.x }));
           chart.update();
         }
+        
+        // Show chart elements since data loaded successfully
+        showChartElements(periodKey);
 
         // Location text is already set at the beginning (like Today page)
         
@@ -2403,6 +2673,9 @@ window.mainAppLogic = function(): void {
         // Store the chart reference globally for proper cleanup
         window.TempHist = window.TempHist || {};
         window.TempHist.mainChart = chart;
+        
+        // Show chart elements since data loaded successfully
+        showChartElements();
         
         debugTimeEnd('Chart initialization');
       }

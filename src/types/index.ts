@@ -233,6 +233,12 @@ declare global {
     fetchHistoricalData: () => Promise<void>;
     retryDataFetch: () => void;
     testIncompleteData: () => void;
+    testFatalError: () => void;
+    testBasicFunctions: () => void;
+    testRetryButton: () => void;
+    showFatalError: (periodKey?: string) => void;
+    hideChartElements: (periodKey?: string) => void;
+    showChartElements: (periodKey?: string) => void;
   }
 }
 
