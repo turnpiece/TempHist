@@ -232,6 +232,7 @@ declare global {
     TempHistSendAnalytics: () => Promise<void>;
     fetchHistoricalData: () => Promise<void>;
     retryDataFetch: () => void;
+    testIncompleteData: () => void;
   }
 }
 

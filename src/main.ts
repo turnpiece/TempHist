@@ -132,6 +132,26 @@ window.debugLog = debugLog;
 window.debugTime = debugTime;
 window.debugTimeEnd = debugTimeEnd;
 
+// Test function to simulate incomplete data
+window.testIncompleteData = function() {
+  console.log('Testing incomplete data scenario...');
+  const testMetadata = {
+    total_years: 50,
+    available_years: 35,
+    missing_years: [
+      { year: 1975, reason: 'Data unavailable' },
+      { year: 1980, reason: 'Data unavailable' },
+      { year: 1985, reason: 'Data unavailable' }
+    ],
+    completeness: 70,
+    period_days: 1,
+    end_date: '2024-01-01'
+  };
+  
+  console.log('Test metadata:', testMetadata);
+  checkDataCompleteness(testMetadata, 'today');
+};
+
 // Helper function to generate location display with edit icon
 function generateLocationDisplayHTML(displayText: string, periodKey: string = ''): string {
   const buttonId = periodKey ? `changeLocationBtn-${periodKey}` : 'changeLocationBtn';
@@ -174,74 +194,79 @@ function generateErrorMessage(error: unknown): string {
 /**
  * Check if data is incomplete and show appropriate UI
  */
-function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined): boolean {
-  debugLog('checkDataCompleteness called with metadata:', metadata);
+function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined, periodKey?: string): boolean {
+  debugLog('checkDataCompleteness called with metadata:', metadata, 'periodKey:', periodKey);
+  console.log('checkDataCompleteness called with metadata:', metadata, 'periodKey:', periodKey);
   
   if (!metadata) {
     debugLog('No metadata provided, assuming data is complete');
+    console.log('No metadata provided, assuming data is complete');
     return true; // No metadata means we assume data is complete
   }
   
   debugLog('Metadata completeness:', metadata.completeness, '%');
+  console.log('Metadata completeness:', metadata.completeness, '%');
   
   // Consider data incomplete if completeness is less than 100%
   const isIncomplete = metadata.completeness < 100;
   
   debugLog('Is data incomplete?', isIncomplete);
+  console.log('Is data incomplete?', isIncomplete);
   
   if (isIncomplete) {
     debugLog('Showing incomplete data notice');
-    showIncompleteDataNotice(metadata);
+    console.log('Showing incomplete data notice');
+    showIncompleteDataNotice(metadata, periodKey);
     return false;
   }
   
+  // Hide any existing incomplete data notice since data is complete
+  hideIncompleteDataNotice(periodKey);
+  
   debugLog('Data is complete, no notice needed');
+  console.log('Data is complete, no notice needed');
   return true;
 }
 
 /**
  * Show notice for incomplete data with retry option
  */
-function showIncompleteDataNotice(metadata: TemperatureDataMetadata): void {
-  debugLog('showIncompleteDataNotice called with metadata:', metadata);
+function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?: string): void {
+  debugLog('showIncompleteDataNotice called with metadata:', metadata, 'periodKey:', periodKey);
+  console.log('showIncompleteDataNotice called with metadata:', metadata, 'periodKey:', periodKey);
   
   const missingCount = metadata.missing_years.length;
   const completeness = Math.round(metadata.completeness);
   
   debugLog('Missing years count:', missingCount);
   debugLog('Completeness:', completeness, '%');
+  console.log('Missing years count:', missingCount);
+  console.log('Completeness:', completeness, '%');
   
-  const noticeHtml = `
-    <div class="notice-content warning">
-      <h3 class="notice-title large">Incomplete Data</h3>
-      <p class="notice-subtitle secondary">
-        Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).
-        ${missingCount > 0 ? `${missingCount} years are missing.` : ''}
-      </p>
-      <p>This will affect the accuracy of the temperature trend.</p>
-      <button class="btn btn-primary" onclick="retryDataFetch()">
-        Try Again
-      </button>
-    </div>
-  `;
+  // Determine which notice element to use based on current view or periodKey
+  let noticeEl: HTMLElement | null = null;
   
-  debugLog('Calling updateDataNotice with HTML:', noticeHtml);
-  
-  // Create a new warning element and insert it after the trend text
-  const trendTextEl = document.getElementById('trendText');
-  if (trendTextEl) {
-    // Remove any existing warning notice first
-    const existingWarning = document.getElementById('incompleteDataWarning');
-    if (existingWarning) {
-      existingWarning.remove();
+  if (periodKey) {
+    // Use the period-specific incomplete data notice element
+    noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
+    console.log(`${periodKey}IncompleteDataNotice element found:`, noticeEl);
+  } else {
+    // Try to detect current view
+    const currentView = getCurrentView();
+    if (currentView === 'today') {
+      noticeEl = document.getElementById('incompleteDataNotice');
+      console.log('incompleteDataNotice element found:', noticeEl);
+    } else if (currentView && currentView !== 'today') {
+      noticeEl = document.getElementById(`${currentView}IncompleteDataNotice`);
+      console.log(`${currentView}IncompleteDataNotice element found:`, noticeEl);
     }
+  }
+  
+  if (noticeEl) {
+    // Clear any existing content
+    noticeEl.innerHTML = '';
     
-    // Create the warning element
-    const warningEl = document.createElement('div');
-    warningEl.id = 'incompleteDataWarning';
-    warningEl.className = 'notice status-warning';
-    
-    // Create content safely using DOM methods
+    // Create the warning content
     const contentEl = document.createElement('div');
     contentEl.className = 'notice-content warning';
     
@@ -265,29 +290,85 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata): void {
     contentEl.appendChild(subtitleEl);
     contentEl.appendChild(descriptionEl);
     contentEl.appendChild(buttonEl);
-    warningEl.appendChild(contentEl);
+    noticeEl.appendChild(contentEl);
     
-    // Insert after the trend text
-    trendTextEl.parentNode?.insertBefore(warningEl, trendTextEl.nextSibling);
-    debugLog('Incomplete data warning inserted after trend text');
+    // Show the notice
+    noticeEl.style.display = 'block';
+    noticeEl.className = 'notice status-warning';
+    
+    debugLog('Incomplete data warning displayed in dedicated notice element');
+    console.log('Incomplete data warning displayed in dedicated notice element');
   } else {
-    debugLog('Trend text element not found, cannot place warning');
+    debugLog('Incomplete data notice element not found, cannot show warning');
+    console.log('Incomplete data notice element not found, cannot show warning');
+  }
+}
+
+/**
+ * Get the current view name
+ */
+function getCurrentView(): string | null {
+  const hash = window.location.hash;
+  const route = hash === '' ? '/today' : hash.substring(1);
+  
+  switch (route) {
+    case '/today':
+      return 'today';
+    case '/week':
+      return 'week';
+    case '/month':
+      return 'month';
+    case '/year':
+      return 'year';
+    default:
+      return null;
+  }
+}
+
+/**
+ * Hide the incomplete data notice
+ */
+function hideIncompleteDataNotice(periodKey?: string): void {
+  let noticeEl: HTMLElement | null = null;
+  
+  if (periodKey) {
+    noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
+  } else {
+    // Try to detect current view
+    const currentView = getCurrentView();
+    if (currentView === 'today') {
+      noticeEl = document.getElementById('incompleteDataNotice');
+    } else if (currentView && currentView !== 'today') {
+      noticeEl = document.getElementById(`${currentView}IncompleteDataNotice`);
+    }
   }
   
-  debugLog('updateDataNotice called');
+  if (noticeEl) {
+    noticeEl.style.display = 'none';
+    noticeEl.innerHTML = '';
+    noticeEl.className = 'notice';
+  }
 }
 
 /**
  * Retry data fetch (called from the retry button)
  */
 function retryDataFetch(): void {
-  // Remove the incomplete data warning
-  const incompleteDataWarning = document.getElementById('incompleteDataWarning');
-  if (incompleteDataWarning) {
-    incompleteDataWarning.remove();
-  }
+  // Hide the incomplete data notice
+  hideIncompleteDataNotice();
   
-  updateDataNotice(null); // Clear the notice
+  // Clear the data notice (for other types of notices)
+  const currentView = getCurrentView();
+  if (currentView === 'today') {
+    updateDataNotice(null);
+  } else if (currentView) {
+    const noticeEl = document.getElementById(`${currentView}DataNotice`);
+    if (noticeEl) {
+      noticeEl.style.display = 'none';
+      noticeEl.innerHTML = '';
+      noticeEl.className = 'notice';
+    }
+  }
   // Call the global fetchHistoricalData function if available
   if (window.fetchHistoricalData && typeof window.fetchHistoricalData === 'function') {
     window.fetchHistoricalData();
@@ -1867,6 +1948,7 @@ window.mainAppLogic = function(): void {
         
         <div id="${periodKey}AvgText" class="standard-text avg-text"></div>
         <div id="${periodKey}TrendText" class="standard-text trend-text"></div>
+        <div id="${periodKey}IncompleteDataNotice" class="notice" style="display: none;"></div>
       </div>
     `;
 
@@ -2002,7 +2084,7 @@ window.mainAppLogic = function(): void {
       
       // Check data completeness and show warning if needed
       debugLog(`Checking data completeness for ${periodKey} data, metadata:`, metadata);
-      const isDataComplete = checkDataCompleteness(metadata);
+      const isDataComplete = checkDataCompleteness(metadata, periodKey);
       if (!isDataComplete) {
         debugLog(`${periodKey}: Data is incomplete, showing warning notice`);
       } else {
@@ -2248,7 +2330,7 @@ window.mainAppLogic = function(): void {
       
       // Check data completeness and show warning if needed
       debugLog('Checking data completeness for daily data, metadata:', metadata);
-      const isDataComplete = checkDataCompleteness(metadata);
+      const isDataComplete = checkDataCompleteness(metadata, 'daily');
       if (!isDataComplete) {
         debugLog('Daily data is incomplete, showing warning notice');
       } else {
