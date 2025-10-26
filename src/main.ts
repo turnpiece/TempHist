@@ -441,6 +441,14 @@ function hideChartElements(periodKey?: string): void {
       }
     });
   }
+  
+  // Also hide all elements with the data-field class
+  const dataFields = document.querySelectorAll('.data-field');
+  dataFields.forEach(element => {
+    (element as HTMLElement).style.display = 'none';
+    debugLog(`Hidden data-field element:`, element);
+    console.log(`hideChartElements: Hidden data-field element:`, element);
+  });
 }
 
 /**
@@ -483,6 +491,14 @@ function showChartElements(periodKey?: string): void {
       }
     });
   }
+  
+  // Also show all elements with the data-field class
+  const dataFields = document.querySelectorAll('.data-field');
+  dataFields.forEach(element => {
+    (element as HTMLElement).style.display = '';
+    debugLog(`Shown data-field element:`, element);
+    console.log(`showChartElements: Shown data-field element:`, element);
+  });
 }
 
 /**
@@ -2353,7 +2369,13 @@ window.mainAppLogic = function(): void {
       debugLog(`Checking data completeness for ${periodKey} data, metadata:`, metadata);
       const isDataComplete = checkDataCompleteness(metadata, periodKey);
       if (!isDataComplete) {
-        debugLog(`${periodKey}: Data is incomplete, showing warning notice`);
+        debugLog(`${periodKey}: Data is incomplete or unavailable`);
+        // If data is 0% complete (fatal error), stop processing and show error
+        if (metadata && metadata.completeness === 0) {
+          debugLog(`No data available for ${periodKey} (0% completeness), stopping data processing`);
+          return;
+        }
+        debugLog(`${periodKey}: Data is incomplete but present, continuing with warning notice`);
       } else {
         debugLog(`${periodKey}: Data is complete, no warning needed`);
       }
@@ -2602,7 +2624,13 @@ window.mainAppLogic = function(): void {
       debugLog('Checking data completeness for daily data, metadata:', metadata);
       const isDataComplete = checkDataCompleteness(metadata, 'daily');
       if (!isDataComplete) {
-        debugLog('Daily data is incomplete, showing warning notice');
+        debugLog('Daily data is incomplete or unavailable');
+        // If data is 0% complete (fatal error), stop processing and show error
+        if (metadata && metadata.completeness === 0) {
+          debugLog('No data available (0% completeness), stopping data processing');
+          return;
+        }
+        debugLog('Daily data is incomplete but present, continuing with warning notice');
       } else {
         debugLog('Daily data is complete, no warning needed');
       }
