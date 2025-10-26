@@ -2571,19 +2571,24 @@ window.mainAppLogic = function(): void {
 
       // Fetch weather data using async jobs
       const identifier = `${month}-${day}`;
+      debugLog('About to fetch data - tempLocation:', window.tempLocation, 'identifier:', identifier);
       
       // Check cache first (if feature flag is enabled)
       let jobResult;
       if (FeatureFlags.isEnabled('data_caching')) {
         const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier);
+        debugLog('Checking cache for key:', cacheKey);
         jobResult = DataCache.get(cacheKey);
         
         if (jobResult) {
           debugLog('Daily: Using cached data');
+        } else {
+          debugLog('No cached data found');
         }
       }
       
       if (!jobResult) {
+      debugLog('About to call fetchTemperatureDataAsync - no cached data');
       // Progress callback for async job
       const onProgress = (status: AsyncJobResponse) => {
         debugLog('Daily job progress:', status);
