@@ -2396,6 +2396,9 @@ window.mainAppLogic = function(): void {
       const minYear = Math.min(...years);
       const maxYear = Math.max(...years);
       
+      // Get the actual current year (for highlighting the current year in green)
+      const actualCurrentYear = new Date().getFullYear();
+      
       // Skip minimum loading time if using cached data for instant display
       const isUsingCachedData = weatherData && FeatureFlags.isEnabled('data_caching');
       
@@ -2441,7 +2444,7 @@ window.mainAppLogic = function(): void {
           minTemp,
           maxTemp,
           minYear,
-          maxYear
+          actualCurrentYear  // Use actual current year instead of maxYear
         );
 
         // Update trend line if enabled
