@@ -303,6 +303,23 @@ function showFatalError(periodKey?: string): void {
   console.log('showFatalError called for periodKey:', periodKey);
   console.log('showFatalError: Starting to hide chart elements...');
   
+  // Stop loading manager first (for Today view)
+  // Today view uses no periodKey, 'today', or 'daily'
+  const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
+  if (isTodayView) {
+    LoadingManager.stopGlobalLoading();
+    const loadingEl = document.getElementById('loading');
+    if (loadingEl) {
+      loadingEl.classList.add('hidden');
+      loadingEl.classList.remove('visible');
+    }
+    const canvasEl = document.getElementById('tempChart');
+    if (canvasEl) {
+      canvasEl.classList.add('hidden');
+      canvasEl.classList.remove('visible');
+    }
+  }
+  
   // Hide chart and summary elements
   hideChartElements(periodKey);
   console.log('showFatalError: Chart elements hidden');
@@ -310,7 +327,7 @@ function showFatalError(periodKey?: string): void {
   // Show error message at the top using dataNotice
   const errorMessage = 'Unable to load temperature data. Please check your connection and try again.';
   
-  if (periodKey && periodKey !== 'today') {
+  if (!isTodayView) {
     console.log('showFatalError: Using period-specific dataNotice for', periodKey);
     // For period-specific views, use the period-specific dataNotice
     const noticeEl = document.getElementById(`${periodKey}DataNotice`);
@@ -345,7 +362,7 @@ function showFatalError(periodKey?: string): void {
       debugLog('Fatal error notice displayed for', periodKey);
       console.log('Fatal error notice displayed for', periodKey);
     }
-  } else {
+  } else if (isTodayView) {
     console.log('showFatalError: Using Today view updateDataNotice');
     // For Today view, use the existing updateDataNotice function
     updateDataNotice(errorMessage, {
@@ -2613,8 +2630,13 @@ window.mainAppLogic = function(): void {
       debugLog('Job result structure:', jobResult);
       debugLog('Extracted weather data:', jobResultData);
       
+      // Validate jobResult exists and has expected structure
+      if (!jobResultData) {
+        throw new Error('No data received from API. The server may be unavailable or returned an empty response.');
+      }
+      
       // Job result contains the temperature data in the 'data' property
-      if (!jobResultData || !jobResultData.data || !jobResultData.data.values || !Array.isArray(jobResultData.data.values)) {
+      if (!jobResultData.data || !jobResultData.data.values || !Array.isArray(jobResultData.data.values)) {
         throw new Error('Invalid data format received. Expected data.values array.');
       }
       
@@ -2636,6 +2658,16 @@ window.mainAppLogic = function(): void {
         // If data is 0% complete (fatal error), stop processing and show error
         if (metadata && metadata.completeness === 0) {
           debugLog('No data available (0% completeness), stopping data processing');
+          // Stop loading manager and hide loading spinner
+          LoadingManager.stopGlobalLoading();
+          if (loadingEl) {
+            loadingEl.classList.add('hidden');
+            loadingEl.classList.remove('visible');
+          }
+          if (canvasEl) {
+            canvasEl.classList.add('hidden');
+            canvasEl.classList.remove('visible');
+          }
           return;
         }
         debugLog('Daily data is incomplete but present, continuing with warning notice');
@@ -2820,6 +2852,9 @@ window.mainAppLogic = function(): void {
       console.warn('Error UI elements not found in DOM when showError called');
       return;
     }
+    
+    // Stop loading manager first
+    LoadingManager.stopGlobalLoading();
     
     if (loadingEl) {
       loadingEl.classList.add('hidden');
