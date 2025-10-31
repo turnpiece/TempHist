@@ -5,6 +5,19 @@ export interface TempHistLocation {
   isDetected: boolean;
 }
 
+export interface PreapprovedLocation {
+  id: string;
+  slug: string;
+  name: string;
+  admin1?: string | null;
+  country_name: string;
+  country_code: string;
+  latitude?: number;
+  longitude?: number;
+  timezone?: string;
+  tier?: string;
+}
+
 export interface CookieData {
   location: string | null;
   source: string | null;
@@ -194,7 +207,7 @@ declare global {
         };
         prefetchPromise?: Promise<any>;
       };
-      prefetchedLocations?: string[];
+      prefetchedLocations?: PreapprovedLocation[];
       lastIdentifier?: string;
       mainChart?: any; // Chart.js instance for the main temperature chart
       analytics: {

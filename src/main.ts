@@ -46,7 +46,8 @@ import type {
   ChartDataPoint, 
   AsyncJobResponse,
   FirebaseUser,
-  TemperatureDataMetadata
+  TemperatureDataMetadata,
+  PreapprovedLocation
 } from './types/index.js';
 
 // Global namespace and cache
@@ -1275,10 +1276,37 @@ async function prefetchApprovedLocations(): Promise<void> {
   }
 }
 
+function isPreapprovedLocation(value: unknown): value is PreapprovedLocation {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === 'string'
+    && typeof candidate.slug === 'string'
+    && typeof candidate.name === 'string'
+    && typeof candidate.country_name === 'string'
+    && typeof candidate.country_code === 'string';
+}
+
+function parsePreapprovedLocations(payload: unknown): PreapprovedLocation[] | null {
+  if (!Array.isArray(payload)) {
+    return null;
+  }
+
+  const validLocations = (payload as unknown[]).filter(isPreapprovedLocation) as PreapprovedLocation[];
+
+  if (!validLocations.length) {
+    return null;
+  }
+
+  return validLocations.map(location => ({ ...location }));
+}
+
 /**
  * Load preapproved locations from static file
  */
-async function loadPreapprovedLocations(): Promise<string[]> {
+async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
   try {
     debugLog('Loading preapproved locations from static file...');
     
@@ -1286,11 +1314,16 @@ async function loadPreapprovedLocations(): Promise<string[]> {
     const response = await fetch('/data/preapproved-locations.json');
     if (response.ok) {
       const data = await response.json();
-      if (data.locations && Array.isArray(data.locations)) {
-        debugLog('Static file returned locations:', data.locations.length, 'locations');
-        debugLog('Last updated:', data.lastUpdated);
-        return data.locations;
+      const locations = parsePreapprovedLocations(data);
+
+      if (locations) {
+        debugLog('Static file returned locations:', locations.length, 'locations');
+        return locations;
       }
+
+      debugLog('Static file format invalid for preapproved locations');
+    } else {
+      debugLog('Static file request failed with status:', response.status);
     }
     
     // Fallback to API if static file doesn't exist or is invalid
@@ -1298,11 +1331,19 @@ async function loadPreapprovedLocations(): Promise<string[]> {
     const apiResponse = await apiFetch(getApiUrl('/v1/locations/preapproved'));
     if (apiResponse.ok) {
       const data = await apiResponse.json();
-      debugLog('API returned locations:', data.locations?.length || 0, 'locations');
-      return data.locations || [];
+      const locations = parsePreapprovedLocations(data);
+
+      if (locations) {
+        debugLog('API returned locations:', locations.length, 'locations');
+        return locations;
+      }
+
+      debugLog('API response format invalid for preapproved locations');
+    } else {
+      debugLog('API request for preapproved locations failed with status:', apiResponse.status);
     }
     
-    throw new Error('Both static file and API failed');
+    throw new Error('Both static file and API failed to provide valid preapproved locations');
   } catch (error) {
     console.warn('Preapproved locations loading failed:', error);
     debugLog('Using fallback locations due to loading failure');
@@ -1432,7 +1473,7 @@ function hideManualLocationSelection(): void {
 /**
  * Populate location dropdown
  */
-function populateLocationDropdown(locations: string[]): void {
+function populateLocationDropdown(locations: PreapprovedLocation[]): void {
   const locationSelect = document.getElementById('locationSelect') as HTMLSelectElement;
   if (!locationSelect) {
     debugLog('Location select element not found');
@@ -1453,23 +1494,26 @@ function populateLocationDropdown(locations: string[]): void {
   // Add location options
   locations.forEach(location => {
     const option = document.createElement('option');
-    
-    // Handle both API objects and fallback strings
-    if (typeof location === 'object' && (location as any).name) {
-      // API location object - display just city name, but store full location for API
-      const locationObj = location as any;
-      const displayName = locationObj.name;
-      const apiString = `${locationObj.name}${locationObj.admin1 ? ', ' + locationObj.admin1 : ''}, ${locationObj.country_name}`;
-      
-      option.value = apiString;
-      option.textContent = displayName;
-    } else {
-      // Fallback string location - extract city name for display
-      const cityName = location.split(',')[0].trim();
-      option.value = location;
-      option.textContent = cityName;
+
+    const valueParts = [location.name];
+    if (location.admin1 && location.admin1.trim()) {
+      valueParts.push(location.admin1.trim());
     }
-    
+    valueParts.push(location.country_name);
+
+    option.value = valueParts.join(', ');
+    option.textContent = location.name;
+
+    option.dataset.locationId = location.id;
+    option.dataset.locationSlug = location.slug;
+    option.dataset.countryCode = location.country_code;
+    if (location.timezone) {
+      option.dataset.timezone = location.timezone;
+    }
+    if (location.tier) {
+      option.dataset.tier = location.tier;
+    }
+
     locationSelect.appendChild(option);
   });
   
