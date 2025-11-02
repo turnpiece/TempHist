@@ -31,13 +31,28 @@ class ErrorBoundary {
   /**
    * Handle errors globally
    */
-  static handleError(error: Error, errorInfo?: ErrorInfo): void {
-    console.error('ErrorBoundary: Caught error:', error);
-    
+  static handleError(error: Error | null | undefined, errorInfo?: ErrorInfo): void {
+    // Normalize null/undefined errors to proper Error objects
+    let normalizedError: Error;
+    if (error === null) {
+      normalizedError = new Error('Null error thrown');
+      console.error('ErrorBoundary: Caught null error (something threw null instead of an Error)', errorInfo);
+    } else if (error === undefined) {
+      normalizedError = new Error('Undefined error thrown');
+      console.error('ErrorBoundary: Caught undefined error', errorInfo);
+    } else if (!(error instanceof Error)) {
+      // Handle cases where a non-Error object was thrown
+      normalizedError = new Error(String(error));
+      console.error('ErrorBoundary: Caught non-Error object:', error, errorInfo);
+    } else {
+      normalizedError = error;
+      console.error('ErrorBoundary: Caught error:', error);
+    }
+
     // Call registered handlers
     this.errorHandlers.forEach(handler => {
       try {
-        handler(error, errorInfo || { componentStack: '' });
+        handler(normalizedError, errorInfo || { componentStack: '' });
       } catch (handlerError) {
         console.error('ErrorBoundary: Error in handler:', handlerError);
       }
@@ -47,8 +62,8 @@ class ErrorBoundary {
     if (window.TempHist?.analytics) {
       window.TempHist.analytics.errors.push({
         timestamp: new Date().toISOString(),
-        error: error.message,
-        stack: error.stack,
+        error: normalizedError.message,
+        stack: normalizedError.stack,
         context: {
           type: 'javascript_error',
           component: errorInfo?.errorBoundary || 'unknown'
