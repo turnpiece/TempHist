@@ -70,6 +70,19 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
 
     if (!response.ok) {
       const errorText = await response.text();
+      
+      // Handle Cloudflare 524 timeout errors - these often appear as CORS errors
+      // because Cloudflare doesn't include CORS headers in timeout responses
+      if (response.status === 524) {
+        console.error('API Timeout (524): Cloudflare timeout - this may appear as a CORS error:', {
+          status: response.status,
+          statusText: response.statusText,
+          url,
+          note: 'Cloudflare 524 errors don\'t include CORS headers, causing browsers to report CORS errors'
+        });
+        throw new Error(`API timeout (524): The request exceeded Cloudflare's timeout limit`);
+      }
+      
       console.error('API Error:', {
         status: response.status,
         statusText: response.statusText,
@@ -81,11 +94,26 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
 
     return response;
   } catch (error) {
-    console.error('Fetch error:', {
-      url,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      headers
-    });
+    // Network errors (including CORS failures from 524 responses) will be caught here
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Check if this might be a timeout-related CORS error
+    if (errorMessage.includes('Failed to fetch') || 
+        errorMessage.includes('NetworkError') ||
+        errorMessage.includes('CORS')) {
+      console.error('Network/CORS error (may be caused by Cloudflare 524 timeout):', {
+        url,
+        error: errorMessage,
+        note: 'If you see CORS errors with status 524, this is a Cloudflare timeout issue. The API server needs to configure Cloudflare to include CORS headers in 524 error responses.'
+      });
+    } else {
+      console.error('Fetch error:', {
+        url,
+        error: errorMessage,
+        headers
+      });
+    }
+    
     throw error;
   }
 }

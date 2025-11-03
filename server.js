@@ -5,6 +5,12 @@ const app = express();
 // Configuration
 const port = process.env.PORT || 3000;
 
+// Note: This server only serves static files. API requests are made directly
+// from the browser to the API server. If you see CORS errors with status 524,
+// this is a Cloudflare timeout issue - Cloudflare returns 524 errors without
+// CORS headers, causing browsers to report CORS errors even when CORS is
+// properly configured. This must be fixed on the API/Cloudflare side.
+
 // Add security headers
 app.use((req, res, next) => {
   res.header('X-Content-Type-Options', 'nosniff');
