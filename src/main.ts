@@ -1987,16 +1987,26 @@ window.mainAppLogic = function(): void {
 
   const startYear = currentYear - 50;
   const loadingEl = document.getElementById('loading');
-  const canvasEl = document.getElementById('tempChart');
+  const tempChartNode = document.getElementById('tempChart');
+
+  if (!tempChartNode) {
+    console.error('Temperature chart canvas element not found in DOM');
+    return;
+  }
+
+  if (!(tempChartNode instanceof HTMLCanvasElement)) {
+    console.error('Temperature chart element is not a <canvas>. Cannot initialize chart.');
+    return;
+  }
+
+  const canvasEl = tempChartNode;
   
   // Clean up any existing chart on the main canvas before starting
-  if (canvasEl) {
     const existingChart = Chart.getChart(canvasEl);
     if (existingChart) {
       debugLog('Destroying existing chart before creating new one');
       existingChart.destroy();
     }
-  }
   
   // Also reset the global chart reference
   window.TempHist = window.TempHist || {};
@@ -2297,11 +2307,23 @@ window.mainAppLogic = function(): void {
     `;
 
     const loadingEl = document.getElementById(`${periodKey}Loading`) as HTMLElement;
-    const canvas = document.getElementById(`${periodKey}Chart`) as HTMLCanvasElement;
+    const periodCanvasNode = document.getElementById(`${periodKey}Chart`);
+    
+    if (!periodCanvasNode) {
+      debugLog(`${periodKey}: Canvas element not found in DOM`);
+      return;
+    }
+    
+    if (!(periodCanvasNode instanceof HTMLCanvasElement)) {
+      debugLog(`${periodKey}: Expected a <canvas> element but found`, periodCanvasNode?.nodeName);
+      return;
+    }
+    
+    const canvas = periodCanvasNode;
     
     // Ensure canvas element exists and is in the DOM
-    if (!canvas || !canvas.parentNode || !document.contains(canvas)) {
-      debugLog(`${periodKey}: Canvas element not found or not in DOM`);
+    if (!canvas.parentNode || !document.contains(canvas)) {
+      debugLog(`${periodKey}: Canvas element not in DOM`);
       return;
     }
     
