@@ -567,10 +567,7 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?:
     
     const subtitleEl = document.createElement('p');
     subtitleEl.className = 'notice-subtitle secondary';
-    subtitleEl.textContent = `Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).${missingCount > 0 ? ` ${missingCount} years are missing.` : ''}`;
-    
-    const descriptionEl = document.createElement('p');
-    descriptionEl.textContent = 'This will affect the accuracy of the temperature trend.';
+    subtitleEl.textContent = `Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).${missingCount > 0 ? ` ${missingCount} ${missingCount === 1 ? 'year is' : 'years are'} missing.` : ''}`;
     
     const buttonEl = document.createElement('button');
     buttonEl.className = 'btn btn-primary';
@@ -579,7 +576,6 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?:
     
     contentEl.appendChild(titleEl);
     contentEl.appendChild(subtitleEl);
-    contentEl.appendChild(descriptionEl);
     contentEl.appendChild(buttonEl);
     noticeEl.appendChild(contentEl);
     
