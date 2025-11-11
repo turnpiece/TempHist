@@ -514,6 +514,7 @@ function showChartElements(periodKey?: string): void {
   const dataFields = document.querySelectorAll('.data-field');
   dataFields.forEach(element => {
     (element as HTMLElement).style.display = '';
+    (element as HTMLElement).classList.remove('hidden');
     debugLog(`Shown data-field element:`, element);
     console.log(`showChartElements: Shown data-field element:`, element);
   });
