@@ -1,14 +1,21 @@
 import type { DataNoticeOptions } from '../types/index';
 
+// Debug logging helper
+const debugLog = (...args: any[]) => {
+  if (window.DEBUGGING) {
+    console.log(...args);
+  }
+};
+
 /**
  * Utility function to update the data notice element
  */
 export function updateDataNotice(message: string | null, options: DataNoticeOptions = {}): void {
-  console.log('updateDataNotice called with message:', message, 'options:', options);
+  debugLog('updateDataNotice called with message:', message, 'options:', options);
   const dataNotice = document.getElementById('dataNotice');
-  console.log('updateDataNotice: Found dataNotice element:', dataNotice);
+  debugLog('updateDataNotice: Found dataNotice element:', dataNotice);
   if (!dataNotice) {
-    console.log('updateDataNotice: dataNotice element not found!');
+    debugLog('updateDataNotice: dataNotice element not found!');
     return;
   }
 
@@ -70,21 +77,21 @@ export function updateDataNotice(message: string | null, options: DataNoticeOpti
     }
     
     dataNotice.appendChild(contentEl);
-    console.log('updateDataNotice: Added structured HTML content to dataNotice');
-    console.log('updateDataNotice: dataNotice innerHTML:', dataNotice.innerHTML);
-    console.log('updateDataNotice: dataNotice className:', dataNotice.className);
-    console.log('updateDataNotice: dataNotice style.display:', dataNotice.style.display);
+    debugLog('updateDataNotice: Added structured HTML content to dataNotice');
+    debugLog('updateDataNotice: dataNotice innerHTML:', dataNotice.innerHTML);
+    debugLog('updateDataNotice: dataNotice className:', dataNotice.className);
+    debugLog('updateDataNotice: dataNotice style.display:', dataNotice.style.display);
   } else {
     // Simple text format
     dataNotice.textContent = message;
-    console.log('updateDataNotice: Set simple text content:', message);
-    
+    debugLog('updateDataNotice: Set simple text content:', message);
+
     // Add status class if type is specified
     if (options.type) {
       dataNotice.classList.add(`status-${options.type}`);
-      console.log('updateDataNotice: Added status class:', `status-${options.type}`);
+      debugLog('updateDataNotice: Added status class:', `status-${options.type}`);
     }
   }
-  
-  console.log('updateDataNotice: Final dataNotice element:', dataNotice);
+
+  debugLog('updateDataNotice: Final dataNotice element:', dataNotice);
 }

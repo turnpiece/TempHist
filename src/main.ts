@@ -80,6 +80,12 @@ window.TempHist.analytics = window.TempHist.analytics || {
 // Global debug configuration - only enabled in development
 const DEBUGGING = import.meta.env.DEV || false;
 
+// Configure logger - use WARN level in production to reduce console noise
+Logger.configure({
+  level: DEBUGGING ? LogLevel.DEBUG : LogLevel.WARN,
+  maxLogs: 1000
+});
+
 // Configure data cache
 DataCache.configure({
   ttl: 10 * 60 * 1000, // 10 minutes for temperature data
@@ -133,84 +139,87 @@ window.debugLog = debugLog;
 window.debugTime = debugTime;
 window.debugTimeEnd = debugTimeEnd;
 
-// Test function to simulate incomplete data
-window.testIncompleteData = function() {
-  console.log('Testing incomplete data scenario...');
-  const testMetadata = {
-    total_years: 50,
-    available_years: 35,
-    missing_years: [
-      { year: 1975, reason: 'Data unavailable' },
-      { year: 1980, reason: 'Data unavailable' },
-      { year: 1985, reason: 'Data unavailable' }
-    ],
-    completeness: 70,
-    period_days: 1,
-    end_date: '2024-01-01'
+// Test functions only available in debug mode
+if (DEBUGGING) {
+  // Test function to simulate incomplete data
+  window.testIncompleteData = function() {
+    debugLog('Testing incomplete data scenario...');
+    const testMetadata = {
+      total_years: 50,
+      available_years: 35,
+      missing_years: [
+        { year: 1975, reason: 'Data unavailable' },
+        { year: 1980, reason: 'Data unavailable' },
+        { year: 1985, reason: 'Data unavailable' }
+      ],
+      completeness: 70,
+      period_days: 1,
+      end_date: '2024-01-01'
+    };
+
+    debugLog('Test metadata:', testMetadata);
+    checkDataCompleteness(testMetadata, 'today');
   };
-  
-  console.log('Test metadata:', testMetadata);
-  checkDataCompleteness(testMetadata, 'today');
-};
 
-// Test function to simulate fatal error (no data)
-window.testFatalError = function() {
-  console.log('Testing fatal error scenario...');
-  console.log('testFatalError function called');
-  
-  const testMetadata = {
-    total_years: 51,
-    available_years: 0,
-    missing_years: [],
-    completeness: 0,
-    period_days: 1,
-    end_date: '2024-01-01'
+  // Test function to simulate fatal error (no data)
+  window.testFatalError = function() {
+    debugLog('Testing fatal error scenario...');
+    debugLog('testFatalError function called');
+
+    const testMetadata = {
+      total_years: 51,
+      available_years: 0,
+      missing_years: [],
+      completeness: 0,
+      period_days: 1,
+      end_date: '2024-01-01'
+    };
+
+    debugLog('Test metadata:', testMetadata);
+    debugLog('About to call checkDataCompleteness...');
+
+    const result = checkDataCompleteness(testMetadata, 'today');
+    debugLog('checkDataCompleteness returned:', result);
+
+    // Also test the showFatalError function directly
+    debugLog('Testing showFatalError directly...');
+    showFatalError('today');
   };
-  
-  console.log('Test metadata:', testMetadata);
-  console.log('About to call checkDataCompleteness...');
-  
-  const result = checkDataCompleteness(testMetadata, 'today');
-  console.log('checkDataCompleteness returned:', result);
-  
-  // Also test the showFatalError function directly
-  console.log('Testing showFatalError directly...');
-  showFatalError('today');
-};
 
-// Simple test function to test basic functionality
-window.testBasicFunctions = function() {
-  console.log('Testing basic functions...');
-  console.log('Testing showFatalError with no periodKey...');
-  showFatalError();
-  
-  console.log('Testing hideChartElements with no periodKey...');
-  hideChartElements();
-  
-  console.log('Testing showChartElements with no periodKey...');
-  showChartElements();
-  
-  console.log('Testing showFatalError with "today" periodKey...');
-  showFatalError('today');
-  
-  console.log('Basic function tests complete');
-};
+  // Simple test function to test basic functionality
+  window.testBasicFunctions = function() {
+    debugLog('Testing basic functions...');
+    debugLog('Testing showFatalError with no periodKey...');
+    showFatalError();
 
-// Test function to test retry button functionality
-window.testRetryButton = function() {
-  console.log('Testing retry button functionality...');
-  
-  // Show fatal error
-  showFatalError();
-  
-  // Wait a moment, then simulate clicking retry
-  setTimeout(() => {
-    console.log('Simulating retry button click...');
-    retryDataFetch();
-  }, 2000);
-  
-  console.log('Retry button test complete');
-};
+    debugLog('Testing hideChartElements with no periodKey...');
+    hideChartElements();
+
+    debugLog('Testing showChartElements with no periodKey...');
+    showChartElements();
+
+    debugLog('Testing showFatalError with "today" periodKey...');
+    showFatalError('today');
+
+    debugLog('Basic function tests complete');
+  };
+
+  // Test function to test retry button functionality
+  window.testRetryButton = function() {
+    debugLog('Testing retry button functionality...');
+
+    // Show fatal error
+    showFatalError();
+
+    // Wait a moment, then simulate clicking retry
+    setTimeout(() => {
+      debugLog('Simulating retry button click...');
+      retryDataFetch();
+    }, 2000);
+
+    debugLog('Retry button test complete');
+  };
+}
 
 // Helper function to generate location display with edit icon
 function generateLocationDisplayHTML(displayText: string, periodKey: string = ''): string {
@@ -256,21 +265,17 @@ function generateErrorMessage(error: unknown): string {
  */
 function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined, periodKey?: string): boolean {
   debugLog('checkDataCompleteness called with metadata:', metadata, 'periodKey:', periodKey);
-  console.log('checkDataCompleteness called with metadata:', metadata, 'periodKey:', periodKey);
-  
+
   if (!metadata) {
     debugLog('No metadata provided, assuming data is complete');
-    console.log('No metadata provided, assuming data is complete');
     return true; // No metadata means we assume data is complete
   }
   
   debugLog('Metadata completeness:', metadata.completeness, '%');
-  console.log('Metadata completeness:', metadata.completeness, '%');
-  
+
   // Check for fatal error (0% completeness - no data at all)
   if (metadata.completeness === 0) {
     debugLog('Fatal error: No data available (0% completeness)');
-    console.log('Fatal error: No data available (0% completeness)');
     showFatalError(periodKey);
     return false;
   }
@@ -279,11 +284,9 @@ function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined, pe
   const isIncomplete = metadata.completeness < 100;
   
   debugLog('Is data incomplete?', isIncomplete);
-  console.log('Is data incomplete?', isIncomplete);
-  
+
   if (isIncomplete) {
     debugLog('Showing incomplete data notice');
-    console.log('Showing incomplete data notice');
     showIncompleteDataNotice(metadata, periodKey);
     return false;
   }
@@ -292,7 +295,6 @@ function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined, pe
   hideIncompleteDataNotice(periodKey);
   
   debugLog('Data is complete, no notice needed');
-  console.log('Data is complete, no notice needed');
   return true;
 }
 
@@ -301,9 +303,8 @@ function checkDataCompleteness(metadata: TemperatureDataMetadata | undefined, pe
  */
 function showFatalError(periodKey?: string): void {
   debugLog('showFatalError called for periodKey:', periodKey);
-  console.log('showFatalError called for periodKey:', periodKey);
-  console.log('showFatalError: Starting to hide chart elements...');
-  
+  debugLog('showFatalError: Starting to hide chart elements...');
+
   // Stop loading manager first (for Today view)
   // Today view uses no periodKey, 'today', or 'daily'
   const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
@@ -320,51 +321,50 @@ function showFatalError(periodKey?: string): void {
       canvasEl.classList.remove('visible');
     }
   }
-  
+
   // Hide chart and summary elements
   hideChartElements(periodKey);
-  console.log('showFatalError: Chart elements hidden');
-  
+  debugLog('showFatalError: Chart elements hidden');
+
   // Show error message at the top using dataNotice
   const errorMessage = 'Unable to load temperature data. Please check your connection and try again.';
-  
+
   if (!isTodayView) {
-    console.log('showFatalError: Using period-specific dataNotice for', periodKey);
+    debugLog('showFatalError: Using period-specific dataNotice for', periodKey);
     // For period-specific views, use the period-specific dataNotice
     const noticeEl = document.getElementById(`${periodKey}DataNotice`);
-    console.log('showFatalError: Found noticeEl:', noticeEl);
+    debugLog('showFatalError: Found noticeEl:', noticeEl);
     if (noticeEl) {
       noticeEl.innerHTML = '';
       noticeEl.className = 'notice status-error';
       noticeEl.style.display = 'block';
-      console.log('showFatalError: Set noticeEl display to block');
-      
+      debugLog('showFatalError: Set noticeEl display to block');
+
       const contentEl = document.createElement('div');
       contentEl.className = 'notice-content error';
-      
+
       const titleEl = document.createElement('h3');
       titleEl.className = 'notice-title large';
       titleEl.textContent = 'Data Unavailable';
-      
+
       const messageEl = document.createElement('p');
       messageEl.className = 'notice-subtitle';
       messageEl.textContent = errorMessage;
-      
+
       const retryButton = document.createElement('button');
       retryButton.className = 'btn btn-primary';
       retryButton.textContent = 'Try Again';
       retryButton.onclick = retryDataFetch;
-      
+
       contentEl.appendChild(titleEl);
       contentEl.appendChild(messageEl);
       contentEl.appendChild(retryButton);
       noticeEl.appendChild(contentEl);
-      
+
       debugLog('Fatal error notice displayed for', periodKey);
-      console.log('Fatal error notice displayed for', periodKey);
     }
   } else if (isTodayView) {
-    console.log('showFatalError: Using Today view updateDataNotice');
+    debugLog('showFatalError: Using Today view updateDataNotice');
     // For Today view, use the existing updateDataNotice function
     updateDataNotice(errorMessage, {
       type: 'error',
@@ -389,18 +389,17 @@ function showFatalError(periodKey?: string): void {
         const contentEl = dataNotice.querySelector('.notice-content');
         if (contentEl) {
           contentEl.appendChild(retryButton);
-          console.log('showFatalError: Added retry button to Today view');
+          debugLog('showFatalError: Added retry button to Today view');
         } else {
           // Fallback: add directly to dataNotice
           dataNotice.appendChild(retryButton);
-          console.log('showFatalError: Added retry button directly to dataNotice');
+          debugLog('showFatalError: Added retry button directly to dataNotice');
         }
       }
     }
-    
+
     debugLog('Fatal error notice displayed for Today view');
-    console.log('Fatal error notice displayed for Today view');
-    console.log('showFatalError: Called updateDataNotice for Today view');
+    debugLog('showFatalError: Called updateDataNotice for Today view');
   }
 }
 
@@ -409,11 +408,10 @@ function showFatalError(periodKey?: string): void {
  */
 function hideChartElements(periodKey?: string): void {
   debugLog('hideChartElements called for periodKey:', periodKey);
-  console.log('hideChartElements called for periodKey:', periodKey);
-  console.log('hideChartElements: periodKey is', periodKey);
-  
+  debugLog('hideChartElements: periodKey is', periodKey);
+
   if (periodKey && periodKey !== 'today') {
-    console.log('hideChartElements: Hiding period-specific elements for', periodKey);
+    debugLog('hideChartElements: Hiding period-specific elements for', periodKey);
     // Hide period-specific elements
     const elementsToHide = [
       `${periodKey}Chart`,
@@ -423,20 +421,19 @@ function hideChartElements(periodKey?: string): void {
       `${periodKey}TrendText`,
       `${periodKey}IncompleteDataNotice`
     ];
-    
+
     elementsToHide.forEach(id => {
       const element = document.getElementById(id);
-      console.log(`hideChartElements: Looking for element ${id}, found:`, element);
+      debugLog(`hideChartElements: Looking for element ${id}, found:`, element);
       if (element) {
         element.style.display = 'none';
         debugLog(`Hidden element: ${id}`);
-        console.log(`hideChartElements: Hidden element ${id}`);
       } else {
-        console.log(`hideChartElements: Element ${id} not found`);
+        debugLog(`hideChartElements: Element ${id} not found`);
       }
     });
   } else {
-    console.log('hideChartElements: Hiding Today view elements');
+    debugLog('hideChartElements: Hiding Today view elements');
     // Hide Today view elements
     const elementsToHide = [
       'tempChart',
@@ -446,26 +443,24 @@ function hideChartElements(periodKey?: string): void {
       'trendText',
       'incompleteDataNotice'
     ];
-    
+
     elementsToHide.forEach(id => {
       const element = document.getElementById(id);
-      console.log(`hideChartElements: Looking for Today element ${id}, found:`, element);
+      debugLog(`hideChartElements: Looking for Today element ${id}, found:`, element);
       if (element) {
         element.style.display = 'none';
         debugLog(`Hidden element: ${id}`);
-        console.log(`hideChartElements: Hidden Today element ${id}`);
       } else {
-        console.log(`hideChartElements: Today element ${id} not found`);
+        debugLog(`hideChartElements: Today element ${id} not found`);
       }
     });
   }
-  
+
   // Also hide all elements with the data-field class
   const dataFields = document.querySelectorAll('.data-field');
   dataFields.forEach(element => {
     (element as HTMLElement).style.display = 'none';
     debugLog(`Hidden data-field element:`, element);
-    console.log(`hideChartElements: Hidden data-field element:`, element);
   });
 }
 
@@ -474,7 +469,6 @@ function hideChartElements(periodKey?: string): void {
  */
 function showChartElements(periodKey?: string): void {
   debugLog('showChartElements called for periodKey:', periodKey);
-  console.log('showChartElements called for periodKey:', periodKey);
   
   if (periodKey && periodKey !== 'today') {
     // Show period-specific elements
@@ -516,7 +510,6 @@ function showChartElements(periodKey?: string): void {
     (element as HTMLElement).style.display = '';
     (element as HTMLElement).classList.remove('hidden');
     debugLog(`Shown data-field element:`, element);
-    console.log(`showChartElements: Shown data-field element:`, element);
   });
 }
 
@@ -525,32 +518,29 @@ function showChartElements(periodKey?: string): void {
  */
 function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?: string): void {
   debugLog('showIncompleteDataNotice called with metadata:', metadata, 'periodKey:', periodKey);
-  console.log('showIncompleteDataNotice called with metadata:', metadata, 'periodKey:', periodKey);
   
   const missingCount = metadata.missing_years.length;
   const completeness = Math.round(metadata.completeness);
   
   debugLog('Missing years count:', missingCount);
   debugLog('Completeness:', completeness, '%');
-  console.log('Missing years count:', missingCount);
-  console.log('Completeness:', completeness, '%');
-  
+
   // Determine which notice element to use based on current view or periodKey
   let noticeEl: HTMLElement | null = null;
-  
+
   if (periodKey) {
     // Use the period-specific incomplete data notice element
     noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
-    console.log(`${periodKey}IncompleteDataNotice element found:`, noticeEl);
+    debugLog(`${periodKey}IncompleteDataNotice element found:`, noticeEl);
   } else {
     // Try to detect current view
     const currentView = getCurrentView();
     if (currentView === 'today') {
       noticeEl = document.getElementById('incompleteDataNotice');
-      console.log('incompleteDataNotice element found:', noticeEl);
+      debugLog('incompleteDataNotice element found:', noticeEl);
     } else if (currentView && currentView !== 'today') {
       noticeEl = document.getElementById(`${currentView}IncompleteDataNotice`);
-      console.log(`${currentView}IncompleteDataNotice element found:`, noticeEl);
+      debugLog(`${currentView}IncompleteDataNotice element found:`, noticeEl);
     }
   }
   
@@ -585,10 +575,8 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?:
     noticeEl.className = 'notice status-warning';
     
     debugLog('Incomplete data warning displayed in dedicated notice element');
-    console.log('Incomplete data warning displayed in dedicated notice element');
   } else {
     debugLog('Incomplete data notice element not found, cannot show warning');
-    console.log('Incomplete data notice element not found, cannot show warning');
   }
 }
 
