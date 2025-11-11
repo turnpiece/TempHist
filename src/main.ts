@@ -518,31 +518,60 @@ function showChartElements(periodKey?: string): void {
  */
 function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?: string): void {
   debugLog('showIncompleteDataNotice called with metadata:', metadata, 'periodKey:', periodKey);
-  
+
   const missingCount = metadata.missing_years.length;
   const completeness = Math.round(metadata.completeness);
-  
+
   debugLog('Missing years count:', missingCount);
   debugLog('Completeness:', completeness, '%');
 
-  // Determine which notice element to use based on current view or periodKey
-  let noticeEl: HTMLElement | null = null;
+  // Check if this is the Today view (no periodKey, 'today', or 'daily')
+  const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
 
-  if (periodKey) {
-    // Use the period-specific incomplete data notice element
-    noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
-    debugLog(`${periodKey}IncompleteDataNotice element found:`, noticeEl);
-  } else {
-    // Try to detect current view
-    const currentView = getCurrentView();
-    if (currentView === 'today') {
-      noticeEl = document.getElementById('incompleteDataNotice');
-      debugLog('incompleteDataNotice element found:', noticeEl);
-    } else if (currentView && currentView !== 'today') {
-      noticeEl = document.getElementById(`${currentView}IncompleteDataNotice`);
-      debugLog(`${currentView}IncompleteDataNotice element found:`, noticeEl);
+  if (isTodayView) {
+    // For Today view, use the dataNotice element with updateDataNotice
+    const warningMessage = `Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).${missingCount > 0 ? ` ${missingCount} ${missingCount === 1 ? 'year is' : 'years are'} missing.` : ''}`;
+
+    updateDataNotice(warningMessage, {
+      type: 'warning',
+      title: 'Incomplete Data',
+      useStructuredHtml: true,
+      largeTitle: true
+    });
+
+    // Add retry button to the dataNotice element
+    const dataNotice = document.getElementById('dataNotice');
+    if (dataNotice) {
+      // Check if we need to add a retry button
+      const existingButton = dataNotice.querySelector('.btn');
+      if (!existingButton) {
+        const retryButton = document.createElement('button');
+        retryButton.className = 'btn btn-primary';
+        retryButton.textContent = 'Try Again';
+        retryButton.onclick = retryDataFetch;
+        retryButton.style.marginTop = '10px';
+
+        // Add the button to the notice content
+        const contentEl = dataNotice.querySelector('.notice-content');
+        if (contentEl) {
+          contentEl.appendChild(retryButton);
+          debugLog('showIncompleteDataNotice: Added retry button to Today view');
+        } else {
+          // Fallback: add directly to dataNotice
+          dataNotice.appendChild(retryButton);
+          debugLog('showIncompleteDataNotice: Added retry button directly to dataNotice');
+        }
+      }
     }
+
+    debugLog('Incomplete data warning displayed for Today view');
+    return;
   }
+
+  // For period-specific views, use the period-specific notice element
+  let noticeEl: HTMLElement | null = null;
+  noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
+  debugLog(`${periodKey}IncompleteDataNotice element found:`, noticeEl);
   
   if (noticeEl) {
     // Clear any existing content
@@ -605,20 +634,17 @@ function getCurrentView(): string | null {
  * Hide the incomplete data notice
  */
 function hideIncompleteDataNotice(periodKey?: string): void {
-  let noticeEl: HTMLElement | null = null;
-  
-  if (periodKey) {
-    noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
-  } else {
-    // Try to detect current view
-    const currentView = getCurrentView();
-    if (currentView === 'today') {
-      noticeEl = document.getElementById('incompleteDataNotice');
-    } else if (currentView && currentView !== 'today') {
-      noticeEl = document.getElementById(`${currentView}IncompleteDataNotice`);
-    }
+  // Check if this is the Today view (no periodKey, 'today', or 'daily')
+  const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
+
+  if (isTodayView) {
+    // For Today view, clear the dataNotice element
+    updateDataNotice(null);
+    return;
   }
-  
+
+  // For period-specific views, hide the period-specific notice element
+  const noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
   if (noticeEl) {
     noticeEl.style.display = 'none';
     noticeEl.innerHTML = '';
