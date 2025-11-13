@@ -458,9 +458,6 @@ export async function initLocationCarousel(): Promise<void> {
     return;
   }
 
-  // Show loading state
-  track.innerHTML = '<div class="location-carousel__loading">Loading locations...</div>';
-
   try {
     // Load locations from API
     const locations = await loadPreapprovedLocations();
@@ -472,7 +469,7 @@ export async function initLocationCarousel(): Promise<void> {
       return;
     }
 
-    // Clear loading state
+    // Clear track content
     track.innerHTML = '';
 
     // Build cards for each location
