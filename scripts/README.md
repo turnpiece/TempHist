@@ -1,6 +1,23 @@
 # Scripts Directory
 
-This directory is currently empty. Previous cron job scripts for server-side caching have been removed as they added unnecessary architectural complexity for minimal performance gains.
+## Image Processing Script
+
+### `process-location-images.js`
+
+Processes location images for the carousel. Converts images to WebP format (with JPEG fallback) and resizes them to 320x200px.
+
+**Note**: Location data and image metadata are now managed by the API backend. This script only processes images. Image URLs and metadata must be updated in the API backend.
+
+**Usage**:
+```bash
+node scripts/process-location-images.js
+```
+
+**What it does**:
+- Reads images from `assets/locations/`
+- Processes images to 320x200px WebP and JPEG formats
+- Saves processed images to `assets/locations/processed/`
+- Does NOT update any JSON files (locations are managed by API)
 
 ## Performance Strategy
 
@@ -11,14 +28,3 @@ TempHist now relies on:
 - **CDN caching**: For API responses and static files
 
 This approach provides excellent performance (1-5ms API response times) while maintaining a simple, maintainable architecture.
-
-## If You Need Server-Side Caching
-
-If you determine that server-side caching is necessary in the future, consider:
-
-1. **Database caching**: Store frequently accessed data in a shared database
-2. **External storage**: Use services like AWS S3 or Google Cloud Storage
-3. **CDN optimization**: Enhance CDN caching strategies
-4. **API optimization**: Improve the existing Redis caching layer
-
-The previous cron job approach added complexity without significant performance benefits and has been removed to keep the codebase clean and maintainable.

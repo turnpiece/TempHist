@@ -4,14 +4,14 @@ A web application that visualizes historical temperature data for any location, 
 
 ## Security & Privacy
 
-**Location Access Required**: This application requires location permissions to function. Manual location entry is disabled to prevent API abuse and ensure data accuracy. Users can only access temperature data for their actual GPS location.
+**Location Access**: This application requires location permissions or manual location selection to function. Users can select from a curated list of preapproved locations via an interactive carousel.
 
 **Data Protection**:
 
 - No location data is stored permanently
 - Location cookies expire after 1 hour
 - All API requests are authenticated via Firebase
-- Manual location input is disabled for security
+- Locations are managed through the API backend with proper access controls
 
 ## Performance Strategy
 
@@ -27,7 +27,8 @@ This approach provides excellent performance (1-5ms API response times) while ma
 
 - Visualizes 50 years of temperature data in an interactive chart
 - Multiple time period views: Today, Past Week, Past Month, Past Year
-- Automatically detects user's location with manual location selection
+- Automatically detects user's location with manual location selection via interactive carousel
+- Location carousel with images for easy visual selection
 - Shows average temperature and trend analysis
 - Responsive design that works on both desktop and mobile
 - Handles edge cases like leap years and timezone differences
@@ -250,15 +251,30 @@ npm run test:watch
 npm run test:ui
 ```
 
+## Location Selection
+
+Locations are managed entirely through the API backend:
+
+- **Preapproved locations**: The API provides a list of preapproved locations with metadata including:
+  - Location details (name, coordinates, timezone, country)
+  - Image URLs (WebP with JPEG fallback) for visual selection
+  - Alt text for accessibility
+- **Location carousel**: Users can visually browse and select from available locations
+- **Automatic detection**: The app first attempts to detect the user's location via GPS or IP geolocation
+- **Fallback locations**: If the API is unavailable, a small set of fallback locations is used
+
+Location data is fetched from `/v1/locations/preapproved` endpoint after Firebase authentication.
+
 ## Usage
 
 1. The application will automatically try to detect your location
-2. Navigate between different time periods: Today, Past Week, Past Month, Past Year
-3. The chart will display temperature data for the current date (or yesterday if before 1 AM)
-4. Hover over bars to see exact temperatures for each year
-5. The average temperature is shown as a horizontal line
-6. The current year's temperature is highlighted in green
-7. Trend analysis shows temperature changes over time
+2. If detection fails or you want to choose a different location, use the location carousel to select from available locations
+3. Navigate between different time periods: Today, Past Week, Past Month, Past Year
+4. The chart will display temperature data for the current date (or yesterday if before 1 AM)
+5. Hover over bars to see exact temperatures for each year
+6. The average temperature is shown as a horizontal line
+7. The current year's temperature is highlighted in green
+8. Trend analysis shows temperature changes over time
 
 ## Development
 
@@ -267,13 +283,14 @@ npm run test:ui
 - `src/main.ts`: Main TypeScript application entry point
 - `src/types/`: TypeScript type definitions
 - `src/utils/`: Utility functions (location, platform, data notices)
-- `src/services/`: Service modules (location detection, API interactions)
+- `src/services/`: Service modules (location detection, location carousel, API interactions)
 - `src/api/`: API client functions
 - `server.js`: Backend proxy server (development mock data, CORS handling)
 - `package.json`: Project dependencies and scripts
 - `styles.scss`: Main SCSS file
 - `.env`: Environment configuration (API endpoints, ports, environment mode)
 - `test/`: Comprehensive test suite with Vitest
+- `scripts/process-location-images.js`: Script to process location images (images and metadata are managed by API)
 
 ### Key Features
 
@@ -325,6 +342,7 @@ SOFTWARE.
 - **Firebase Configuration**: Firebase config is currently hardcoded in `src/main.ts` (should be moved to environment variables)
 - **Error Handling**: Limited fallback options when the weather API is unavailable
 - **Mobile Debug Mode**: Debug overlay appears on mobile devices and may interfere with UI
+- **Location Loading**: If the locations API is unavailable, the location carousel will be hidden (no fallback to local JSON file)
 
 ### Technical Debt
 

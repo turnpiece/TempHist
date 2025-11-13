@@ -1,21 +1,101 @@
 // src/services/locationCarousel.ts
 import type { PreapprovedLocation } from '../types/index';
+import { getApiUrl, apiFetch } from '../api/temperature';
 
 /**
- * Load preapproved locations from JSON file
+ * Wait for Firebase authentication to be ready
+ */
+async function waitForAuthentication(maxAttempts: number = 50, delayMs: number = 100): Promise<boolean> {
+  for (let i = 0; i < maxAttempts; i++) {
+    if ((window as any).currentUser) {
+      return true;
+    }
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  return false;
+}
+
+/**
+ * Validate if a location object has required fields
+ */
+function isPreapprovedLocation(value: unknown): value is PreapprovedLocation {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === 'string'
+    && typeof candidate.slug === 'string'
+    && typeof candidate.name === 'string'
+    && typeof candidate.country_name === 'string'
+    && typeof candidate.country_code === 'string';
+}
+
+/**
+ * Parse and validate preapproved locations from API response
+ */
+function parsePreapprovedLocations(payload: unknown): PreapprovedLocation[] | null {
+  if (!payload) {
+    return null;
+  }
+  
+  // Handle response wrapped in data property
+  let data: unknown = payload;
+  if (typeof payload === 'object' && payload !== null) {
+    const payloadObj = payload as Record<string, unknown>;
+    if ('data' in payloadObj) {
+      data = payloadObj.data;
+    } else if ('locations' in payloadObj) {
+      data = payloadObj.locations;
+    }
+  }
+  
+  if (!Array.isArray(data)) {
+    console.warn('API response is not an array:', typeof data, data);
+    return null;
+  }
+
+  const validLocations = (data as unknown[]).filter(isPreapprovedLocation) as PreapprovedLocation[];
+
+  if (!validLocations.length) {
+    console.warn('No valid locations found in API response. Total items:', data.length);
+    return null;
+  }
+
+  return validLocations.map(location => ({ ...location }));
+}
+
+/**
+ * Load preapproved locations from API
  */
 async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
   try {
-    const response = await fetch('/data/preapproved-locations.json');
-    if (response.ok) {
-      const data = await response.json();
-      // Validate and return locations
-      if (Array.isArray(data)) {
-        return data as PreapprovedLocation[];
-      }
+    // Wait for authentication to be ready
+    const isAuthenticated = await waitForAuthentication();
+    if (!isAuthenticated) {
+      console.warn('No authenticated user available for API request');
+      return [];
     }
-    console.warn('Failed to load preapproved locations from JSON');
-    return [];
+    
+    // Load from API
+    const apiResponse = await apiFetch(getApiUrl('/v1/locations/preapproved'));
+    if (apiResponse.ok) {
+      const data = await apiResponse.json();
+      console.log('API response received:', typeof data, Array.isArray(data) ? `Array with ${data.length} items` : 'Not an array', data);
+      
+      // Parse and validate locations
+      const locations = parsePreapprovedLocations(data);
+      if (locations) {
+        console.log('Successfully parsed locations:', locations.length);
+        return locations;
+      }
+      
+      console.warn('Failed to parse locations from API response');
+      return [];
+    } else {
+      console.warn('API request failed with status:', apiResponse.status);
+      return [];
+    }
   } catch (error) {
     console.warn('Error loading preapproved locations:', error);
     return [];
@@ -298,6 +378,75 @@ function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => v
 }
 
 /**
+ * Hide the entire location selection section
+ */
+function hideLocationSelectionSection(): void {
+  const heading = document.getElementById('location-picker-heading');
+  const carousel = document.getElementById('location-carousel');
+  
+  if (heading) {
+    heading.style.display = 'none';
+  }
+  
+  if (carousel) {
+    carousel.style.display = 'none';
+  }
+}
+
+// Store the updateArrowVisibility function globally so we can call it when splash screen is shown again
+let carouselUpdateArrowVisibility: (() => void) | null = null;
+
+/**
+ * Reset carousel scroll position and update arrow visibility
+ * Called when splash screen is shown again after being hidden
+ */
+export function resetCarouselState(): void {
+  const carousel = document.getElementById('location-carousel');
+  const track = document.getElementById('location-carousel-track');
+  
+  if (!carousel || !track) {
+    return;
+  }
+
+  // Check if carousel is visible (splash screen must be shown)
+  const splashScreen = document.getElementById('splashScreen');
+  if (!splashScreen || splashScreen.style.display === 'none') {
+    // Splash screen not visible, don't reset yet
+    return;
+  }
+
+  // Reset scroll position to start
+  track.scrollLeft = 0;
+
+  // Update arrow visibility after a brief delay to ensure layout is stable
+  // Use multiple delays to account for layout recalculation
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      // Reset scroll position again in case it changed
+      track.scrollLeft = 0;
+      
+      if (carouselUpdateArrowVisibility) {
+        carouselUpdateArrowVisibility();
+      } else {
+        // If update function isn't available, re-initialize the scroll handler
+        carouselUpdateArrowVisibility = initCarouselScroll(carousel as HTMLElement, track as HTMLElement);
+        if (carouselUpdateArrowVisibility) {
+          carouselUpdateArrowVisibility();
+        }
+      }
+      
+      // Double-check after another delay to ensure layout is fully stable
+      setTimeout(() => {
+        track.scrollLeft = 0;
+        if (carouselUpdateArrowVisibility) {
+          carouselUpdateArrowVisibility();
+        }
+      }, 150);
+    }, 100);
+  });
+}
+
+/**
  * Initialize the location carousel
  */
 export async function initLocationCarousel(): Promise<void> {
@@ -313,11 +462,13 @@ export async function initLocationCarousel(): Promise<void> {
   track.innerHTML = '<div class="location-carousel__loading">Loading locations...</div>';
 
   try {
-    // Load locations from JSON
+    // Load locations from API
     const locations = await loadPreapprovedLocations();
     
     if (locations.length === 0) {
-      track.innerHTML = '<div class="location-carousel__error">No locations available</div>';
+      // Hide the entire location selection section if no locations are available
+      console.warn('No locations available, hiding location selection section');
+      hideLocationSelectionSection();
       return;
     }
 
@@ -334,6 +485,9 @@ export async function initLocationCarousel(): Promise<void> {
 
     // Initialize scroll functionality first
     const updateArrowVisibility = initCarouselScroll(carousel as HTMLElement, track as HTMLElement);
+    
+    // Store the update function globally for later use
+    carouselUpdateArrowVisibility = updateArrowVisibility;
     
     // Force a layout recalculation after cards are added
     // This ensures proper scroll width calculation and arrow states
@@ -388,6 +542,7 @@ export async function initLocationCarousel(): Promise<void> {
     });
   } catch (error) {
     console.error('Error initializing location carousel:', error);
-    track.innerHTML = '<div class="location-carousel__error">Failed to load locations</div>';
+    // Hide the entire location selection section on error
+    hideLocationSelectionSection();
   }
 }

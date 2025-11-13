@@ -25,7 +25,7 @@ import { FeatureFlags } from './utils/FeatureFlags';
 import { PerformanceMonitor } from './utils/PerformanceMonitor';
 import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP, getFallbackLocations } from './services/locationDetection';
-import { initLocationCarousel } from './services/locationCarousel';
+import { initLocationCarousel, resetCarouselState } from './services/locationCarousel';
 
 // Initialize location carousel when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1309,13 +1309,30 @@ function isPreapprovedLocation(value: unknown): value is PreapprovedLocation {
 }
 
 function parsePreapprovedLocations(payload: unknown): PreapprovedLocation[] | null {
-  if (!Array.isArray(payload)) {
+  if (!payload) {
+    return null;
+  }
+  
+  // Handle response wrapped in data property
+  let data: unknown = payload;
+  if (typeof payload === 'object' && payload !== null) {
+    const payloadObj = payload as Record<string, unknown>;
+    if ('data' in payloadObj) {
+      data = payloadObj.data;
+    } else if ('locations' in payloadObj) {
+      data = payloadObj.locations;
+    }
+  }
+  
+  if (!Array.isArray(data)) {
+    debugLog('API response is not an array:', typeof data, data);
     return null;
   }
 
-  const validLocations = (payload as unknown[]).filter(isPreapprovedLocation) as PreapprovedLocation[];
+  const validLocations = (data as unknown[]).filter(isPreapprovedLocation) as PreapprovedLocation[];
 
   if (!validLocations.length) {
+    debugLog('No valid locations found in API response. Total items:', data.length);
     return null;
   }
 
@@ -1323,33 +1340,18 @@ function parsePreapprovedLocations(payload: unknown): PreapprovedLocation[] | nu
 }
 
 /**
- * Load preapproved locations from static file
+ * Load preapproved locations from API
  */
 async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
   try {
-    debugLog('Loading preapproved locations from static file...');
+    debugLog('Loading preapproved locations from API...');
     
-    // Try to load from static file first
-    const response = await fetch('/data/preapproved-locations.json');
-    if (response.ok) {
-      const data = await response.json();
-      const locations = parsePreapprovedLocations(data);
-
-      if (locations) {
-        debugLog('Static file returned locations:', locations.length, 'locations');
-        return locations;
-      }
-
-      debugLog('Static file format invalid for preapproved locations');
-    } else {
-      debugLog('Static file request failed with status:', response.status);
-    }
-    
-    // Fallback to API if static file doesn't exist or is invalid
-    debugLog('Static file not available, trying API...');
+    // Load from API
     const apiResponse = await apiFetch(getApiUrl('/v1/locations/preapproved'));
     if (apiResponse.ok) {
       const data = await apiResponse.json();
+      debugLog('API response received:', typeof data, Array.isArray(data) ? `Array with ${data.length} items` : 'Not an array', data);
+      
       const locations = parsePreapprovedLocations(data);
 
       if (locations) {
@@ -1362,7 +1364,7 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
       debugLog('API request for preapproved locations failed with status:', apiResponse.status);
     }
     
-    throw new Error('Both static file and API failed to provide valid preapproved locations');
+    throw new Error('API failed to provide valid preapproved locations');
   } catch (error) {
     console.warn('Preapproved locations loading failed:', error);
     debugLog('Using fallback locations due to loading failure');
@@ -1592,6 +1594,11 @@ async function proceedWithLocation(
     appShell.classList.remove('hidden');
     appShell.style.display = 'grid'; // Explicitly set to grid
   }
+
+  // Scroll to top when transitioning from splash screen to app
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 
   // Initialize the main app FIRST (this sets up the DOM elements)
   debugLog('Calling mainAppLogic after location change');
@@ -1963,6 +1970,11 @@ window.mainAppLogic = function(): void {
     setupMobileNavigation();
     return;
   }
+  
+  // Scroll to top when initializing the app (in case page was scrolled)
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
   
   debugLog('mainAppLogic called with window.tempLocation:', window.tempLocation);
 
@@ -3167,6 +3179,14 @@ window.mainAppLogic = function(): void {
     // Re-setup splash screen event listeners (in case they were lost)
     setupSplashScreenListeners();
     
+    // Reset carousel state (scroll position and arrow visibility)
+    // Use requestAnimationFrame to ensure splash screen is fully rendered
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        resetCarouselState();
+      }, 50);
+    });
+    
     // Prefetch approved locations for selection
     prefetchApprovedLocations();
   }
@@ -3285,16 +3305,72 @@ class TempHistRouter {
       viewElement.hidden = false;
       debugLog('Showing view:', viewKey);
       
+      // Scroll to top when navigating to a new page
+      // Use requestAnimationFrame to ensure DOM is updated first
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        
+        // Also scroll any scrollable containers to top
+        const viewOutlet = document.getElementById('viewOutlet');
+        if (viewOutlet) {
+          viewOutlet.scrollTop = 0;
+        }
+      });
+      
       // Update navigation highlighting
       this.updateNavigationHighlight(route);
       
       // Render the view if it has a render function
       if (this.views[viewKey] && typeof this.views[viewKey].render === 'function') {
         debugLog('Rendering view:', viewKey);
-        this.views[viewKey].render();
+        const renderResult = this.views[viewKey].render();
+        if (renderResult instanceof Promise) {
+          renderResult.then(() => {
+            // Scroll to top again after rendering is complete
+            requestAnimationFrame(() => {
+              window.scrollTo({ top: 0, behavior: 'instant' });
+              document.documentElement.scrollTop = 0;
+              document.body.scrollTop = 0;
+              const viewOutlet = document.getElementById('viewOutlet');
+              if (viewOutlet) {
+                viewOutlet.scrollTop = 0;
+              }
+            });
+          }).catch(() => {
+            // Scroll to top even if render fails
+            requestAnimationFrame(() => {
+              window.scrollTo({ top: 0, behavior: 'instant' });
+              document.documentElement.scrollTop = 0;
+              document.body.scrollTop = 0;
+            });
+          });
+        } else {
+          // If render doesn't return a promise, scroll after a brief delay
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            const viewOutlet = document.getElementById('viewOutlet');
+            if (viewOutlet) {
+              viewOutlet.scrollTop = 0;
+            }
+          }, 100);
+        }
       } else if (viewKey === 'today') {
         // Today view doesn't have a separate render function, it's handled by mainAppLogic
         debugLog('Today view - no additional rendering needed');
+        // Scroll to top after a brief delay to ensure content is loaded
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+          const viewOutlet = document.getElementById('viewOutlet');
+          if (viewOutlet) {
+            viewOutlet.scrollTop = 0;
+          }
+        }, 100);
       }
     } else {
       console.error('View element not found for route:', route);

@@ -52,14 +52,6 @@ export default defineConfig(({ mode }) => {
         // Copy assets directory
         execSync('cp -r assets dist/', { stdio: 'inherit' })
         
-        // Copy data directory if it exists
-        try {
-          execSync('cp -r public/data dist/', { stdio: 'inherit' })
-          console.log(`✅ Copied data directory to dist/`)
-        } catch (error) {
-          // Data directory might not exist, that's okay
-        }
-        
         console.log(`✅ Copied static files to dist/`)
       }
     }
