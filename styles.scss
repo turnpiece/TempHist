@@ -129,7 +129,7 @@ a {
 }
 
 #header { 
-  padding: 8px 20px 12px 14px; // Reduced left padding by 10px to align logo with content
+  padding: 8px 24px 12px 14px; // Reduced left padding by 10px to align logo with content
   color: var(--accent); 
   display: flex; 
   align-items: center; 
@@ -636,7 +636,7 @@ h2, .date-heading {
   
   // On mobile, header is full width again
   #header {
-    width: 100%;
+    max-width: 100%;
   }
   
   #burgerBtn { display: flex; }
