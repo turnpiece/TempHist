@@ -36,6 +36,9 @@ html {
   background-color: $colour-bg;
   background-image: linear-gradient($colour-bg, $colour-bg-bottom);
   min-height: 100vh;
+  overflow-x: hidden; // Prevent horizontal page scroll
+  width: 100%;
+  position: relative;
 }
 
 body {
@@ -47,6 +50,9 @@ body {
   line-height: 1.4;
   min-height: 100vh;
   padding-bottom: 3rem; // Extra bottom padding for mobile browser bar
+  overflow-x: hidden; // Prevent horizontal page scroll
+  position: relative; // Establish positioning context
+  width: 100%;
 }
 
 a {
@@ -768,6 +774,8 @@ h2, .date-heading {
   opacity: 1;
   transition: opacity 0.5s ease-out;
   overflow-y: auto;
+  overflow-x: hidden; // Prevent horizontal scrolling on splash screen
+  max-width: 100vw; // Ensure it doesn't exceed viewport width
   
   &.hidden {
     opacity: 0;
@@ -778,9 +786,11 @@ h2, .date-heading {
 .splash-content {
   text-align: left;
   max-width: 500px;
+  width: 100%;
   padding: 2rem 2.625rem; // Added extra 10px horizontal padding to compensate for missing body padding (2rem + 0.625rem = 42px total)
   margin-bottom: 3rem;
   animation: fadeInUp 0.6s ease-out;
+  box-sizing: border-box; // Ensure padding is included in width calculation
 }
 
 @keyframes fadeInUp {
@@ -1025,10 +1035,244 @@ nav a.active {
   }
 }
 
+.location-picker {
+  margin-block: 2rem;
+  padding-inline: 1rem;
+
+  &__heading {
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    border-bottom: 0;
+  }
+}
+
+.location-carousel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: calc(100% + 5.25rem); // Break out of parent padding (2.625rem * 2)
+  margin-left: -2.625rem; // Negative margin to offset parent padding
+  margin-right: -2.625rem; // Negative margin to offset parent padding
+  overflow: visible; // Ensure carousel itself doesn't clip content
+}
+
+.location-carousel__track {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: none; // Disable snap to allow free scrolling to all positions
+  padding-block: 0.5rem;
+  padding-bottom: 1rem; // Reduced since arrows are below
+  padding-left: 1rem; // Lateral padding to prevent cards touching viewport edges
+  padding-right: 1rem; // Lateral padding to prevent cards touching viewport edges
+  scroll-behavior: smooth;
+  width: 100%;
+  position: relative;
+  
+  /* Ensure we can scroll to position 0 */
+  scroll-snap-stop: normal;
+  
+  /* Prevent page scroll when scrolling carousel */
+  touch-action: pan-x; // Only allow horizontal scrolling, block vertical page scroll
+  overscroll-behavior-x: contain; // Prevent scroll chaining to parent
+  overscroll-behavior-y: contain; // Also prevent vertical scroll chaining
+  
+  /* Hide scrollbar but keep functionality */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+  
+  /* Smooth scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  
+  /* Ensure we can scroll to all positions */
+  scroll-padding: 0;
+  scroll-margin: 0;
+}
+
+.location-card {
+  flex: 0 0 200px; // card width - don't shrink or grow
+  min-width: 200px; // Ensure minimum width
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.35);
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    background: rgba(255, 255, 255, 0.75);
+  }
+}
+
+.location-card__image-wrapper {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  position: relative;
+  width: 100%;
+  flex-shrink: 0;
+  
+  &.image-error::after {
+    content: '📍';
+    font-size: 2rem;
+    opacity: 0.5;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+  }
+}
+
+.location-card__image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &::after {
+    content: '📍';
+    font-size: 2rem;
+    opacity: 0.3;
+  }
+}
+
+.location-card__picture {
+  width: 100%;
+  height: 100%;
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+.location-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+.location-card__name {
+  padding: 0.5rem 0.75rem 0.7rem;
+  font-size: 0.9rem;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Arrow buttons container */
+.location-carousel__arrows {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  margin-top: 0.5rem;
+}
+
+/* Arrow buttons */
+.location-carousel__arrow {
+  position: static; // Not absolutely positioned
+  z-index: 10;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  transition: opacity 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  pointer-events: auto;
+  font-size: 1rem;
+  
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  
+  &:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.9);
+    transform: scale(1.05);
+  }
+  
+  &:active:not(:disabled) {
+    background: rgba(0, 0, 0, 1);
+    transform: scale(0.95);
+  }
+}
+
+// Arrow buttons use default positioning (below the track)
+
+/* Small screens: adjust arrows and padding for mobile */
+@media (max-width: 480px) {
+  .location-carousel__arrow {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 0.9rem;
+    background: rgba(0, 0, 0, 0.8);
+    display: inline-flex !important;
+  }
+
+  .location-carousel__arrows {
+    gap: 0.75rem;
+    padding: 0.25rem 0;
+  }
+
+  .location-carousel__track {
+    -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
+    padding-left: 1.5rem; // More lateral padding on mobile for better spacing
+    padding-right: 1.5rem; // More lateral padding on mobile for better spacing
+  }
+}
+
 // Responsive Design
 @media (max-width: $max-content-width) {
-  .splash-content {// 16px + 10px body padding = 26px total horizontal padding
+  .splash-content {
     max-width: 100%;
+    padding: 1.5rem 1.5rem; // Add proper lateral padding on mobile (24px on each side)
+    box-sizing: border-box; // Ensure padding is included in width calculation
+  }
+  
+  // Location carousel breaks out of padding on mobile
+  .location-carousel {
+    width: calc(100% + 3rem); // Break out of parent padding (1.5rem * 2)
+    margin-left: -1.5rem; // Negative margin to offset parent padding on mobile
+    margin-right: -1.5rem; // Negative margin to offset parent padding on mobile
+  }
+  
+  // Ensure carousel track has lateral padding on mobile
+  .location-carousel__track {
+    padding-left: 1.5rem; // Lateral padding to prevent cards touching viewport edges on mobile
+    padding-right: 1.5rem; // Lateral padding to prevent cards touching viewport edges on mobile
   }
   
   .splash-header {

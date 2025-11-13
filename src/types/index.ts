@@ -16,6 +16,11 @@ export interface PreapprovedLocation {
   longitude?: number;
   timezone?: string;
   tier?: string;
+  imageUrl?: {
+    webp: string;
+    jpeg: string;
+  };
+  imageAlt?: string;
 }
 
 export interface CookieData {
@@ -237,6 +242,7 @@ declare global {
     getDisplayCity: (fullLocation: string) => string;
     getOrdinal: (n: number) => string;
     mainAppLogic: () => void;
+    handleManualLocationSelection: (selectedLocation: string) => Promise<void>;
     calculateTrendLine: (points: ChartDataPoint[], startX: number, endX: number) => {
       points: ChartDataPoint[];
       slope: number;

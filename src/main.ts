@@ -25,6 +25,14 @@ import { FeatureFlags } from './utils/FeatureFlags';
 import { PerformanceMonitor } from './utils/PerformanceMonitor';
 import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP, getFallbackLocations } from './services/locationDetection';
+import { initLocationCarousel } from './services/locationCarousel';
+
+// Initialize location carousel when DOM is ready
+document.addEventListener('DOMContentLoaded', async () => {
+  // ...your existing code...
+  await initLocationCarousel();
+});
+
 
 // Import constants
 import { 
@@ -63,9 +71,9 @@ window.TempHistViews = window.TempHistViews || {};
 
 // Global loading interval management - now handled by LoadingManager
 // Legacy functions for backward compatibility
-  function clearAllLoadingIntervals(): void {
+function clearAllLoadingIntervals(): void {
   LoadingManager.clearAllIntervals();
-  }
+}
 
 // Error monitoring and analytics
 window.TempHist.analytics = window.TempHist.analytics || {
@@ -1545,6 +1553,9 @@ async function handleManualLocationSelection(selectedLocation: string): Promise<
   debugLog('Manual location selected:', selectedLocation);
   await proceedWithLocation(selectedLocation, false, 'manual'); // Mark as manual selection
 }
+
+// Expose handleManualLocationSelection globally for use by location carousel
+(window as any).handleManualLocationSelection = handleManualLocationSelection;
 
 
 /**

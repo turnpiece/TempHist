@@ -90,34 +90,39 @@
         <div class="splash-intro">
           <p>Is today abnormally warm or abnormally cold? How does its temperature compare to that on the same date in previous years? Or the past week's temperature? Or that of the past month or the past year?</p>
         </div>
-
-        <div class="splash-description">
-          <p>TempHist needs your location to show you temperature data for your area. <a href="/privacy" target="_blank">We don't store or share your location</a>.</p>
-        </div>
         
-        <div class="splash-actions">
+        <div class="splash-actions" aria-labelledby="location-picker-heading">
           <button id="useLocationBtn" class="btn btn-primary">
             📍 Use my location
           </button>
-          <button id="chooseLocationBtn" class="btn btn-secondary">
-            🌍 Choose a location manually
-          </button>
-        </div>
+          <h2 id="location-picker-heading" class="location-picker__heading">
+            Or choose a location
+          </h2>
+
+          <div class="location-carousel" id="location-carousel">
+            <div class="location-carousel__track" id="location-carousel-track" role="listbox" aria-label="Popular locations">
+              <!-- Cards get injected here -->
+            </div>
         
-        <!-- Manual location selection (initially hidden) -->
-        <div id="manualLocationSection" class="manual-location-section" style="display: none;">
-          <div class="location-dropdown-container">
-            <select id="locationSelect" class="location-select">
-              <option value="">Loading locations...</option>
-            </select>
-          </div>
-          <div class="location-actions">
-            <button id="confirmLocationBtn" class="btn btn-primary" disabled>
-              Continue with selected location
-            </button>
-            <button id="backToSplashBtn" class="btn btn-secondary">
-              ← Back to options
-            </button>
+            <div class="location-carousel__arrows">
+              <button
+                class="location-carousel__arrow location-carousel__arrow--left"
+                type="button"
+                aria-label="Scroll locations left"
+                data-direction="left"
+              >
+                ◀
+              </button>
+        
+              <button
+                class="location-carousel__arrow location-carousel__arrow--right"
+                type="button"
+                aria-label="Scroll locations right"
+                data-direction="right"
+              >
+                ▶
+              </button>
+            </div>
           </div>
         </div>
         
