@@ -1305,6 +1305,11 @@ nav a.active {
       width: 1.5rem; // Match mobile padding-right
     }
   }
+
+  .location-card {
+    flex: 0 0 115px; // Smaller card width on small screens
+    min-width: 115px; // Ensure minimum width on small screens
+  }
 }
 
 // Responsive Design
