@@ -24,7 +24,7 @@ import { Logger, LogLevel } from './utils/Logger';
 import { FeatureFlags } from './utils/FeatureFlags';
 import { PerformanceMonitor } from './utils/PerformanceMonitor';
 import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange } from './api/temperature';
-import { detectUserLocationWithGeolocation, getLocationFromIP, getFallbackLocations } from './services/locationDetection';
+import { detectUserLocationWithGeolocation, getLocationFromIP } from './services/locationDetection';
 import { initLocationCarousel, resetCarouselState, renderImageAttributions } from './services/locationCarousel';
 
 // Initialise location carousel when DOM is ready
@@ -1262,9 +1262,9 @@ async function prefetchApprovedLocations(): Promise<void> {
   }
   
   if (!window.currentUser) {
-    debugLog('No currentUser available after waiting, using fallback locations');
+    debugLog('No currentUser available after waiting, skipping location prefetch');
     window.TempHist = window.TempHist || {};
-    window.TempHist.prefetchedLocations = getFallbackLocations();
+    window.TempHist.prefetchedLocations = [];
     return;
   }
   
@@ -1277,9 +1277,9 @@ async function prefetchApprovedLocations(): Promise<void> {
     window.TempHist.prefetchedLocations = locations;
   } catch (error) {
     debugLog('Failed to prefetch approved locations:', error);
-    // Store fallback locations
+    // Store empty array if prefetch fails
     window.TempHist = window.TempHist || {};
-    window.TempHist.prefetchedLocations = getFallbackLocations();
+    window.TempHist.prefetchedLocations = [];
   }
 }
 
@@ -1355,9 +1355,9 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
     throw new Error('API failed to provide valid preapproved locations');
   } catch (error) {
     console.warn('Preapproved locations loading failed:', error);
-    debugLog('Using fallback locations due to loading failure');
-    // Return fallback locations instead of throwing
-    return getFallbackLocations();
+    debugLog('Location loading failed, returning empty array');
+    // Return empty array if loading fails
+    return [];
   }
 }
 
@@ -1443,27 +1443,15 @@ function showManualLocationSelection(): void {
   } else {
     debugLog('No prefetched locations found, loading now...');
     
-    // Set up timeout to use fallback locations after configured timeout
-    const timeoutId = setTimeout(() => {
-      debugLog('Location loading timeout reached, using fallback locations');
-      const fallbackLocations = getFallbackLocations();
-      debugLog('Using fallback locations due to timeout:', fallbackLocations);
-      populateLocationDropdown(fallbackLocations);
-    }, CACHE_CONFIG.PREFETCH_TIMEOUT); // Configurable timeout
-
     loadPreapprovedLocations()
       .then(locations => {
-        clearTimeout(timeoutId); // Cancel timeout since we got the data
         debugLog('Loaded locations:', locations);
         populateLocationDropdown(locations);
       })
       .catch(error => {
-        clearTimeout(timeoutId); // Cancel timeout since we're handling the error
         debugLog('Error loading locations:', error);
-        // If API fails, populate with fallback locations
-        const fallbackLocations = getFallbackLocations();
-        debugLog('Using fallback locations due to API error:', fallbackLocations);
-        populateLocationDropdown(fallbackLocations);
+        // If API fails, just don't populate the dropdown
+        // The location carousel will handle empty locations gracefully
       });
   }
 }
@@ -2012,7 +2000,7 @@ function renderAboutPage(): void {
   const contactTitle = document.createElement('h3');
   contactTitle.textContent = 'Contact';
   const contactText = document.createElement('p');
-  contactText.textContent = 'TempHist is operated by Turnpiece Ltd. For questions or feedback, please visit ';
+  contactText.textContent = 'TempHist is a Turnpiece project. For questions or feedback, please visit ';
   const contactLink = document.createElement('a');
   contactLink.href = 'https://turnpiece.com';
   contactLink.textContent = 'turnpiece.com';
