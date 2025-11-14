@@ -2898,6 +2898,7 @@ window.mainAppLogic = function(): void {
       if (isAbortError) {
         debugLog('Daily data fetch aborted (likely due to navigation)');
         // Silently handle abort - don't show error to user
+        // Timer will be ended in finally block
         return;
       }
       
@@ -2906,11 +2907,12 @@ window.mainAppLogic = function(): void {
       // Generate context-specific error message
       const errorMessage = generateErrorMessage(error);
       showError(errorMessage);
+    } finally {
+      // Always end the timer, even if function returns early
+      debugTimeEnd('Total fetch time');
+      // End chart creation measurement
+      PerformanceMonitor.recordMetric('chart_creation_complete', performance.now());
     }
-
-    debugTimeEnd('Total fetch time');
-    // End chart creation measurement
-    PerformanceMonitor.recordMetric('chart_creation_complete', performance.now());
   }
 
   // Loading message functions are now handled by LoadingManager
