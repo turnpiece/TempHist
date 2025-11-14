@@ -3035,10 +3035,41 @@ window.mainAppLogic = function(): void {
       debugLog('Skipping success message because incomplete data warning is present');
     }
     
-    if (chart && canvasEl) {
+    if (canvasEl) {
       // Ensure the canvas element still exists before updating
       if (canvasEl.parentNode && document.contains(canvasEl)) {
-      chart.update();
+        // Get the chart instance directly from the canvas element (more reliable than closure variable)
+        const registeredChart = Chart.getChart(canvasEl);
+        if (registeredChart) {
+          try {
+            registeredChart.update();
+            // Also update the closure variable and global reference to keep them in sync
+            chart = registeredChart;
+            if (window.TempHist) {
+              window.TempHist.mainChart = registeredChart;
+            }
+          } catch (error) {
+            console.error('Error updating chart:', error);
+            // If update fails, try to destroy and recreate on next render
+            try {
+              registeredChart.destroy();
+            } catch (destroyError) {
+              console.error('Error destroying chart:', destroyError);
+            }
+            // Reset chart references
+            chart = null;
+            if (window.TempHist) {
+              window.TempHist.mainChart = null;
+            }
+          }
+        } else {
+          debugLog('No chart instance found on canvas element, skipping update');
+          // Reset chart references if no chart is registered
+          chart = null;
+          if (window.TempHist) {
+            window.TempHist.mainChart = null;
+          }
+        }
       } else {
         debugLog('Canvas element no longer in DOM, skipping chart update');
       }
@@ -3147,6 +3178,9 @@ window.mainAppLogic = function(): void {
   // Internal location change handler (called after debounce)
   function handleLocationChangeInternal(): void {
     debugLog('Change location executed, navigating to splash screen');
+    
+    // Destroy all charts before navigating away to prevent stale references
+    clearAllCachedData();
     
     // Show splash screen
     const splashScreen = document.getElementById('splashScreen');
