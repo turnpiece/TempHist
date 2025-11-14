@@ -1095,6 +1095,17 @@ function initializeSplashScreen(): void {
   // Show splash screen initially
   if (splashScreen) {
     splashScreen.style.display = 'flex';
+    // Prevent body scroll when splash screen is visible (especially important for iOS Safari)
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    // Store scroll position for restoration
+    (window as any).savedScrollY = scrollY;
+    // Ensure splash screen starts at top
+    splashScreen.scrollTop = 0;
   }
   if (appShell) {
     appShell.classList.add('hidden');
@@ -1588,6 +1599,18 @@ async function proceedWithLocation(
 
   if (splashScreen) {
     splashScreen.style.display = 'none';
+    // Re-enable body scroll when splash screen is hidden (restore for iOS Safari)
+    const savedScrollY = (window as any).savedScrollY || 0;
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+    // Restore scroll position
+    if (savedScrollY) {
+      window.scrollTo(0, savedScrollY);
+      delete (window as any).savedScrollY;
+    }
   }
 
   if (appShell) {
@@ -3190,6 +3213,17 @@ window.mainAppLogic = function(): void {
     
     if (splashScreen) {
       splashScreen.style.display = 'flex';
+      // Prevent body scroll when splash screen is visible (especially important for iOS Safari)
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      // Store scroll position for restoration
+      (window as any).savedScrollY = scrollY;
+      // Reset splash screen scroll to top
+      splashScreen.scrollTop = 0;
     }
     if (appShell) {
       appShell.classList.add('hidden');
