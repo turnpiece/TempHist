@@ -197,9 +197,20 @@ a {
   display: grid; 
   grid-template-columns: var(--sidebar-w) 1fr; 
   min-height: calc(100vh - 60px); // Account for header height approximately
+  opacity: 1; // Default visible state
+  transition: opacity 1.5s ease-in;
   
   &.hidden {
     display: none;
+  }
+  
+  // Start fade-in from transparent, then fade to visible
+  &.fading-in {
+    opacity: 0;
+  }
+  
+  &.fade-in {
+    opacity: 1;
   }
   
   // On desktop, viewOutlet uses full height (starts at top where header area is)
@@ -830,6 +841,12 @@ h2, .date-heading {
   
   &.hidden {
     opacity: 0;
+    pointer-events: none;
+  }
+  
+  &.fade-out {
+    opacity: 0;
+    transition: opacity 1.5s ease-out;
     pointer-events: none;
   }
 }

@@ -1593,29 +1593,42 @@ async function proceedWithLocation(
   // Clear any cached data from previous location/date to prevent showing stale data
   clearAllCachedData();
 
-  // Hide splash screen and show app
+  // Hide splash screen and show app with fade transition
   const splashScreen = document.getElementById('splashScreen');
   const appShell = document.getElementById('appShell');
 
   if (splashScreen) {
-    splashScreen.style.display = 'none';
-    // Re-enable body scroll when splash screen is hidden (restore for iOS Safari)
-    const savedScrollY = (window as any).savedScrollY || 0;
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
-    document.body.style.overflow = '';
-    document.documentElement.style.overflow = '';
-    // Restore scroll position
-    if (savedScrollY) {
-      window.scrollTo(0, savedScrollY);
-      delete (window as any).savedScrollY;
-    }
+    // Start fade-out transition
+    splashScreen.classList.add('fade-out');
+    
+    // After transition completes, fully hide splash screen and restore body scroll
+    setTimeout(() => {
+      splashScreen.style.display = 'none';
+      splashScreen.classList.remove('fade-out');
+      
+      // Re-enable body scroll when splash screen is hidden (restore for iOS Safari)
+      const savedScrollY = (window as any).savedScrollY || 0;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      // Restore scroll position
+      if (savedScrollY) {
+        window.scrollTo(0, savedScrollY);
+        delete (window as any).savedScrollY;
+      }
+    }, 1500); // Match transition duration
   }
 
   if (appShell) {
-    appShell.classList.remove('hidden');
     appShell.style.display = 'grid'; // Explicitly set to grid
+    appShell.classList.remove('hidden');
+    
+    // Skip fade-in transition when loading data - make visible immediately
+    // so loading spinner is visible right away
+    appShell.classList.remove('fading-in');
+    appShell.classList.add('fade-in'); // Make fully visible immediately
   }
 
   // Scroll to top when transitioning from splash screen to app
@@ -1624,6 +1637,8 @@ async function proceedWithLocation(
   document.body.scrollTop = 0;
 
   // Initialise the main app FIRST (this sets up the DOM elements)
+  // This will call displayLocationAndFetchData() which calls fetchHistoricalData()
+  // which calls showInitialLoadingState() - and now appShell is visible so loading will show
   debugLog('Calling mainAppLogic after location change');
   window.mainAppLogic();
 
@@ -2693,6 +2708,16 @@ window.mainAppLogic = function(): void {
         existingChart.destroy();
         chart = null; // Reset the chart variable
       }
+    }
+    
+    // Ensure appShell is visible before showing loading state
+    // This is especially important when transitioning from splash screen
+    const appShell = document.getElementById('appShell');
+    if (appShell && appShell.classList.contains('fading-in')) {
+      // If still fading in, ensure loading state will be visible when fade completes
+      // Remove fading-in and make visible immediately so loading is visible
+      appShell.classList.remove('fading-in');
+      appShell.classList.add('fade-in');
     }
     
     showInitialLoadingState();
