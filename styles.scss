@@ -1145,6 +1145,18 @@ nav a.active {
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
     background: rgba(255, 255, 255, 0.75);
+    
+    .location-card__name {
+      color: #000;
+    }
+  }
+
+  &:active {
+    background: rgba(255, 255, 255, 0.85);
+    
+    .location-card__name {
+      color: #000;
+    }
   }
 }
 
@@ -1210,6 +1222,7 @@ nav a.active {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #fff; // Explicit white color to prevent browser link color inheritance
 }
 
 /* Arrow buttons container */

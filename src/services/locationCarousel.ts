@@ -200,6 +200,7 @@ function createLocationCard(location: PreapprovedLocation): HTMLButtonElement {
  */
 function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => void) {
   // Prevent page scroll when touching/swiping the carousel track
+  // Use CSS touch-action for native iOS scrolling, only prevent at boundaries
   let touchStartX = 0;
   let touchStartY = 0;
   let isHorizontalScroll = false;
@@ -223,27 +224,38 @@ function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => v
     const absDiffY = Math.abs(diffY);
     
     // Determine scroll direction early
-    if (!hasMoved && (absDiffX > 3 || absDiffY > 3)) {
+    if (!hasMoved && (absDiffX > 5 || absDiffY > 5)) {
       hasMoved = true;
       isHorizontalScroll = absDiffX > absDiffY;
-      
-      // If horizontal scroll, prevent default immediately to stop page scrolling
-      if (isHorizontalScroll && e.cancelable) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
     }
     
-    // If we've determined this is horizontal scroll, always prevent default
+    // Only prevent default if:
+    // 1. This is a horizontal scroll AND
+    // 2. We're at a boundary trying to scroll beyond it (to prevent page scroll)
     if (hasMoved && isHorizontalScroll && e.cancelable) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation(); // Also stop other listeners
+      const scrollLeft = track.scrollLeft;
+      const scrollWidth = track.scrollWidth;
+      const clientWidth = track.clientWidth;
+      const maxScroll = scrollWidth - clientWidth;
+      
+      // At the start (scrollLeft = 0) and trying to scroll left
+      if (scrollLeft <= 0 && diffX > 0) {
+        e.preventDefault();
+        return;
+      }
+      
+      // At the end (scrollLeft >= maxScroll) and trying to scroll right
+      if (scrollLeft >= maxScroll && diffX < 0) {
+        e.preventDefault();
+        return;
+      }
+      
+      // For middle positions, let native scrolling work
+      // CSS touch-action: pan-x will handle preventing vertical page scroll
     }
   }, { passive: false });
 
-  track.addEventListener('touchend', (e) => {
+  track.addEventListener('touchend', () => {
     touchStartX = 0;
     touchStartY = 0;
     isHorizontalScroll = false;
@@ -256,18 +268,6 @@ function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => v
     isHorizontalScroll = false;
     hasMoved = false;
   }, { passive: true });
-
-  // Also handle touch events on the carousel container to prevent propagation
-  carousel.addEventListener('touchmove', (e) => {
-    // If touch is on the track, let the track handler deal with it
-    if ((e.target as HTMLElement).closest('.location-carousel__track')) {
-      return;
-    }
-    // Otherwise prevent horizontal scrolling on the container
-    if (e.cancelable) {
-      e.stopPropagation();
-    }
-  }, { passive: false });
 
   // Prevent wheel events from scrolling the page when over the carousel
   track.addEventListener('wheel', (e) => {
