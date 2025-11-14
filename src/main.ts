@@ -1099,7 +1099,10 @@ function initializeSplashScreen(): void {
     const scrollY = window.scrollY;
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    document.body.style.width = '100vw'; // Use viewport width to avoid padding overflow
+    document.body.style.maxWidth = '100vw'; // Ensure it doesn't exceed viewport
+    document.body.style.left = '0';
+    document.body.style.right = '0';
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
     // Store scroll position for restoration
@@ -1611,13 +1614,58 @@ async function proceedWithLocation(
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
+      document.body.style.maxWidth = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
+      
+      // Force layout recalculation to prevent width miscalculation on mobile
+      // This ensures the body and appShell recalculate their widths correctly
+      void document.body.offsetHeight; // Force reflow
+      
       // Restore scroll position
       if (savedScrollY) {
         window.scrollTo(0, savedScrollY);
         delete (window as any).savedScrollY;
       }
+      
+      // Ensure layout is correct after restoring body from fixed positioning
+      // Force a layout recalculation to fix any width miscalculations on mobile
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // Force browser to recalculate layout widths
+          void document.body.offsetWidth;
+          void document.documentElement.offsetWidth;
+          
+          const appShell = document.getElementById('appShell');
+          const viewOutlet = document.getElementById('viewOutlet');
+          
+          if (appShell) {
+            // Ensure appShell width is correct (remove any inline width if present)
+            if (appShell.style.width) {
+              appShell.style.width = '';
+            }
+            void appShell.offsetWidth; // Force reflow
+          }
+          
+          if (viewOutlet) {
+            // Ensure viewOutlet width is correct (remove any inline width if present)
+            if (viewOutlet.style.maxWidth) {
+              viewOutlet.style.maxWidth = '';
+            }
+            void viewOutlet.offsetWidth; // Force reflow
+          }
+          
+          // Ensure body and html don't exceed viewport width
+          if (document.body.scrollWidth > window.innerWidth) {
+            document.body.style.maxWidth = `${window.innerWidth}px`;
+          }
+          if (document.documentElement.scrollWidth > window.innerWidth) {
+            document.documentElement.style.maxWidth = `${window.innerWidth}px`;
+          }
+        });
+      });
     }, 1500); // Match transition duration
   }
 
@@ -3242,7 +3290,10 @@ window.mainAppLogic = function(): void {
       const scrollY = window.scrollY;
       document.body.style.position = 'fixed';
       document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
+      document.body.style.width = '100vw'; // Use viewport width to avoid padding overflow
+      document.body.style.maxWidth = '100vw'; // Ensure it doesn't exceed viewport
+      document.body.style.left = '0';
+      document.body.style.right = '0';
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
       // Store scroll position for restoration
