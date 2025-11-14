@@ -377,10 +377,15 @@ function hideLocationSelectionSection(): void {
   
   if (heading) {
     heading.style.display = 'none';
+    heading.classList.remove('visible');
   }
   
   if (carousel) {
     carousel.style.display = 'none';
+    const arrows = carousel.querySelector('.location-carousel__arrows');
+    if (arrows) {
+      arrows.classList.remove('visible');
+    }
   }
 }
 
@@ -480,6 +485,16 @@ export async function initLocationCarousel(): Promise<void> {
     
     // Store the update function globally for later use
     carouselUpdateArrowVisibility = updateArrowVisibility;
+    
+    // Show the heading and arrows now that locations are loaded
+    const heading = document.getElementById('location-picker-heading');
+    const arrows = carousel.querySelector('.location-carousel__arrows');
+    if (heading) {
+      heading.classList.add('visible');
+    }
+    if (arrows) {
+      arrows.classList.add('visible');
+    }
     
     // Force a layout recalculation after cards are added
     // This ensures proper scroll width calculation and arrow states
