@@ -57,7 +57,7 @@ body {
 
 a {
   text-decoration: underline;
-  color: inherit; // Links inherit the color of their parent element
+  color: inherit; // Links inherit the colour of their parent element
 }
 
 .container {
@@ -367,7 +367,7 @@ a {
   }
   
   a {
-    color: inherit; // Links inherit the color of their parent element (white text)
+    color: inherit; // Links inherit the colour of their parent element (white text)
     text-decoration: underline;
   }
 }
@@ -383,7 +383,7 @@ a {
 body.about-page,
 body.privacy-page {
   a {
-    color: inherit; // Links inherit the color of their parent element (white text)
+    color: inherit; // Links inherit the colour of their parent element (white text)
     text-decoration: underline;
   }
   
@@ -413,7 +413,7 @@ body.privacy-page {
   color: var(--trend);
 }
 
-// Status and notification colors
+// Status and notification colours
 .status-error {
   color: var(--accent);
 }
@@ -1222,7 +1222,7 @@ nav a.active {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #fff; // Explicit white color to prevent browser link color inheritance
+  color: #fff; // Explicit white colour to prevent browser link colour inheritance
 }
 
 /* Arrow buttons container */

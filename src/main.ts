@@ -27,7 +27,7 @@ import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transfo
 import { detectUserLocationWithGeolocation, getLocationFromIP, getFallbackLocations } from './services/locationDetection';
 import { initLocationCarousel, resetCarouselState } from './services/locationCarousel';
 
-// Initialize location carousel when DOM is ready
+// Initialise location carousel when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
   // ...your existing code...
   await initLocationCarousel();
@@ -716,7 +716,7 @@ const firebaseConfig = {
   measurementId: "G-117YTQEW98"
 };
 
-// Initialize Firebase
+// Initialise Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
@@ -755,10 +755,10 @@ function startAppWithFirebaseUser(user: FirebaseUser): void {
   
   debugLog('Script starting...');
   
-  // Initialize analytics reporting
+  // Initialise analytics reporting
   setupAnalyticsReporting();
   
-  // Initialize splash screen functionality (now currentUser is available)
+  // Initialise splash screen functionality (now currentUser is available)
   initializeSplashScreen();
 }
 
@@ -874,7 +874,7 @@ async function sendAnalytics(): Promise<void> {
 }
 
 /**
- * Initialize splash screen functionality
+ * Initialise splash screen functionality
  */
 function initializeSplashScreen(): void {
   // Check if this is a standalone page (privacy, about) - don't show splash screen
@@ -1600,14 +1600,14 @@ async function proceedWithLocation(
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
 
-  // Initialize the main app FIRST (this sets up the DOM elements)
+  // Initialise the main app FIRST (this sets up the DOM elements)
   debugLog('Calling mainAppLogic after location change');
   window.mainAppLogic();
 
   // THEN navigate to Today page (router will now see window.tempLocation is set)
   debugLog('Navigating to Today page after location selection');
   
-  // Activate the router now that everything is initialized
+  // Activate the router now that everything is initialised
   if (window.TempHistRouter && typeof window.TempHistRouter.handleRoute === 'function') {
     window.TempHistRouter.handleRoute();
   }
@@ -1971,7 +1971,7 @@ window.mainAppLogic = function(): void {
     return;
   }
   
-  // Scroll to top when initializing the app (in case page was scrolled)
+  // Scroll to top when initialising the app (in case page was scrolled)
   window.scrollTo({ top: 0, behavior: 'instant' });
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
@@ -2274,9 +2274,9 @@ window.mainAppLogic = function(): void {
     const sec = document.getElementById(sectionId);
     if (!sec) return;
 
-    // Check if the app is properly initialized
+    // Check if the app is properly initialised
     if (!window.tempLocation) {
-      // Wait a bit for the app to initialize
+      // Wait a bit for the app to initialise
       await new Promise(resolve => setTimeout(resolve, 100));
       if (!window.tempLocation) {
         debugLog('renderPeriod: No location found, using default');
@@ -2784,7 +2784,7 @@ window.mainAppLogic = function(): void {
       
       // Create or update chart
       if (!chart) {
-        debugTime('Chart initialization');
+        debugTime('Chart initialisation');
         
         // Double-check that no chart exists on this canvas
         const existingChart = Chart.getChart(canvasEl);
@@ -2845,7 +2845,7 @@ window.mainAppLogic = function(): void {
         // Show chart elements since data loaded successfully
         showChartElements();
         
-        debugTimeEnd('Chart initialization');
+        debugTimeEnd('Chart initialisation');
       }
 
       // Update trend line if enabled
@@ -3472,14 +3472,14 @@ class TempHistRouter {
   }
 }
 
-// Initialize router
+// Initialise router
 window.TempHistRouter = new TempHistRouter();
 
 // Make analytics functions globally available
 window.TempHistAnalytics = reportAnalytics;
 window.TempHistSendAnalytics = sendAnalytics;
 
-// Initialize mobile navigation for all pages
+// Initialise mobile navigation for all pages
 document.addEventListener('DOMContentLoaded', () => {
   setupMobileNavigation();
   

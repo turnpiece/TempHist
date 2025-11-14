@@ -202,8 +202,8 @@ class DataCache {
 // Auto-cleanup every 5 minutes
 setInterval(() => {
   const cleaned = DataCache.cleanup();
-  if (cleaned > 0) {
-    console.log(`DataCache: Cleaned up ${cleaned} expired entries`);
+  if (cleaned > 0 && (window as any).debugLog) {
+    (window as any).debugLog(`DataCache: Cleaned up ${cleaned} expired entries`);
   }
 }, 5 * 60 * 1000);
 

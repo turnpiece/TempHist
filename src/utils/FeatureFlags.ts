@@ -323,7 +323,7 @@ class FeatureFlags {
   }
 }
 
-// Initialize with default feature flags
+// Initialise with default feature flags
 FeatureFlags.configure({
   defaultEnabled: false,
   enableLocalStorage: true,

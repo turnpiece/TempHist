@@ -32,27 +32,27 @@ class ErrorBoundary {
    * Handle errors globally
    */
   static handleError(error: Error | null | undefined, errorInfo?: ErrorInfo): void {
-    // Normalize null/undefined errors to proper Error objects
-    let normalizedError: Error;
+    // Normalise null/undefined errors to proper Error objects
+    let normalisedError: Error;
     if (error === null) {
-      normalizedError = new Error('Null error thrown');
+      normalisedError = new Error('Null error thrown');
       console.error('ErrorBoundary: Caught null error (something threw null instead of an Error)', errorInfo);
     } else if (error === undefined) {
-      normalizedError = new Error('Undefined error thrown');
+      normalisedError = new Error('Undefined error thrown');
       console.error('ErrorBoundary: Caught undefined error', errorInfo);
     } else if (!(error instanceof Error)) {
       // Handle cases where a non-Error object was thrown
-      normalizedError = new Error(String(error));
+      normalisedError = new Error(String(error));
       console.error('ErrorBoundary: Caught non-Error object:', error, errorInfo);
     } else {
-      normalizedError = error;
+      normalisedError = error;
       console.error('ErrorBoundary: Caught error:', error);
     }
 
     // Call registered handlers
     this.errorHandlers.forEach(handler => {
       try {
-        handler(normalizedError, errorInfo || { componentStack: '' });
+        handler(normalisedError, errorInfo || { componentStack: '' });
       } catch (handlerError) {
         console.error('ErrorBoundary: Error in handler:', handlerError);
       }
@@ -62,8 +62,8 @@ class ErrorBoundary {
     if (window.TempHist?.analytics) {
       window.TempHist.analytics.errors.push({
         timestamp: new Date().toISOString(),
-        error: normalizedError.message,
-        stack: normalizedError.stack,
+        error: normalisedError.message,
+        stack: normalisedError.stack,
         context: {
           type: 'javascript_error',
           component: errorInfo?.errorBoundary || 'unknown'

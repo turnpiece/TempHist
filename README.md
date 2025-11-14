@@ -1,6 +1,6 @@
-# Temperature History Visualization
+# Temperature History Visualisation
 
-A web application that visualizes historical temperature data for any location, showing how temperatures have changed over the past 50 years for a specific date.
+A web application that visualises historical temperature data for any location, showing how temperatures have changed over the past 50 years for a specific date.
 
 ## Security & Privacy
 
@@ -25,7 +25,7 @@ This approach provides excellent performance (1-5ms API response times) while ma
 
 ## Features
 
-- Visualizes 50 years of temperature data in an interactive chart
+- Visualises 50 years of temperature data in an interactive chart
 - Multiple time period views: Today, Past Week, Past Month, Past Year
 - Automatically detects user's location with manual location selection via interactive carousel
 - Location carousel with images for easy visual selection
@@ -39,7 +39,7 @@ This approach provides excellent performance (1-5ms API response times) while ma
 
 ## Tech Stack
 
-- **Frontend**: TypeScript with Chart.js for visualization
+- **Frontend**: TypeScript with Chart.js for visualisation
 - **Build Tool**: [Vite](https://vitejs.dev/) (for fast dev/build and modern ES modules)
 - **Styles**: SCSS (with hot reload and code splitting via Vite)
 - **Authentication**: Firebase Anonymous Auth
@@ -221,7 +221,7 @@ This allows:
 
 **Note**: For local development, the proxy server (`server-local.js`) automatically injects a test token to avoid requiring Firebase setup during development.
 
-## Lighthouse/CLS Optimization
+## Lighthouse/CLS Optimisation
 
 - The app uses a skeleton loader and reserves space for all dynamic content to achieve a CLS (Cumulative Layout Shift) score near zero.
 - A background colour and gradient are set inline in the `<head>` to prevent FOUC (Flash of Unstyled Content).
@@ -298,7 +298,7 @@ Location data is fetched from `/v1/locations/preapproved` endpoint after Firebas
 - **Modular Architecture**: Clean separation of concerns with dedicated modules
 - **Comprehensive Testing**: Unit tests, integration tests, and API tests
 - **Development Server**: Hot reload with Vite for fast development
-- **Production Build**: Optimized bundle with TypeScript compilation
+- **Production Build**: Optimised bundle with TypeScript compilation
 
 ### TypeScript Benefits
 
@@ -349,7 +349,7 @@ SOFTWARE.
 - **Environment Configuration**: Firebase config and API endpoints should be configurable via environment variables
 - **Mock Data**: Development mode uses static mock data instead of realistic historical data
 - **Error Recovery**: Limited retry logic for failed API calls
-- **Mobile Optimization**: Some mobile-specific optimizations could be improved
+- **Mobile Optimisation**: Some mobile-specific optimisations could be improved
 - **TypeScript Strictness**: Could enable stricter TypeScript settings for better type safety
 
 ### Browser Compatibility

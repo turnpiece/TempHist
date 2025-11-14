@@ -36,7 +36,7 @@ class PerformanceMonitor {
   private static maxMetrics: number = 1000;
 
   /**
-   * Initialize performance monitoring
+   * Initialise performance monitoring
    */
   static initialize(): void {
     if (!this.isEnabled) return;
@@ -218,9 +218,9 @@ class PerformanceMonitor {
       this.metrics = this.metrics.slice(-this.maxMetrics);
     }
 
-    // Log in development
-    if (import.meta.env.DEV) {
-      console.log(`Performance: ${name} = ${value.toFixed(2)}ms`, metadata);
+    // Log in development or debug mode
+    if ((import.meta.env.DEV || (window as any).DEBUGGING) && (window as any).debugLog) {
+      (window as any).debugLog(`Performance: ${name} = ${value.toFixed(2)}ms`, metadata);
     }
   }
 
@@ -351,7 +351,7 @@ class PerformanceMonitor {
   }
 }
 
-// Auto-initialize if feature flag is enabled
+// Auto-initialise if feature flag is enabled
 if (typeof window !== 'undefined') {
   // Check feature flag after a short delay to ensure it's loaded
   setTimeout(() => {

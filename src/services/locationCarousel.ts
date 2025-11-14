@@ -81,12 +81,16 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
     const apiResponse = await apiFetch(getApiUrl('/v1/locations/preapproved'));
     if (apiResponse.ok) {
       const data = await apiResponse.json();
-      console.log('API response received:', typeof data, Array.isArray(data) ? `Array with ${data.length} items` : 'Not an array', data);
+      if ((window as any).debugLog) {
+        (window as any).debugLog('API response received:', typeof data, Array.isArray(data) ? `Array with ${data.length} items` : 'Not an array', data);
+      }
       
       // Parse and validate locations
       const locations = parsePreapprovedLocations(data);
       if (locations) {
-        console.log('Successfully parsed locations:', locations.length);
+        if ((window as any).debugLog) {
+          (window as any).debugLog('Successfully parsed locations:', locations.length);
+        }
         return locations;
       }
       
@@ -196,7 +200,7 @@ function createLocationCard(location: PreapprovedLocation): HTMLButtonElement {
 }
 
 /**
- * Initialize carousel scroll functionality
+ * Initialise carousel scroll functionality
  */
 function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => void) {
   // Prevent page scroll when touching/swiping the carousel track
@@ -306,11 +310,6 @@ function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => v
       const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
       targetScroll = Math.max(0, Math.min(maxScroll, targetScroll));
       
-      console.log('Arrow clicked:', direction === -1 ? 'left' : 'right', 
-        'current scroll:', track.scrollLeft, 
-        'target scroll:', targetScroll,
-        'maxScroll:', maxScroll);
-      
       if (direction === -1) {
         // Scrolling left
         if (track.scrollLeft > 0) {
@@ -347,9 +346,6 @@ function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => v
       leftArrow.disabled = currentScroll <= 0; // Only disable at exactly 0
       leftArrow.style.pointerEvents = currentScroll <= 0 ? 'none' : 'auto';
       leftArrow.setAttribute('aria-disabled', String(currentScroll <= 0));
-      if (canScrollLeft || currentScroll > 0) {
-        console.log('Left arrow state:', { canScrollLeft, currentScroll, scrollThreshold, scrollWidth: track.scrollWidth, clientWidth: track.clientWidth });
-      }
     }
     
     if (rightArrow) {
@@ -361,11 +357,6 @@ function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => v
       rightArrow.disabled = atEnd;
       rightArrow.style.pointerEvents = atEnd ? 'none' : 'auto';
       rightArrow.setAttribute('aria-disabled', String(atEnd));
-      
-      // Log when we're at the end to debug
-      if (atEnd) {
-        console.log('Right arrow disabled - at end:', { currentScroll, maxScroll, scrollWidth: track.scrollWidth, clientWidth: track.clientWidth });
-      }
     }
   };
   
@@ -428,7 +419,7 @@ export function resetCarouselState(): void {
       if (carouselUpdateArrowVisibility) {
         carouselUpdateArrowVisibility();
       } else {
-        // If update function isn't available, re-initialize the scroll handler
+        // If update function isn't available, re-initialise the scroll handler
         carouselUpdateArrowVisibility = initCarouselScroll(carousel as HTMLElement, track as HTMLElement);
         if (carouselUpdateArrowVisibility) {
           carouselUpdateArrowVisibility();
@@ -447,7 +438,7 @@ export function resetCarouselState(): void {
 }
 
 /**
- * Initialize the location carousel
+ * Initialise the location carousel
  */
 export async function initLocationCarousel(): Promise<void> {
   const carousel = document.getElementById('location-carousel');
@@ -473,14 +464,18 @@ export async function initLocationCarousel(): Promise<void> {
     track.innerHTML = '';
 
     // Build cards for each location
-    console.log('Creating cards for', locations.length, 'locations');
+    if ((window as any).debugLog) {
+      (window as any).debugLog('Creating cards for', locations.length, 'locations');
+    }
     locations.forEach((location, index) => {
       const card = createLocationCard(location);
       track.appendChild(card);
-      console.log(`Created card ${index + 1}: ${location.name} (${location.id})`, card);
+      if ((window as any).debugLog) {
+        (window as any).debugLog(`Created card ${index + 1}: ${location.name} (${location.id})`);
+      }
     });
 
-    // Initialize scroll functionality first
+    // Initialise scroll functionality first
     const updateArrowVisibility = initCarouselScroll(carousel as HTMLElement, track as HTMLElement);
     
     // Store the update function globally for later use
@@ -494,20 +489,6 @@ export async function initLocationCarousel(): Promise<void> {
         // Immediately set to start position (London first)
         track.scrollLeft = 0;
         
-        // Get accurate measurements
-        const scrollWidth = track.scrollWidth;
-        const clientWidth = track.clientWidth;
-        const maxScroll = Math.max(0, scrollWidth - clientWidth);
-        
-        console.log('Track initialized:', {
-          scrollLeft: track.scrollLeft,
-          scrollWidth,
-          clientWidth,
-          maxScroll,
-          canScrollLeft: track.scrollLeft > 0,
-          canScrollRight: track.scrollLeft < maxScroll
-        });
-        
         // Update arrow visibility now that layout is complete
         if (updateArrowVisibility) {
           updateArrowVisibility();
@@ -517,18 +498,8 @@ export async function initLocationCarousel(): Promise<void> {
         setTimeout(() => {
           // Force scroll to 0 if it somehow moved
           if (track.scrollLeft !== 0) {
-            console.log('Correcting scroll position from', track.scrollLeft, 'to 0');
             track.scrollLeft = 0;
           }
-          
-          // Verify final state and update arrows
-          const finalMaxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
-          console.log('Final scroll state:', {
-            scrollLeft: track.scrollLeft,
-            maxScroll: finalMaxScroll,
-            atStart: track.scrollLeft <= 0,
-            atEnd: track.scrollLeft >= finalMaxScroll - 1
-          });
           
           // Update arrows again after final scroll position is set
           if (updateArrowVisibility) {
@@ -538,7 +509,7 @@ export async function initLocationCarousel(): Promise<void> {
       }, 100);
     });
   } catch (error) {
-    console.error('Error initializing location carousel:', error);
+    console.error('Error initialising location carousel:', error);
     // Hide the entire location selection section on error
     hideLocationSelectionSection();
   }
