@@ -413,6 +413,43 @@ body.privacy-page {
   }
 }
 
+// Image attribution styles
+.image-attributions {
+  list-style: none;
+  margin: 1.5em 0;
+  padding: 0;
+  
+  .image-attribution-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1em;
+    margin-bottom: 1.5em;
+    
+    .image-attribution-thumbnail {
+      flex-shrink: 0;
+      text-decoration: none; // Remove underline from link
+      display: block; // Make link behave like block element
+      
+      img,
+      picture img {
+        width: 180px;
+        height: auto;
+        border-radius: 4px;
+        display: block;
+      }
+      
+      &:hover {
+        opacity: 0.9; // Slight opacity change on hover to indicate it's clickable
+      }
+    }
+    
+    .image-attribution-text {
+      flex: 1;
+      min-width: 0; // Allow text to wrap properly
+    }
+  }
+}
+
 .standard-text {
   font-size: 1em;
   padding: .4em 0;

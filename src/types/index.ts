@@ -5,6 +5,16 @@ export interface TempHistLocation {
   isDetected: boolean;
 }
 
+export interface ImageAttribution {
+  title: string;
+  photographerName: string;
+  sourceName: string;
+  sourceUrl: string;
+  licenseName?: string | null;
+  licenseUrl?: string | null;
+  attributionRequired?: boolean;
+}
+
 export interface PreapprovedLocation {
   id: string;
   slug: string;
@@ -19,8 +29,9 @@ export interface PreapprovedLocation {
   imageUrl?: {
     webp: string;
     jpeg: string;
-  };
+  } | string;
   imageAlt?: string;
+  imageAttribution?: ImageAttribution | null;
 }
 
 export interface CookieData {

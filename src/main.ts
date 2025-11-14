@@ -25,7 +25,7 @@ import { FeatureFlags } from './utils/FeatureFlags';
 import { PerformanceMonitor } from './utils/PerformanceMonitor';
 import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP, getFallbackLocations } from './services/locationDetection';
-import { initLocationCarousel, resetCarouselState } from './services/locationCarousel';
+import { initLocationCarousel, resetCarouselState, renderImageAttributions } from './services/locationCarousel';
 
 // Initialise location carousel when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
@@ -44,8 +44,6 @@ import {
   CHART_COLORS,
   LOADING_TIMEOUTS,
   API_CONFIG,
-  GEOLOCATION_CONFIG,
-  NOMINATIM_CONFIG,
   CACHE_CONFIG
 } from './constants/index';
 
@@ -912,52 +910,23 @@ function initializeSplashScreen(): void {
           intro.textContent = 'TempHist, operated by Turnpiece Ltd., respects your privacy.';
           
           // No personal data section
-          const noDataTitle = document.createElement('h3');
-          noDataTitle.textContent = 'No personal data collected';
-          const noDataText = document.createElement('p');
-          noDataText.textContent = 'TempHist does not collect, store, or share any personal information.';
+          const { title: noDataTitle, text: noDataText } = createNoPersonalDataSection();
           
           // Location use section
-          const locationTitle = document.createElement('h3');
-          locationTitle.textContent = 'Location use';
-          const locationText = document.createElement('p');
-          locationText.textContent = 'If you grant permission, the app uses your current location once to retrieve historical weather data for your area. Location data is never shared but is temporarily stored in a cookie on your machine for one hour.';
+          const { title: locationTitle, text: locationText } = createLocationUseSection();
           
           // Third-party services section
-          const thirdPartyTitle = document.createElement('h3');
-          thirdPartyTitle.textContent = 'Third-party services and cookies';
-          const thirdPartyText = document.createElement('p');
-          thirdPartyText.textContent = 'TempHist uses Firebase for anonymous authentication, which may set third-party cookies from Google services (including identitytoolkit.googleapis.com and securetoken.googleapis.com). These cookies are used solely for authentication purposes and do not track personal information or enable cross-site tracking.';
-          
-          const cookieUsageText = document.createElement('p');
-          const strongText = document.createElement('strong');
-          strongText.textContent = 'Third-party cookie usage:';
-          cookieUsageText.appendChild(strongText);
-          cookieUsageText.appendChild(document.createTextNode(' Firebase authentication may use third-party cookies to maintain your anonymous session. These cookies are essential for the app\'s authentication functionality and are not used for advertising or tracking purposes.'));
+          const { title: thirdPartyTitle, text: thirdPartyText } = createThirdPartyServicesSection();
+          const cookieUsageText = createCookieUsageText();
           
           // No tracking section
-          const noTrackingTitle = document.createElement('h3');
-          noTrackingTitle.textContent = 'No tracking or analytics';
-          const noTrackingText = document.createElement('p');
-          noTrackingText.textContent = 'The app does not include analytics, advertising or third-party tracking beyond the authentication service mentioned above. We do not use cookies for tracking, advertising, or cross-site user profiling.';
+          const { title: noTrackingTitle, text: noTrackingText } = createNoTrackingSection();
           
           // Data sources section
-          const dataSourcesTitle = document.createElement('h3');
-          dataSourcesTitle.textContent = 'Data sources';
-          const dataSourcesText = document.createElement('p');
-          dataSourcesText.textContent = 'Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted providers. Requests are processed anonymously.';
+          const { title: dataSourcesTitle, text: dataSourcesText } = createDataSourcesSection(true);
           
           // Contact section
-          const contactTitle = document.createElement('h3');
-          contactTitle.textContent = 'Contact';
-          const contactText = document.createElement('p');
-          contactText.textContent = 'If you have questions, please contact Turnpiece Ltd. at ';
-          const contactLink = document.createElement('a');
-          contactLink.href = 'https://turnpiece.com';
-          contactLink.textContent = 'https://turnpiece.com';
-          contactLink.rel = 'noopener noreferrer';
-          contactText.appendChild(contactLink);
-          contactText.appendChild(document.createTextNode('.'));
+          const { title: contactTitle, text: contactText } = createContactSectionPrivacy();
           
           // Append all elements
           container.appendChild(title);
@@ -994,7 +963,7 @@ function initializeSplashScreen(): void {
           title.textContent = 'About TempHist';
           
           const intro = document.createElement('p');
-          intro.textContent = 'TempHist shows how today\'s temperature compares to the same date over the past 50 years for your location.';
+          intro.textContent = 'TempHist shows how today\'s temperature compares to the same date over the past 50 years for a selected location.';
           
           // How it works section
           const howItWorksTitle = document.createElement('h3');
@@ -1004,7 +973,7 @@ function initializeSplashScreen(): void {
           
           const featuresList = document.createElement('ul');
           const features = [
-            { strong: 'Today\'s temperature', text: ' - the current temperature for your location' },
+            { strong: 'Today\'s temperature', text: ' - the current temperature foryour  location' },
             { strong: 'Historical range', text: ' - the highest and lowest temperatures recorded on this date over the past 50 years' },
             { strong: 'Average temperature', text: ' - the average temperature for this date over the past 50 years' },
             { strong: 'Temperature trend', text: ' - how today\'s temperature compares to the historical average' }
@@ -1055,6 +1024,11 @@ function initializeSplashScreen(): void {
           container.appendChild(privacyText);
           container.appendChild(contactTitle);
           container.appendChild(contactText);
+          
+          // Add image attributions section (async, will append when ready)
+          renderImageAttributions(container).catch(error => {
+            console.warn('Failed to render image attributions:', error);
+          });
           
           contentDiv.appendChild(container);
         }
@@ -1899,6 +1873,115 @@ function startPeriodDataPrefetch(): void {
 }
 
 /**
+ * Create data sources section elements
+ * @param includeAnonymousNote - Whether to include "Requests are processed anonymously." at the end
+ * @returns Object with title and text paragraph elements
+ */
+function createDataSourcesSection(includeAnonymousNote: boolean = false): { title: HTMLHeadingElement; text: HTMLParagraphElement } {
+  const dataSourcesTitle = document.createElement('h3');
+  dataSourcesTitle.textContent = 'Data sources';
+  
+  const dataSourcesText = document.createElement('p');
+  dataSourcesText.textContent = 'Weather and climate data are provided via the TempHist API, which sources historical weather data from ';
+  
+  const dataSourcesLink = document.createElement('a');
+  dataSourcesLink.href = 'https://www.visualcrossing.com';
+  dataSourcesLink.textContent = 'Visual Crossing';
+  dataSourcesLink.rel = 'noopener noreferrer';
+  dataSourcesText.appendChild(dataSourcesLink);
+  
+  const endingText = includeAnonymousNote ? '. Requests are processed anonymously.' : '.';
+  dataSourcesText.appendChild(document.createTextNode(endingText));
+  
+  return { title: dataSourcesTitle, text: dataSourcesText };
+}
+
+/**
+ * Create cookie usage text paragraph element
+ * @returns Paragraph element with cookie usage information
+ */
+function createCookieUsageText(): HTMLParagraphElement {
+  const cookieUsageText = document.createElement('p');
+  const strongText = document.createElement('strong');
+  strongText.textContent = 'Third-party cookie usage:';
+  cookieUsageText.appendChild(strongText);
+  cookieUsageText.appendChild(document.createTextNode(' Firebase authentication may use third-party cookies to maintain your anonymous session. These cookies are essential for the app\'s authentication functionality and are not used for advertising or tracking purposes.'));
+  
+  return cookieUsageText;
+}
+
+/**
+ * Create "No personal data collected" section elements
+ * @returns Object with title and text paragraph elements
+ */
+function createNoPersonalDataSection(): { title: HTMLHeadingElement; text: HTMLParagraphElement } {
+  const noDataTitle = document.createElement('h3');
+  noDataTitle.textContent = 'No personal data collected';
+  const noDataText = document.createElement('p');
+  noDataText.textContent = 'TempHist does not collect, store, or share any personal information.';
+  
+  return { title: noDataTitle, text: noDataText };
+}
+
+/**
+ * Create "Location use" section elements
+ * @returns Object with title and text paragraph elements
+ */
+function createLocationUseSection(): { title: HTMLHeadingElement; text: HTMLParagraphElement } {
+  const locationTitle = document.createElement('h3');
+  locationTitle.textContent = 'Location use';
+  const locationText = document.createElement('p');
+  locationText.textContent = 'If you grant permission, the app uses your current location once to retrieve historical weather data for your area. Location data is never shared but is temporarily stored in a cookie on your machine for one hour.';
+  
+  return { title: locationTitle, text: locationText };
+}
+
+/**
+ * Create "Third-party services and cookies" section elements
+ * @returns Object with title and text paragraph elements
+ */
+function createThirdPartyServicesSection(): { title: HTMLHeadingElement; text: HTMLParagraphElement } {
+  const thirdPartyTitle = document.createElement('h3');
+  thirdPartyTitle.textContent = 'Third-party services and cookies';
+  const thirdPartyText = document.createElement('p');
+  thirdPartyText.textContent = 'TempHist uses Firebase for anonymous authentication, which may set third-party cookies from Google services (including identitytoolkit.googleapis.com and securetoken.googleapis.com). These cookies are used solely for authentication purposes and do not track personal information or enable cross-site tracking.';
+  
+  return { title: thirdPartyTitle, text: thirdPartyText };
+}
+
+/**
+ * Create "No tracking or analytics" section elements
+ * @returns Object with title and text paragraph elements
+ */
+function createNoTrackingSection(): { title: HTMLHeadingElement; text: HTMLParagraphElement } {
+  const noTrackingTitle = document.createElement('h3');
+  noTrackingTitle.textContent = 'No tracking or analytics';
+  const noTrackingText = document.createElement('p');
+  noTrackingText.textContent = 'The app does not include analytics, advertising or third-party tracking beyond the authentication service mentioned above. We do not use cookies for tracking, advertising, or cross-site user profiling.';
+  
+  return { title: noTrackingTitle, text: noTrackingText };
+}
+
+/**
+ * Create "Contact" section elements (privacy page variant)
+ * @returns Object with title and text paragraph elements
+ */
+function createContactSectionPrivacy(): { title: HTMLHeadingElement; text: HTMLParagraphElement } {
+  const contactTitle = document.createElement('h3');
+  contactTitle.textContent = 'Contact';
+  const contactText = document.createElement('p');
+  contactText.textContent = 'If you have questions, please contact Turnpiece Ltd. at ';
+  const contactLink = document.createElement('a');
+  contactLink.href = 'https://turnpiece.com';
+  contactLink.textContent = 'https://turnpiece.com';
+  contactLink.rel = 'noopener noreferrer';
+  contactText.appendChild(contactLink);
+  contactText.appendChild(document.createTextNode('.'));
+  
+  return { title: contactTitle, text: contactText };
+}
+
+/**
  * Render the About page content
  */
 function renderAboutPage(): void {
@@ -1924,10 +2007,7 @@ function renderAboutPage(): void {
   const howItWorksText = document.createElement('p');
   howItWorksText.textContent = 'TempHist uses your location to fetch historical weather data and displays it in an easy-to-read chart. Each bar represents the temperature on this date, or this past week/month/year, in a different year, with the current year highlighted in green.';
 
-  const dataSourcesTitle = document.createElement('h3');
-  dataSourcesTitle.textContent = 'Data sources';
-  const dataSourcesText = document.createElement('p');
-  dataSourcesText.textContent = 'Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted meteorological providers.';
+  const { title: dataSourcesTitle, text: dataSourcesText } = createDataSourcesSection(false);
 
   const contactTitle = document.createElement('h3');
   contactTitle.textContent = 'Contact';
@@ -1949,6 +2029,11 @@ function renderAboutPage(): void {
   container.appendChild(dataSourcesText);
   container.appendChild(contactTitle);
   container.appendChild(contactText);
+
+  // Add image attributions section (async, will append when ready)
+  renderImageAttributions(container).catch(error => {
+    console.warn('Failed to render image attributions:', error);
+  });
 
   aboutView.appendChild(container);
 }
@@ -1978,52 +2063,23 @@ function renderPrivacyPage(): void {
   intro.textContent = 'TempHist, operated by Turnpiece Ltd., respects your privacy.';
 
   // No personal data section
-  const noDataTitle = document.createElement('h3');
-  noDataTitle.textContent = 'No personal data collected';
-  const noDataText = document.createElement('p');
-  noDataText.textContent = 'TempHist does not collect, store, or share any personal information.';
+  const { title: noDataTitle, text: noDataText } = createNoPersonalDataSection();
 
   // Location use section
-  const locationTitle = document.createElement('h3');
-  locationTitle.textContent = 'Location use';
-  const locationText = document.createElement('p');
-  locationText.textContent = 'If you grant permission, the app uses your current location once to retrieve historical weather data for your area. Location data is never shared but is temporarily stored in a cookie on your machine for one hour.';
+  const { title: locationTitle, text: locationText } = createLocationUseSection();
 
   // Third-party services section
-  const thirdPartyTitle = document.createElement('h3');
-  thirdPartyTitle.textContent = 'Third-party services and cookies';
-  const thirdPartyText = document.createElement('p');
-  thirdPartyText.textContent = 'TempHist uses Firebase for anonymous authentication, which may set third-party cookies from Google services (including identitytoolkit.googleapis.com and securetoken.googleapis.com). These cookies are used solely for authentication purposes and do not track personal information or enable cross-site tracking.';
-
-  const cookieUsageText = document.createElement('p');
-  const strongText = document.createElement('strong');
-  strongText.textContent = 'Third-party cookie usage:';
-  cookieUsageText.appendChild(strongText);
-  cookieUsageText.appendChild(document.createTextNode(' Firebase authentication may use third-party cookies to maintain your anonymous session. These cookies are essential for the app\'s authentication functionality and are not used for advertising or tracking purposes.'));
+  const { title: thirdPartyTitle, text: thirdPartyText } = createThirdPartyServicesSection();
+  const cookieUsageText = createCookieUsageText();
 
   // No tracking section
-  const noTrackingTitle = document.createElement('h3');
-  noTrackingTitle.textContent = 'No tracking or analytics';
-  const noTrackingText = document.createElement('p');
-  noTrackingText.textContent = 'The app does not include analytics, advertising or third-party tracking beyond the authentication service mentioned above. We do not use cookies for tracking, advertising, or cross-site user profiling.';
+  const { title: noTrackingTitle, text: noTrackingText } = createNoTrackingSection();
 
   // Data sources section
-  const dataSourcesTitle = document.createElement('h3');
-  dataSourcesTitle.textContent = 'Data sources';
-  const dataSourcesText = document.createElement('p');
-  dataSourcesText.textContent = 'Weather and climate data are provided via the TempHist API, which sources historical weather data from trusted providers. Requests are processed anonymously.';
+  const { title: dataSourcesTitle, text: dataSourcesText } = createDataSourcesSection(true);
 
   // Contact section
-  const contactTitle = document.createElement('h3');
-  contactTitle.textContent = 'Contact';
-  const contactText = document.createElement('p');
-  contactText.textContent = 'If you have questions, please contact Turnpiece Ltd. at ';
-  const contactLink = document.createElement('a');
-  contactLink.href = 'https://turnpiece.com';
-  contactLink.textContent = 'https://turnpiece.com';
-  contactLink.rel = 'noopener noreferrer';
-  contactText.appendChild(contactLink);
-  contactText.appendChild(document.createTextNode('.'));
+  const { title: contactTitle, text: contactText } = createContactSectionPrivacy();
 
   // Append all elements
   container.appendChild(title);

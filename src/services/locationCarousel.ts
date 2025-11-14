@@ -529,3 +529,111 @@ export async function initLocationCarousel(): Promise<void> {
     hideLocationSelectionSection();
   }
 }
+
+/**
+ * Render image attributions section for the About page
+ * @param container - The container element to append the attribution section to
+ */
+export async function renderImageAttributions(container: HTMLElement): Promise<void> {
+  try {
+    // Load locations from API
+    const locations = await loadPreapprovedLocations();
+    
+    // Filter locations that have imageAttribution
+    const locationsWithAttribution = locations.filter(
+      location => location.imageAttribution && location.imageAttribution !== null
+    );
+    
+    if (locationsWithAttribution.length === 0) {
+      // No attributions to show, don't add the section
+      return;
+    }
+    
+    // Create attribution section
+    const attributionTitle = document.createElement('h3');
+    attributionTitle.textContent = 'Image attributions';
+
+    const attributionText = document.createElement('p');
+    attributionText.textContent = 'The images used on this site were provided by the following:';
+    
+    const attributionList = document.createElement('ul');
+    attributionList.className = 'image-attributions';
+    
+    // Create list items for each location with attribution
+    locationsWithAttribution.forEach(location => {
+      const attribution = location.imageAttribution!;
+      
+      const listItem = document.createElement('li');
+      listItem.className = 'image-attribution-item';
+      
+      // Thumbnail image (first) - wrapped in link to sourceUrl
+      if (location.imageUrl) {
+        const thumbnailLink = document.createElement('a');
+        thumbnailLink.href = attribution.sourceUrl;
+        thumbnailLink.rel = 'noopener noreferrer';
+        thumbnailLink.className = 'image-attribution-thumbnail';
+        
+        const thumbnail = document.createElement('img');
+        if (typeof location.imageUrl === 'object' && location.imageUrl.webp) {
+          // Use picture element for WebP with JPEG fallback
+          const picture = document.createElement('picture');
+          const source = document.createElement('source');
+          source.srcset = location.imageUrl.webp;
+          source.type = 'image/webp';
+          picture.appendChild(source);
+          
+          thumbnail.src = location.imageUrl.jpeg;
+          thumbnail.alt = location.imageAlt || location.name;
+          thumbnail.loading = 'lazy';
+          picture.appendChild(thumbnail);
+          thumbnailLink.appendChild(picture);
+        } else if (typeof location.imageUrl === 'string') {
+          thumbnail.src = location.imageUrl;
+          thumbnail.alt = location.imageAlt || location.name;
+          thumbnail.loading = 'lazy';
+          thumbnailLink.appendChild(thumbnail);
+        }
+        
+        listItem.appendChild(thumbnailLink);
+      }
+      
+      // Attribution text container (single block of text)
+      const textContainer = document.createElement('span');
+      textContainer.className = 'image-attribution-text';
+      
+      // Attribution text: "[title]" by [photographerName] via [sourceName link] ([licenseName link])
+      const titleText = document.createTextNode(`"${attribution.title}"`);
+      textContainer.appendChild(titleText);
+      textContainer.appendChild(document.createTextNode(' by '));
+      textContainer.appendChild(document.createTextNode(attribution.photographerName));
+      textContainer.appendChild(document.createTextNode(' via '));
+      
+      const sourceLink = document.createElement('a');
+      sourceLink.href = attribution.sourceUrl;
+      sourceLink.textContent = attribution.sourceName;
+      sourceLink.rel = 'noopener noreferrer';
+      textContainer.appendChild(sourceLink);
+      
+      // Only show license if attributionRequired is true AND licenseName exists
+      if (attribution.attributionRequired && attribution.licenseName && attribution.licenseName.trim() && attribution.licenseUrl) {
+        textContainer.appendChild(document.createTextNode(' ('));
+        const licenseLink = document.createElement('a');
+        licenseLink.href = attribution.licenseUrl;
+        licenseLink.textContent = attribution.licenseName;
+        licenseLink.rel = 'noopener noreferrer';
+        textContainer.appendChild(licenseLink);
+        textContainer.appendChild(document.createTextNode(')'));
+      }
+      
+      listItem.appendChild(textContainer);
+      attributionList.appendChild(listItem);
+    });
+    
+    // Append to container
+    container.appendChild(attributionTitle);
+    container.appendChild(attributionList);
+  } catch (error) {
+    console.warn('Error rendering image attributions:', error);
+    // Silently fail - don't show attribution section if there's an error
+  }
+}
