@@ -152,8 +152,11 @@ export default defineConfig(({ mode }) => {
         if (existsSync('apple-touch-icon.png')) {
           copyFileSync('apple-touch-icon.png', 'dist/apple-touch-icon.png')
         }
-        // Copy assets directory
-        execSync('cp -r assets dist/', { stdio: 'inherit' })
+        // Assets are now in public/ directory and handled by Vite automatically
+        // But we still copy them here as a backup to ensure they're present
+        if (existsSync('assets')) {
+          execSync('cp -r assets dist/', { stdio: 'inherit' })
+        }
         
         console.log(`✅ Copied static files to dist/`)
       }

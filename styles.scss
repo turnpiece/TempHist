@@ -68,6 +68,11 @@ a {
   position: relative;
   max-width: 800px;
   margin: 0 auto 1em;
+  
+  // On desktop, when viewOutlet has negative margin, ensure container content is visible
+  @media (min-width: 901px) {
+    margin-top: 0; // Remove top margin since viewOutlet already has padding-top
+  }
 }
 
 .chart-container {
@@ -240,7 +245,7 @@ a {
     #viewOutlet {
       grid-column: 2;
       margin-top: -60px; // Negative margin to move up and use header space
-      padding-top: 0; // Start at top - no space needed for header since it's in sidebar area
+      padding-top: 60px; // Compensate for negative margin to prevent content from being hidden
       min-height: 100vh; // Use full viewport height
     }
   }
