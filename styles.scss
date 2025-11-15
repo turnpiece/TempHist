@@ -238,6 +238,7 @@ a {
     // Sidebar stays in first column
     #sidebar {
       grid-column: 1;
+      padding-left: 6px; // compensate for 10px padding on logo so it aligns with menu items
     }
     
     // ViewOutlet spans second column and starts at top (uses space above where header is)
