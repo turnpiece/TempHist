@@ -37,6 +37,7 @@ html {
   background-image: linear-gradient($colour-bg, $colour-bg-bottom);
   min-height: 100vh;
   overflow-x: hidden; // Prevent horizontal page scroll
+  overflow-y: auto; // Allow vertical scrolling
   width: 100%;
   max-width: 100%; // Prevent overflow
   position: relative;
@@ -68,11 +69,6 @@ a {
   position: relative;
   max-width: 800px;
   margin: 0 auto 1em;
-  
-  // On desktop, when viewOutlet has negative margin, ensure container content is visible
-  @media (min-width: 901px) {
-    margin-top: 0; // Remove top margin since viewOutlet already has padding-top
-  }
 }
 
 .chart-container {
@@ -232,9 +228,12 @@ a {
   
   // On desktop, viewOutlet uses full height (starts at top where header area is)
   @media (min-width: 901px) {
-    // Full viewport height - header is outside appShell, so viewOutlet can use full height
+    // Full viewport height - appShell covers whole viewport, header sits within sidebar column
     min-height: 100vh;
+    height: 100vh; // Use full viewport height
     align-items: start; // Align grid items to start (top)
+    overflow: visible; // Allow content to overflow upward (for negative margin)
+    position: relative; // Establish positioning context
     
     // Sidebar stays in first column
     #sidebar {
@@ -244,9 +243,12 @@ a {
     // ViewOutlet spans second column and starts at top (uses space above where header is)
     #viewOutlet {
       grid-column: 2;
-      margin-top: -60px; // Negative margin to move up and use header space
-      padding-top: 60px; // Compensate for negative margin to prevent content from being hidden
-      min-height: 100vh; // Use full viewport height
+      margin-top: -60px; // Negative margin to move up and use header space - content will overflow upward
+      padding-top: 0; // Start at top - no space needed for header since it's in sidebar area
+      min-height: calc(100vh + 60px); // Add 60px to account for negative margin so content isn't cut off
+      overflow-y: auto; // Allow vertical scrolling
+      overflow-x: hidden; // Prevent horizontal scrolling
+      position: relative; // Establish positioning context
     }
   }
 }
@@ -388,6 +390,12 @@ a {
   box-sizing: border-box; // Include padding in width calculation
   -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
   width: 100%;
+  
+  // On desktop, allow overflow upward for negative margin
+  @media (min-width: 901px) {
+    overflow-y: auto; // Allow vertical scrolling
+    overflow-x: hidden; // Prevent horizontal scrolling
+  }
 }
 
 /* Page-specific styles for privacy and about pages */
