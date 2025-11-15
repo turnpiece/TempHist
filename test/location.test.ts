@@ -5,7 +5,7 @@ describe('Location Detection', () => {
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks()
-    fetch.mockClear()
+    vi.mocked(fetch).mockClear()
     
     // Reset DOM
     document.body.innerHTML = ''

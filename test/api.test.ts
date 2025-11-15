@@ -4,26 +4,27 @@ import { checkApiHealth, createAsyncJob, pollJobStatus, fetchTemperatureDataAsyn
 describe('API Functions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    fetch.mockClear()
+    vi.mocked(fetch).mockClear()
     
     // Mock currentUser
     window.currentUser = {
+      uid: 'test-user-id',
       getIdToken: vi.fn().mockResolvedValue('mock-token')
     }
   })
 
   describe('API Health Check', () => {
     it('should return true for healthy API', async () => {
-      fetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true
-      })
+      } as unknown as Response)
 
       const result = await checkApiHealth()
       expect(result).toBe(true)
     })
 
     it('should return false for unhealthy API', async () => {
-      fetch.mockRejectedValueOnce(new Error('Network error'))
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'))
 
       const result = await checkApiHealth()
       expect(result).toBe(false)
@@ -36,20 +37,20 @@ describe('API Functions', () => {
         job_id: 'test-job-123'
       }
 
-      fetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: vi.fn().mockResolvedValue(mockJobResponse)
-      })
+      } as unknown as Response)
 
       const jobId = await createAsyncJob('daily', 'London, UK', '10-05')
       expect(jobId).toBe('test-job-123')
     })
 
     it('should handle job creation failure', async () => {
-      fetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 400
-      })
+      } as unknown as Response)
 
       await expect(createAsyncJob('daily', 'London, UK', '10-05'))
         .rejects.toThrow('Failed to create job')
@@ -77,10 +78,10 @@ describe('API Functions', () => {
       }
 
       // Mock immediate ready response to avoid timeout
-      fetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: vi.fn().mockResolvedValue(mockReadyResponse)
-      })
+      } as unknown as Response)
 
       const result = await pollJobStatus('test-job-123')
       expect(result).toEqual(mockReadyResponse.result)
@@ -108,20 +109,20 @@ describe('API Functions', () => {
       }
 
       // Mock job creation
-      fetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: vi.fn().mockResolvedValue({ job_id: mockJobId })
-      })
+      } as unknown as Response)
 
       // Mock job polling - return ready immediately
-      fetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: vi.fn().mockResolvedValue({
           job_id: mockJobId,
           status: 'ready',
           result: mockResult
         })
-      })
+      } as unknown as Response)
 
       const result = await fetchTemperatureDataAsync('daily', 'London, UK', '10-05')
       expect(result).toEqual(mockResult)

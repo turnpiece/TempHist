@@ -4,7 +4,7 @@ import { setLocationCookie, getLocationCookie } from '../src/utils/location'
 describe('Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    fetch.mockClear()
+    vi.mocked(fetch).mockClear()
     clearCookies()
     
     // Reset DOM

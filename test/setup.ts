@@ -9,7 +9,7 @@ global.Chart = vi.fn().mockImplementation(() => ({
 }))
 
 // Mock Chart.getChart
-Chart.getChart = vi.fn()
+global.Chart.getChart = vi.fn()
 
 // Mock Firebase
 global.firebase = {
