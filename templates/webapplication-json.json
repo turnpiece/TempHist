@@ -1,0 +1,17 @@
+{
+  "@type": "WebApplication",
+  "name": "TempHist",
+  "description": "Daily temperature history chart showing how today's temperature compares to the same date over the past 50 years for your location.",
+  "url": "https://temphist.com",
+  "applicationCategory": "WeatherApplication",
+  "author": {
+    "@type": "Organization",
+    "name": "Turnpiece"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Turnpiece",
+    "url": "https://turnpiece.com"
+  }
+}
+

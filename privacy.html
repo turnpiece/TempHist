@@ -1,12 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- INCLUDE:head-common -->
     <meta name="description" content="Privacy policy for TempHist - learn how we handle your location data and privacy." />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <title>TempHist • privacy policy</title>
-    <link rel="stylesheet" href="styles.scss">
     
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -21,22 +18,7 @@
         "name": "TempHist",
         "url": "https://temphist.com"
       },
-      "about": {
-        "@type": "WebApplication",
-        "name": "TempHist",
-        "description": "Daily temperature history chart showing how today's temperature compares to the same date over the past 50 years for your location.",
-        "url": "https://temphist.com",
-        "applicationCategory": "WeatherApplication",
-        "author": {
-          "@type": "Organization",
-          "name": "Turnpiece"
-        },
-        "publisher": {
-          "@type": "Organization",
-          "name": "Turnpiece",
-          "url": "https://turnpiece.com"
-        }
-      },
+      "about": <!-- INCLUDE:webapplication-json -->,
       "breadcrumb": {
         "@type": "BreadcrumbList",
         "itemListElement": [
@@ -60,36 +42,10 @@
     </script>
     </head>
   <body class="privacy-page">
-    <header id="header">
-      <div class="header-left">
-        <a href="/">
-          <div id="logo">
-            <object data="assets/logo.svg" type="image/svg+xml" title="TempHist">
-              <img
-                src="assets/logo.png"
-                alt="TempHist logo"
-                width="50"
-                height="50"
-              />
-            </object>
-          </div>
-          <h1>TempHist</h1>
-        </a>
-      </div>
-      <button id="burgerBtn" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">☰</button>
-    </header>
+    <!-- INCLUDE:header -->
 
     <div id="appShell">
-      <nav id="sidebar" aria-label="Primary">
-        <ul>
-          <li><a href="/#/today" data-route="/today">Today</a></li>
-          <li><a href="/#/week" data-route="/week">Past week</a></li>
-          <li><a href="/#/month" data-route="/month">Past month</a></li>
-          <li><a href="/#/year" data-route="/year">Past year</a></li>
-          <li><a href="/about" data-route="/about">About</a></li>
-          <li><a href="/privacy" data-route="/privacy" class="active">Privacy</a></li>
-        </ul>
-      </nav>
+      <!-- INCLUDE:nav -->
 
       <main id="viewOutlet" role="main">
         <div id="content">

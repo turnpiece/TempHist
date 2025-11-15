@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="See how today’s temperature compares to the same date over the past 50 years for your location." />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <!-- INCLUDE:head-common -->
+    <meta name="description" content="See how today's temperature compares to the same date over the past 50 years for your location." />
     <title>TempHist • temperature history</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js" defer></script>
     <script
@@ -12,31 +10,17 @@
       defer
     ></script>
     <link rel="dns-prefetch" href="%VITE_API_BASE%" />
-    <link rel="stylesheet" href="styles.scss" />
     
     <!-- Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "TempHist",
-      "description": "Daily temperature history chart showing how today's temperature compares to the same date over the past 50 years for your location.",
-      "url": "https://temphist.com",
-      "applicationCategory": "WeatherApplication",
+      <!-- INCLUDE:webapplication-json -->,
       "operatingSystem": "Web Browser",
       "offers": {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "USD"
-      },
-      "author": {
-        "@type": "Organization",
-        "name": "Turnpiece"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "Turnpiece",
-        "url": "https://turnpiece.com"
       },
       "featureList": [
         "Historical temperature comparison",
@@ -51,24 +35,7 @@
     </script>
   </head>
   <body>
-    <header id="header">
-      <div class="header-left">
-        <a href="#/today">
-          <div id="logo">
-            <object data="assets/logo.svg" type="image/svg+xml" title="TempHist">
-              <img
-                src="assets/logo.png"
-                alt="TempHist logo"
-                width="50"
-                height="50"
-              />
-            </object>
-          </div>
-          <h1>TempHist</h1>
-        </a>
-      </div>
-      <button id="burgerBtn" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">☰</button>
-    </header>
+    <!-- INCLUDE:header -->
 
     <!-- Splash Screen -->
     <div id="splashScreen" class="splash-screen">
@@ -135,16 +102,7 @@
     </div>
 
     <div id="appShell" class="hidden">
-      <nav id="sidebar" aria-label="Primary">
-        <ul>
-          <li><a href="#/today" data-route="/today">Today</a></li>
-          <li><a href="#/week" data-route="/week">Past week</a></li>
-          <li><a href="#/month" data-route="/month">Past month</a></li>
-          <li><a href="#/year" data-route="/year">Past year</a></li>
-          <li><a href="#/about" data-route="/about">About</a></li>
-          <li><a href="#/privacy" data-route="/privacy">Privacy</a></li>
-        </ul>
-      </nav>
+      <!-- INCLUDE:nav -->
 
       <main id="viewOutlet" role="main">
         <!-- Default view (Today) keeps your existing chart DOM -->
