@@ -131,7 +131,7 @@ a {
 }
 
 #header { 
-  padding: 8px 24px 12px 14px; // Reduced left padding by 10px to align logo with content
+  padding: 8px 16px 12px 6px; // Reduced left padding by 10px to align logo with content
   color: var(--accent); 
   display: flex; 
   align-items: center; 
@@ -367,8 +367,8 @@ a {
 
 #viewOutlet { 
   padding-top: 0;
-  padding-left: 24px; // Explicit left padding for symmetry
-  padding-right: 24px; // Explicit right padding for symmetry
+  padding-left: 16px; // Explicit left padding for symmetry
+  padding-right: 16px; // Explicit right padding for symmetry
   padding-bottom: 4rem; // Extra bottom padding for mobile browser bar
   position: relative;
   box-sizing: border-box; // Ensure padding is included in width calculation
@@ -436,10 +436,14 @@ body.privacy-page {
       
       img,
       picture img {
-        width: 180px;
+        width: 120px;
         height: auto;
         border-radius: 4px;
         display: block;
+
+        @media (min-width: 901px) {
+          width: 180px;
+        }
       }
       
       &:hover {
@@ -451,8 +455,10 @@ body.privacy-page {
       flex: 1;
       min-width: 0; // Allow text to wrap properly
       max-width: 400px;
-      margin-top: 1rem;
       font-size: 90%;
+      @media (min-width: 901px) {
+        margin-top: 1rem;
+      }
     }
   }
 }
