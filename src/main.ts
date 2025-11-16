@@ -227,21 +227,49 @@ if (DEBUGGING) {
   };
 }
 
-// Helper function to generate location display with edit icon
-function generateLocationDisplayHTML(displayText: string, periodKey: string = ''): string {
+// Helper function to build location display with edit icon (Trusted Types safe)
+function buildLocationDisplay(
+  container: HTMLElement,
+  displayText: string,
+  periodKey: string = ''
+): void {
   const buttonId = periodKey ? `changeLocationBtn-${periodKey}` : 'changeLocationBtn';
-  return `
-    ${displayText}
-    <button 
-      id="${buttonId}" 
-      class="location-edit-icon" 
-      title="Change location"
-      aria-label="Change location">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
-      </svg>
-    </button>
-  `;
+
+  // Clear existing contents
+  while (container.firstChild) {
+    container.removeChild(container.firstChild);
+  }
+
+  // Text node for the location name
+  container.appendChild(document.createTextNode(displayText + ' '));
+
+  // Edit button
+  const button = document.createElement('button');
+  button.id = buttonId;
+  button.className = 'location-edit-icon';
+  button.title = 'Change location';
+  button.setAttribute('aria-label', 'Change location');
+
+  // SVG icon
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('xmlns', svgNS);
+
+  const path = document.createElementNS(svgNS, 'path');
+  path.setAttribute(
+    'd',
+    'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'
+  );
+  path.setAttribute('fill', 'currentColor');
+
+  svg.appendChild(path);
+  button.appendChild(svg);
+
+  container.appendChild(button);
 }
 
 // Helper function to generate context-specific error messages
@@ -2521,10 +2549,10 @@ window.mainAppLogic = function(): void {
     if (locationTextElement) {
       // Add classes based on location source
       locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
-      
-      // Show location with edit icon
-      locationTextElement.innerHTML = generateLocationDisplayHTML(displayLocation, periodKey);
-      
+
+      // Show location with edit icon without using innerHTML
+      buildLocationDisplay(locationTextElement, displayLocation, periodKey);
+
       // Add click handler for the edit icon
       const changeLocationBtn = document.getElementById(`changeLocationBtn-${periodKey}`);
       if (changeLocationBtn) {
@@ -3267,10 +3295,10 @@ window.mainAppLogic = function(): void {
     if (locationTextElement) {
       // Add classes based on location source
       locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
-      
-      // Show location with edit icon
-      locationTextElement.innerHTML = generateLocationDisplayHTML(locationDisplay);
-      
+
+      // Show location with edit icon without using innerHTML
+      buildLocationDisplay(locationTextElement, locationDisplay);
+
       // Add click handler for the edit icon
       const changeLocationBtn = document.getElementById('changeLocationBtn');
       if (changeLocationBtn) {

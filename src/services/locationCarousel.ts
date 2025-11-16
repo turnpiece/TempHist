@@ -116,59 +116,69 @@ function createLocationCard(location: PreapprovedLocation): HTMLButtonElement {
   button.setAttribute('role', 'option');
   button.dataset.locationId = location.id;
 
-  // Build image HTML with WebP and JPEG fallback support
-  let imageHtml = '';
+  // Image wrapper (always present for spacing)
+  const imageWrapper = document.createElement('div');
+  imageWrapper.className = 'location-card__image-wrapper';
+
+  let imgElement: HTMLImageElement | null = null;
+
   if (location.imageUrl) {
     if (typeof location.imageUrl === 'object' && location.imageUrl.webp && location.imageUrl.jpeg) {
       // Use picture element for WebP with JPEG fallback
-      imageHtml = `
-        <picture class="location-card__picture">
-          <source srcset="${location.imageUrl.webp}" type="image/webp">
-          <img
-            class="location-card__image"
-            src="${location.imageUrl.jpeg}"
-            alt="${location.imageAlt || location.name}"
-            loading="lazy"
-          />
-        </picture>
-      `;
+      const picture = document.createElement('picture');
+      picture.className = 'location-card__picture';
+
+      const source = document.createElement('source');
+      source.srcset = location.imageUrl.webp;
+      source.type = 'image/webp';
+      picture.appendChild(source);
+
+      const img = document.createElement('img');
+      img.className = 'location-card__image';
+      img.src = location.imageUrl.jpeg;
+      img.alt = location.imageAlt || location.name;
+      img.loading = 'lazy';
+      picture.appendChild(img);
+
+      imageWrapper.appendChild(picture);
+      imgElement = img;
     } else if (typeof location.imageUrl === 'string') {
       // Fallback for simple string URL
-      imageHtml = `
-        <img
-          class="location-card__image"
-          src="${location.imageUrl}"
-          alt="${location.imageAlt || location.name}"
-          loading="lazy"
-        />
-      `;
+      const img = document.createElement('img');
+      img.className = 'location-card__image';
+      img.src = location.imageUrl;
+      img.alt = location.imageAlt || location.name;
+      img.loading = 'lazy';
+      imageWrapper.appendChild(img);
+      imgElement = img;
     }
   }
 
-  // Always include the image wrapper, even if empty (for spacing)
-  if (!imageHtml) {
-    imageHtml = '<div class="location-card__image-placeholder"></div>';
+  // If no valid image URL, add placeholder
+  if (!imgElement) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'location-card__image-placeholder';
+    imageWrapper.appendChild(placeholder);
   }
 
-  button.innerHTML = `
-    <div class="location-card__image-wrapper">
-      ${imageHtml}
-    </div>
-    <span class="location-card__name">${location.name || 'Unknown'}</span>
-  `;
+  button.appendChild(imageWrapper);
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'location-card__name';
+  nameSpan.textContent = location.name || 'Unknown';
+  button.appendChild(nameSpan);
 
   // Add error handler for images after they're in the DOM
-  const img = button.querySelector('img');
-  if (img) {
-    img.addEventListener('error', () => {
+  if (imgElement) {
+    imgElement.addEventListener('error', () => {
       const wrapper = button.querySelector('.location-card__image-wrapper');
       if (wrapper) {
         wrapper.classList.add('image-error');
-        img.style.display = 'none';
+        imgElement!.style.display = 'none';
         // Also hide picture element if it exists
         const picture = button.querySelector('picture');
         if (picture) {
-          picture.style.display = 'none';
+          (picture as HTMLElement).style.display = 'none';
         }
       }
     });
@@ -465,8 +475,10 @@ export async function initLocationCarousel(): Promise<void> {
       return;
     }
 
-    // Clear track content
-    track.innerHTML = '';
+    // Clear track content without using innerHTML (Trusted Types safe)
+    while (track.firstChild) {
+      track.removeChild(track.firstChild);
+    }
 
     // Build cards for each location
     if ((window as any).debugLog) {
