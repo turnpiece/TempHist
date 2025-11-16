@@ -1055,11 +1055,12 @@ h2, .date-heading {
 }
 
 .btn-primary {
-  background: $colour-primary;
+  // Use a darker red (error colour) for better contrast with white text
+  background: $colour-error;
   color: white;
   
   &:hover:not(:disabled) {
-    background: color.adjust($colour-primary, $lightness: 10%);
+    background: color.adjust($colour-error, $lightness: 10%);
   }
 }
 
