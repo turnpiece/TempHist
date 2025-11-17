@@ -108,8 +108,10 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
 
 /**
  * Create a location card element with image support
+ * @param location - The location data
+ * @param isPriorityImage - If true, image loads eagerly with high priority (for first visible images)
  */
-function createLocationCard(location: PreapprovedLocation): HTMLButtonElement {
+function createLocationCard(location: PreapprovedLocation, isPriorityImage: boolean = false): HTMLButtonElement {
   const button = document.createElement('button');
   button.className = 'location-card';
   button.type = 'button';
@@ -137,7 +139,13 @@ function createLocationCard(location: PreapprovedLocation): HTMLButtonElement {
       img.className = 'location-card__image';
       img.src = location.imageUrl.jpeg;
       img.alt = location.imageAlt || location.name;
-      img.loading = 'lazy';
+      // First few visible images should load eagerly with high priority for better LCP
+      if (isPriorityImage) {
+        img.loading = 'eager';
+        img.setAttribute('fetchpriority', 'high');
+      } else {
+        img.loading = 'lazy';
+      }
       picture.appendChild(img);
 
       imageWrapper.appendChild(picture);
@@ -148,7 +156,13 @@ function createLocationCard(location: PreapprovedLocation): HTMLButtonElement {
       img.className = 'location-card__image';
       img.src = location.imageUrl;
       img.alt = location.imageAlt || location.name;
-      img.loading = 'lazy';
+      // First few visible images should load eagerly with high priority for better LCP
+      if (isPriorityImage) {
+        img.loading = 'eager';
+        img.setAttribute('fetchpriority', 'high');
+      } else {
+        img.loading = 'lazy';
+      }
       imageWrapper.appendChild(img);
       imgElement = img;
     }
@@ -481,14 +495,17 @@ export async function initLocationCarousel(): Promise<void> {
     }
 
     // Build cards for each location
+    // First 3 cards are priority images (likely visible initially) - load eagerly with high priority
+    const PRIORITY_IMAGE_COUNT = 3;
     if ((window as any).debugLog) {
       (window as any).debugLog('Creating cards for', locations.length, 'locations');
     }
     locations.forEach((location, index) => {
-      const card = createLocationCard(location);
+      const isPriorityImage = index < PRIORITY_IMAGE_COUNT;
+      const card = createLocationCard(location, isPriorityImage);
       track.appendChild(card);
       if ((window as any).debugLog) {
-        (window as any).debugLog(`Created card ${index + 1}: ${location.name} (${location.id})`);
+        (window as any).debugLog(`Created card ${index + 1}: ${location.name} (${location.id})${isPriorityImage ? ' [priority]' : ''}`);
       }
     });
 
