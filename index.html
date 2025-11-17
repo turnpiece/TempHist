@@ -4,13 +4,15 @@
     <!-- INCLUDE:head-common -->
     <meta name="description" content="See how today's temperature compares to the same date over the past 50 years for your location." />
     <title>TempHist • temperature history</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="%VITE_API_BASE%" crossorigin>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js" defer></script>
     <script
       src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"
       defer
     ></script>
-    <link rel="dns-prefetch" href="%VITE_API_BASE%" />
-    
+
     <!-- Structured Data -->
     <script type="application/ld+json">
     {
