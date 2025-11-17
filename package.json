@@ -1,6 +1,6 @@
 {
   "name": "temphist",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "Daily temperature history chart. Shows the temperature on the same day each year over the past 50 years for the current location.",
   "main": "src/main.ts",
   "scripts": {
