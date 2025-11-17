@@ -2468,35 +2468,98 @@ window.mainAppLogic = function(): void {
     const monthName = dateToUse.toLocaleString('en-GB', { month: 'long' });
     const friendlyDate = `${getOrdinal(day)} ${monthName}`;
     
-    // Match Today page layout exactly
-    sec.innerHTML = `
-      <div class="container">
-        <h2 id="${periodKey}DateText" class="date-heading"></h2>
-        <div id="${periodKey}LocationText" class="standard-text"></div>
-        <div id="${periodKey}DataNotice" class="notice"></div>
-        <div id="${periodKey}SummaryText" class="standard-text summary-text"></div>
-        
-        <div class="chart-container">
-          <div id="${periodKey}Loading" class="loading">
-            <div class="spinner"></div>
-            <p id="${periodKey}LoadingText" class="loading-text">${INITIAL_LOADING_TEXT}</p>
-          </div>
-          
-          <div id="${periodKey}ErrorContainer" class="error-container" style="display: none;">
-            <div class="error-content">
-              <div id="${periodKey}ErrorMessage" class="error-message"></div>
-              <button id="${periodKey}ReloadButton" class="reload-button">Reload</button>
-            </div>
-          </div>
-          
-          <canvas id="${periodKey}Chart"></canvas>
-        </div>
-        
-        <div id="${periodKey}AvgText" class="standard-text avg-text"></div>
-        <div id="${periodKey}TrendText" class="standard-text trend-text"></div>
-        <div id="${periodKey}IncompleteDataNotice" class="notice" style="display: none;"></div>
-      </div>
-    `;
+    // Match Today page layout exactly without using innerHTML (Trusted Types safe)
+    while (sec.firstChild) {
+      sec.removeChild(sec.firstChild);
+    }
+
+    const container = document.createElement('div');
+    container.className = 'container';
+
+    const dateHeading = document.createElement('h2');
+    dateHeading.id = `${periodKey}DateText`;
+    dateHeading.className = 'date-heading';
+    container.appendChild(dateHeading);
+
+    const locationText = document.createElement('div');
+    locationText.id = `${periodKey}LocationText`;
+    locationText.className = 'standard-text';
+    container.appendChild(locationText);
+
+    const dataNotice = document.createElement('div');
+    dataNotice.id = `${periodKey}DataNotice`;
+    dataNotice.className = 'notice';
+    container.appendChild(dataNotice);
+
+    const summaryText = document.createElement('div');
+    summaryText.id = `${periodKey}SummaryText`;
+    summaryText.className = 'standard-text summary-text';
+    container.appendChild(summaryText);
+
+    const chartContainer = document.createElement('div');
+    chartContainer.className = 'chart-container';
+
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = `${periodKey}Loading`;
+    loadingDiv.className = 'loading';
+
+    const spinnerDiv = document.createElement('div');
+    spinnerDiv.className = 'spinner';
+    loadingDiv.appendChild(spinnerDiv);
+
+    const loadingText = document.createElement('p');
+    loadingText.id = `${periodKey}LoadingText`;
+    loadingText.className = 'loading-text';
+    loadingText.textContent = INITIAL_LOADING_TEXT;
+    loadingDiv.appendChild(loadingText);
+
+    chartContainer.appendChild(loadingDiv);
+
+    const errorContainer = document.createElement('div');
+    errorContainer.id = `${periodKey}ErrorContainer`;
+    errorContainer.className = 'error-container';
+    errorContainer.style.display = 'none';
+
+    const errorContent = document.createElement('div');
+    errorContent.className = 'error-content';
+
+    const errorMessage = document.createElement('div');
+    errorMessage.id = `${periodKey}ErrorMessage`;
+    errorMessage.className = 'error-message';
+    errorContent.appendChild(errorMessage);
+
+    const reloadButton = document.createElement('button');
+    reloadButton.id = `${periodKey}ReloadButton`;
+    reloadButton.className = 'reload-button';
+    reloadButton.textContent = 'Reload';
+    errorContent.appendChild(reloadButton);
+
+    errorContainer.appendChild(errorContent);
+    chartContainer.appendChild(errorContainer);
+
+    const canvasEl = document.createElement('canvas');
+    canvasEl.id = `${periodKey}Chart`;
+    chartContainer.appendChild(canvasEl);
+
+    container.appendChild(chartContainer);
+
+    const avgText = document.createElement('div');
+    avgText.id = `${periodKey}AvgText`;
+    avgText.className = 'standard-text avg-text';
+    container.appendChild(avgText);
+
+    const trendText = document.createElement('div');
+    trendText.id = `${periodKey}TrendText`;
+    trendText.className = 'standard-text trend-text';
+    container.appendChild(trendText);
+
+    const incompleteNotice = document.createElement('div');
+    incompleteNotice.id = `${periodKey}IncompleteDataNotice`;
+    incompleteNotice.className = 'notice';
+    incompleteNotice.style.display = 'none';
+    container.appendChild(incompleteNotice);
+
+    sec.appendChild(container);
 
     const loadingEl = document.getElementById(`${periodKey}Loading`) as HTMLElement;
     const periodCanvasNode = document.getElementById(`${periodKey}Chart`);
