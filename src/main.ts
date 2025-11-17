@@ -369,7 +369,9 @@ function showFatalError(periodKey?: string): void {
     const noticeEl = document.getElementById(`${periodKey}DataNotice`);
     debugLog('showFatalError: Found noticeEl:', noticeEl);
     if (noticeEl) {
-      noticeEl.innerHTML = '';
+      while (noticeEl.firstChild) {
+        noticeEl.removeChild(noticeEl.firstChild);
+      }
       noticeEl.className = 'notice status-error';
       noticeEl.style.display = 'block';
       debugLog('showFatalError: Set noticeEl display to block');
@@ -1453,7 +1455,13 @@ function showManualLocationSelection(): void {
 
   // Show loading state in the dropdown
   if (locationSelect) {
-    locationSelect.innerHTML = '<option value="">Loading locations...</option>';
+    while (locationSelect.firstChild) {
+      locationSelect.removeChild(locationSelect.firstChild);
+    }
+    const loadingOption = document.createElement('option');
+    loadingOption.value = '';
+    loadingOption.textContent = 'Loading locations...';
+    locationSelect.appendChild(loadingOption);
     (locationSelect as HTMLSelectElement).disabled = true;
   }
 
