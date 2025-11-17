@@ -610,8 +610,10 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?:
   debugLog(`${periodKey}IncompleteDataNotice element found:`, noticeEl);
   
   if (noticeEl) {
-    // Clear any existing content
-    noticeEl.innerHTML = '';
+    // Clear any existing content (Trusted Types safe)
+    while (noticeEl.firstChild) {
+      noticeEl.removeChild(noticeEl.firstChild);
+    }
     
     // Create the warning content
     const contentEl = document.createElement('div');
@@ -683,7 +685,10 @@ function hideIncompleteDataNotice(periodKey?: string): void {
   const noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
   if (noticeEl) {
     noticeEl.style.display = 'none';
-    noticeEl.innerHTML = '';
+    // Clear content (Trusted Types safe)
+    while (noticeEl.firstChild) {
+      noticeEl.removeChild(noticeEl.firstChild);
+    }
     noticeEl.className = 'notice';
   }
 }
@@ -703,7 +708,10 @@ function retryDataFetch(): void {
     const noticeEl = document.getElementById(`${currentView}DataNotice`);
     if (noticeEl) {
       noticeEl.style.display = 'none';
-      noticeEl.innerHTML = '';
+      // Clear content (Trusted Types safe)
+      while (noticeEl.firstChild) {
+        noticeEl.removeChild(noticeEl.firstChild);
+      }
       noticeEl.className = 'notice';
     }
   }
@@ -1515,8 +1523,10 @@ function populateLocationDropdown(locations: PreapprovedLocation[]): void {
 
   debugLog('Populating location dropdown with', locations.length, 'locations');
 
-  // Clear existing options
-  locationSelect.innerHTML = '';
+  // Clear existing options (Trusted Types safe)
+  while (locationSelect.firstChild) {
+    locationSelect.removeChild(locationSelect.firstChild);
+  }
 
   // Add default option
   const defaultOption = document.createElement('option');
