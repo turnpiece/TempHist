@@ -514,10 +514,6 @@ body.privacy-page {
   color: var(--thisYear);
 }
 
-.status-info {
-  color: var(--avg);
-}
-
 .status-neutral {
   color: #666;
 }
@@ -830,7 +826,7 @@ h2, .date-heading {
 }
 
 /* Opacity transitions for loading/chart */
-#tempChart, .skeleton {
+#tempChart {
   position: absolute;
   top: 0;
   left: 0;
@@ -1076,11 +1072,6 @@ h2, .date-heading {
 }
 
 // Navigation active state
-nav a.active {
-  color: $colour-spinner !important;
-}
-
-// More specific selector for navigation
 #sidebar a.active {
   color: $colour-spinner !important;
 }
