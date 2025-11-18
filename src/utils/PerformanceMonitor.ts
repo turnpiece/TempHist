@@ -237,8 +237,9 @@ class PerformanceMonitor {
 
   /**
    * Get performance report
+   * @internal Currently unused
    */
-  static getReport(): PerformanceReport {
+  private static getReport(): PerformanceReport {
     const coreWebVitals: CoreWebVitals = {};
     const customMetrics: PerformanceMetric[] = [];
 
@@ -274,8 +275,9 @@ class PerformanceMonitor {
 
   /**
    * Get Core Web Vitals
+   * @internal Currently unused
    */
-  static getCoreWebVitals(): CoreWebVitals {
+  private static getCoreWebVitals(): CoreWebVitals {
     const vitals: CoreWebVitals = {};
     this.metrics.forEach(metric => {
       if (['lcp', 'fid', 'cls', 'fcp', 'ttfb'].includes(metric.name)) {
@@ -287,8 +289,9 @@ class PerformanceMonitor {
 
   /**
    * Get performance summary
+   * @internal Currently unused
    */
-  static getSummary(): {
+  private static getSummary(): {
     totalMetrics: number;
     averageLoadTime: number;
     slowestResource: PerformanceMetric | null;
@@ -314,23 +317,26 @@ class PerformanceMonitor {
 
   /**
    * Clear all metrics
+   * @internal Currently unused
    */
-  static clear(): void {
+  private static clear(): void {
     this.metrics = [];
   }
 
   /**
    * Disconnect all observers
+   * @internal Currently unused
    */
-  static disconnect(): void {
+  private static disconnect(): void {
     this.observers.forEach(observer => observer.disconnect());
     this.observers = [];
   }
 
   /**
    * Enable/disable monitoring
+   * @internal Currently unused
    */
-  static setEnabled(enabled: boolean): void {
+  private static setEnabled(enabled: boolean): void {
     this.isEnabled = enabled;
     if (!enabled) {
       this.disconnect();
@@ -341,8 +347,9 @@ class PerformanceMonitor {
 
   /**
    * Export performance data
+   * @internal Currently unused
    */
-  static export(): string {
+  private static export(): string {
     return JSON.stringify({
       report: this.getReport(),
       summary: this.getSummary(),

@@ -55,6 +55,7 @@ export function detectDeviceAndPlatform(): PlatformInfo {
 
 /**
  * Enhanced mobile detection function (backward compatibility)
+ * Note: Currently only used in tests
  */
 export function isMobileDevice(): boolean {
   return detectDeviceAndPlatform().isMobile;

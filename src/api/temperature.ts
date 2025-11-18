@@ -138,8 +138,9 @@ export async function checkApiHealth(): Promise<boolean> {
 
 /**
  * Create async job for temperature data
+ * @internal Only used internally by fetchTemperatureDataAsync
  */
-export async function createAsyncJob(
+async function createAsyncJob(
   period: 'daily' | 'week' | 'month' | 'year',
   location: string,
   identifier: string
@@ -173,8 +174,9 @@ export async function createAsyncJob(
 
 /**
  * Poll job status until completion
+ * @internal Only used internally by fetchTemperatureDataAsync
  */
-export async function pollJobStatus(
+async function pollJobStatus(
   jobId: string, 
   onProgress?: (status: AsyncJobResponse) => void
 ): Promise<JobResultResponse> {
@@ -224,8 +226,9 @@ export async function pollJobStatus(
 
 /**
  * Fetch temperature data using synchronous endpoint (fallback)
+ * @internal Only used internally by fetchTemperatureDataAsync
  */
-export async function fetchTemperatureDataSync(
+async function fetchTemperatureDataSync(
   period: 'daily' | 'week' | 'month' | 'year',
   location: string,
   identifier: string

@@ -76,8 +76,9 @@ class ErrorBoundary {
 
   /**
    * Retry a failed operation
+   * @internal Currently unused
    */
-  static async retry<T>(
+  private static async retry<T>(
     operation: () => Promise<T>,
     operationId: string,
     maxRetries: number = this.maxRetries
@@ -105,8 +106,9 @@ class ErrorBoundary {
 
   /**
    * Create a fallback UI for errors
+   * @internal Currently unused
    */
-  static createFallbackUI(error: Error, retryCallback?: () => void): HTMLElement {
+  private static createFallbackUI(error: Error, retryCallback?: () => void): HTMLElement {
     const container = document.createElement('div');
     container.className = 'error-boundary-fallback';
     container.style.cssText = `
@@ -151,8 +153,9 @@ class ErrorBoundary {
 
   /**
    * Wrap a function with error handling
+   * @internal Currently unused
    */
-  static wrap<T extends any[], R>(
+  private static wrap<T extends any[], R>(
     fn: (...args: T) => R,
     context: string = 'unknown'
   ): (...args: T) => R {
@@ -171,8 +174,9 @@ class ErrorBoundary {
 
   /**
    * Wrap an async function with error handling
+   * @internal Currently unused
    */
-  static wrapAsync<T extends any[], R>(
+  private static wrapAsync<T extends any[], R>(
     fn: (...args: T) => Promise<R>,
     context: string = 'unknown'
   ): (...args: T) => Promise<R> {
@@ -191,8 +195,9 @@ class ErrorBoundary {
 
   /**
    * Get error statistics
+   * @internal Currently unused
    */
-  static getErrorStats(): {
+  private static getErrorStats(): {
     totalErrors: number;
     recentErrors: number;
     errorTypes: Record<string, number>;

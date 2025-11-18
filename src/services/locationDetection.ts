@@ -4,8 +4,9 @@ import { DEFAULT_LOCATION, NOMINATIM_CONFIG, GEOLOCATION_CONFIG } from '../const
 
 /**
  * Get city name from coordinates using OpenStreetMap Nominatim API
+ * @internal Only used internally by detectUserLocationWithGeolocation
  */
-export async function getCityFromCoords(lat: number, lon: number): Promise<string> {
+async function getCityFromCoords(lat: number, lon: number): Promise<string> {
   try {
     // Add timeout to the OpenStreetMap API call - longer timeout for mobile
     const platform = detectDeviceAndPlatform();

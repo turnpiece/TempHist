@@ -100,8 +100,9 @@ class FeatureFlags {
 
   /**
    * Enable a feature flag
+   * @internal Currently unused
    */
-  static enable(flagName: string): void {
+  private static enable(flagName: string): void {
     const flag = this.flags.get(flagName);
     if (flag) {
       flag.enabled = true;
@@ -111,8 +112,9 @@ class FeatureFlags {
 
   /**
    * Disable a feature flag
+   * @internal Currently unused
    */
-  static disable(flagName: string): void {
+  private static disable(flagName: string): void {
     const flag = this.flags.get(flagName);
     if (flag) {
       flag.enabled = false;
@@ -122,8 +124,9 @@ class FeatureFlags {
 
   /**
    * Toggle a feature flag
+   * @internal Currently unused
    */
-  static toggle(flagName: string): boolean {
+  private static toggle(flagName: string): boolean {
     const flag = this.flags.get(flagName);
     if (flag) {
       flag.enabled = !flag.enabled;
@@ -135,22 +138,25 @@ class FeatureFlags {
 
   /**
    * Get all feature flags
+   * @internal Currently unused
    */
-  static getAllFlags(): FeatureFlag[] {
+  private static getAllFlags(): FeatureFlag[] {
     return Array.from(this.flags.values());
   }
 
   /**
    * Get enabled feature flags
+   * @internal Currently unused
    */
-  static getEnabledFlags(): string[] {
+  private static getEnabledFlags(): string[] {
     return Array.from(this.flags.keys()).filter(name => this.isEnabled(name));
   }
 
   /**
    * Get feature flag status
+   * @internal Currently unused
    */
-  static getStatus(flagName: string): {
+  private static getStatus(flagName: string): {
     enabled: boolean;
     flag?: FeatureFlag;
     reason?: string;
@@ -173,16 +179,18 @@ class FeatureFlags {
 
   /**
    * Clear all feature flags
+   * @internal Currently unused
    */
-  static clear(): void {
+  private static clear(): void {
     this.flags.clear();
     this.saveFlags();
   }
 
   /**
    * Export feature flags configuration
+   * @internal Currently unused
    */
-  static export(): string {
+  private static export(): string {
     return JSON.stringify({
       config: this.config,
       flags: Array.from(this.flags.values()),
