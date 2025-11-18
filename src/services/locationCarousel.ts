@@ -489,6 +489,30 @@ export async function initLocationCarousel(): Promise<void> {
       return;
     }
 
+    // Preload the first carousel image for better LCP
+    const firstLocation = locations[0];
+    if (firstLocation?.imageUrl) {
+      const preloadLink = document.createElement('link');
+      preloadLink.rel = 'preload';
+      preloadLink.as = 'image';
+      preloadLink.setAttribute('fetchpriority', 'high');
+      
+      if (typeof firstLocation.imageUrl === 'object' && firstLocation.imageUrl.webp) {
+        // Prefer WebP for preload
+        preloadLink.href = firstLocation.imageUrl.webp;
+        preloadLink.type = 'image/webp';
+      } else if (typeof firstLocation.imageUrl === 'string') {
+        preloadLink.href = firstLocation.imageUrl;
+      }
+      
+      if (preloadLink.href) {
+        document.head.appendChild(preloadLink);
+        if ((window as any).debugLog) {
+          (window as any).debugLog('Preloaded first carousel image:', preloadLink.href);
+        }
+      }
+    }
+
     // Clear track content without using innerHTML (Trusted Types safe)
     while (track.firstChild) {
       track.removeChild(track.firstChild);
