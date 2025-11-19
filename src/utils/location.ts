@@ -43,9 +43,21 @@ export function getLocationCookie(): CookieData {
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=');
     if (name === 'tempLocation' && value) {
-      location = decodeURIComponent(value);
+      try {
+        location = decodeURIComponent(value);
+      } catch (error) {
+        console.warn('getLocationCookie: Failed to decode tempLocation cookie value:', error);
+        // Invalid encoded data - treat as if cookie doesn't exist
+        location = null;
+      }
     } else if (name === 'tempLocationSource' && value) {
-      source = decodeURIComponent(value);
+      try {
+        source = decodeURIComponent(value);
+      } catch (error) {
+        console.warn('getLocationCookie: Failed to decode tempLocationSource cookie value:', error);
+        // Invalid encoded data - treat as if cookie doesn't exist
+        source = null;
+      }
     }
   }
   

@@ -442,6 +442,11 @@ export function transformToChartData(data: TemperatureDataResponse['values']): C
  * Calculate temperature range for chart scaling
  */
 export function calculateTemperatureRange(chartData: ChartDataPoint[]): { min: number; max: number } {
+  // Handle empty array case to prevent Infinity values
+  if (chartData.length === 0) {
+    return { min: 0, max: 0 };
+  }
+  
   const temps = chartData.map(p => p.x);
   const minTemp = Math.floor(Math.min(...temps) - 1);
   const maxTemp = Math.ceil(Math.max(...temps) + 1);
