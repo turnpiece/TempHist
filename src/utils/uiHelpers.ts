@@ -5,9 +5,15 @@
 import type { TemperatureDataMetadata } from '../types/index';
 import { LoadingManager } from './LoadingManager';
 import { updateDataNotice } from './dataNotice';
-import { getDisplayCity } from './location';
 
 declare const debugLog: (...args: any[]) => void;
+
+/**
+ * Clear all loading intervals (delegates to LoadingManager)
+ */
+export function clearAllLoadingIntervals(): void {
+  LoadingManager.clearAllIntervals();
+}
 
 /**
  * Build location display with edit button

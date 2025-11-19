@@ -4,7 +4,6 @@
  */
 
 import { fetchTemperatureDataAsync } from '../api/temperature';
-import { getDisplayCity } from './location';
 
 // Import debugLog from main.ts (it's global)
 declare const debugLog: (...args: any[]) => void;

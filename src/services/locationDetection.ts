@@ -1,4 +1,4 @@
-import type { NominatimResponse, IPLocationResponse, PreapprovedLocation, GeolocationPosition, GeolocationError } from '../types/index';
+import type { NominatimResponse, IPLocationResponse, GeolocationPosition, GeolocationError } from '../types/index';
 import { detectDeviceAndPlatform } from '../utils/platform';
 import { DEFAULT_LOCATION, NOMINATIM_CONFIG, GEOLOCATION_CONFIG } from '../constants/index';
 

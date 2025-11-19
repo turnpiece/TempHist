@@ -2,8 +2,9 @@
  * Simple router implementation for SPA navigation
  */
 
+import { clearAllLoadingIntervals } from '../utils/uiHelpers';
+
 declare const debugLog: (...args: any[]) => void;
-declare const clearAllLoadingIntervals: () => void;
 
 export class TempHistRouter {
   private views: Record<string, { render: () => void | Promise<void> }> = {};

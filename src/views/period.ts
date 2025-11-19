@@ -2,7 +2,7 @@
  * Period views - Logic for rendering Week, Month, and Year temperature views
  */
 
-import type { AsyncJobResponse, ChartDataPoint } from '../types/index';
+import type { AsyncJobResponse } from '../types/index';
 import { DEFAULT_LOCATION, INITIAL_LOADING_TEXT, LOADING_TIMEOUTS, DATE_RANGE_CONFIG } from '../constants/index';
 import { getDisplayCity, getOrdinal } from '../utils/location';
 import { LoadingManager } from '../utils/LoadingManager';
@@ -10,9 +10,9 @@ import { DataCache } from '../utils/DataCache';
 import { FeatureFlags } from '../utils/FeatureFlags';
 import { fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange, validateTemperatureDataResponse } from '../api/temperature';
 import { createTemperatureChart, updateChartTrendLine } from '../chart/chart';
-import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, setupChangeLocationButton, clearAllLoadingIntervals } from '../utils/uiHelpers';
+import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals } from '../utils/uiHelpers';
+import { setupChangeLocationButton } from './today';
 
-declare const Chart: any;
 declare const debugLog: (...args: any[]) => void;
 
 /**

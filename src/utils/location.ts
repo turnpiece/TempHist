@@ -1,4 +1,4 @@
-import type { CookieData, TempHistLocation } from '../types/index';
+import type { CookieData } from '../types/index';
 import { CACHE_CONFIG } from '../constants/index';
 
 /**

@@ -32,6 +32,7 @@ import { renderAboutPage, renderPrivacyPage } from './views/about';
 import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize } from './splash/splash';
+import { clearAllLoadingIntervals } from './utils/uiHelpers';
 
 // Initialise location carousel when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
@@ -75,10 +76,9 @@ window.TempHist.cache = window.TempHist.cache || {
 window.TempHistViews = window.TempHistViews || {};
 
 // Global loading interval management - now handled by LoadingManager
-// Legacy functions for backward compatibility
-function clearAllLoadingIntervals(): void {
-  LoadingManager.clearAllIntervals();
-}
+// Legacy functions for backward compatibility (exported from utils/uiHelpers)
+// Re-export for backward compatibility with router
+export { clearAllLoadingIntervals } from './utils/uiHelpers';
 
 // Error monitoring and analytics
 window.TempHist.analytics = window.TempHist.analytics || {

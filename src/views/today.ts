@@ -2,8 +2,8 @@
  * Today view - Main application logic for the Today temperature view
  */
 
-import type { ChartDataPoint, AsyncJobResponse } from '../types/index';
-import { DEFAULT_LOCATION, INITIAL_LOADING_TEXT, CHART_COLORS, LOADING_TIMEOUTS, API_CONFIG, DATE_RANGE_CONFIG } from '../constants/index';
+import type { AsyncJobResponse } from '../types/index';
+import { DEFAULT_LOCATION, INITIAL_LOADING_TEXT, LOADING_TIMEOUTS, API_CONFIG, DATE_RANGE_CONFIG } from '../constants/index';
 import { setLocationCookie, getDisplayCity, getOrdinal } from '../utils/location';
 import { updateDataNotice } from '../utils/dataNotice';
 import { LoadingManager } from '../utils/LoadingManager';
@@ -22,21 +22,6 @@ declare const Chart: any;
 declare const debugLog: (...args: any[]) => void;
 declare const debugTime: (label: string) => void;
 declare const debugTimeEnd: (label: string) => void;
-
-/**
- * Get the current view name
- */
-function getCurrentView(): string | null {
-  const hash = window.location.hash;
-  const route = hash === '' ? '/today' : hash.substring(1);
-  
-  if (route === '/today') return 'today';
-  if (route === '/week') return 'week';
-  if (route === '/month') return 'month';
-  if (route === '/year') return 'year';
-  
-  return null;
-}
 
 /**
  * Setup change location button click handler
