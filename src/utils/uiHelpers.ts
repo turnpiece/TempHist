@@ -326,46 +326,104 @@ export function showChartElements(periodKey?: string): void {
  * Show incomplete data notice
  */
 function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?: string): void {
+  debugLog('showIncompleteDataNotice called with metadata:', metadata, 'periodKey:', periodKey);
+
+  const missingCount = metadata.missing_years.length;
+  const completeness = Math.round(metadata.completeness);
+
+  debugLog('Missing years count:', missingCount);
+  debugLog('Completeness:', completeness, '%');
+
   // Check if this is the Today view (no periodKey, 'today', or 'daily')
   const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
-  
+
   if (isTodayView) {
-    const noticeEl = document.getElementById('incompleteDataWarning');
-    if (!noticeEl) {
-      debugLog('incompleteDataWarning element not found');
-      return;
+    // For Today view, use the dataNotice element with updateDataNotice
+    const warningMessage = `Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).${missingCount > 0 ? ` ${missingCount} ${missingCount === 1 ? 'year is' : 'years are'} missing.` : ''}`;
+
+    updateDataNotice(warningMessage, {
+      type: 'warning',
+      title: 'Incomplete Data',
+      useStructuredHtml: true,
+      largeTitle: true
+    });
+
+    // Add retry button to the dataNotice element
+    const dataNotice = document.getElementById('dataNotice');
+    if (dataNotice) {
+      // Check if we need to add a retry button
+      const existingButton = dataNotice.querySelector('.btn');
+      if (!existingButton) {
+        const retryButton = document.createElement('button');
+        retryButton.className = 'btn btn-primary';
+        retryButton.textContent = 'Try Again';
+        retryButton.onclick = () => {
+          if (window.retryDataFetch && typeof window.retryDataFetch === 'function') {
+            window.retryDataFetch();
+          }
+        };
+        retryButton.style.marginTop = '10px';
+
+        // Add the button to the notice content
+        const contentEl = dataNotice.querySelector('.notice-content');
+        if (contentEl) {
+          contentEl.appendChild(retryButton);
+          debugLog('showIncompleteDataNotice: Added retry button to Today view');
+        } else {
+          // Fallback: add directly to dataNotice
+          dataNotice.appendChild(retryButton);
+          debugLog('showIncompleteDataNotice: Added retry button directly to dataNotice');
+        }
+      }
+    }
+
+    debugLog('Incomplete data warning displayed for Today view');
+    return;
+  }
+
+  // For period-specific views, use the period-specific notice element
+  const noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
+  debugLog(`${periodKey}IncompleteDataNotice element found:`, noticeEl);
+  
+  if (noticeEl) {
+    // Clear any existing content (Trusted Types safe)
+    while (noticeEl.firstChild) {
+      noticeEl.removeChild(noticeEl.firstChild);
     }
     
-    const missingCount = metadata.missing_years.length;
-    const completeness = Math.round(metadata.completeness);
+    // Create the warning content
+    const contentEl = document.createElement('div');
+    contentEl.className = 'notice-content warning';
     
-    let message = `⚠️ Data is ${completeness}% complete`;
-    if (missingCount > 0) {
-      message += ` (${missingCount} year${missingCount > 1 ? 's' : ''} missing)`;
-    }
+    const titleEl = document.createElement('h3');
+    titleEl.className = 'notice-title large';
+    titleEl.textContent = 'Incomplete Data';
     
-    noticeEl.textContent = message;
+    const subtitleEl = document.createElement('p');
+    subtitleEl.className = 'notice-subtitle secondary';
+    subtitleEl.textContent = `Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).${missingCount > 0 ? ` ${missingCount} ${missingCount === 1 ? 'year is' : 'years are'} missing.` : ''}`;
+    
+    const buttonEl = document.createElement('button');
+    buttonEl.className = 'btn btn-primary';
+    buttonEl.textContent = 'Try Again';
+    buttonEl.onclick = () => {
+      if (window.retryDataFetch && typeof window.retryDataFetch === 'function') {
+        window.retryDataFetch();
+      }
+    };
+    
+    contentEl.appendChild(titleEl);
+    contentEl.appendChild(subtitleEl);
+    contentEl.appendChild(buttonEl);
+    noticeEl.appendChild(contentEl);
+    
+    // Show the notice
     noticeEl.style.display = 'block';
-    debugLog('Showing incomplete data notice for Today view:', message);
+    noticeEl.className = 'notice status-warning';
+    
+    debugLog('Incomplete data warning displayed in dedicated notice element');
   } else {
-    // For period-specific views, use the period-specific notice element
-    const noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
-    if (!noticeEl) {
-      debugLog(`${periodKey}IncompleteDataNotice element not found`);
-      return;
-    }
-    
-    const missingCount = metadata.missing_years.length;
-    const completeness = Math.round(metadata.completeness);
-    
-    let message = `⚠️ Data is ${completeness}% complete`;
-    if (missingCount > 0) {
-      message += ` (${missingCount} year${missingCount > 1 ? 's' : ''} missing)`;
-    }
-    
-    noticeEl.textContent = message;
-    noticeEl.style.display = 'block';
-    debugLog(`Showing incomplete data notice for ${periodKey} view:`, message);
+    debugLog('Incomplete data notice element not found, cannot show warning');
   }
 }
 
@@ -377,17 +435,18 @@ function hideIncompleteDataNotice(periodKey?: string): void {
   const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
   
   if (isTodayView) {
-    const noticeEl = document.getElementById('incompleteDataWarning');
-    if (noticeEl) {
-      noticeEl.style.display = 'none';
-      noticeEl.textContent = '';
-    }
+    // For Today view, clear the dataNotice
+    updateDataNotice(null);
   } else {
     // For period-specific views, hide the period-specific notice element
     const noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
     if (noticeEl) {
       noticeEl.style.display = 'none';
-      noticeEl.textContent = '';
+      // Clear content (Trusted Types safe)
+      while (noticeEl.firstChild) {
+        noticeEl.removeChild(noticeEl.firstChild);
+      }
+      noticeEl.className = 'notice';
     }
   }
 }
