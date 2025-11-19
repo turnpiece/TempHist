@@ -4,10 +4,68 @@ import type {
   ChartDataPoint,
   JobResultResponse
 } from '../types/index';
-import { API_CONFIG } from '../constants/index';
+import { API_CONFIG, LOCATION_VALIDATION_CONFIG } from '../constants/index';
 
 // Import debug function
 declare const debugLog: (...args: any[]) => void;
+
+/**
+ * Validate location string to prevent path traversal and invalid values
+ * Location should be in format "City, State, Country" or "City, Country" or "City"
+ * Examples: "London, England, United Kingdom", "New York, USA", "Paris"
+ * 
+ * @param location - The location string to validate
+ * @throws Error if location is invalid
+ */
+function validateLocation(location: string): void {
+  if (!location || typeof location !== 'string') {
+    throw new Error('Location must be a non-empty string');
+  }
+
+  // Check length (reasonable bounds for location strings)
+  if (location.length < LOCATION_VALIDATION_CONFIG.MIN_LENGTH) {
+    throw new Error(`Location too short: expected at least ${LOCATION_VALIDATION_CONFIG.MIN_LENGTH} characters, got ${location.length}`);
+  }
+
+  if (location.length > LOCATION_VALIDATION_CONFIG.MAX_LENGTH) {
+    throw new Error(`Location too long: expected at most ${LOCATION_VALIDATION_CONFIG.MAX_LENGTH} characters, got ${location.length}`);
+  }
+
+  // Prevent path traversal attempts
+  if (location.includes('..') || location.includes('/') || location.includes('\\')) {
+    throw new Error('Location contains invalid characters (path traversal attempt detected)');
+  }
+
+  // Check for null bytes and other control characters (except spaces, commas, hyphens, apostrophes)
+  // Allow: letters, numbers, spaces, commas, hyphens, apostrophes, parentheses, periods
+  const validLocationPattern = /^[\p{L}\p{N}\s,\-'.()]+$/u;
+  if (!validLocationPattern.test(location.trim())) {
+    throw new Error('Location contains invalid characters (control characters or special symbols detected)');
+  }
+
+  // Validate structure: should have at least one part (city name)
+  const trimmedLocation = location.trim();
+  if (trimmedLocation.length === 0) {
+    throw new Error('Location cannot be empty or whitespace only');
+  }
+
+  const parts = trimmedLocation.split(',').map(part => part.trim()).filter(part => part.length > 0);
+  if (parts.length < LOCATION_VALIDATION_CONFIG.MIN_PARTS) {
+    throw new Error(`Location format invalid: expected at least ${LOCATION_VALIDATION_CONFIG.MIN_PARTS} comma-separated part(s), got empty location`);
+  }
+
+  // Check each part is not empty after trimming (defensive check)
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i].length === 0) {
+      throw new Error(`Location format invalid: empty part found at position ${i + 1}`);
+    }
+  }
+
+  // Warn about suspiciously long single parts (potential attack)
+  if (parts.length === 1 && parts[0].length > 100) {
+    throw new Error('Location format suspicious: single part exceeds reasonable length (potential attack)');
+  }
+}
 
 /**
  * Validate identifier format to prevent path traversal and invalid values
@@ -190,7 +248,8 @@ async function createAsyncJob(
   location: string,
   identifier: string
 ): Promise<string> {
-  // Validate identifier to prevent path traversal and invalid values
+  // Validate inputs to prevent path traversal and invalid values
+  validateLocation(location);
   validateIdentifier(identifier);
   
   const apiPeriod = period === 'week' ? 'weekly' : 
@@ -281,7 +340,8 @@ async function fetchTemperatureDataSync(
   location: string,
   identifier: string
 ): Promise<JobResultResponse> {
-  // Validate identifier to prevent path traversal and invalid values
+  // Validate inputs to prevent path traversal and invalid values
+  validateLocation(location);
   validateIdentifier(identifier);
   
   const apiPeriod = period === 'week' ? 'weekly' : 
@@ -327,7 +387,8 @@ export async function fetchTemperatureDataAsync(
   identifier: string,
   onProgress?: (status: AsyncJobResponse) => void
 ): Promise<JobResultResponse> {
-  // Validate identifier at the public API entry point
+  // Validate inputs at the public API entry point
+  validateLocation(location);
   validateIdentifier(identifier);
   
   try {

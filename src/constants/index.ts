@@ -67,3 +67,10 @@ export const DATE_RANGE_CONFIG = {
   LATEST_YEAR_OFFSET: 1, // Allow data up to 1 year in the future (for timezone edge cases)
   DEFAULT_YEAR_SPAN: 50 // Default number of years to look back
 } as const;
+
+// Location validation constants
+export const LOCATION_VALIDATION_CONFIG = {
+  MIN_LENGTH: 3, // Minimum location string length (e.g., "NYC")
+  MAX_LENGTH: 200, // Maximum location string length (reasonable limit for URL encoding)
+  MIN_PARTS: 1 // Minimum number of comma-separated parts (at least city name)
+} as const;
