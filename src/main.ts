@@ -26,6 +26,9 @@ import { PerformanceMonitor } from './utils/PerformanceMonitor';
 import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange, validateTemperatureDataResponse } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from './services/locationDetection';
 import { initLocationCarousel, resetCarouselState, renderImageAttributions } from './services/locationCarousel';
+import { mainAppLogic } from './views/today';
+import { renderPeriod } from './views/period';
+import { renderAboutPage, renderPrivacyPage } from './views/about';
 
 // Initialise location carousel when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1595,9 +1598,9 @@ function showManualLocationSelection(permissionDenied: boolean = false): void {
   if (carousel) {
     // The carousel initialization happens elsewhere, but we can check if locations are ready
     const locations = window.TempHist?.prefetchedLocations;
-    if (locations) {
+  if (locations) {
       debugLog('Location carousel available with', locations.length, 'prefetched locations');
-    } else {
+  } else {
       debugLog('Location carousel will use locations when they become available');
     }
   }
@@ -2240,330 +2243,29 @@ function renderPrivacyPage(): void {
 }
 
 // Make mainAppLogic globally available
-window.mainAppLogic = function(): void {
-  // Check if this is a standalone page (privacy, about) - don't run main app logic
-  const isStandalonePage = !document.querySelector('#todayView');
-  if (isStandalonePage) {
-    debugLog('Standalone page detected, skipping main app logic');
-    // Still set up mobile navigation for standalone pages
-    setupMobileNavigation();
-    return;
-  }
-  
-  // Scroll to top when initialising the app (in case page was scrolled)
-  window.scrollTo({ top: 0, behavior: 'instant' });
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-  
-  debugLog('mainAppLogic called with window.tempLocation:', window.tempLocation);
+window.mainAppLogic = mainAppLogic;
 
-  // Check for date changes and clear cache if needed
-  checkAndHandleDateChange();
+// Register view renderers
+window.TempHistViews.week = { render: () => renderPeriod('weekView', 'week', 'Week') };
+window.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 'Month') };
+window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
+window.TempHistViews.about = { render: () => renderAboutPage() };
+window.TempHistViews.privacy = { render: () => renderPrivacyPage() };
 
-  // Wait for Chart.js to be available
-  if (typeof Chart === 'undefined') {
-    console.error('Chart.js not loaded');
-    return;
-  }
+// Register views with router
+if (window.TempHistRouter && typeof (window.TempHistRouter as any).registerView === 'function') {
+  (window.TempHistRouter as any).registerView('week', window.TempHistViews.week);
+  (window.TempHistRouter as any).registerView('month', window.TempHistViews.month);
+  (window.TempHistRouter as any).registerView('year', window.TempHistViews.year);
+  (window.TempHistRouter as any).registerView('about', window.TempHistViews.about);
+  (window.TempHistRouter as any).registerView('privacy', window.TempHistViews.privacy);
+}
 
-  if (window['chartjs-plugin-annotation']) {
-    Chart.register(window['chartjs-plugin-annotation']);
-  }
-
-  debugLog('Constants initialized');
-  
-  const now = new Date();
-  const useYesterday = now.getHours() < 1;
-  const dateToUse = new Date(now);
-
-  debugLog('Date calculations complete:', { now, useYesterday, dateToUse });
-
-  if (useYesterday) {
-    dateToUse.setDate(dateToUse.getDate() - 1);
-    debugLog('Using yesterday\'s date');
-  }
-  
-  // Handle 29 Feb fallback to 28 Feb if not a leap year in comparison range
-  const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
-
-  if (isLeapDay) {
-    dateToUse.setDate(28);
-    updateDataNotice('29th February detected — comparing 28th Feb instead for consistency.');
-    debugLog('Leap day detected, using 28th Feb instead');
-  }
-
-  const day = String(dateToUse.getDate()).padStart(2, '0');
-  const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
-  const currentYear = dateToUse.getFullYear();
-
-  debugLog('Date components prepared:', { day, month, currentYear });
-
-  // Validate and calculate start year
-  const maxAllowedYear = new Date().getFullYear() + DATE_RANGE_CONFIG.LATEST_YEAR_OFFSET;
-  const validatedCurrentYear = Math.min(Math.max(currentYear, DATE_RANGE_CONFIG.EARLIEST_YEAR), maxAllowedYear);
-  const calculatedStartYear = validatedCurrentYear - DATE_RANGE_CONFIG.DEFAULT_YEAR_SPAN;
-  const startYear = Math.max(calculatedStartYear, DATE_RANGE_CONFIG.EARLIEST_YEAR);
-
-  if (currentYear !== validatedCurrentYear) {
-    debugLog(`Year ${currentYear} adjusted to valid range: ${validatedCurrentYear}`);
-  }
-  const loadingEl = document.getElementById('loading');
-  const tempChartNode = document.getElementById('tempChart');
-
-  if (!tempChartNode) {
-    console.error('Temperature chart canvas element not found in DOM');
-    return;
-  }
-
-  if (!(tempChartNode instanceof HTMLCanvasElement)) {
-    console.error('Temperature chart element is not a <canvas>. Cannot initialize chart.');
-    return;
-  }
-
-  const canvasEl = tempChartNode;
-  
-  // Clean up any existing chart on the main canvas before starting
-    const existingChart = Chart.getChart(canvasEl);
-    if (existingChart) {
-      debugLog('Destroying existing chart before creating new one');
-      existingChart.destroy();
-    }
-  
-  // Also reset the global chart reference
-  window.TempHist = window.TempHist || {};
-  window.TempHist.mainChart = null;
-
-  const barColour = '#ff6b6b';
-  const showTrend = true;
-
-  // whether or not to show the chart
-  let chart: any;
-  
-  // Reset the global chart variable to ensure clean state
-  window.TempHist = window.TempHist || {};
-  window.TempHist.mainChart = null;
-
-  const friendlyDate = `${getOrdinal(Number(day))} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
-
-  // display the date
-  const dateTextEl = document.getElementById('dateText');
-  if (dateTextEl) {
-    dateTextEl.textContent = friendlyDate;
-  }
-  
-  // Show initial status message
-  updateDataNotice('Determining your location...', { type: 'neutral' });
-
-  // Apply colors to text elements
-  function applyTextColors(): void {
-    // Text colors
-    const summaryText = document.getElementById('summaryText');
-    const avgText = document.getElementById('avgText');
-    const trendText = document.getElementById('trendText');
-    const header = document.getElementById('header');
-    const spinner = document.querySelector('.spinner');
-    
-    // Apply colors only if elements exist
-    if (summaryText) summaryText.classList.add('summary-text');
-    if (avgText) avgText.classList.add('avg-text');
-    if (trendText) trendText.classList.add('trend-text');
-    
-    // Header colors
-    if (header) (header as HTMLElement).style.color = barColour;
-    
-    // Spinner colors
-    if (spinner) {
-      (spinner as HTMLElement).style.borderColor = `${barColour}33`; // 20% opacity
-      (spinner as HTMLElement).style.borderTopColor = barColour;
-    }
-  }
-
-  // Apply colors when the page loads
-  applyTextColors();
-
-  // Ensure loading state is hidden initially
-  if (loadingEl) {
-    loadingEl.classList.add('hidden');
-    loadingEl.classList.remove('visible');
-  }
-
-  debugLog('DOM elements and variables initialized');
-
-  // Use global tempLocation - it should be set by splash screen or cookie
-  // If not set, use default (this should only happen in error cases)
-  if (!window.tempLocation) {
-    window.tempLocation = DEFAULT_LOCATION;
-    window.tempLocationSource = 'default';
-    window.tempLocationIsDetected = false;
-  }
-
-  // Shared chart creation function for both Today and period pages
-  function createTemperatureChart(
-    ctx: CanvasRenderingContext2D,
-    chartData: ChartDataPoint[],
-    averageData: { temp: number },
-    periodTitle: string,
-    friendlyDate: string,
-    minTemp: number,
-    maxTemp: number,
-    startYear: number,
-    currentYear: number
-  ): any {
-    // Safety check: ensure context is valid
-    if (!ctx || !ctx.canvas) {
-      throw new Error('Invalid canvas context provided to createTemperatureChart');
-    }
-    
-    // Start performance measurement
-    const endChartMeasurement = PerformanceMonitor.startMeasurement('chart_creation');
-    
-    const barColour = CHART_COLORS.BAR;
-  const thisYearColour = CHART_COLORS.THIS_YEAR;
-  const trendColour = CHART_COLORS.TREND;
-  const avgColour = CHART_COLORS.AVERAGE;
-    const showTrend = true;
-
-    return new Chart(ctx, {
-      type: 'bar',
-      data: {
-        datasets: [
-          {
-            label: 'Trend',
-            type: 'line',
-            data: [],
-            backgroundColor: trendColour,
-            borderColor: trendColour,
-            fill: false,
-            pointRadius: 0,
-            borderWidth: 2,
-            opacity: 1,
-            hidden: !showTrend
-          },
-          {
-            label: `Temperature in ${getDisplayCity(window.tempLocation!)} ${periodTitle === 'Today' ? `on ${friendlyDate}` : `for ${periodTitle}`}`,
-            type: 'bar',
-            data: chartData,
-            backgroundColor: chartData.map(point => 
-              point.y === currentYear ? thisYearColour : barColour
-            ),
-            borderWidth: 0,
-            base: minTemp
-          }
-        ]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        parsing: false,
-        animation: { duration: 0 },
-        normalized: true,
-        layout: {
-          padding: {
-            left: 0,
-            right: 20,
-            top: 15,
-            bottom: 15
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          annotation: {
-            annotations: {
-              averageLine: {
-                type: 'line',
-                yMin: startYear - 1,
-                yMax: currentYear + 1,
-                xMin: averageData.temp,
-                xMax: averageData.temp,
-                borderColor: avgColour,
-                borderWidth: 2,
-                label: {
-                  display: true,
-                  content: `Average: ${averageData.temp.toFixed(1)}°C`,
-                  position: 'start',
-                  font: {
-                    size: 12
-                  }
-                }
-              }
-            }
-          },
-          tooltip: {
-            callbacks: {
-              title: function(context: any) {
-                return `${context[0].parsed.y.toString()}: ${context[0].parsed.x}°C`
-              },
-              label: function() {
-                return ''
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            type: 'linear',
-            title: {
-              display: true,
-              text: 'Temperature (°C)',
-              font: {
-                size: CHART_FONT_SIZE_MEDIUM
-              },
-              color: CHART_AXIS_COLOR
-            },
-            min: minTemp,
-            max: maxTemp,
-            ticks: {
-              font: {
-                size: CHART_FONT_SIZE_SMALL
-              },
-              color: CHART_AXIS_COLOR,
-              stepSize: 2,
-              callback: function(value: any) {
-                return value;
-              }
-            }
-          },
-          y: {
-            type: 'linear',
-            min: startYear,
-            max: currentYear,
-            ticks: {
-              maxTicksLimit: 20,
-              callback: (val: any) => val.toString(),
-              font: {
-                size: CHART_FONT_SIZE_SMALL
-              },
-              color: CHART_AXIS_COLOR
-            },
-            title: {
-              display: false,
-              text: 'Year'
-            },
-            grid: {
-              display: false
-            },
-            offset: true
-          }
-        },
-        elements: {
-          bar: {
-            minBarLength: 30,
-            maxBarThickness: 30,
-            categoryPercentage: 0.1,
-            barPercentage: 1.0
-          }
-        }
-      }
-    });
-  }
-
-  // Render function for period pages (week, month, year)
-  async function renderPeriod(sectionId: string, periodKey: 'week' | 'month' | 'year', title: string): Promise<void> {
-    const sec = document.getElementById(sectionId);
-    if (!sec) return;
-
-    // Check if the app is properly initialised
+// Note: The old mainAppLogic function body has been extracted to:
+// - views/today.ts (Today view logic)
+// - views/period.ts (Period views logic)
+// - views/about.ts (About/Privacy pages)
+// All remaining initialization code is below.
     if (!window.tempLocation) {
       // Wait a bit for the app to initialise
       await new Promise(resolve => setTimeout(resolve, 100));
