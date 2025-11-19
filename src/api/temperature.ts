@@ -10,6 +10,51 @@ import { API_CONFIG } from '../constants/index';
 declare const debugLog: (...args: any[]) => void;
 
 /**
+ * Validate identifier format to prevent path traversal and invalid values
+ * Identifier should be in format MM-DD (e.g., "01-15" for January 15th)
+ * 
+ * @param identifier - The identifier to validate
+ * @throws Error if identifier is invalid
+ */
+function validateIdentifier(identifier: string): void {
+  if (!identifier || typeof identifier !== 'string') {
+    throw new Error('Identifier must be a non-empty string');
+  }
+
+  // Check length (MM-DD format should be exactly 5 characters)
+  if (identifier.length < 3 || identifier.length > 10) {
+    throw new Error(`Identifier length invalid: expected 3-10 characters, got ${identifier.length}`);
+  }
+
+  // Prevent path traversal attempts
+  if (identifier.includes('..') || identifier.includes('/') || identifier.includes('\\')) {
+    throw new Error('Identifier contains invalid characters (path traversal attempt detected)');
+  }
+
+  // Validate format: should match MM-DD pattern (month-day)
+  const identifierPattern = /^(\d{1,2})-(\d{1,2})$/;
+  const match = identifier.match(identifierPattern);
+  
+  if (!match) {
+    throw new Error(`Identifier format invalid: expected MM-DD format (e.g., "01-15"), got "${identifier}"`);
+  }
+
+  const month = parseInt(match[1], 10);
+  const day = parseInt(match[2], 10);
+
+  // Validate month range (01-12)
+  if (month < 1 || month > 12) {
+    throw new Error(`Identifier month invalid: expected 01-12, got ${month}`);
+  }
+
+  // Validate day range (01-31) - basic validation
+  // Note: Doesn't validate exact days per month (e.g., Feb 30), but API will handle that
+  if (day < 1 || day > 31) {
+    throw new Error(`Identifier day invalid: expected 01-31, got ${day}`);
+  }
+}
+
+/**
  * Get API base URL based on environment
  */
 export function getApiUrl(path: string): string {
@@ -145,6 +190,9 @@ async function createAsyncJob(
   location: string,
   identifier: string
 ): Promise<string> {
+  // Validate identifier to prevent path traversal and invalid values
+  validateIdentifier(identifier);
+  
   const apiPeriod = period === 'week' ? 'weekly' : 
                    period === 'month' ? 'monthly' : 
                    period === 'year' ? 'yearly' : 
@@ -233,6 +281,9 @@ async function fetchTemperatureDataSync(
   location: string,
   identifier: string
 ): Promise<JobResultResponse> {
+  // Validate identifier to prevent path traversal and invalid values
+  validateIdentifier(identifier);
+  
   const apiPeriod = period === 'week' ? 'weekly' : 
                    period === 'month' ? 'monthly' : 
                    period === 'year' ? 'yearly' : 
@@ -276,6 +327,9 @@ export async function fetchTemperatureDataAsync(
   identifier: string,
   onProgress?: (status: AsyncJobResponse) => void
 ): Promise<JobResultResponse> {
+  // Validate identifier at the public API entry point
+  validateIdentifier(identifier);
+  
   try {
     // Try async job first
     debugLog(`Attempting async fetch for ${period} data...`);
