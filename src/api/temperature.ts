@@ -2,9 +2,10 @@ import type {
   TemperatureDataResponse, 
   AsyncJobResponse, 
   ChartDataPoint,
-  JobResultResponse
+  JobResultResponse,
+  TemperatureDataPoint
 } from '../types/index';
-import { API_CONFIG, LOCATION_VALIDATION_CONFIG } from '../constants/index';
+import { API_CONFIG, LOCATION_VALIDATION_CONFIG, DATE_RANGE_CONFIG } from '../constants/index';
 
 // Import debug function
 declare const debugLog: (...args: any[]) => void;
@@ -429,9 +430,180 @@ export async function fetchTemperatureDataAsync(
 }
 
 /**
+ * Validate temperature data point structure and ranges
+ * @param point - The temperature data point to validate
+ * @param index - The index of the point in the array (for error messages)
+ * @throws Error if the point is invalid
+ */
+function validateTemperatureDataPoint(point: unknown, index: number): void {
+  if (!point || typeof point !== 'object') {
+    throw new Error(`Temperature data point at index ${index} is not an object`);
+  }
+
+  const tempPoint = point as Record<string, unknown>;
+
+  // Validate required fields exist
+  if (!('year' in tempPoint)) {
+    throw new Error(`Temperature data point at index ${index} is missing 'year' field`);
+  }
+  if (!('temperature' in tempPoint)) {
+    throw new Error(`Temperature data point at index ${index} is missing 'temperature' field`);
+  }
+
+  // Validate year is a number and in valid range
+  const year = tempPoint.year;
+  if (typeof year !== 'number' || !Number.isInteger(year)) {
+    throw new Error(`Temperature data point at index ${index} has invalid 'year': expected integer, got ${typeof year}`);
+  }
+
+  const earliestYear = DATE_RANGE_CONFIG.EARLIEST_YEAR;
+  const latestYear = new Date().getFullYear() + DATE_RANGE_CONFIG.LATEST_YEAR_OFFSET;
+  if (year < earliestYear || year > latestYear) {
+    throw new Error(`Temperature data point at index ${index} has invalid 'year' range: ${year} (expected ${earliestYear}-${latestYear})`);
+  }
+
+  // Validate temperature is a number and in reasonable range
+  const temperature = tempPoint.temperature;
+  if (typeof temperature !== 'number' || !isFinite(temperature)) {
+    throw new Error(`Temperature data point at index ${index} has invalid 'temperature': expected finite number, got ${typeof temperature}`);
+  }
+
+  // Reasonable temperature range for Earth: -100°C to 100°C
+  // This covers extreme cases like Antarctica (-89°C record) and Death Valley (57°C record)
+  const MIN_TEMP = -100;
+  const MAX_TEMP = 100;
+  if (temperature < MIN_TEMP || temperature > MAX_TEMP) {
+    throw new Error(`Temperature data point at index ${index} has invalid 'temperature' range: ${temperature}°C (expected ${MIN_TEMP} to ${MAX_TEMP}°C)`);
+  }
+}
+
+/**
+ * Validate temperature data array structure and contents
+ * @param data - The temperature data array to validate
+ * @throws Error if the array is invalid
+ */
+function validateTemperatureDataArray(data: unknown): void {
+  if (!Array.isArray(data)) {
+    throw new Error('Temperature data must be an array');
+  }
+
+  if (data.length === 0) {
+    throw new Error('Temperature data array is empty');
+  }
+
+  // Validate each point in the array
+  data.forEach((point, index) => {
+    validateTemperatureDataPoint(point, index);
+  });
+
+  // Validate years are unique (optional but helpful for detecting duplicates)
+  const years = (data as TemperatureDataPoint[]).map(p => p.year);
+  const uniqueYears = new Set(years);
+  if (years.length !== uniqueYears.size) {
+    console.warn(`Temperature data contains duplicate years: ${years.length} entries but only ${uniqueYears.size} unique years`);
+  }
+}
+
+/**
+ * Validate average temperature data
+ * @param average - The average data object to validate
+ * @throws Error if the average data is invalid
+ */
+function validateAverageData(average: unknown): void {
+  if (!average || typeof average !== 'object') {
+    throw new Error('Average data must be an object');
+  }
+
+  const avgObj = average as Record<string, unknown>;
+
+  if (!('mean' in avgObj)) {
+    throw new Error('Average data is missing "mean" field');
+  }
+
+  const mean = avgObj.mean;
+  if (typeof mean !== 'number' || !isFinite(mean)) {
+    throw new Error(`Average mean must be a finite number, got ${typeof mean}`);
+  }
+
+  // Reasonable range for average temperature
+  const MIN_TEMP = -100;
+  const MAX_TEMP = 100;
+  if (mean < MIN_TEMP || mean > MAX_TEMP) {
+    throw new Error(`Average mean temperature out of range: ${mean}°C (expected ${MIN_TEMP} to ${MAX_TEMP}°C)`);
+  }
+}
+
+/**
+ * Validate trend data
+ * @param trend - The trend data object to validate
+ * @throws Error if the trend data is invalid
+ */
+function validateTrendData(trend: unknown): void {
+  if (!trend || typeof trend !== 'object') {
+    throw new Error('Trend data must be an object');
+  }
+
+  const trendObj = trend as Record<string, unknown>;
+
+  if (!('slope' in trendObj)) {
+    throw new Error('Trend data is missing "slope" field');
+  }
+
+  const slope = trendObj.slope;
+  if (typeof slope !== 'number' || !isFinite(slope)) {
+    throw new Error(`Trend slope must be a finite number, got ${typeof slope}`);
+  }
+
+  // Reasonable slope range: -10 to +10°C/decade (covers extreme climate change scenarios)
+  if (slope < -10 || slope > 10) {
+    throw new Error(`Trend slope out of reasonable range: ${slope}°C/decade (expected -10 to +10°C/decade)`);
+  }
+
+  // Validate unit if present
+  if ('unit' in trendObj && trendObj.unit !== undefined) {
+    if (typeof trendObj.unit !== 'string') {
+      throw new Error(`Trend unit must be a string, got ${typeof trendObj.unit}`);
+    }
+  }
+}
+
+/**
+ * Validate temperature data response structure
+ * @param response - The temperature data response to validate
+ * @throws Error if the response is invalid
+ */
+export function validateTemperatureDataResponse(response: unknown): void {
+  if (!response || typeof response !== 'object') {
+    throw new Error('Temperature data response must be an object');
+  }
+
+  const data = response as Record<string, unknown>;
+
+  // Validate values array
+  if (!('values' in data) || !Array.isArray(data.values)) {
+    throw new Error('Temperature data response is missing "values" array');
+  }
+  validateTemperatureDataArray(data.values);
+
+  // Validate average if present
+  if ('average' in data && data.average !== undefined) {
+    validateAverageData(data.average);
+  }
+
+  // Validate trend if present
+  if ('trend' in data && data.trend !== undefined) {
+    validateTrendData(data.trend);
+  }
+}
+
+/**
  * Transform temperature data to chart format
+ * Validates data before transformation
  */
 export function transformToChartData(data: TemperatureDataResponse['values']): ChartDataPoint[] {
+  // Validate the data array before transformation
+  validateTemperatureDataArray(data);
+
   return data.map(point => ({ 
     x: point.temperature, 
     y: point.year 

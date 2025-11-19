@@ -23,7 +23,7 @@ import { ErrorBoundary } from './utils/ErrorBoundary';
 import { Logger, LogLevel } from './utils/Logger';
 import { FeatureFlags } from './utils/FeatureFlags';
 import { PerformanceMonitor } from './utils/PerformanceMonitor';
-import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange } from './api/temperature';
+import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange, validateTemperatureDataResponse } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from './services/locationDetection';
 import { initLocationCarousel, resetCarouselState, renderImageAttributions } from './services/locationCarousel';
 
@@ -294,6 +294,105 @@ function generateErrorMessage(error: unknown): string {
   
   return errorMessage;
 }
+
+/**
+ * Check if an error is an abort error (user navigated away or request cancelled)
+ * @param error - The error to check
+ * @returns True if the error is an abort error
+ */
+function isAbortError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  
+  return error.name === 'AbortError' || 
+         error.message.includes('aborted') ||
+         error.message.includes('AbortError') ||
+         error.message.includes('Request aborted');
+}
+
+/**
+ * Update trend line on chart with calculated trend data
+ * @param chart - The Chart.js chart instance
+ * @param chartData - The chart data points (format: {x: temperature, y: year})
+ * @param startYear - The starting year for trend calculation
+ * @param endYear - The ending year for trend calculation
+ */
+function updateChartTrendLine(
+  chart: any,
+  chartData: ChartDataPoint[],
+  startYear: number,
+  endYear: number
+): void {
+  if (!chart || !chart.data || !chart.data.datasets) {
+    return;
+  }
+  
+  // Use global calculateTrendLine function (available via window.calculateTrendLine)
+  const calculateTrendLineFn = window.calculateTrendLine;
+  if (!calculateTrendLineFn) {
+    console.warn('calculateTrendLine not available');
+    return;
+  }
+  
+  // chartData is {x: temperature, y: year}, but calculateTrendLine expects {x: year, y: temperature}
+  const calculatedTrendData = calculateTrendLineFn(
+    chartData.map((d: ChartDataPoint) => ({ x: d.y, y: d.x })), 
+    startYear - 0.5, 
+    endYear + 0.5
+  );
+  chart.data.datasets[0].data = calculatedTrendData.points.map((p: { x: number; y: number }) => ({ x: p.y, y: p.x }));
+  chart.update();
+}
+
+/**
+ * Update summary, average, and trend text elements
+ * @param summaryText - Summary text content
+ * @param averageData - Average temperature data
+ * @param trendData - Trend data from API (with slope and unit)
+ * @param periodKey - Optional period key for period-specific views (e.g., 'week', 'month', 'year')
+ */
+function updateSummaryTextElements(
+  summaryText: string | null,
+  averageData: { temp: number },
+  trendData: { slope: number; unit?: string },
+  periodKey: string = ''
+): void {
+  const summaryElId = periodKey ? `${periodKey}SummaryText` : 'summaryText';
+  const avgElId = periodKey ? `${periodKey}AvgText` : 'avgText';
+  const trendElId = periodKey ? `${periodKey}TrendText` : 'trendText';
+  
+  const summaryTextEl = document.getElementById(summaryElId);
+  const avgTextEl = document.getElementById(avgElId);
+  const trendTextEl = document.getElementById(trendElId);
+  
+  if (summaryTextEl) {
+    summaryTextEl.textContent = summaryText || 'No summary available.';
+    if (periodKey) {
+      summaryTextEl.classList.add('summary-text');
+    }
+  }
+  
+  if (avgTextEl) {
+    avgTextEl.textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
+    if (periodKey) {
+      avgTextEl.classList.add('avg-text');
+    }
+  }
+  
+  if (trendTextEl && trendData) {
+    // Use actual slope value for direction determination, not rounded display value
+    const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
+                     trendData.slope > 0 ? 'rising' : 'falling';
+    const unit = trendData.unit || '°C/decade';
+    const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${unit}`;
+    trendTextEl.textContent = formatted;
+    if (periodKey) {
+      trendTextEl.classList.add('trend-text');
+    }
+  }
+}
+
 
 /**
  * Check if data is incomplete and show appropriate UI
@@ -2650,14 +2749,8 @@ window.mainAppLogic = function(): void {
       // Show location with edit icon without using innerHTML
       buildLocationDisplay(locationTextElement, displayLocation, periodKey);
 
-      // Add click handler for the edit icon
-      const changeLocationBtn = document.getElementById(`changeLocationBtn-${periodKey}`);
-      if (changeLocationBtn) {
-        changeLocationBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          handleChangeLocation();
-        });
-      }
+      // Setup change location button click handler
+      setupChangeLocationButton(periodKey);
     }
     
     // Show loading state
@@ -2713,28 +2806,42 @@ window.mainAppLogic = function(): void {
       debugLog(`${periodKey} data structure:`, weatherData);
       
       // Handle both prefetched data (direct format) and fresh API data (job result format)
+      // First, determine which format we have and validate the structure
+      let validationData: any;
       let temperatureData: any[], averageData: any, trendData: any, summaryData: any, metadata: any;
       
       if (weatherData.data && weatherData.data.values) {
         // Fresh API data (job result format)
+        validationData = weatherData.data;
         temperatureData = weatherData.data.values;
+      } else if (weatherData.values) {
+        // Prefetched data (direct format)
+        validationData = weatherData;
+        temperatureData = weatherData.values;
+      } else {
+        throw new Error('Invalid data format received. Expected values array.');
+      }
+      
+      // Comprehensive validation of temperature data structure and ranges (before accessing nested properties)
+      try {
+        validateTemperatureDataResponse(validationData);
+      } catch (validationError) {
+        throw new Error(`Invalid temperature data format for ${periodKey}: ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`);
+      }
+      
+      // Now safely extract the data (validation ensures structure is correct)
+      if (weatherData.data && weatherData.data.values) {
+        // Fresh API data (job result format)
         averageData = { temp: weatherData.data.average.mean };
         trendData = weatherData.data.trend;
         summaryData = weatherData.data.summary;
         metadata = weatherData.data.metadata;
       } else if (weatherData.values) {
         // Prefetched data (direct format)
-        temperatureData = weatherData.values;
         averageData = { temp: weatherData.average.mean };
         trendData = weatherData.trend;
         summaryData = weatherData.summary;
         metadata = weatherData.metadata;
-      } else {
-        throw new Error('Invalid data format received. Expected values array.');
-      }
-      
-      if (!Array.isArray(temperatureData)) {
-        throw new Error('Temperature data is not an array.');
       }
       
       // Check data completeness and show warning if needed
@@ -2835,13 +2942,7 @@ window.mainAppLogic = function(): void {
         );
 
         // Update trend line if enabled
-        if (chart && chart.data && chart.data.datasets) {
-          // chartData is now {x: temperature, y: year} (after transformation), but calculateTrendLine expects {x: year, y: temperature}
-          const calculatedTrendData = calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
-            minYear - 0.5, maxYear + 0.5);
-          chart.data.datasets[0].data = calculatedTrendData.points.map(p => ({ x: p.y, y: p.x }));
-          chart.update();
-        }
+        updateChartTrendLine(chart, chartData, minYear, maxYear);
         
         // Show chart elements since data loaded successfully
         showChartElements(periodKey);
@@ -2849,28 +2950,7 @@ window.mainAppLogic = function(): void {
         // Location text is already set at the beginning (like Today page)
         
         // Update summary, average, and trend text
-        const summaryTextEl = document.getElementById(`${periodKey}SummaryText`);
-        const avgTextEl = document.getElementById(`${periodKey}AvgText`);
-        const trendTextEl = document.getElementById(`${periodKey}TrendText`);
-        
-        if (summaryTextEl) {
-          summaryTextEl.textContent = summaryData || 'No summary available.';
-          summaryTextEl.classList.add('summary-text');
-        }
-        
-        if (avgTextEl) {
-          avgTextEl.textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
-          avgTextEl.classList.add('avg-text');
-        }
-        
-        if (trendTextEl) {
-          // Use actual slope value for direction determination, not rounded display value
-          const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
-                           trendData.slope > 0 ? 'rising' : 'falling';
-          const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${trendData.unit || '°C/decade'}`;
-          trendTextEl.textContent = formatted;
-          trendTextEl.classList.add('trend-text');
-        }
+        updateSummaryTextElements(summaryData, averageData, trendData, periodKey);
 
         // Add reload button functionality
         const reloadButton = document.getElementById(`${periodKey}ReloadButton`);
@@ -2886,13 +2966,7 @@ window.mainAppLogic = function(): void {
       debugLog(`Error fetching ${periodKey} data:`, error);
       
       // Check if this is an abort error (user navigated away)
-      const isAbortError = error instanceof Error && (
-        error.name === 'AbortError' || 
-        error.message.includes('aborted') ||
-        error.message.includes('AbortError')
-      );
-      
-      if (isAbortError) {
+      if (isAbortError(error)) {
         debugLog(`${periodKey} data fetch aborted (likely due to navigation)`);
         // Silently handle abort - don't show error to user
         return;
@@ -3021,13 +3095,21 @@ window.mainAppLogic = function(): void {
       }
       
       const temperatureData = jobResultData.data.values;
-      const averageData = { temp: jobResultData.data.average.mean };
+      const averageData = { temp: jobResultData.data.average?.mean };
       const trendData = jobResultData.data.trend;
       const summaryData = jobResultData.data.summary;
       const metadata = jobResultData.data.metadata;
       
+      // Validate temperature data array structure and ranges
       if (!Array.isArray(temperatureData)) {
         throw new Error('Temperature data is not an array.');
+      }
+
+      // Comprehensive validation of temperature data
+      try {
+        validateTemperatureDataResponse(jobResultData.data);
+      } catch (validationError) {
+        throw new Error(`Invalid temperature data format: ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`);
       }
       
       // Check data completeness and show warning if needed
@@ -3135,28 +3217,12 @@ window.mainAppLogic = function(): void {
       }
 
       // Update trend line if enabled
-      if (showTrend && chart && chart.data && chart.data.datasets) {
-        // chartData is now {x: temperature, y: year} (after transformation), but calculateTrendLine expects {x: year, y: temperature}
-        const trendData = calculateTrendLine(chartData.map(d => ({ x: d.y, y: d.x })), 
-          startYear - 0.5, currentYear + 0.5);
-        chart.data.datasets[0].data = trendData.points.map(p => ({ x: p.y, y: p.x }));
+      if (showTrend) {
+        updateChartTrendLine(chart, chartData, startYear, currentYear);
       }
 
       // Update text elements with new API data
-      const summaryTextEl = document.getElementById('summaryText');
-      const avgTextEl = document.getElementById('avgText');
-      const trendTextEl = document.getElementById('trendText');
-      
-      if (summaryTextEl) summaryTextEl.textContent = summaryData || 'No summary available.';
-      if (avgTextEl) avgTextEl.textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
-      
-      if (trendData && trendTextEl) {
-        // Use actual slope value for direction determination, not rounded display value
-        const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
-                         trendData.slope > 0 ? 'rising' : 'falling';
-        const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${trendData.unit}`;
-        trendTextEl.textContent = formatted;
-      }
+      updateSummaryTextElements(summaryData, averageData, trendData);
 
       // Show the chart
       showChart();
@@ -3174,14 +3240,7 @@ window.mainAppLogic = function(): void {
       console.error('Error fetching historical data:', error);
       
       // Check if this is an abort error (user navigated away)
-      const isAbortError = error instanceof Error && (
-        error.name === 'AbortError' || 
-        error.message.includes('aborted') ||
-        error.message.includes('AbortError') ||
-        error.message.includes('Request aborted')
-      );
-      
-      if (isAbortError) {
+      if (isAbortError(error)) {
         debugLog('Daily data fetch aborted (likely due to navigation)');
         // Silently handle abort - don't show error to user
         // Timer will be ended in finally block
@@ -3418,14 +3477,8 @@ window.mainAppLogic = function(): void {
       // Show location with edit icon without using innerHTML
       buildLocationDisplay(locationTextElement, locationDisplay);
 
-      // Add click handler for the edit icon
-      const changeLocationBtn = document.getElementById('changeLocationBtn');
-      if (changeLocationBtn) {
-        changeLocationBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          handleChangeLocation();
-        });
-      }
+      // Setup change location button click handler
+      setupChangeLocationButton();
     }
     
     // Clear the initial status message
@@ -3462,6 +3515,22 @@ window.mainAppLogic = function(): void {
     Logger.logUserInteraction('change_location_clicked');
     debugLog('Change location clicked, debouncing...');
     debouncedLocationChange();
+  }
+
+  /**
+   * Setup change location button click handler
+   * @param periodKey - Optional period key for period-specific views (e.g., 'week', 'month', 'year')
+   */
+  function setupChangeLocationButton(periodKey: string = ''): void {
+    const buttonId = periodKey ? `changeLocationBtn-${periodKey}` : 'changeLocationBtn';
+    const changeLocationBtn = document.getElementById(buttonId);
+    
+    if (changeLocationBtn) {
+      changeLocationBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        handleChangeLocation();
+      });
+    }
   }
 
   // Internal location change handler (called after debounce)
