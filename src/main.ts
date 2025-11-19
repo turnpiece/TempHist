@@ -44,7 +44,8 @@ import {
   CHART_COLORS,
   LOADING_TIMEOUTS,
   API_CONFIG,
-  CACHE_CONFIG
+  CACHE_CONFIG,
+  DATE_RANGE_CONFIG
 } from './constants/index';
 
 // Import types
@@ -2195,7 +2196,15 @@ window.mainAppLogic = function(): void {
 
   debugLog('Date components prepared:', { day, month, currentYear });
 
-  const startYear = currentYear - 50;
+  // Validate and calculate start year
+  const maxAllowedYear = new Date().getFullYear() + DATE_RANGE_CONFIG.LATEST_YEAR_OFFSET;
+  const validatedCurrentYear = Math.min(Math.max(currentYear, DATE_RANGE_CONFIG.EARLIEST_YEAR), maxAllowedYear);
+  const calculatedStartYear = validatedCurrentYear - DATE_RANGE_CONFIG.DEFAULT_YEAR_SPAN;
+  const startYear = Math.max(calculatedStartYear, DATE_RANGE_CONFIG.EARLIEST_YEAR);
+
+  if (currentYear !== validatedCurrentYear) {
+    debugLog(`Year ${currentYear} adjusted to valid range: ${validatedCurrentYear}`);
+  }
   const loadingEl = document.getElementById('loading');
   const tempChartNode = document.getElementById('tempChart');
 
@@ -2747,10 +2756,25 @@ window.mainAppLogic = function(): void {
       const minTemp = tempRange.min;
       const maxTemp = tempRange.max;
       
-      // Get year range
+      // Get year range with validation
       const years = chartData.map(d => d.y);
-      const minYear = Math.min(...years);
-      const maxYear = Math.max(...years);
+      if (years.length === 0) {
+        throw new Error('Chart data contains no years');
+      }
+      
+      const rawMinYear = Math.min(...years);
+      const rawMaxYear = Math.max(...years);
+      
+      // Validate year range against acceptable bounds
+      const earliestYear = DATE_RANGE_CONFIG.EARLIEST_YEAR;
+      const latestYear = new Date().getFullYear() + DATE_RANGE_CONFIG.LATEST_YEAR_OFFSET;
+      
+      const minYear = Math.max(rawMinYear, earliestYear);
+      const maxYear = Math.min(rawMaxYear, latestYear);
+      
+      if (rawMinYear < earliestYear || rawMaxYear > latestYear) {
+        debugLog(`Year range adjusted: [${rawMinYear}, ${rawMaxYear}] -> [${minYear}, ${maxYear}]`);
+      }
       
       // Get the actual current year (for highlighting the current year in green)
       const actualCurrentYear = new Date().getFullYear();
@@ -3052,8 +3076,14 @@ window.mainAppLogic = function(): void {
           throw new Error('Could not get canvas context');
         }
         
-        // Calculate available height for bars
+        // Calculate available height for bars with validation
+        if (startYear > currentYear) {
+          throw new Error(`Invalid year range: startYear (${startYear}) is greater than currentYear (${currentYear})`);
+        }
         const numBars = currentYear - startYear + 1;
+        if (numBars <= 0 || numBars > 100) {
+          throw new Error(`Invalid number of bars: ${numBars} (expected 1-100)`);
+        }
         const targetBarHeight = 3;
         const totalBarHeight = numBars * targetBarHeight;
         const containerEl = canvasEl?.parentElement;

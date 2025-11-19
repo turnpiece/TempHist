@@ -60,3 +60,10 @@ export const CACHE_CONFIG = {
   LOCATION_COOKIE_HOURS: 1,
   PREFETCH_TIMEOUT: 7000 // 7 seconds
 } as const;
+
+// Date range validation constants
+export const DATE_RANGE_CONFIG = {
+  EARLIEST_YEAR: 1970, // Earliest year for which temperature data is available
+  LATEST_YEAR_OFFSET: 1, // Allow data up to 1 year in the future (for timezone edge cases)
+  DEFAULT_YEAR_SPAN: 50 // Default number of years to look back
+} as const;
