@@ -1420,11 +1420,19 @@ async function handleUseLocation(): Promise<void> {
       await proceedWithLocation(location, true, 'detected'); // Mark as detected location
       return;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.warn('Geolocation failed:', error);
+    
+    // If user denied permission (error.code === 1), don't try IP fallback
+    // Go directly to manual selection instead
+    if (error?.code === 1) {
+      debugLog('Geolocation permission denied by user, showing manual selection');
+      showManualLocationSelection(true); // Pass true to indicate permission was denied
+      return;
+    }
   }
 
-  // If geolocation fails, try IP-based fallback
+  // If geolocation fails for reasons other than permission denied, try IP-based fallback
   try {
     const ipLocation = await getLocationFromIP();
     if (ipLocation) {
@@ -1442,73 +1450,68 @@ async function handleUseLocation(): Promise<void> {
 
 /**
  * Show manual location selection
+ * Since the UI uses a location carousel (not a dropdown), this just shows
+ * the splash actions which contain the carousel
+ * @param permissionDenied - If true, hide the "Use my location" button and update heading text
  */
-function showManualLocationSelection(): void {
-  debugLog('showManualLocationSelection called');
+function showManualLocationSelection(permissionDenied: boolean = false): void {
+  debugLog('showManualLocationSelection called', { permissionDenied });
   const splashActions = document.querySelector('.splash-actions');
-  const manualLocationSection = document.getElementById('manualLocationSection');
   const locationLoading = document.getElementById('locationLoading');
-  const locationSelect = document.getElementById('locationSelect');
+  const useLocationBtn = document.getElementById('useLocationBtn');
+  const heading = document.getElementById('location-picker-heading');
 
-  // Hide loading and main actions
+  // Hide loading indicator
   if (locationLoading) locationLoading.style.display = 'none';
-  if (splashActions) (splashActions as HTMLElement).style.display = 'none';
 
-  debugLog('Hiding splash actions, showing manual section');
-
-  // Show manual selection immediately with loading state
-  if (manualLocationSection) {
-    manualLocationSection.style.display = 'block';
-    debugLog('Manual location section shown');
-  }
-
-  // Show loading state in the dropdown
-  if (locationSelect) {
-    while (locationSelect.firstChild) {
-      locationSelect.removeChild(locationSelect.firstChild);
+  // If permission was denied, hide the "Use my location" button and update heading
+  if (permissionDenied) {
+    if (useLocationBtn) {
+      useLocationBtn.style.display = 'none';
+      debugLog('Hiding "Use my location" button (permission denied)');
     }
-    const loadingOption = document.createElement('option');
-    loadingOption.value = '';
-    loadingOption.textContent = 'Loading locations...';
-    locationSelect.appendChild(loadingOption);
-    (locationSelect as HTMLSelectElement).disabled = true;
-  }
-
-  // Disable confirm button while loading
-  const confirmBtn = document.getElementById('confirmLocationBtn') as HTMLButtonElement;
-  if (confirmBtn) {
-    confirmBtn.disabled = true;
-  }
-
-  // Use prefetched locations if available, otherwise load them with timeout
-  let locations = window.TempHist?.prefetchedLocations;
-  if (locations) {
-    debugLog('Using prefetched locations:', locations.length, 'locations');
-    populateLocationDropdown(locations);
+    if (heading) {
+      heading.textContent = 'Choose a location:';
+      debugLog('Updated heading text to "Choose a location:"');
+    }
   } else {
-    debugLog('No prefetched locations found, loading now...');
-    
-    loadPreapprovedLocations()
-      .then(locations => {
-        debugLog('Loaded locations:', locations);
-        populateLocationDropdown(locations);
-      })
-      .catch(error => {
-        debugLog('Error loading locations:', error);
-        // If API fails, just don't populate the dropdown
-        // The location carousel will handle empty locations gracefully
-      });
+    // Make sure button is visible if permission wasn't denied (e.g., other failure)
+    if (useLocationBtn) {
+      useLocationBtn.style.display = '';
+    }
+    if (heading) {
+      heading.textContent = 'Or choose one:';
+    }
+  }
+
+  // Show splash actions (which includes the location carousel)
+  if (splashActions) {
+    (splashActions as HTMLElement).style.display = 'flex';
+    debugLog('Showing splash actions with location carousel');
+  }
+
+  // Ensure the location carousel is initialized if it hasn't been yet
+  // The carousel will handle empty locations gracefully if prefetch hasn't completed
+  const carousel = document.getElementById('location-carousel');
+  if (carousel) {
+    // The carousel initialization happens elsewhere, but we can check if locations are ready
+    const locations = window.TempHist?.prefetchedLocations;
+    if (locations) {
+      debugLog('Location carousel available with', locations.length, 'prefetched locations');
+    } else {
+      debugLog('Location carousel will use locations when they become available');
+    }
   }
 }
 
 /**
  * Hide manual location selection
+ * Since the UI uses a location carousel (not a separate manual section),
+ * this just shows the splash actions which contain the carousel
  */
 function hideManualLocationSelection(): void {
   const splashActions = document.querySelector('.splash-actions');
-  const manualLocationSection = document.getElementById('manualLocationSection');
 
-  if (manualLocationSection) manualLocationSection.style.display = 'none';
   if (splashActions) (splashActions as HTMLElement).style.display = 'flex';
 }
 
@@ -2291,6 +2294,8 @@ window.mainAppLogic = function(): void {
   // If not set, use default (this should only happen in error cases)
   if (!window.tempLocation) {
     window.tempLocation = DEFAULT_LOCATION;
+    window.tempLocationSource = 'default';
+    window.tempLocationIsDetected = false;
   }
 
   // Shared chart creation function for both Today and period pages
@@ -2466,6 +2471,8 @@ window.mainAppLogic = function(): void {
       if (!window.tempLocation) {
         debugLog('renderPeriod: No location found, using default');
         window.tempLocation = DEFAULT_LOCATION;
+        window.tempLocationSource = 'default';
+        window.tempLocationIsDetected = false;
       }
     } else {
       debugLog('renderPeriod: Using existing location:', window.tempLocation);
@@ -3394,8 +3401,9 @@ window.mainAppLogic = function(): void {
     debugLog('displayLocationAndFetchData called with window.tempLocation:', window.tempLocation);
     
     // Check if using the hardcoded default fallback location
-    const isDefaultLocation = window.tempLocation === DEFAULT_LOCATION && 
-                              window.tempLocationIsDetected === false;
+    // Only show "(default location)" when the source is explicitly 'default'
+    // Manual selection of London should not show this, even if it matches DEFAULT_LOCATION
+    const isDefaultLocation = window.tempLocationSource === 'default';
     const cityName = getDisplayCity(window.tempLocation!);
     const locationDisplay = isDefaultLocation ? 
       `${cityName} (default location)` : 
@@ -3492,10 +3500,20 @@ window.mainAppLogic = function(): void {
     const locationLoading = document.getElementById('locationLoading');
     const splashActions = document.querySelector('.splash-actions');
     const manualLocationSection = document.getElementById('manualLocationSection');
+    const useLocationBtn = document.getElementById('useLocationBtn');
+    const heading = document.getElementById('location-picker-heading');
     
     if (locationLoading) locationLoading.style.display = 'none';
     if (splashActions) (splashActions as HTMLElement).style.display = 'flex';
     if (manualLocationSection) manualLocationSection.style.display = 'none';
+    
+    // Reset "Use my location" button and heading text to initial state
+    if (useLocationBtn) {
+      useLocationBtn.style.display = '';
+    }
+    if (heading) {
+      heading.textContent = 'Or choose one:';
+    }
     
     // Navigate to today page
     Logger.logNavigation('location_change', '/today');
