@@ -218,6 +218,9 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   canvas.classList.add('hidden');
   canvas.classList.remove('visible');
 
+  // Track when loading started (for minimum loading time calculation)
+  const loadingStartTime = Date.now();
+
   // Clear any existing loading intervals to prevent conflicts
   clearAllLoadingIntervals();
   
@@ -361,7 +364,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
     } else {
       // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages for fresh data
       const minLoadingTime = LOADING_TIMEOUTS.MIN_LOADING_TIME * 1000; // Convert to milliseconds
-      const elapsedTime = 0; // LoadingManager handles timing internally
+      const elapsedTime = Date.now() - loadingStartTime; // Calculate actual elapsed time
       const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
       
       if (remainingTime > 0) {

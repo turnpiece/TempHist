@@ -44,6 +44,16 @@ export class LoadingManager {
   }
 
   /**
+   * Get elapsed time since global loading started (in milliseconds)
+   */
+  static getElapsedTime(): number {
+    if (!this.globalStartTime) {
+      return 0;
+    }
+    return Date.now() - this.globalStartTime;
+  }
+
+  /**
    * Start period-specific loading system
    */
   static startPeriodLoading(periodKey: 'week' | 'month' | 'year'): NodeJS.Timeout {

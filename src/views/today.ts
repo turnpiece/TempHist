@@ -137,7 +137,7 @@ function hideError(): void {
 function showChart(): void {
   // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages
   const minLoadingTime = LOADING_TIMEOUTS.MIN_LOADING_TIME * 1000; // Convert to milliseconds
-  const elapsedTime = 0; // LoadingManager handles timing internally
+  const elapsedTime = LoadingManager.getElapsedTime(); // Get actual elapsed time from LoadingManager
   const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
   
   if (remainingTime > 0) {
