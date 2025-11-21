@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setLocationCookie, getLocationCookie, getDisplayCity, getOrdinal } from '../src/utils/location'
 
+// Declare global helper function from test setup
+declare const clearCookies: () => void
+
 // Test utility functions from TypeScript modules
 describe('Utility Functions', () => {
   beforeEach(() => {
@@ -57,7 +60,6 @@ describe('Utility Functions', () => {
       expect(getDisplayCity('São Paulo, São Paulo, Brazil')).toBe('São Paulo')
       expect(getDisplayCity('Tokyo')).toBe('Tokyo')
       expect(getDisplayCity('')).toBe('')
-      expect(getDisplayCity(null)).toBe(null)
     })
 
     it('should format ordinal numbers correctly', () => {

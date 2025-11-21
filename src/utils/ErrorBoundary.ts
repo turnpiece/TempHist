@@ -9,13 +9,6 @@ interface ErrorInfo {
   errorBoundaryStack?: string;
 }
 
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error?: Error;
-  errorInfo?: ErrorInfo;
-  retryCount: number;
-}
-
 class ErrorBoundary {
   private static errorHandlers: Array<(error: Error, errorInfo: ErrorInfo) => void> = [];
   private static retryAttempts = new Map<string, number>();

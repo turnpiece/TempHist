@@ -21,16 +21,17 @@ describe('Location Detection', () => {
         coords: {
           latitude: 51.5074,
           longitude: -0.1278
-        }
-      }
+        },
+        timestamp: Date.now()
+      } as GeolocationPosition
 
       // Mock successful geolocation
-      navigator.geolocation.getCurrentPosition.mockImplementation((success) => {
+      vi.mocked(navigator.geolocation.getCurrentPosition).mockImplementation((success) => {
         success(mockPosition)
       })
 
       // Mock OpenStreetMap API response
-      fetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
           address: {
@@ -40,7 +41,7 @@ describe('Location Detection', () => {
           },
           display_name: 'London, England, United Kingdom'
         })
-      })
+      } as unknown as Response)
 
       // Test the geolocation flow
       const detectUserLocationWithGeolocation = () => {
@@ -86,11 +87,16 @@ describe('Location Detection', () => {
     it('should handle geolocation permission denied', async () => {
       const mockError = {
         code: 1, // PERMISSION_DENIED
-        message: 'User denied geolocation'
-      }
+        message: 'User denied geolocation',
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3
+      } as GeolocationPositionError
 
-      navigator.geolocation.getCurrentPosition.mockImplementation((success, error) => {
-        error(mockError)
+      vi.mocked(navigator.geolocation.getCurrentPosition).mockImplementation((success, error) => {
+        if (error) {
+          error(mockError)
+        }
       })
 
       const detectUserLocationWithGeolocation = () => {
@@ -108,11 +114,16 @@ describe('Location Detection', () => {
     it('should handle geolocation timeout', async () => {
       const mockError = {
         code: 3, // TIMEOUT
-        message: 'Geolocation timeout'
-      }
+        message: 'Geolocation timeout',
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3
+      } as GeolocationPositionError
 
-      navigator.geolocation.getCurrentPosition.mockImplementation((success, error) => {
-        error(mockError)
+      vi.mocked(navigator.geolocation.getCurrentPosition).mockImplementation((success, error) => {
+        if (error) {
+          error(mockError)
+        }
       })
 
       const detectUserLocationWithGeolocation = () => {
@@ -130,13 +141,13 @@ describe('Location Detection', () => {
 
   describe('IP-based Location', () => {
     it('should get location from IP API', async () => {
-      fetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
           city: 'London',
           country_name: 'United Kingdom'
         })
-      })
+      } as unknown as Response)
 
       const getLocationFromIP = async () => {
         try {
@@ -159,7 +170,7 @@ describe('Location Detection', () => {
     })
 
     it('should handle IP API failure gracefully', async () => {
-      fetch.mockRejectedValueOnce(new Error('Network error'))
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'))
 
       const getLocationFromIP = async () => {
         try {

@@ -17,15 +17,12 @@ import { setLocationCookie, getLocationCookie, getDisplayCity, getOrdinal } from
 import { updateDataNotice } from './utils/dataNotice';
 import { LoadingManager } from './utils/LoadingManager';
 import { LazyLoader } from './utils/LazyLoader';
-import { Debouncer } from './utils/Debouncer';
 import { DataCache } from './utils/DataCache';
 import { ErrorBoundary } from './utils/ErrorBoundary';
 import { Logger, LogLevel } from './utils/Logger';
-import { FeatureFlags } from './utils/FeatureFlags';
-import { PerformanceMonitor } from './utils/PerformanceMonitor';
-import { getApiUrl, apiFetch, checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange, validateTemperatureDataResponse } from './api/temperature';
+import { getApiUrl, apiFetch, fetchTemperatureDataAsync } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from './services/locationDetection';
-import { initLocationCarousel, resetCarouselState, renderImageAttributions } from './services/locationCarousel';
+import { initLocationCarousel, renderImageAttributions } from './services/locationCarousel';
 import { mainAppLogic } from './views/today';
 import { renderPeriod } from './views/period';
 import { renderAboutPage, renderPrivacyPage } from './views/about';
@@ -41,24 +38,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 
-// Import constants
-import { 
-  DEFAULT_LOCATION, 
-  CHART_AXIS_COLOR, 
-  CHART_FONT_SIZE_SMALL, 
-  CHART_FONT_SIZE_MEDIUM, 
-  INITIAL_LOADING_TEXT,
-  CHART_COLORS,
-  LOADING_TIMEOUTS,
-  API_CONFIG,
-  CACHE_CONFIG,
-  DATE_RANGE_CONFIG
-} from './constants/index';
-
 // Import types
 import type { 
   ChartDataPoint, 
-  AsyncJobResponse,
   FirebaseUser,
   TemperatureDataMetadata,
   PreapprovedLocation

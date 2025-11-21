@@ -7,7 +7,6 @@ import { fetchTemperatureDataAsync } from '../api/temperature';
 
 // Import debugLog from main.ts (it's global)
 declare const debugLog: (...args: any[]) => void;
-import { LOADING_TIMEOUTS } from '../constants/index';
 
 interface LazyLoadOptions {
   timeout?: number;

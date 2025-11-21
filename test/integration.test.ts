@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setLocationCookie, getLocationCookie } from '../src/utils/location'
 
+// Declare global helper function from test setup
+declare const clearCookies: () => void
+
 describe('Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks()
