@@ -30,6 +30,8 @@ import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize } from './splash/splash';
 import { clearAllLoadingIntervals } from './utils/uiHelpers';
+import { isSharePagePath, initSharePage } from './share';
+
 
 // Initialise location carousel when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
@@ -876,9 +878,15 @@ onAuthStateChanged(auth, (user: FirebaseUser | null) => {
 function startAppWithFirebaseUser(user: FirebaseUser): void {
   // Store the Firebase user for use in apiFetch FIRST
   window.currentUser = user;
-  
+
   debugLog('Script starting...');
-  
+
+  // If this is a share page (/s/:id), hand off to the share page module
+  if (isSharePagePath()) {
+    initSharePage();
+    return;
+  }
+
   // Initialise analytics reporting
   setupAnalyticsReporting();
   
