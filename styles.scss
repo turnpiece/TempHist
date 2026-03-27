@@ -1493,3 +1493,19 @@ nav a.active {
     }
   }
 }
+
+// Share page
+.share-page-cta {
+  margin-top: 1.5rem;
+  text-align: center;
+
+  a {
+    color: var(--accent, #ff6b6b);
+    text-decoration: none;
+    font-size: 0.95rem;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
