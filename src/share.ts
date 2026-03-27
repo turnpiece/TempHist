@@ -193,7 +193,9 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
 
 async function fetchShareMetadata(shareId: string): Promise<ShareMetadata> {
   const url = getApiUrl(`/v1/shares/${encodeURIComponent(shareId)}`);
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  // apiFetch attaches the Firebase anonymous auth token — the API requires this
+  // even though the share endpoint is conceptually public
+  const res = await apiFetch(url);
   if (res.status === 404) {
     throw new Error("This share link has expired or doesn't exist.");
   }
