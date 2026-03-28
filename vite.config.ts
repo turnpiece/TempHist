@@ -60,7 +60,10 @@ export default defineConfig(({ mode }) => {
           ABOUT_LINK: isIndex ? '#/about' : '/about',
           PRIVACY_LINK: isIndex ? '#/privacy' : '/privacy',
           ABOUT_ACTIVE: isAbout ? ' class="active"' : '',
-          PRIVACY_ACTIVE: isPrivacy ? ' class="active"' : ''
+          PRIVACY_ACTIVE: isPrivacy ? ' class="active"' : '',
+          // Hide app nav links (Today/week/month/year) on static pages where the
+          // SPA router is not active — visitors should enter the app via the home page
+          APP_NAV_HIDDEN: (isAbout || isPrivacy) ? 'hidden' : ''
         }
         
         // Helper function to load and substitute template
