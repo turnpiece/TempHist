@@ -1952,14 +1952,18 @@ if (window.TempHistRouter && typeof (window.TempHistRouter as any).registerView 
 // - views/about.ts (About/Privacy pages)
 // All remaining initialization code is below.
 
-// Initialize router and register views
-window.TempHistRouter = new TempHistRouter();
-if (window.TempHistRouter && typeof window.TempHistRouter.registerView === 'function') {
-  window.TempHistRouter.registerView('week', window.TempHistViews.week);
-  window.TempHistRouter.registerView('month', window.TempHistViews.month);
-  window.TempHistRouter.registerView('year', window.TempHistViews.year);
-  window.TempHistRouter.registerView('about', window.TempHistViews.about);
-  window.TempHistRouter.registerView('privacy', window.TempHistViews.privacy);
+// Initialize router and register views (not needed on share pages — the router's
+// constructor fires handleRoute() via setTimeout and would fight with the share
+// page's own DOM setup)
+if (!isSharePagePath()) {
+  window.TempHistRouter = new TempHistRouter();
+  if (window.TempHistRouter && typeof window.TempHistRouter.registerView === 'function') {
+    window.TempHistRouter.registerView('week', window.TempHistViews.week);
+    window.TempHistRouter.registerView('month', window.TempHistViews.month);
+    window.TempHistRouter.registerView('year', window.TempHistViews.year);
+    window.TempHistRouter.registerView('about', window.TempHistViews.about);
+    window.TempHistRouter.registerView('privacy', window.TempHistViews.privacy);
+  }
 }
 
 // Make analytics functions globally available

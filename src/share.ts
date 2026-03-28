@@ -89,17 +89,29 @@ function hideAppChrome(): void {
   const appShell = document.getElementById('appShell');
   if (appShell) appShell.classList.remove('hidden');
 
-  // Hide period navigation links but keep About and Privacy visible
+  // Hide period navigation links but keep About and Privacy visible.
+  // Rewrite About and Privacy hrefs to absolute paths — on the share page
+  // the template has baked these as hash-only fragments (#/about, #/privacy),
+  // which would append to /s/:id rather than navigating to the root SPA.
   const nav = document.querySelector('nav');
   if (nav) {
     nav.querySelectorAll('a[data-route]').forEach(link => {
-      const route = link.getAttribute('data-route');
-      if (route && !['/about', '/privacy'].includes(route)) {
+      const route = (link as HTMLAnchorElement).getAttribute('data-route');
+      if (route === '/about') {
+        (link as HTMLAnchorElement).href = '/#/about';
+      } else if (route === '/privacy') {
+        (link as HTMLAnchorElement).href = '/#/privacy';
+      } else {
         const li = link.closest('li');
         if (li) (li as HTMLElement).style.display = 'none';
       }
     });
   }
+
+  // Rewrite the site title link to the root so it loads the splash/landing
+  // page rather than appending #/today to /s/:id.
+  const siteLink = document.querySelector('header a') as HTMLAnchorElement | null;
+  if (siteLink) siteLink.href = '/';
 
   // Hide any existing view sections (today, week, etc.)
   const viewOutlet = document.getElementById('viewOutlet');
@@ -487,9 +499,12 @@ function formatPeriodLabel(meta: ShareMetadata): string {
 
 function formatGeneratedAt(createdAt: string): string {
   const date = new Date(createdAt);
-  const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  return `Generated on ${dateStr} at ${timeStr}`;
+  const day = date.getUTCDate();
+  const monthName = date.toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' });
+  const year = date.getUTCFullYear();
+  const hours = date.getUTCHours().toString().padStart(2, '0');
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+  return `Generated on ${getOrdinal(day)} ${monthName} ${year} at ${hours}:${minutes} UTC`;
 }
 
 function updatePageMeta(meta: ShareMetadata): void {
