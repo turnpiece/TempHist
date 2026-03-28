@@ -1937,15 +1937,6 @@ window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Ye
 window.TempHistViews.about = { render: () => renderAboutPage() };
 window.TempHistViews.privacy = { render: () => renderPrivacyPage() };
 
-// Register views with router
-if (window.TempHistRouter && typeof (window.TempHistRouter as any).registerView === 'function') {
-  (window.TempHistRouter as any).registerView('week', window.TempHistViews.week);
-  (window.TempHistRouter as any).registerView('month', window.TempHistViews.month);
-  (window.TempHistRouter as any).registerView('year', window.TempHistViews.year);
-  (window.TempHistRouter as any).registerView('about', window.TempHistViews.about);
-  (window.TempHistRouter as any).registerView('privacy', window.TempHistViews.privacy);
-}
-
 // Note: The old mainAppLogic function body has been extracted to:
 // - views/today.ts (Today view logic)
 // - views/period.ts (Period views logic)
