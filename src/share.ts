@@ -98,9 +98,9 @@ function hideAppChrome(): void {
     nav.querySelectorAll('a[data-route]').forEach(link => {
       const route = (link as HTMLAnchorElement).getAttribute('data-route');
       if (route === '/about') {
-        (link as HTMLAnchorElement).href = '/#/about';
+        (link as HTMLAnchorElement).href = '/about';
       } else if (route === '/privacy') {
-        (link as HTMLAnchorElement).href = '/#/privacy';
+        (link as HTMLAnchorElement).href = '/privacy';
       } else {
         const li = link.closest('li');
         if (li) (li as HTMLElement).style.display = 'none';
