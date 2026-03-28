@@ -14,6 +14,7 @@ import {
 } from './constants/index';
 import type { ChartDataPoint, JobResultResponse } from './types/index';
 import { getOrdinal } from './utils/location';
+import { calculateTrendLine } from './chart/chart';
 
 // Chart.js global (loaded via CDN defer in index.html)
 declare const Chart: any;
@@ -30,7 +31,8 @@ interface ShareMetadata {
 interface ShareUIRefs {
   section: HTMLElement;
   titleEl: HTMLElement;
-  subtitleEl: HTMLElement;
+  locationEl: HTMLElement;
+  summaryTextEl: HTMLElement;
   loadingEl: HTMLElement;
   loadingTextEl: HTMLElement;
   errorContainerEl: HTMLElement;
@@ -38,6 +40,7 @@ interface ShareUIRefs {
   canvas: HTMLCanvasElement;
   avgTextEl: HTMLElement;
   trendTextEl: HTMLElement;
+  generatedAtEl: HTMLElement;
 }
 
 export function isSharePagePath(): boolean {
@@ -86,9 +89,17 @@ function hideAppChrome(): void {
   const appShell = document.getElementById('appShell');
   if (appShell) appShell.classList.remove('hidden');
 
-  // Hide navigation — share page is standalone
+  // Hide period navigation links but keep About and Privacy visible
   const nav = document.querySelector('nav');
-  if (nav) (nav as HTMLElement).style.display = 'none';
+  if (nav) {
+    nav.querySelectorAll('a[data-route]').forEach(link => {
+      const route = link.getAttribute('data-route');
+      if (route && !['/about', '/privacy'].includes(route)) {
+        const li = link.closest('li');
+        if (li) (li as HTMLElement).style.display = 'none';
+      }
+    });
+  }
 
   // Hide any existing view sections (today, week, etc.)
   const viewOutlet = document.getElementById('viewOutlet');
@@ -110,9 +121,13 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   titleEl.className = 'date-heading';
   container.appendChild(titleEl);
 
-  const subtitleEl = document.createElement('p');
-  subtitleEl.className = 'standard-text';
-  container.appendChild(subtitleEl);
+  const locationEl = document.createElement('div');
+  locationEl.className = 'location-text';
+  container.appendChild(locationEl);
+
+  const summaryTextEl = document.createElement('div');
+  summaryTextEl.className = 'summary-text';
+  container.appendChild(summaryTextEl);
 
   // Chart container
   const chartContainer = document.createElement('div');
@@ -166,11 +181,15 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   trendTextEl.className = 'standard-text trend-text';
   container.appendChild(trendTextEl);
 
+  const generatedAtEl = document.createElement('div');
+  generatedAtEl.className = 'share-generated-at';
+  container.appendChild(generatedAtEl);
+
   const ctaDiv = document.createElement('div');
   ctaDiv.className = 'share-page-cta';
   const ctaLink = document.createElement('a');
   ctaLink.href = '/';
-  ctaLink.textContent = 'Explore your own temperature history →';
+  ctaLink.textContent = 'Explore your own temperature history \u2192';
   ctaDiv.appendChild(ctaLink);
   container.appendChild(ctaDiv);
 
@@ -180,14 +199,16 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   return {
     section,
     titleEl,
-    subtitleEl,
+    locationEl,
+    summaryTextEl,
     loadingEl,
     loadingTextEl,
     errorContainerEl,
     errorMessageEl,
     canvas,
     avgTextEl,
-    trendTextEl
+    trendTextEl,
+    generatedAtEl
   };
 }
 
@@ -259,22 +280,26 @@ async function renderShareChart(
   const minYear = Math.min(...years);
   const maxYear = Math.max(...years);
 
-  const unitLabel = meta.unit === 'fahrenheit' ? '°F' : '°C';
+  const unitLabel = meta.unit === 'fahrenheit' ? '\u00b0F' : '\u00b0C';
   const cityName = meta.location.split(',')[0].trim();
-  const friendlyDate = formatFriendlyDate(meta);
-  const periodLabel = formatPeriodLabel(meta);
 
-  // Update title/subtitle now that we have data
-  refs.titleEl.textContent = `${cityName} · ${friendlyDate}`;
-  refs.subtitleEl.textContent = `${periodLabel} temperature history`;
+  // Update heading and location to match website pattern
+  refs.titleEl.textContent = formatPeriodHeading(meta);
+  refs.locationEl.textContent = cityName;
 
-  // Update summary text
+  // Display the API summary
+  refs.summaryTextEl.textContent = data.summary || '';
+
+  // Update average and trend text
   refs.avgTextEl.textContent = `Average: ${data.average.mean.toFixed(1)}${unitLabel}`;
 
   const slope = data.trend.slope;
   const direction = Math.abs(slope) < 0.05 ? 'stable' : slope > 0 ? 'rising' : 'falling';
   refs.trendTextEl.textContent =
     `Trend: ${direction} at ${Math.abs(slope).toFixed(1)}${data.trend.unit || `${unitLabel}/decade`}`;
+
+  // Show generation datetime
+  refs.generatedAtEl.textContent = formatGeneratedAt(meta.created_at);
 
   // Hide spinner, show canvas
   refs.loadingEl.classList.remove('visible');
@@ -283,6 +308,8 @@ async function renderShareChart(
 
   const ctx = refs.canvas.getContext('2d');
   if (!ctx) throw new Error('No canvas context');
+
+  const periodLabel = formatPeriodLabel(meta);
 
   const chart = new Chart(ctx, {
     type: 'bar',
@@ -404,47 +431,48 @@ async function renderShareChart(
   chart.update();
 }
 
-// Pure linear regression — duplicated from mainAppLogic (no external dependencies)
-function calculateTrendLine(
-  points: ChartDataPoint[],
-  startX: number,
-  endX: number
-): { points: ChartDataPoint[]; slope: number } {
-  const n = points.length;
-  const sumX = points.reduce((sum, p) => sum + p.x, 0);
-  const sumY = points.reduce((sum, p) => sum + p.y, 0);
-  const sumXY = points.reduce((sum, p) => sum + p.x * p.y, 0);
-  const sumXX = points.reduce((sum, p) => sum + p.x * p.x, 0);
-
-  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-  const intercept = (sumY - slope * sumX) / n;
-
-  return {
-    points: [
-      { x: startX, y: slope * startX + intercept },
-      { x: endX, y: slope * endX + intercept }
-    ],
-    slope
-  };
-}
-
+/**
+ * Format the date portion of the identifier (MM-dd) as "27th March" (no year).
+ * Used for daily, weekly, and monthly periods which all use MM-dd identifiers.
+ */
 function formatFriendlyDate(meta: ShareMetadata): string {
   const { period, identifier, ref_year } = meta;
 
-  if (period === 'daily' || period === 'weekly') {
+  if (period === 'daily' || period === 'weekly' || period === 'monthly') {
     const [monthStr, dayStr] = identifier.split('-');
     const month = parseInt(monthStr, 10);
     const day = parseInt(dayStr, 10);
     const monthName = new Date(ref_year, month - 1, 1).toLocaleString('en-GB', { month: 'long' });
-    return `${getOrdinal(day)} ${monthName} ${ref_year}`;
+    return `${getOrdinal(day)} ${monthName}`;
   }
 
-  if (period === 'monthly') {
-    const month = parseInt(identifier, 10);
-    return new Date(ref_year, month - 1, 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+  // yearly — identifier is MM-dd
+  if (period === 'yearly' && identifier.includes('-')) {
+    const [monthStr, dayStr] = identifier.split('-');
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+    const monthName = new Date(ref_year, month - 1, 1).toLocaleString('en-GB', { month: 'long' });
+    return `${getOrdinal(day)} ${monthName}`;
   }
 
-  return String(ref_year);
+  return '';
+}
+
+/**
+ * Format the period heading to match the website's existing pattern:
+ * daily → "27th March", weekly → "Week ending 27th March",
+ * monthly → "Month ending 27th March", yearly → "Year ending 27th March"
+ */
+function formatPeriodHeading(meta: ShareMetadata): string {
+  const friendlyDate = formatFriendlyDate(meta);
+
+  switch (meta.period) {
+    case 'daily':   return friendlyDate;
+    case 'weekly':  return `Week ending ${friendlyDate}`;
+    case 'monthly': return `Month ending ${friendlyDate}`;
+    case 'yearly':  return `Year ending ${friendlyDate}`;
+    default:        return friendlyDate;
+  }
 }
 
 function formatPeriodLabel(meta: ShareMetadata): string {
@@ -457,13 +485,19 @@ function formatPeriodLabel(meta: ShareMetadata): string {
   }
 }
 
+function formatGeneratedAt(createdAt: string): string {
+  const date = new Date(createdAt);
+  const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return `Generated on ${dateStr} at ${timeStr}`;
+}
+
 function updatePageMeta(meta: ShareMetadata): void {
   const cityName = meta.location.split(',')[0].trim();
-  const friendlyDate = formatFriendlyDate(meta);
-  const periodLabel = formatPeriodLabel(meta);
+  const heading = formatPeriodHeading(meta);
 
-  const title = `${cityName} · ${periodLabel} ${friendlyDate} | TempHist`;
-  const description = `Historical temperature data for ${cityName}: ${periodLabel.toLowerCase()} temperatures around ${friendlyDate}.`;
+  const title = `${cityName} \u00b7 ${heading} | TempHist`;
+  const description = `Historical temperature data for ${cityName}: ${heading.toLowerCase()}.`;
 
   document.title = title;
 
