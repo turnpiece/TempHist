@@ -30,6 +30,7 @@ interface ShareMetadata {
 
 interface ShareUIRefs {
   section: HTMLElement;
+  contentEl: HTMLElement;
   titleEl: HTMLElement;
   locationEl: HTMLElement;
   summaryTextEl: HTMLElement;
@@ -129,17 +130,22 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   const container = document.createElement('div');
   container.className = 'container';
 
+  // Wrap all text content in a pending div so nothing is visible until data loads
+  const contentEl = document.createElement('div');
+  contentEl.className = 'share-page-pending';
+  container.appendChild(contentEl);
+
   const titleEl = document.createElement('h2');
   titleEl.className = 'date-heading';
-  container.appendChild(titleEl);
+  contentEl.appendChild(titleEl);
 
   const locationEl = document.createElement('div');
   locationEl.className = 'location-text';
-  container.appendChild(locationEl);
+  contentEl.appendChild(locationEl);
 
   const summaryTextEl = document.createElement('div');
   summaryTextEl.className = 'summary-text';
-  container.appendChild(summaryTextEl);
+  contentEl.appendChild(summaryTextEl);
 
   // Chart container
   const chartContainer = document.createElement('div');
@@ -187,15 +193,15 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
 
   const avgTextEl = document.createElement('div');
   avgTextEl.className = 'standard-text avg-text';
-  container.appendChild(avgTextEl);
+  contentEl.appendChild(avgTextEl);
 
   const trendTextEl = document.createElement('div');
   trendTextEl.className = 'standard-text trend-text';
-  container.appendChild(trendTextEl);
+  contentEl.appendChild(trendTextEl);
 
   const generatedAtEl = document.createElement('div');
   generatedAtEl.className = 'share-generated-at';
-  container.appendChild(generatedAtEl);
+  contentEl.appendChild(generatedAtEl);
 
   const ctaDiv = document.createElement('div');
   ctaDiv.className = 'share-page-cta';
@@ -203,13 +209,14 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   ctaLink.href = '/';
   ctaLink.textContent = 'Explore your own temperature history \u2192';
   ctaDiv.appendChild(ctaLink);
-  container.appendChild(ctaDiv);
+  contentEl.appendChild(ctaDiv);
 
   section.appendChild(container);
   viewOutlet.appendChild(section);
 
   return {
     section,
+    contentEl,
     titleEl,
     locationEl,
     summaryTextEl,
@@ -313,10 +320,11 @@ async function renderShareChart(
   // Show generation datetime
   refs.generatedAtEl.textContent = formatGeneratedAt(meta.created_at);
 
-  // Hide spinner, show canvas
+  // Hide spinner, show canvas, reveal all text content
   refs.loadingEl.classList.remove('visible');
   refs.loadingEl.classList.add('hidden');
   refs.canvas.classList.add('visible');
+  refs.contentEl.classList.replace('share-page-pending', 'share-page-ready');
 
   const ctx = refs.canvas.getContext('2d');
   if (!ctx) throw new Error('No canvas context');
@@ -539,6 +547,8 @@ function showShareError(refs: ShareUIRefs, message: string): void {
   refs.loadingEl.classList.add('hidden');
   refs.errorContainerEl.style.display = 'block';
   refs.errorMessageEl.textContent = message;
+  // Reveal content wrapper so the error message and CTA link are visible
+  refs.contentEl.classList.replace('share-page-pending', 'share-page-ready');
 }
 
 function showRootError(message: string): void {
