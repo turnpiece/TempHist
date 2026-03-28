@@ -14,6 +14,15 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify(packageJson.version)
     },
+  server: {
+    proxy: {
+      '/api': {
+        target: env.API_TARGET || env.API_BASE || 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      }
+    }
+  },
   publicDir: 'public',
   build: {
     outDir: 'dist',
