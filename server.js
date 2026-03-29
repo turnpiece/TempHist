@@ -4,6 +4,7 @@ const app = express();
 
 // Configuration
 const port = process.env.PORT || 3000;
+const isProd = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging';
 
 // Note: This server only serves static files. API requests are made directly
 // from the browser to the API server. If you see CORS errors with status 524,
@@ -48,6 +49,12 @@ app.use((req, res, next) => {
 app.use(express.static('dist', {
   etag: true,
   setHeaders(res, filePath) {
+    if (!isProd) {
+      // In non-production environments, disable all caching so changes are
+      // always visible immediately without needing to clear the browser cache
+      res.setHeader('Cache-Control', 'no-cache');
+      return;
+    }
     if (/\/assets\/.*\.(js|css)$/.test(filePath)) {
       // Vite-fingerprinted bundles: immutable for 1 year
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
