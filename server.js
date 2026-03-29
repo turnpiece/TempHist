@@ -44,10 +44,27 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from dist directory
+// Serve static files from dist directory with per-pattern cache headers
 app.use(express.static('dist', {
-  maxAge: '1d',
-  etag: true
+  etag: true,
+  setHeaders(res, filePath) {
+    if (/\/assets\/.*\.(js|css)$/.test(filePath)) {
+      // Vite-fingerprinted bundles: immutable for 1 year
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (/\/assets\//.test(filePath)) {
+      // Other assets (images, fonts): 30 days
+      res.setHeader('Cache-Control', 'public, max-age=2592000');
+    } else if (/\.html$/.test(filePath)) {
+      // HTML entry points: always revalidate
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (/favicon|logo\./.test(filePath)) {
+      // Favicons and logos: 7 days
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    } else {
+      // Everything else: 1 day
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+  }
 }));
 
 // SPA fallback routing - serve appropriate HTML files
