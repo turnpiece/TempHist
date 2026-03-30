@@ -1482,6 +1482,10 @@ h2, .date-heading {
 }
 
 // Share page
+html.is-share-page #splashScreen {
+  display: none;
+}
+
 .share-page-pending {
   opacity: 0;
 }

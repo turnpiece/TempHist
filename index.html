@@ -35,6 +35,8 @@
       "screenshot": "https://temphist.com/assets/logo.png"
     }
     </script>
+    <!-- Suppress splash screen on share pages before first paint -->
+    <script>if (/^\/s\/[^/]+/.test(location.pathname)) document.documentElement.classList.add('is-share-page');</script>
   </head>
   <body>
     <!-- INCLUDE:header -->
