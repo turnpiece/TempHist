@@ -189,7 +189,7 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   canvas.id = 'shareChart';
   chartContainer.appendChild(canvas);
 
-  container.appendChild(chartContainer);
+  contentEl.appendChild(chartContainer);
 
   const avgTextEl = document.createElement('div');
   avgTextEl.className = 'standard-text avg-text';
