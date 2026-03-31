@@ -31,7 +31,8 @@ export default defineConfig(({ mode }) => {
       input: {
         main: resolve(__dirname, 'index.html'),
         about: resolve(__dirname, 'about.html'),
-        privacy: resolve(__dirname, 'privacy.html')
+        privacy: resolve(__dirname, 'privacy.html'),
+        privacyApp: resolve(__dirname, 'privacy-app.html')
       }
     }
   },
@@ -39,6 +40,20 @@ export default defineConfig(({ mode }) => {
     target: 'es2015'
   },
   plugins: [
+    {
+      // Rewrite clean URLs to HTML entry files in dev mode,
+      // mirroring the production routing in server.js
+      name: 'dev-url-routing',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          const url = req.url?.split('?')[0];
+          if (url === '/about') req.url = '/about.html';
+          else if (url === '/privacy') req.url = '/privacy.html';
+          else if (url === '/privacy/app') req.url = '/privacy-app.html';
+          next();
+        });
+      }
+    },
     {
       name: 'inject-templates',
       transformIndexHtml(html, ctx) {
@@ -48,7 +63,8 @@ export default defineConfig(({ mode }) => {
         const pageName = ctx.filename || 'index.html'
         const isIndex = pageName.includes('index.html')
         const isAbout = pageName.includes('about.html')
-        const isPrivacy = pageName.includes('privacy.html')
+        const isPrivacyApp = pageName.includes('privacy-app.html')
+        const isPrivacy = pageName.includes('privacy.html') && !isPrivacyApp
         
         // Define variables for template substitution
         const vars = {
@@ -60,10 +76,10 @@ export default defineConfig(({ mode }) => {
           ABOUT_LINK: isIndex ? '#/about' : '/about',
           PRIVACY_LINK: isIndex ? '#/privacy' : '/privacy',
           ABOUT_ACTIVE: isAbout ? ' class="active"' : '',
-          PRIVACY_ACTIVE: isPrivacy ? ' class="active"' : '',
+          PRIVACY_ACTIVE: (isPrivacy || isPrivacyApp) ? ' class="active"' : '',
           // Hide app nav links (Today/week/month/year) on static pages where the
           // SPA router is not active — visitors should enter the app via the home page
-          APP_NAV_HIDDEN: (isAbout || isPrivacy) ? 'hidden' : ''
+          APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp) ? 'hidden' : ''
         }
         
         // Helper function to load and substitute template

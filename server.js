@@ -95,6 +95,9 @@ app.use((req, res, next) => {
   if (requestedPath === '/privacy' || requestedPath === '/privacy.html') {
     return res.sendFile(path.join(__dirname, 'dist', 'privacy.html'));
   }
+  if (requestedPath === '/privacy/app' || requestedPath === '/privacy/app.html') {
+    return res.sendFile(path.join(__dirname, 'dist', 'privacy-app.html'));
+  }
   
   // Default to index.html for all other routes (SPA behavior)
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
