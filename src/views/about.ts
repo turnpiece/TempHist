@@ -72,7 +72,7 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
 
   // App users cross-reference
   const appNotePara = document.createElement('p');
-  appNotePara.appendChild(document.createTextNode('Using the TempHist iOS app? See the '));
+  appNotePara.appendChild(document.createTextNode('Using the TempHist app? See the '));
   const appNoteLink = document.createElement('a');
   appNoteLink.href = '/privacy/app';
   appNoteLink.textContent = 'TempHist App Privacy Policy';
@@ -131,7 +131,7 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
 // ─── App Privacy Policy content ─────────────────────────────────────────────
 
 /**
- * Build the iOS app privacy policy content into the given container element.
+ * Build the mobile app privacy policy content into the given container element.
  * Used by the standalone /privacy/app page.
  */
 export function buildPrivacyAppContent(container: HTMLElement): void {
@@ -141,7 +141,7 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
 
   appendParagraph(
     container,
-    'This policy covers the TempHist iOS app, operated by Turnpiece Ltd. It explains what data the app collects, how it is used, and what is stored on your device.'
+    'This policy covers the TempHist mobile app, operated by Turnpiece Ltd. It explains what data the app collects, how it is used, and what is stored on your device.'
   );
 
   // Location data
@@ -204,6 +204,62 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
 
 // ─── SPA Page Renderers ──────────────────────────────────────────────────────
 
+// ─── About page content ──────────────────────────────────────────────────────
+
+/**
+ * Build the About page content into the given container element.
+ * Used by both the SPA view (#aboutView) and the standalone /about page.
+ */
+export function buildAboutContent(container: HTMLElement): void {
+  appendHeading(container, 'About TempHist', 'h2');
+
+  appendParagraph(
+    container,
+    'TempHist shows 50 years of temperature history for your location across four time periods: today, the past week, the past month, and the past year.'
+  );
+
+  // How it works
+  appendHeading(container, 'How it works');
+  appendParagraph(
+    container,
+    'Each view shows a bar chart with one bar per year — swipe or tap to move between time periods. The current year\'s bar is highlighted in green.'
+  );
+
+  appendBulletList(container, [
+    'Today — the temperature recorded on today\'s date, in each of the past 50 years',
+    'Past week — the average temperature for the 7 days ending today, in each of the past 50 years',
+    'Past month — the average temperature for the 30 days ending today, in each of the past 50 years',
+    'Past year — the average temperature for the 12 months ending today, in each of the past 50 years',
+  ]);
+
+  appendParagraph(
+    container,
+    'Each chart also shows an average line (the mean across all years) and a trend line (showing whether temperatures have been rising or falling over time).'
+  );
+
+  // Data sources
+  appendHeading(container, 'Data sources');
+  const dataSourcesPara = document.createElement('p');
+  dataSourcesPara.textContent = 'Historical weather data is sourced from ';
+  const vcLink = document.createElement('a');
+  vcLink.href = 'https://www.visualcrossing.com';
+  vcLink.textContent = 'Visual Crossing';
+  vcLink.rel = 'noopener noreferrer';
+  dataSourcesPara.appendChild(vcLink);
+  dataSourcesPara.appendChild(document.createTextNode(' via the TempHist API.'));
+  container.appendChild(dataSourcesPara);
+
+  // Contact
+  appendSectionWithLink(
+    container,
+    'Contact',
+    'TempHist is a Turnpiece project. For questions or feedback, please visit ',
+    'https://turnpiece.com',
+    'turnpiece.com',
+    '.'
+  );
+}
+
 /**
  * Render the About page content into the #aboutView SPA section.
  */
@@ -216,38 +272,7 @@ export function renderAboutPage(): void {
   const container = document.createElement('div');
   container.className = 'container';
 
-  appendHeading(container, 'About TempHist', 'h2');
-
-  appendParagraph(
-    container,
-    'TempHist shows you how today\'s temperature compares to the same date over the past 50 years. It can also compare this past week, month or year with the same period over the past 50 years.'
-  );
-
-  appendSection(
-    container,
-    'How it works',
-    'TempHist uses your location to fetch historical weather data and displays it in an easy-to-read chart. Each bar represents the temperature on this date, or this past week/month/year, in a different year, with the current year highlighted in green.'
-  );
-
-  appendHeading(container, 'Data sources');
-  const dataSourcesPara = document.createElement('p');
-  dataSourcesPara.textContent = 'Weather and climate data are provided via the TempHist API, which sources historical weather data from ';
-  const vcLink = document.createElement('a');
-  vcLink.href = 'https://www.visualcrossing.com';
-  vcLink.textContent = 'Visual Crossing';
-  vcLink.rel = 'noopener noreferrer';
-  dataSourcesPara.appendChild(vcLink);
-  dataSourcesPara.appendChild(document.createTextNode('.'));
-  container.appendChild(dataSourcesPara);
-
-  appendSectionWithLink(
-    container,
-    'Contact',
-    'TempHist is a Turnpiece project. For questions or feedback, please visit ',
-    'https://turnpiece.com',
-    'turnpiece.com',
-    '.'
-  );
+  buildAboutContent(container);
 
   renderImageAttributions(container).catch(error => {
     console.warn('Failed to render image attributions:', error);

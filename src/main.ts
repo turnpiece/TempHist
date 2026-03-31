@@ -25,7 +25,7 @@ import { detectUserLocationWithGeolocation, getLocationFromIP } from './services
 import { initLocationCarousel, renderImageAttributions } from './services/locationCarousel';
 import { mainAppLogic } from './views/today';
 import { renderPeriod } from './views/period';
-import { renderAboutPage, renderPrivacyPage, buildPrivacyWebContent, buildPrivacyAppContent } from './views/about';
+import { renderAboutPage, renderPrivacyPage, buildAboutContent, buildPrivacyWebContent, buildPrivacyAppContent } from './views/about';
 import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize } from './splash/splash';
@@ -949,85 +949,13 @@ function initializeSplashScreen(): void {
       } else if (currentPath === '/about') {
         const contentDiv = document.getElementById('content');
         if (contentDiv) {
-          // Clear existing content
           contentDiv.textContent = '';
-          
-          // Create container
           const container = document.createElement('div');
           container.className = 'container';
-          
-          // Create elements safely
-          const title = document.createElement('h2');
-          title.textContent = 'About TempHist';
-          
-          const intro = document.createElement('p');
-          intro.textContent = 'TempHist shows how today\'s temperature compares to the same date over the past 50 years for a selected location.';
-          
-          // How it works section
-          const howItWorksTitle = document.createElement('h3');
-          howItWorksTitle.textContent = 'How it works';
-          const howItWorksText = document.createElement('p');
-          howItWorksText.textContent = 'TempHist uses historical weather data to create a chart showing temperature trends for your location. The chart displays:';
-          
-          const featuresList = document.createElement('ul');
-          const features = [
-            { strong: 'Today\'s temperature', text: ' - the current temperature foryour  location' },
-            { strong: 'Historical range', text: ' - the highest and lowest temperatures recorded on this date over the past 50 years' },
-            { strong: 'Average temperature', text: ' - the average temperature for this date over the past 50 years' },
-            { strong: 'Temperature trend', text: ' - how today\'s temperature compares to the historical average' }
-          ];
-          
-          features.forEach(feature => {
-            const listItem = document.createElement('li');
-            const strongEl = document.createElement('strong');
-            strongEl.textContent = feature.strong;
-            listItem.appendChild(strongEl);
-            listItem.appendChild(document.createTextNode(feature.text));
-            featuresList.appendChild(listItem);
-          });
-          
-          // Data sources section
-          const dataSourcesTitle = document.createElement('h3');
-          dataSourcesTitle.textContent = 'Data sources';
-          const dataSourcesText = document.createElement('p');
-          dataSourcesText.textContent = 'Temperature data is sourced from trusted weather services and processed through the TempHist API. The data includes daily temperature records going back 50 years for thousands of locations worldwide.';
-          
-          // Privacy section
-          const privacyTitle = document.createElement('h3');
-          privacyTitle.textContent = 'Privacy';
-          const privacyText = document.createElement('p');
-          privacyText.textContent = 'TempHist does not collect, store, or share any personal information. Your location is used only to retrieve weather data and is not stored or transmitted to third parties.';
-          
-          // Contact section
-          const contactTitle = document.createElement('h3');
-          contactTitle.textContent = 'Contact';
-          const contactText = document.createElement('p');
-          contactText.textContent = 'TempHist is developed by ';
-          const contactLink = document.createElement('a');
-          contactLink.href = 'https://turnpiece.com';
-          contactLink.textContent = 'Turnpiece Ltd.';
-          contactLink.rel = 'noopener noreferrer';
-          contactText.appendChild(contactLink);
-          contactText.appendChild(document.createTextNode(' For questions or feedback, please visit our website.'));
-          
-          // Append all elements
-          container.appendChild(title);
-          container.appendChild(intro);
-          container.appendChild(howItWorksTitle);
-          container.appendChild(howItWorksText);
-          container.appendChild(featuresList);
-          container.appendChild(dataSourcesTitle);
-          container.appendChild(dataSourcesText);
-          container.appendChild(privacyTitle);
-          container.appendChild(privacyText);
-          container.appendChild(contactTitle);
-          container.appendChild(contactText);
-          
-          // Add image attributions section (async, will append when ready)
+          buildAboutContent(container);
           renderImageAttributions(container).catch(error => {
             console.warn('Failed to render image attributions:', error);
           });
-          
           contentDiv.appendChild(container);
         }
       }
