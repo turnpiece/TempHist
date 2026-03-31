@@ -209,8 +209,10 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
 /**
  * Build the About page content into the given container element.
  * Used by both the SPA view (#aboutView) and the standalone /about page.
+ * @param isSpa - true when rendered inside the main SPA (uses hash links like #/today);
+ *                false for the standalone /about page (uses root-relative links like /#/today)
  */
-export function buildAboutContent(container: HTMLElement): void {
+export function buildAboutContent(container: HTMLElement, isSpa: boolean = false): void {
   appendHeading(container, 'About TempHist', 'h2');
 
   appendParagraph(
@@ -225,12 +227,29 @@ export function buildAboutContent(container: HTMLElement): void {
     'Each view shows a bar chart with one bar per year — swipe or tap to move between time periods. The current year\'s bar is highlighted in green.'
   );
 
-  appendBulletList(container, [
-    'Today — the temperature recorded on today\'s date, in each of the past 50 years',
-    'Past week — the average temperature for the 7 days ending today, in each of the past 50 years',
-    'Past month — the average temperature for the 30 days ending today, in each of the past 50 years',
-    'Past year — the average temperature for the 12 months ending today, in each of the past 50 years',
-  ]);
+  // Period list with links
+  const periodItems: Array<{ label: string; route: string; description: string }> = [
+    { label: 'Today',      route: '/today', description: ' — the temperature recorded on today\'s date, in each of the past 50 years' },
+    { label: 'Past week',  route: '/week',  description: ' — the average temperature for the 7 days ending today, in each of the past 50 years' },
+    { label: 'Past month', route: '/month', description: ' — the average temperature for the 30 days ending today, in each of the past 50 years' },
+    { label: 'Past year',  route: '/year',  description: ' — the average temperature for the 12 months ending today, in each of the past 50 years' },
+  ];
+
+  const ul = document.createElement('ul');
+  periodItems.forEach(({ label, route, description }) => {
+    const li = document.createElement('li');
+    if (isSpa) {
+      const a = document.createElement('a');
+      a.href = `#${route}`;
+      a.textContent = label;
+      li.appendChild(a);
+    } else {
+      li.appendChild(document.createTextNode(label));
+    }
+    li.appendChild(document.createTextNode(description));
+    ul.appendChild(li);
+  });
+  container.appendChild(ul);
 
   appendParagraph(
     container,
@@ -272,7 +291,7 @@ export function renderAboutPage(): void {
   const container = document.createElement('div');
   container.className = 'container';
 
-  buildAboutContent(container);
+  buildAboutContent(container, true);
 
   renderImageAttributions(container).catch(error => {
     console.warn('Failed to render image attributions:', error);
