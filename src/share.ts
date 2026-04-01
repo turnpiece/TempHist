@@ -303,7 +303,9 @@ async function renderShareChart(
   const minYear = Math.min(...years);
   const maxYear = Math.max(...years);
 
-  const unitLabel = meta.unit === 'fahrenheit' ? '\u00b0F' : '\u00b0C';
+  const isFahrenheit = meta.unit === 'fahrenheit';
+  const unitLabel = isFahrenheit ? '\u00b0F' : '\u00b0C';
+  const tempDecimals = isFahrenheit ? 0 : 1;
   const cityName = meta.location.split(',')[0].trim();
 
   // Update heading and location to match website pattern
@@ -314,7 +316,7 @@ async function renderShareChart(
   refs.summaryTextEl.textContent = data.summary || '';
 
   // Update average and trend text
-  refs.avgTextEl.textContent = `Average: ${data.average.mean.toFixed(1)}${unitLabel}`;
+  refs.avgTextEl.textContent = `Average: ${data.average.mean.toFixed(tempDecimals)}${unitLabel}`;
 
   const slope = data.trend.slope;
   const direction = Math.abs(slope) < 0.05 ? 'stable' : slope > 0 ? 'rising' : 'falling';
@@ -386,7 +388,7 @@ async function renderShareChart(
               borderWidth: 2,
               label: {
                 display: true,
-                content: `Average: ${data.average.mean.toFixed(1)}${unitLabel}`,
+                content: `Average: ${data.average.mean.toFixed(tempDecimals)}${unitLabel}`,
                 position: 'start',
                 font: { size: CHART_FONT_SIZE_MEDIUM }
               }
@@ -396,7 +398,7 @@ async function renderShareChart(
         tooltip: {
           callbacks: {
             title: function(context: any) {
-              return `${context[0].parsed.y}: ${context[0].parsed.x}${unitLabel}`;
+              return `${context[0].parsed.y}: ${context[0].parsed.x.toFixed(tempDecimals)}${unitLabel}`;
             },
             label: function() { return ''; }
           }
