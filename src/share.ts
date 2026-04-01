@@ -254,19 +254,16 @@ async function fetchShareMetadata(shareId: string): Promise<ShareMetadata> {
 
 async function fetchShareTemperatureData(meta: ShareMetadata): Promise<JobResultResponse> {
   const identifierSegment = meta.identifier ? `/${meta.identifier}` : '';
+  const params = new URLSearchParams();
+  if (meta.unit === 'fahrenheit') {
+    params.set('unit_group', 'fahrenheit');
+  }
+  const queryString = params.toString() ? `?${params.toString()}` : '';
   const url = getApiUrl(
-    `/v1/records/${meta.period}/${encodeURIComponent(meta.location)}${identifierSegment}/async`
+    `/v1/records/${meta.period}/${encodeURIComponent(meta.location)}${identifierSegment}/async${queryString}`
   );
 
-  const body: Record<string, string> = {};
-  if (meta.unit === 'fahrenheit') {
-    body.unit_group = 'fahrenheit';
-  }
-
-  const res = await apiFetch(url, {
-    method: 'POST',
-    body: JSON.stringify(body)
-  });
+  const res = await apiFetch(url, { method: 'POST' });
 
   const job = await res.json();
   if (!job.job_id) {
