@@ -102,7 +102,10 @@ app.use(async (req, res, next) => {
   if (!/^[a-zA-Z0-9_-]+$/.test(shareId)) return next();
 
   const apiBase = process.env.VITE_API_BASE;
-  if (!apiBase) return next();
+  if (!apiBase) {
+    console.warn('[OG] VITE_API_BASE is not set — skipping OG injection for', shareId);
+    return next();
+  }
 
   try {
     const apiUrl = `${apiBase}/v1/shares/${encodeURIComponent(shareId)}`;
@@ -113,10 +116,14 @@ app.use(async (req, res, next) => {
     try {
       const apiRes = await fetch(apiUrl, { signal: controller.signal });
       clearTimeout(timeout);
-      if (!apiRes.ok) return next(); // 404 or error — serve plain SPA
+      if (!apiRes.ok) {
+        console.warn('[OG] API returned', apiRes.status, 'for share', shareId, '— serving plain SPA');
+        return next();
+      }
       meta = await apiRes.json();
-    } catch {
+    } catch (fetchErr) {
       clearTimeout(timeout);
+      console.warn('[OG] Fetch failed for share', shareId, ':', fetchErr.message);
       return next(); // Network error / timeout — serve plain SPA
     }
 
