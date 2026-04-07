@@ -177,12 +177,6 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   errorMessageEl.className = 'error-message';
   errorContent.appendChild(errorMessageEl);
 
-  const reloadButton = document.createElement('button');
-  reloadButton.className = 'reload-button';
-  reloadButton.textContent = 'Reload';
-  reloadButton.addEventListener('click', () => window.location.reload());
-  errorContent.appendChild(reloadButton);
-
   errorContainerEl.appendChild(errorContent);
   chartContainer.appendChild(errorContainerEl);
 
@@ -552,6 +546,8 @@ function setMetaTag(attrName: 'property' | 'name', attrValue: string, content: s
 function showShareError(refs: ShareUIRefs, message: string): void {
   refs.loadingEl.classList.remove('visible');
   refs.loadingEl.classList.add('hidden');
+  refs.titleEl.textContent = 'Not found';
+  refs.locationEl.style.display = 'none';
   refs.errorContainerEl.style.display = 'block';
   refs.errorMessageEl.textContent = message;
   // Reveal content wrappers so the error message and CTA link are visible
