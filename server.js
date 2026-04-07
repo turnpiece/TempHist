@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const app = express();
+app.set('trust proxy', true);
 
 // Configuration
 const port = process.env.PORT || 3000;
@@ -130,7 +131,7 @@ app.use(async (req, res, next) => {
     const cityName = meta.location.split(',')[0].trim();
     const heading = formatSharePeriodHeading(meta);
     const title = `${cityName} \u00b7 ${heading} | TempHist`;
-    const description = `Historical temperature data for ${cityName}: ${heading.toLowerCase()}.`;
+    const description = `Historical temperature data for ${cityName}: ${heading}.`;
     const shareUrl = `${req.protocol}://${req.get('host')}/s/${shareId}`;
 
     const ogTags = [
