@@ -134,15 +134,18 @@ app.use(async (req, res, next) => {
     const description = `Historical temperature data for ${cityName}: ${heading}.`;
     const shareUrl = `${req.protocol}://${req.get('host')}/s/${shareId}`;
 
+    const imageUrl = `${apiBase}/v1/og/${shareId}.png`;
     const ogTags = [
       `<meta property="og:type" content="website">`,
       `<meta property="og:site_name" content="TempHist">`,
       `<meta property="og:title" content="${escapeAttr(title)}">`,
       `<meta property="og:description" content="${escapeAttr(description)}">`,
       `<meta property="og:url" content="${escapeAttr(shareUrl)}">`,
-      `<meta name="twitter:card" content="summary">`,
+      `<meta property="og:image" content="${escapeAttr(imageUrl)}">`,
+      `<meta name="twitter:card" content="summary_large_image">`,
       `<meta name="twitter:title" content="${escapeAttr(title)}">`,
       `<meta name="twitter:description" content="${escapeAttr(description)}">`,
+      `<meta name="twitter:image" content="${escapeAttr(imageUrl)}">`,
     ].join('\n    ');
 
     const html = getIndexHtml().replace('</head>', `    ${ogTags}\n  </head>`);
