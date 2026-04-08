@@ -82,6 +82,107 @@ if (distExists) {
   console.log('📁 No dist folder found, serving from current directory');
 }
 
+// --- Open Graph tag injection for /s/:id share pages ---
+
+let _indexHtmlCache = null;
+function getIndexHtml() {
+  if (!_indexHtmlCache) {
+    _indexHtmlCache = require('fs').readFileSync(path.join(__dirname, staticDir, 'index.html'), 'utf-8');
+  }
+  return _indexHtmlCache;
+}
+
+function getOrdinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function formatSharePeriodHeading(meta) {
+  const { period, identifier, ref_year } = meta;
+  let friendlyDate = '';
+  if (
+    period === 'daily' || period === 'weekly' || period === 'monthly' ||
+    (period === 'yearly' && identifier && identifier.includes('-'))
+  ) {
+    const [monthStr, dayStr] = identifier.split('-');
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+    const monthName = new Date(ref_year, month - 1, 1).toLocaleString('en-GB', { month: 'long' });
+    friendlyDate = `${getOrdinal(day)} ${monthName}`;
+  }
+  switch (period) {
+    case 'daily':   return friendlyDate;
+    case 'weekly':  return `Week ending ${friendlyDate}`;
+    case 'monthly': return `Month ending ${friendlyDate}`;
+    case 'yearly':  return `Year ending ${friendlyDate}`;
+    default:        return friendlyDate;
+  }
+}
+
+function escapeAttr(str) {
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+app.use(async (req, res, next) => {
+  const match = req.path.match(/^\/s\/([^/]+)$/);
+  if (!match) return next();
+
+  const shareId = match[1];
+  if (!/^[a-zA-Z0-9_-]+$/.test(shareId)) return next();
+
+  try {
+    const apiUrl = `${apiBase}/v1/shares/${encodeURIComponent(shareId)}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+
+    let meta;
+    try {
+      const apiRes = await fetch(apiUrl, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!apiRes.ok) {
+        console.warn('[OG] API returned', apiRes.status, 'for share', shareId, '— serving plain SPA');
+        return next();
+      }
+      meta = await apiRes.json();
+    } catch (fetchErr) {
+      clearTimeout(timeout);
+      console.warn('[OG] Fetch failed for share', shareId, ':', fetchErr.message);
+      return next();
+    }
+
+    const cityName = meta.location.split(',')[0].trim();
+    const heading = formatSharePeriodHeading(meta);
+    const title = `${cityName} \u00b7 ${heading} | TempHist`;
+    const description = `Historical temperature data for ${cityName}: ${heading}.`;
+    const shareUrl = `${req.protocol}://${req.get('host')}/s/${shareId}`;
+    const imageUrl = `${apiBase}/v1/og/${shareId}.png`;
+
+    const ogTags = [
+      `<meta property="og:type" content="website">`,
+      `<meta property="og:site_name" content="TempHist">`,
+      `<meta property="og:title" content="${escapeAttr(title)}">`,
+      `<meta property="og:description" content="${escapeAttr(description)}">`,
+      `<meta property="og:url" content="${escapeAttr(shareUrl)}">`,
+      `<meta property="og:image" content="${escapeAttr(imageUrl)}">`,
+      `<meta name="twitter:card" content="summary_large_image">`,
+      `<meta name="twitter:title" content="${escapeAttr(title)}">`,
+      `<meta name="twitter:description" content="${escapeAttr(description)}">`,
+      `<meta name="twitter:image" content="${escapeAttr(imageUrl)}">`,
+    ].join('\n    ');
+
+    const html = getIndexHtml()
+      .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttr(title)}</title>`)
+      .replace('</head>', `    ${ogTags}\n  </head>`);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.send(html);
+  } catch (err) {
+    console.error('[OG] Unexpected error for share', shareId, ':', err.message);
+    return next();
+  }
+});
+
 // Serve static files with proper configuration
 app.use(express.static(staticDir, {
   index: false // Don't automatically serve index.html yet
