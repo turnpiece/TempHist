@@ -110,6 +110,9 @@ export function setupShareButton(periodKey: string, params: ShareParams): void {
   const heading = document.getElementById(headingId);
   if (!heading) return;
 
+  // Remove any existing share button to avoid duplicates on re-render
+  heading.querySelector('.share-icon-btn')?.remove();
+
   // Build the button and append it to the heading
   const btn = document.createElement('button');
   btn.className = 'share-icon-btn';
