@@ -12,6 +12,7 @@ import { fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRa
 import { createTemperatureChart, updateChartTrendLine } from '../chart/chart';
 import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from './today';
+import { setupShareButton } from '../share';
 
 declare const debugLog: (...args: any[]) => void;
 
@@ -355,6 +356,12 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
     // Get the actual current year (for highlighting the current year in green)
     const actualCurrentYear = new Date().getFullYear();
     
+    // Map period key to the API period value used in share payloads
+    const apiPeriod: 'daily' | 'weekly' | 'monthly' | 'yearly' =
+      periodKey === 'week' ? 'weekly' :
+      periodKey === 'month' ? 'monthly' :
+      periodKey === 'year' ? 'yearly' : 'daily';
+
     // Skip minimum loading time if using cached data for instant display
     const isUsingCachedData = weatherData && FeatureFlags.isEnabled('data_caching');
     
@@ -413,6 +420,9 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       
       // Update summary, average, and trend text
       updateSummaryTextElements(summaryData, averageData, trendData, periodKey);
+
+      // Reveal share button now that data is ready
+      setupShareButton(periodKey, { period: apiPeriod, identifier, ref_year: actualCurrentYear });
 
       // Add reload button functionality
       const reloadButton = document.getElementById(`${periodKey}ReloadButton`);

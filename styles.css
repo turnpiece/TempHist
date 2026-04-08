@@ -193,6 +193,41 @@ a {
   border-radius: 2px;
 }
 
+.share-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 4px;
+  margin-left: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--accent);
+  vertical-align: middle;
+}
+.share-icon-btn svg {
+  display: block;
+  transition: all 0.2s ease;
+}
+.share-icon-btn:hover {
+  color: var(--success);
+  transform: scale(1.15);
+}
+.share-icon-btn:active {
+  transform: scale(1.05);
+}
+.share-icon-btn:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.share-icon-btn--loading,
+.share-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+  transform: none;
+}
 .location-text::before {
   content: "📍 ";
 }
