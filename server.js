@@ -148,7 +148,9 @@ app.use(async (req, res, next) => {
       `<meta name="twitter:image" content="${escapeAttr(imageUrl)}">`,
     ].join('\n    ');
 
-    const html = getIndexHtml().replace('</head>', `    ${ogTags}\n  </head>`);
+    const html = getIndexHtml()
+      .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttr(title)}</title>`)
+      .replace('</head>', `    ${ogTags}\n  </head>`);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     return res.send(html);

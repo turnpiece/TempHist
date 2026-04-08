@@ -49,6 +49,138 @@ export function isSharePagePath(): boolean {
   return /^\/s\/[^/]+/.test(window.location.pathname);
 }
 
+// ─── Share creation ───────────────────────────────────────────────────────────
+
+export interface ShareParams {
+  period: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  identifier: string;
+  ref_year: number;
+}
+
+export async function createShare(params: ShareParams): Promise<string> {
+  const url = getApiUrl('/v1/shares');
+  const response = await apiFetch(url, {
+    method: 'POST',
+    body: JSON.stringify({
+      location: window.tempLocation,
+      period: params.period,
+      identifier: params.identifier,
+      ref_year: params.ref_year,
+      unit: 'celsius',
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to create share (${response.status}).`);
+  }
+  const data = await response.json();
+  const shareId = data.share_id || data.id;
+  if (!shareId) {
+    throw new Error('Share created but no ID returned.');
+  }
+  return `${window.location.origin}/s/${shareId}`;
+}
+
+function formatShareTitle(params: ShareParams): string {
+  const cityName = (window.tempLocation || '').split(',')[0].trim();
+  // Build a synthetic ShareMetadata so we can reuse the existing formatters
+  const synthetic: ShareMetadata = {
+    location: window.tempLocation || '',
+    period: params.period,
+    identifier: params.identifier,
+    ref_year: params.ref_year,
+    unit: 'celsius',
+    created_at: '',
+  };
+  const heading = formatPeriodHeading(synthetic);
+  return `${cityName} \u00b7 ${heading} | TempHist`;
+}
+
+const SHARE_ICON_PATH =
+  'M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z';
+const CHECKMARK_ICON_PATH =
+  'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z';
+
+function setShareBtnIcon(btn: HTMLButtonElement, pathD: string): void {
+  const path = btn.querySelector('path');
+  if (path) path.setAttribute('d', pathD);
+}
+
+export function setupShareButton(periodKey: string, params: ShareParams): void {
+  const headingId = periodKey ? `${periodKey}DateText` : 'dateText';
+  const heading = document.getElementById(headingId);
+  if (!heading) return;
+
+  // Remove any existing share button to avoid duplicates on re-render
+  heading.querySelector('.share-icon-btn')?.remove();
+
+  // Build the button and append it to the heading
+  const btn = document.createElement('button');
+  btn.className = 'share-icon-btn';
+  btn.title = 'Share';
+  btn.setAttribute('aria-label', 'Share this chart');
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', '18');
+  svg.setAttribute('height', '18');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('xmlns', svgNS);
+
+  const svgPath = document.createElementNS(svgNS, 'path');
+  svgPath.setAttribute('d', SHARE_ICON_PATH);
+  svgPath.setAttribute('fill', 'currentColor');
+
+  svg.appendChild(svgPath);
+  btn.appendChild(svg);
+  heading.appendChild(btn);
+
+  btn.addEventListener('click', async () => {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.classList.add('share-icon-btn--loading');
+
+    try {
+      const shareUrl = await createShare(params);
+
+      if (typeof navigator.share === 'function') {
+        const shareTitle = formatShareTitle(params);
+        const previousTitle = document.title;
+        document.title = shareTitle; // iOS Safari reads document.title, not the title prop
+        try {
+          await navigator.share({ title: shareTitle, url: shareUrl });
+        } catch (shareErr) {
+          // Ignore AbortError — user dismissed the share sheet intentionally
+          if (shareErr instanceof Error && shareErr.name !== 'AbortError') {
+            throw shareErr;
+          }
+        } finally {
+          document.title = previousTitle;
+        }
+        btn.disabled = false;
+        btn.classList.remove('share-icon-btn--loading');
+      } else {
+        // Clipboard fallback — swap to checkmark for 2 s
+        await navigator.clipboard.writeText(shareUrl);
+        setShareBtnIcon(btn, CHECKMARK_ICON_PATH);
+        btn.title = 'Link copied!';
+        setTimeout(() => {
+          setShareBtnIcon(btn, SHARE_ICON_PATH);
+          btn.title = 'Share';
+          btn.disabled = false;
+          btn.classList.remove('share-icon-btn--loading');
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('Share failed:', err);
+      btn.title = 'Share failed — try again';
+      btn.disabled = false;
+      btn.classList.remove('share-icon-btn--loading');
+      setTimeout(() => { btn.title = 'Share'; }, 3000);
+    }
+  });
+}
+
 function extractShareId(): string | null {
   const match = window.location.pathname.match(/^\/s\/([^/]+)/);
   return match ? match[1] : null;

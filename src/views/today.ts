@@ -15,6 +15,7 @@ import { Debouncer } from '../utils/Debouncer';
 import { checkApiHealth, fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange, validateTemperatureDataResponse } from '../api/temperature';
 import { createTemperatureChart, updateChartTrendLine, calculateTrendLine } from '../chart/chart';
 import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError } from '../utils/uiHelpers';
+import { setupShareButton } from '../share';
 import { handleLocationChangeInternal, startPeriodDataPrefetch, setupMobileNavigation, checkAndHandleDateChange } from '../splash/splash';
 import { sendAnalytics } from '../analytics/analytics';
 
@@ -508,6 +509,9 @@ async function fetchHistoricalData(): Promise<void> {
     // Show the chart
     showChart();
     chart.update();
+
+    // Reveal share button now that data is ready
+    setupShareButton('', { period: 'daily', identifier, ref_year: currentYear });
 
     // Send analytics after successful data load (only if Firebase is authenticated)
     if (window.currentUser) {
