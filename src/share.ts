@@ -141,13 +141,18 @@ export function setupShareButton(periodKey: string, params: ShareParams): void {
       const shareUrl = await createShare(params);
 
       if (typeof navigator.share === 'function') {
+        const shareTitle = formatShareTitle(params);
+        const previousTitle = document.title;
+        document.title = shareTitle; // iOS Safari reads document.title, not the title prop
         try {
-          await navigator.share({ title: formatShareTitle(params), url: shareUrl });
+          await navigator.share({ title: shareTitle, url: shareUrl });
         } catch (shareErr) {
           // Ignore AbortError — user dismissed the share sheet intentionally
           if (shareErr instanceof Error && shareErr.name !== 'AbortError') {
             throw shareErr;
           }
+        } finally {
+          document.title = previousTitle;
         }
         btn.disabled = false;
         btn.classList.remove('share-icon-btn--loading');
