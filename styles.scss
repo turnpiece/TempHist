@@ -295,7 +295,7 @@ a {
   }
 }
 
-// Share icon button styling
+// Share icon button — sits inline with the date heading
 .share-icon-btn {
   display: inline-flex;
   align-items: center;
@@ -303,7 +303,7 @@ a {
   background: none;
   border: none;
   padding: 4px;
-  margin-left: 4px;
+  margin-left: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--accent);

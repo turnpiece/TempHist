@@ -106,12 +106,31 @@ function setShareBtnIcon(btn: HTMLButtonElement, pathD: string): void {
 }
 
 export function setupShareButton(periodKey: string, params: ShareParams): void {
-  const buttonId = periodKey ? `shareBtn-${periodKey}` : 'shareBtn';
-  const btn = document.getElementById(buttonId) as HTMLButtonElement | null;
-  if (!btn) return;
+  const headingId = periodKey ? `${periodKey}DateText` : 'dateText';
+  const heading = document.getElementById(headingId);
+  if (!heading) return;
 
-  // Reveal the button now that data is ready
-  btn.hidden = false;
+  // Build the button and append it to the heading
+  const btn = document.createElement('button');
+  btn.className = 'share-icon-btn';
+  btn.title = 'Share';
+  btn.setAttribute('aria-label', 'Share this chart');
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', '18');
+  svg.setAttribute('height', '18');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('xmlns', svgNS);
+
+  const svgPath = document.createElementNS(svgNS, 'path');
+  svgPath.setAttribute('d', SHARE_ICON_PATH);
+  svgPath.setAttribute('fill', 'currentColor');
+
+  svg.appendChild(svgPath);
+  btn.appendChild(svg);
+  heading.appendChild(btn);
 
   btn.addEventListener('click', async () => {
     if (btn.disabled) return;
