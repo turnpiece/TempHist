@@ -254,6 +254,11 @@ a {
       overflow-x: hidden; // Prevent horizontal scrolling
       position: relative; // Establish positioning context
     }
+
+    // Sidebar brand is only for mobile — ensure it stays hidden if viewport is resized to desktop
+    .sidebar-brand {
+      display: none;
+    }
   }
 }
 
@@ -439,7 +444,6 @@ a {
   overscroll-behavior-x: none; // Prevent iOS lateral rubber-band on this scroll container
   max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
   box-sizing: border-box; // Include padding in width calculation
-  -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
   width: 100%;
 
   // On desktop, allow overflow upward for negative margin
@@ -775,9 +779,9 @@ h2, .date-heading {
   #burgerBtn { display: flex; }
 
   #sidebar {
-    position: fixed; 
-    inset: 0 auto 0 0; 
-    width: min(30vw, 200px); // Optimized width for small screens
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: max(160px, min(30vw, 200px)); // Ensure enough room for sidebar brand
     transform: translateX(-100%);
     background: $colour-bg; 
     z-index: 1000; 
@@ -817,15 +821,23 @@ h2, .date-heading {
 
     img {
       flex-shrink: 0;
+      display: block; // Remove inline baseline offset
+      width: 36px;
+      height: 36px;
     }
 
     span {
       font-size: 1.1rem;
       font-weight: bold;
+      line-height: 1; // Keep line box tight so vertical centering is accurate
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
+  }
+
+  // Override the general #sidebar a:hover colour — the brand should not turn green
+  #sidebar .sidebar-brand:hover {
+    background: transparent;
+    color: $colour-text;
   }
 
   #sidebar.open { transform: translateX(0); }
