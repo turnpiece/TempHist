@@ -8,6 +8,7 @@ export class LoadingManager {
   private static activeIntervals = new Set<NodeJS.Timeout>();
   private static globalStartTime: number | null = null;
   private static globalInterval: NodeJS.Timeout | null = null;
+  private static retryMessage: string | null = null;
 
   /**
    * Clear all active loading intervals
@@ -64,6 +65,26 @@ export class LoadingManager {
   }
 
   /**
+   * Show a retry message on all active loading text elements, overriding the normal cycle.
+   * Call clearRetryMessage() before the next attempt to resume normal messages.
+   */
+  static showRetryMessage(message: string): void {
+    this.retryMessage = message;
+    const ids = ['loadingText', 'weekLoadingText', 'monthLoadingText', 'yearLoadingText'];
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = message;
+    }
+  }
+
+  /**
+   * Clear the retry message override so normal loading messages resume.
+   */
+  static clearRetryMessage(): void {
+    this.retryMessage = null;
+  }
+
+  /**
    * Stop specific loading interval
    */
   static stopPeriodLoading(interval: NodeJS.Timeout): void {
@@ -76,10 +97,16 @@ export class LoadingManager {
    */
   private static updateGlobalLoadingMessage(): void {
     if (!this.globalStartTime) return;
-    
-    const elapsedSeconds = Math.floor((Date.now() - this.globalStartTime) / 1000);
+
     const loadingText = document.getElementById('loadingText');
     if (!loadingText) return;
+
+    if (this.retryMessage !== null) {
+      loadingText.textContent = this.retryMessage;
+      return;
+    }
+
+    const elapsedSeconds = Math.floor((Date.now() - this.globalStartTime) / 1000);
 
     // Get current page/period
     const currentHash = window.location.hash;
@@ -141,10 +168,15 @@ export class LoadingManager {
    * Update period-specific loading message
    */
   private static updatePeriodLoadingMessage(periodKey: 'week' | 'month' | 'year', startTime: number): void {
-    const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
     const loadingText = document.getElementById(`${periodKey}LoadingText`);
-    
     if (!loadingText) return;
+
+    if (this.retryMessage !== null) {
+      loadingText.textContent = this.retryMessage;
+      return;
+    }
+
+    const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
     
     const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
     
