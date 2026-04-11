@@ -404,17 +404,17 @@ a {
   background: rgba($colour-loading-text, 0.1);
 }
 
-#sidebar a { 
-  color: var(--accent); 
-  text-decoration: none; 
-  padding: 8px 10px; 
-  border-radius: 8px; 
-  display: block; 
+#sidebar a:not(.sidebar-brand) {
+  color: var(--accent);
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  display: block;
   transition: background-color 0.2s;
   font-weight: normal;
   position: relative;
 }
-#sidebar a:hover { 
+#sidebar a:not(.sidebar-brand):hover {
   @extend .menu-selected-bg;
   color: var(--thisYear);
 }
@@ -794,7 +794,7 @@ h2, .date-heading {
       padding: 0 8px; // Add some padding for larger text
     }
     
-    a {
+    a:not(.sidebar-brand) {
       padding: 8px 10px;
       font-size: 1rem; // Ensure consistent font size
       line-height: 1.4; // Better line height for larger text
