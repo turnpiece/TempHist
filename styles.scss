@@ -813,10 +813,10 @@ h2, .date-heading {
     left: 0;
     right: 0;
     height: 80px; // Occupies the sidebar's padding-top space
-    padding: 0 16px;
+    padding: 8px 16px 0 24px; // top:8px matches header padding-top; left:24px aligns logo with nav item edges
     box-sizing: border-box;
     text-decoration: none;
-    color: $colour-text;
+    color: var(--accent); // Match the colour of nav links
     border-bottom: 1px solid rgba($colour-loading-text, 0.15);
 
     img {
@@ -834,10 +834,10 @@ h2, .date-heading {
     }
   }
 
-  // Override the general #sidebar a:hover colour — the brand should not turn green
+  // Keep brand accent colour on hover — prevent it turning green like nav links
   #sidebar .sidebar-brand:hover {
     background: transparent;
-    color: $colour-text;
+    color: var(--accent);
   }
 
   #sidebar.open { transform: translateX(0); }
