@@ -1,4 +1,9 @@
       <nav id="sidebar" aria-label="Primary">
+        <a class="sidebar-brand" href="{{HOME_LINK}}">
+          <img src="/assets/logo.svg" alt="TempHist logo" width="36" height="36"
+               onerror="this.onerror=null; this.src='/assets/logo.png'" />
+          <span>TempHist</span>
+        </a>
         <ul>
           <li {{APP_NAV_HIDDEN}}><a href="{{TODAY_LINK}}" data-route="/today">Today</a></li>
           <li {{APP_NAV_HIDDEN}}><a href="{{WEEK_LINK}}" data-route="/week">Past week</a></li>

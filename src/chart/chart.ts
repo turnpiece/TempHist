@@ -129,7 +129,7 @@ export function createTemperatureChart(
         padding: {
           left: 0,
           right: 20,
-          top: 15,
+          top: 5,
           bottom: 15
         }
       },

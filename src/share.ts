@@ -242,10 +242,12 @@ function hideAppChrome(): void {
     });
   }
 
-  // Rewrite the site title link to the root so it loads the splash/landing
-  // page rather than appending #/today to /s/:id.
+  // Rewrite the site title link and sidebar brand to the root so they load
+  // the splash/landing page rather than appending #/today to /s/:id.
   const siteLink = document.querySelector('header a') as HTMLAnchorElement | null;
   if (siteLink) siteLink.href = '/';
+  const sidebarBrand = document.querySelector('.sidebar-brand') as HTMLAnchorElement | null;
+  if (sidebarBrand) sidebarBrand.href = '/';
 
   // Hide any existing view sections (today, week, etc.)
   const viewOutlet = document.getElementById('viewOutlet');
@@ -498,7 +500,7 @@ async function renderShareChart(
       animation: { duration: 0 },
       normalized: true,
       layout: {
-        padding: { left: 0, right: 20, top: 15, bottom: 15 }
+        padding: { left: 0, right: 20, top: 5, bottom: 15 }
       },
       plugins: {
         legend: { display: false },

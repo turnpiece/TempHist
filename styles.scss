@@ -38,6 +38,7 @@ html {
   min-height: 100vh;
   overflow-x: hidden; // Prevent horizontal page scroll
   overflow-y: auto; // Allow vertical scrolling
+  overscroll-behavior-x: none; // Prevent iOS lateral rubber-band scroll
   width: 100%;
   max-width: 100%; // Prevent overflow
   position: relative;
@@ -54,6 +55,8 @@ body {
   min-height: 100vh;
   padding-bottom: 3rem; // Extra bottom padding for mobile browser bar
   overflow-x: hidden; // Prevent horizontal page scroll
+  overscroll-behavior-x: none; // Prevent iOS lateral rubber-band scroll
+  touch-action: pan-y; // Disable horizontal touch-panning at document level
   position: relative; // Establish positioning context
   width: 100%;
   max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
@@ -388,6 +391,10 @@ a {
 }
 
 #sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+.sidebar-brand {
+  display: none; // Hidden on desktop — header already shows logo and title
+}
 .menu-selected-bg {
   background: rgba($colour-loading-text, 0.1);
 }
@@ -428,12 +435,13 @@ a {
   padding-bottom: 4rem; // Extra bottom padding for mobile browser bar
   position: relative;
   overflow-y: auto;
-  overflow-x: hidden; // Prevent horizontal scrolling
+  overflow-x: clip; // Clip horizontal overflow without creating a new scroll container
+  overscroll-behavior-x: none; // Prevent iOS lateral rubber-band on this scroll container
   max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
   box-sizing: border-box; // Include padding in width calculation
   -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
   width: 100%;
-  
+
   // On desktop, allow overflow upward for negative margin
   @media (min-width: 901px) {
     overflow-y: auto; // Allow vertical scrolling
@@ -518,7 +526,6 @@ body.privacy-page {
     .image-attribution-text {
       flex: 1;
       min-width: 0; // Allow text to wrap properly
-      max-width: 400px;
       font-size: 90%;
       @media (min-width: 901px) {
         margin-top: 1rem;
@@ -784,7 +791,7 @@ h2, .date-heading {
     }
     
     a {
-      padding: 12px 10px; // Increased padding for better touch targets
+      padding: 8px 10px;
       font-size: 1rem; // Ensure consistent font size
       line-height: 1.4; // Better line height for larger text
       white-space: nowrap; // Prevent text wrapping
@@ -792,6 +799,35 @@ h2, .date-heading {
       text-overflow: ellipsis; // Show ellipsis if text is too long
     }
   }
+
+  .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px; // Occupies the sidebar's padding-top space
+    padding: 0 16px;
+    box-sizing: border-box;
+    text-decoration: none;
+    color: $colour-text;
+    border-bottom: 1px solid rgba($colour-loading-text, 0.15);
+
+    img {
+      flex-shrink: 0;
+    }
+
+    span {
+      font-size: 1.1rem;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
   #sidebar.open { transform: translateX(0); }
   body.menu-open { 
     overflow: hidden;
