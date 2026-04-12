@@ -628,9 +628,9 @@ export function calculateTemperatureRange(chartData: ChartDataPoint[]): { min: n
   }
   
   const temps = chartData.map(p => p.x);
-  // Snap min/max to multiples of 2 (matches stepSize: 2) to avoid a lone tick beyond the last step
-  const minTemp = Math.floor((Math.min(...temps) - 1) / 2) * 2;
-  const maxTemp = Math.ceil((Math.max(...temps) + 1) / 2) * 2;
+  // Find the nearest step-2 boundary strictly outside the data range — one label below min, one above max
+  const minTemp = (Math.ceil(Math.min(...temps) / 2) - 1) * 2;
+  const maxTemp = (Math.floor(Math.max(...temps) / 2) + 1) * 2;
 
   return { min: minTemp, max: maxTemp };
 }
