@@ -487,9 +487,11 @@ body.privacy-page {
     text-decoration: underline;
   }
   
-  // Don't underline the header logo/title link
-  .header-left a {
+  // Don't underline the header logo/title link or mobile sidebar brand
+  .header-left a,
+  .sidebar-brand {
     text-decoration: none;
+    color: var(--accent);
   }
 }
 
@@ -547,7 +549,7 @@ body.privacy-page {
 
 .summary-text {
   color: var(--thisYear);
-  min-height: 3.5em; /* Ensure consistent chart positioning */
+  min-height: 2em; /* Ensure consistent chart positioning during loading */
 }
 
 .avg-text {
@@ -792,6 +794,7 @@ h2, .date-heading {
     // Ensure menu items fit with larger fonts
     ul {
       padding: 0 8px; // Add some padding for larger text
+      margin-top: 8px; // Small gap between brand bar and nav items
     }
     
     a:not(.sidebar-brand) {
@@ -813,11 +816,10 @@ h2, .date-heading {
     left: 0;
     right: 0;
     height: 80px; // Occupies the sidebar's padding-top space
-    padding: 8px 16px 0 24px; // top:8px matches header padding-top; left:24px aligns logo with nav item edges
+    padding: 16px 16px 0 27px; // top:16px for visual alignment; left:27px aligns logo with nav item edges
     box-sizing: border-box;
     text-decoration: none;
     color: var(--accent); // Match the colour of nav links
-    border-bottom: 1px solid rgba($colour-loading-text, 0.15);
 
     img {
       flex-shrink: 0;

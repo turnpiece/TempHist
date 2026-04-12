@@ -535,6 +535,7 @@ async function renderShareChart(
       scales: {
         x: {
           type: 'linear',
+          border: { color: 'rgba(236, 236, 236, 0.35)' },
           title: {
             display: true,
             text: `Temperature (${unitLabel})`,
@@ -552,6 +553,7 @@ async function renderShareChart(
         },
         y: {
           type: 'linear',
+          border: { color: 'rgba(236, 236, 236, 0.35)' },
           min: minYear,
           max: maxYear,
           ticks: {
