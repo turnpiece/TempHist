@@ -148,7 +148,7 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   appendHeading(container, 'Location data');
   appendParagraph(
     container,
-    'When you use TempHist, your city-level location is included in every request sent to the TempHist API (api.temphist.com). This is the city name obtained by reverse-geocoding your device location — no precise GPS coordinates are stored or transmitted. Location is linked to your anonymous session identifier in each request. Your location is cached on-device for 30 minutes to reduce repeated lookups.'
+    'When you use TempHist, your city-level location is included in every request sent to the TempHist API (api.temphist.com). The city name is obtained by reverse-geocoding your device location — only the city name is transmitted to the API, not your GPS coordinates. Location is linked to your anonymous session identifier in each request. To support location history and reduce repeated lookups, the app stores on your device the detected city name and up to 10 recent GPS locations in app storage (SharedPreferences). This data is cleared only when the app is uninstalled.'
   );
 
   // Anonymous authentication
@@ -162,7 +162,8 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   appendHeading(container, 'Data stored on your device');
   appendParagraph(container, 'The following data is stored locally on your device:');
   appendBulletList(container, [
-    'Your city-level location — cached for 30 minutes',
+    'Detected city name — stored until the app is uninstalled',
+    'Up to 10 recent GPS locations — stored until the app is uninstalled',
     'Temperature data — cached for up to 7 days',
     'Unit preference (°C or °F) — stored until the app is uninstalled',
     'Onboarding state — stored until the app is uninstalled',
@@ -178,7 +179,7 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   // What is not collected
   appendHeading(container, 'What is not collected');
   appendBulletList(container, [
-    'Precise GPS coordinates — only the reverse-geocoded city name is used',
+    'GPS coordinates transmitted to any server — only the city name is sent to the API',
     'Personal identifiers such as name, email, or phone number',
     'Analytics or advertising data',
     'Cross-site tracking',

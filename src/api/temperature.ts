@@ -1,11 +1,12 @@
-import type { 
-  TemperatureDataResponse, 
-  AsyncJobResponse, 
+import type {
+  TemperatureDataResponse,
+  AsyncJobResponse,
   ChartDataPoint,
   JobResultResponse,
   TemperatureDataPoint
 } from '../types/index';
 import { API_CONFIG, LOCATION_VALIDATION_CONFIG, DATE_RANGE_CONFIG } from '../constants/index';
+import { LoadingManager } from '../utils/LoadingManager';
 
 // Import debug function
 declare const debugLog: (...args: any[]) => void;
@@ -127,12 +128,13 @@ export function getApiUrl(path: string): string {
 }
 
 /**
- * Wrapper function for API fetches with Firebase authentication
+ * Wrapper function for API fetches with Firebase authentication.
+ * Automatically retries up to 3 times on network errors or HTTP 5xx responses,
+ * with exponential backoff (1s, 2s, 4s). HTTP 4xx and AbortErrors are never retried.
  */
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
   debugLog('apiFetch called with URL:', url);
-  
-  // Use Firebase token for authentication
+
   if (!window.currentUser) {
     debugLog('apiFetch: No currentUser, throwing error');
     throw new Error('No authenticated user available');
@@ -141,18 +143,6 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
   let authToken: string;
   try {
     authToken = await window.currentUser.getIdToken();
-    //debugLog('apiFetch: Got token (length:', authToken.length, '), making request to:', url);
-    
-    // Decode token to see the project ID (first part is header, second is payload)
-    try {
-      const tokenParts = authToken.split('.');
-      if (tokenParts.length === 3) {
-        const payload = JSON.parse(atob(tokenParts[1]));
-        //debugLog('Token payload project ID:', payload.aud, 'issuer:', payload.iss);
-      }
-    } catch (decodeError) {
-      debugLog('Could not decode token payload:', decodeError);
-    }
   } catch (tokenError) {
     debugLog('apiFetch: Error getting token:', tokenError);
     throw new Error(`Failed to get Firebase token: ${tokenError}`);
@@ -165,61 +155,79 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
     ...options.headers
   };
 
-  try {
-    const response = await fetch(url, { 
-      ...options,
-      method: options.method || 'GET',
-      headers
-    });
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS_MS = [1000, 2000, 4000];
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      LoadingManager.showRetryMessage(`Connection issue — retrying… (${attempt} of ${MAX_RETRIES})`);
+
+      await new Promise<void>(resolve => {
+        if (options.signal?.aborted) { resolve(); return; }
+        const timer = setTimeout(resolve, RETRY_DELAYS_MS[attempt - 1]);
+        options.signal?.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+      });
+
+      LoadingManager.clearRetryMessage();
+
+      if (options.signal?.aborted) {
+        throw new DOMException('The operation was aborted', 'AbortError');
+      }
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(url, { ...options, method: options.method || 'GET', headers });
+    } catch (fetchError) {
+      const msg = fetchError instanceof Error ? fetchError.message : '';
+
+      // Never retry abort errors
+      if (fetchError instanceof Error && (fetchError.name === 'AbortError' || msg.includes('aborted'))) {
+        throw fetchError;
+      }
+
+      if (attempt < MAX_RETRIES) {
+        console.warn(`apiFetch: Network error on attempt ${attempt + 1}, retrying:`, msg);
+        lastError = fetchError;
+        continue;
+      }
+
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('CORS')) {
+        console.error('Network/CORS error (may be caused by Cloudflare 524 timeout):', {
+          url, error: msg,
+          note: 'If you see CORS errors with status 524, this is a Cloudflare timeout issue.'
+        });
+      } else {
+        console.error('Fetch error:', { url, error: msg, headers });
+      }
+      throw fetchError;
+    }
 
     if (!response.ok) {
+      // Retry on server errors (5xx) while retries remain
+      if (response.status >= 500 && attempt < MAX_RETRIES) {
+        console.warn(`apiFetch: HTTP ${response.status} on attempt ${attempt + 1}, retrying...`);
+        lastError = new Error(`HTTP error! status: ${response.status}`);
+        continue;
+      }
+
       const errorText = await response.text();
-      
-      // Handle Cloudflare 524 timeout errors - these often appear as CORS errors
-      // because Cloudflare doesn't include CORS headers in timeout responses
       if (response.status === 524) {
         console.error('API Timeout (524): Cloudflare timeout - this may appear as a CORS error:', {
-          status: response.status,
-          statusText: response.statusText,
-          url,
-          note: 'Cloudflare 524 errors don\'t include CORS headers, causing browsers to report CORS errors'
+          status: response.status, statusText: response.statusText, url,
+          note: "Cloudflare 524 errors don't include CORS headers, causing browsers to report CORS errors even when CORS is properly configured"
         });
         throw new Error(`API timeout (524): The request exceeded Cloudflare's timeout limit`);
       }
-      
-      console.error('API Error:', {
-        status: response.status,
-        statusText: response.statusText,
-        url,
-        body: errorText
-      });
+      console.error('API Error:', { status: response.status, statusText: response.statusText, url, body: errorText });
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     return response;
-  } catch (error) {
-    // Network errors (including CORS failures from 524 responses) will be caught here
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
-    // Check if this might be a timeout-related CORS error
-    if (errorMessage.includes('Failed to fetch') || 
-        errorMessage.includes('NetworkError') ||
-        errorMessage.includes('CORS')) {
-      console.error('Network/CORS error (may be caused by Cloudflare 524 timeout):', {
-        url,
-        error: errorMessage,
-        note: 'If you see CORS errors with status 524, this is a Cloudflare timeout issue. The API server needs to configure Cloudflare to include CORS headers in 524 error responses.'
-      });
-    } else {
-      console.error('Fetch error:', {
-        url,
-        error: errorMessage,
-        headers
-      });
-    }
-    
-    throw error;
   }
+
+  throw lastError || new Error('Request failed after retries');
 }
 
 /**
@@ -620,8 +628,9 @@ export function calculateTemperatureRange(chartData: ChartDataPoint[]): { min: n
   }
   
   const temps = chartData.map(p => p.x);
-  const minTemp = Math.floor(Math.min(...temps) - 1);
-  const maxTemp = Math.ceil(Math.max(...temps) + 1);
-  
+  // Find the nearest step-2 boundary strictly outside the data range — one label below min, one above max
+  const minTemp = (Math.ceil(Math.min(...temps) / 2) - 1) * 2;
+  const maxTemp = (Math.floor(Math.max(...temps) / 2) + 1) * 2;
+
   return { min: minTemp, max: maxTemp };
 }

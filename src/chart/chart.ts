@@ -129,7 +129,7 @@ export function createTemperatureChart(
         padding: {
           left: 0,
           right: 20,
-          top: 15,
+          top: 5,
           bottom: 15
         }
       },
@@ -170,6 +170,7 @@ export function createTemperatureChart(
       scales: {
         x: {
           type: 'linear',
+          border: { color: 'rgba(236, 236, 236, 0.35)' },
           title: {
             display: true,
             text: 'Temperature (°C)',
@@ -193,6 +194,7 @@ export function createTemperatureChart(
         },
         y: {
           type: 'linear',
+          border: { color: 'rgba(236, 236, 236, 0.35)' },
           min: startYear,
           max: currentYear,
           ticks: {

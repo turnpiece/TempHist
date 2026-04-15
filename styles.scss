@@ -38,6 +38,7 @@ html {
   min-height: 100vh;
   overflow-x: hidden; // Prevent horizontal page scroll
   overflow-y: auto; // Allow vertical scrolling
+  overscroll-behavior-x: none; // Prevent iOS lateral rubber-band scroll
   width: 100%;
   max-width: 100%; // Prevent overflow
   position: relative;
@@ -54,6 +55,8 @@ body {
   min-height: 100vh;
   padding-bottom: 3rem; // Extra bottom padding for mobile browser bar
   overflow-x: hidden; // Prevent horizontal page scroll
+  overscroll-behavior-x: none; // Prevent iOS lateral rubber-band scroll
+  touch-action: pan-y; // Disable horizontal touch-panning at document level
   position: relative; // Establish positioning context
   width: 100%;
   max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
@@ -251,6 +254,11 @@ a {
       overflow-x: hidden; // Prevent horizontal scrolling
       position: relative; // Establish positioning context
     }
+
+    // Sidebar brand is only for mobile — ensure it stays hidden if viewport is resized to desktop
+    .sidebar-brand {
+      display: none;
+    }
   }
 }
 
@@ -388,21 +396,25 @@ a {
 }
 
 #sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+.sidebar-brand {
+  display: none; // Hidden on desktop — header already shows logo and title
+}
 .menu-selected-bg {
   background: rgba($colour-loading-text, 0.1);
 }
 
-#sidebar a { 
-  color: var(--accent); 
-  text-decoration: none; 
-  padding: 8px 10px; 
-  border-radius: 8px; 
-  display: block; 
+#sidebar a:not(.sidebar-brand) {
+  color: var(--accent);
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  display: block;
   transition: background-color 0.2s;
   font-weight: normal;
   position: relative;
 }
-#sidebar a:hover { 
+#sidebar a:not(.sidebar-brand):hover {
   @extend .menu-selected-bg;
   color: var(--thisYear);
 }
@@ -428,12 +440,12 @@ a {
   padding-bottom: 4rem; // Extra bottom padding for mobile browser bar
   position: relative;
   overflow-y: auto;
-  overflow-x: hidden; // Prevent horizontal scrolling
+  overflow-x: clip; // Clip horizontal overflow without creating a new scroll container
+  overscroll-behavior-x: none; // Prevent iOS lateral rubber-band on this scroll container
   max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
   box-sizing: border-box; // Include padding in width calculation
-  -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
   width: 100%;
-  
+
   // On desktop, allow overflow upward for negative margin
   @media (min-width: 901px) {
     overflow-y: auto; // Allow vertical scrolling
@@ -475,9 +487,11 @@ body.privacy-page {
     text-decoration: underline;
   }
   
-  // Don't underline the header logo/title link
-  .header-left a {
+  // Don't underline the header logo/title link or mobile sidebar brand
+  .header-left a,
+  .sidebar-brand {
     text-decoration: none;
+    color: var(--accent);
   }
 }
 
@@ -518,7 +532,6 @@ body.privacy-page {
     .image-attribution-text {
       flex: 1;
       min-width: 0; // Allow text to wrap properly
-      max-width: 400px;
       font-size: 90%;
       @media (min-width: 901px) {
         margin-top: 1rem;
@@ -536,7 +549,7 @@ body.privacy-page {
 
 .summary-text {
   color: var(--thisYear);
-  min-height: 3.5em; /* Ensure consistent chart positioning */
+  min-height: 2em; /* Ensure consistent chart positioning during loading */
 }
 
 .avg-text {
@@ -768,9 +781,9 @@ h2, .date-heading {
   #burgerBtn { display: flex; }
 
   #sidebar {
-    position: fixed; 
-    inset: 0 auto 0 0; 
-    width: min(30vw, 200px); // Optimized width for small screens
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: max(160px, min(30vw, 200px)); // Ensure enough room for sidebar brand
     transform: translateX(-100%);
     background: $colour-bg; 
     z-index: 1000; 
@@ -781,10 +794,11 @@ h2, .date-heading {
     // Ensure menu items fit with larger fonts
     ul {
       padding: 0 8px; // Add some padding for larger text
+      margin-top: 8px; // Small gap between brand bar and nav items
     }
     
-    a {
-      padding: 12px 10px; // Increased padding for better touch targets
+    a:not(.sidebar-brand) {
+      padding: 8px 10px;
       font-size: 1rem; // Ensure consistent font size
       line-height: 1.4; // Better line height for larger text
       white-space: nowrap; // Prevent text wrapping
@@ -792,6 +806,42 @@ h2, .date-heading {
       text-overflow: ellipsis; // Show ellipsis if text is too long
     }
   }
+
+  .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px; // Occupies the sidebar's padding-top space
+    padding: 16px 16px 0 27px; // top:16px for visual alignment; left:27px aligns logo with nav item edges
+    box-sizing: border-box;
+    text-decoration: none;
+    color: var(--accent); // Match the colour of nav links
+
+    img {
+      flex-shrink: 0;
+      display: block; // Remove inline baseline offset
+      width: 36px;
+      height: 36px;
+    }
+
+    span {
+      font-size: 1.1rem;
+      font-weight: bold;
+      line-height: 1; // Keep line box tight so vertical centering is accurate
+      white-space: nowrap;
+    }
+  }
+
+  // Keep brand accent colour on hover — prevent it turning green like nav links
+  #sidebar .sidebar-brand:hover {
+    background: transparent;
+    color: var(--accent);
+  }
+
   #sidebar.open { transform: translateX(0); }
   body.menu-open { 
     overflow: hidden;
