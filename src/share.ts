@@ -526,7 +526,7 @@ async function renderShareChart(
         tooltip: {
           callbacks: {
             title: function(context: any) {
-              return `${context[0].parsed.y}: ${context[0].parsed.x.toFixed(tempDecimals)}${unitLabel}`;
+              return `${context[0].parsed.y}: ${context[0].parsed.x.toFixed(1)}${unitLabel}`;
             },
             label: function() { return ''; }
           }

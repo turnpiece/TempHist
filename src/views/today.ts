@@ -744,6 +744,15 @@ export function mainAppLogic(): void {
     window.tempLocationIsDetected = false;
   }
 
+  // Wire up the reload button on the Today error container
+  const reloadButton = document.getElementById('reloadButton');
+  if (reloadButton) {
+    reloadButton.addEventListener('click', () => {
+      hideError();
+      fetchHistoricalData();
+    });
+  }
+
   // If we already have a location (from splash screen), proceed with data fetching
   if (window.tempLocation) {
     displayLocationAndFetchData();
