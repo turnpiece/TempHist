@@ -423,15 +423,6 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
 
       // Reveal share button now that data is ready
       setupShareButton(periodKey, { period: apiPeriod, identifier, ref_year: actualCurrentYear });
-
-      // Add reload button functionality
-      const reloadButton = document.getElementById(`${periodKey}ReloadButton`);
-      if (reloadButton) {
-        reloadButton.addEventListener('click', () => {
-          // Re-trigger the render function
-          window.TempHistViews[periodKey]?.render?.();
-        });
-      }
     }
 
   } catch (error) {
