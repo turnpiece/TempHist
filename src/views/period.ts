@@ -86,7 +86,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
 
   const summaryText = document.createElement('div');
   summaryText.id = `${periodKey}SummaryText`;
-  summaryText.className = 'standard-text summary-text';
+  summaryText.className = 'standard-text summary-text data-field';
   container.appendChild(summaryText);
 
   const chartContainer = document.createElement('div');

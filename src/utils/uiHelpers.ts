@@ -133,6 +133,15 @@ export function updateSummaryTextElements(
     }
   }
 
+  if (stddevTextEl) {
+    if (averageData.stdDev != null) {
+      stddevTextEl.textContent = `Standard deviation: ± ${averageData.stdDev.toFixed(1)}°C`;
+      stddevTextEl.style.display = '';
+    } else {
+      stddevTextEl.style.display = 'none';
+    }
+  }
+
   if (trendTextEl && trendData) {
     const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' :
                      trendData.slope > 0 ? 'rising' : 'falling';
@@ -146,16 +155,6 @@ export function updateSummaryTextElements(
       trendTextEl.classList.add('trend-text');
     }
   }
-
-  if (stddevTextEl) {
-    if (averageData.stdDev != null) {
-      stddevTextEl.textContent = `Std dev: ± ${averageData.stdDev.toFixed(1)}°C`;
-      stddevTextEl.style.display = '';
-    } else {
-      stddevTextEl.style.display = 'none';
-    }
-  }
-
 }
 
 /**

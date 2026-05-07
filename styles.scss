@@ -550,6 +550,12 @@ body.privacy-page {
   min-height: 2em;
   display: inline-block;
   max-width: $max-content-width;
+  opacity: 0;
+  transition: opacity 0.4s;
+
+  &.visible {
+    opacity: 1;
+  }
 }
 
 // Semi-transparent bubble grouping avg + trend + (optional std dev) below the chart
@@ -563,6 +569,12 @@ body.privacy-page {
   margin-top: 0.4em;
   max-width: $max-content-width;
   font-size: 0.88em;
+  opacity: 0;
+  transition: opacity 0.4s;
+
+  &.visible {
+    opacity: 1;
+  }
 }
 
 .avg-text {
