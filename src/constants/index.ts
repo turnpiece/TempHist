@@ -7,19 +7,26 @@ export const DEFAULT_LOCATION = 'London, England, United Kingdom';
 
 // Chart styling constants
 export const CHART_AXIS_COLOR = '#ECECEC';
-export const CHART_FONT_SIZE_SMALL = 11;
-export const CHART_FONT_SIZE_MEDIUM = 12;
+export const CHART_FONT_SIZE_SMALL = 10;
+export const CHART_FONT_SIZE_MEDIUM = 11;
+export const CHART_AXIS_FONT_FAMILY = "ui-monospace, 'SF Mono', 'Courier New', monospace";
 
 // Loading text constant
 export const INITIAL_LOADING_TEXT = 'Loading temperature data…';
 
 // Chart colors
 export const CHART_COLORS = {
-  BAR: '#ff6b6b',
+  BAR_WARM: '#FF3B30',
+  BAR_COOL: '#3B82F6',
+  BAR_NEUTRAL: '#8E8E93',
   THIS_YEAR: '#51cf66',
-  TREND: '#aaaa00',
-  AVERAGE: '#4dabf7'
+  TREND: '#C8C400',
+  AVERAGE: '#D0D4DE'
 } as const;
+
+// Z-score thresholds for bar colour interpolation (matches app)
+export const BAR_COLOR_NEUTRAL_Z = 0.25;
+export const BAR_COLOR_SATURATION_Z = 2.0;
 
 // Loading message timeouts (in seconds)
 export const LOADING_TIMEOUTS = {

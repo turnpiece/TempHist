@@ -105,43 +105,57 @@ export function isAbortError(error: unknown): boolean {
  */
 export function updateSummaryTextElements(
   summaryText: string | null,
-  averageData: { temp: number },
-  trendData: { slope: number; unit?: string },
+  averageData: { temp: number; stdDev?: number },
+  trendData: { slope: number; slopeError?: number; unit?: string },
   periodKey: string = ''
 ): void {
   const summaryElId = periodKey ? `${periodKey}SummaryText` : 'summaryText';
   const avgElId = periodKey ? `${periodKey}AvgText` : 'avgText';
   const trendElId = periodKey ? `${periodKey}TrendText` : 'trendText';
-  
+  const stddevElId = periodKey ? `${periodKey}StddevText` : 'stddevText';
+
   const summaryTextEl = document.getElementById(summaryElId);
   const avgTextEl = document.getElementById(avgElId);
   const trendTextEl = document.getElementById(trendElId);
-  
+  const stddevTextEl = document.getElementById(stddevElId);
+
   if (summaryTextEl) {
     summaryTextEl.textContent = summaryText || 'No summary available.';
     if (periodKey) {
       summaryTextEl.classList.add('summary-text');
     }
   }
-  
+
   if (avgTextEl) {
     avgTextEl.textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
     if (periodKey) {
       avgTextEl.classList.add('avg-text');
     }
   }
-  
+
   if (trendTextEl && trendData) {
-    // Use actual slope value for direction determination, not rounded display value
-    const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
+    const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' :
                      trendData.slope > 0 ? 'rising' : 'falling';
     const unit = trendData.unit || '°C/decade';
-    const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${unit}`;
-    trendTextEl.textContent = formatted;
+    const slopeAbs = Math.abs(trendData.slope).toFixed(2);
+    const errorPart = trendData.slopeError != null && Math.abs(trendData.slopeError) >= 0.1
+      ? ` ± ${Math.abs(trendData.slopeError).toFixed(1)}`
+      : '';
+    trendTextEl.textContent = `Trend: ${direction} at ${slopeAbs}${errorPart}${unit}`;
     if (periodKey) {
       trendTextEl.classList.add('trend-text');
     }
   }
+
+  if (stddevTextEl) {
+    if (averageData.stdDev != null) {
+      stddevTextEl.textContent = `Std dev: ± ${averageData.stdDev.toFixed(1)}°C`;
+      stddevTextEl.style.display = '';
+    } else {
+      stddevTextEl.style.display = 'none';
+    }
+  }
+
 }
 
 /**

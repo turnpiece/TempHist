@@ -136,15 +136,24 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
 
   container.appendChild(chartContainer);
 
+  const statsBubble = document.createElement('div');
+  statsBubble.className = 'stats-bubble data-field';
+  container.appendChild(statsBubble);
+
   const avgText = document.createElement('div');
   avgText.id = `${periodKey}AvgText`;
-  avgText.className = 'standard-text avg-text';
-  container.appendChild(avgText);
+  avgText.className = 'avg-text';
+  statsBubble.appendChild(avgText);
 
   const trendText = document.createElement('div');
   trendText.id = `${periodKey}TrendText`;
-  trendText.className = 'standard-text trend-text';
-  container.appendChild(trendText);
+  trendText.className = 'trend-text';
+  statsBubble.appendChild(trendText);
+
+  const stddevText = document.createElement('div');
+  stddevText.id = `${periodKey}StddevText`;
+  stddevText.className = 'stddev-text';
+  statsBubble.appendChild(stddevText);
 
   const incompleteNotice = document.createElement('div');
   incompleteNotice.id = `${periodKey}IncompleteDataNotice`;
@@ -295,14 +304,28 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
     // Now safely extract the data (validation ensures structure is correct)
     if (weatherData.data && weatherData.data.values) {
       // Fresh API data (job result format)
-      averageData = { temp: weatherData.data.average.mean };
-      trendData = weatherData.data.trend;
+      averageData = {
+        temp: weatherData.data.average.mean,
+        stdDev: weatherData.data.average.standard_deviation
+      };
+      trendData = {
+        slope: weatherData.data.trend.slope,
+        slopeError: weatherData.data.trend.slope_error,
+        unit: weatherData.data.trend.unit
+      };
       summaryData = weatherData.data.summary;
       metadata = weatherData.data.metadata;
     } else if (weatherData.values) {
       // Prefetched data (direct format)
-      averageData = { temp: weatherData.average.mean };
-      trendData = weatherData.trend;
+      averageData = {
+        temp: weatherData.average.mean,
+        stdDev: weatherData.average.standard_deviation
+      };
+      trendData = {
+        slope: weatherData.trend.slope,
+        slopeError: weatherData.trend.slope_error,
+        unit: weatherData.trend.unit
+      };
       summaryData = weatherData.summary;
       metadata = weatherData.metadata;
     }
@@ -401,13 +424,13 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       const chart = createTemperatureChart(
         ctx,
         chartData,
-        averageData,
+        { temp: averageData.temp, stdDev: averageData.stdDev },
         title,
         friendlyDate,
         minTemp,
         maxTemp,
         minYear,
-        actualCurrentYear  // Use actual current year instead of maxYear
+        actualCurrentYear
       );
 
       // Update trend line if enabled

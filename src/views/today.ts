@@ -359,8 +359,15 @@ async function fetchHistoricalData(): Promise<void> {
     }
     
     const temperatureData = jobResultData.data.values;
-    const averageData = { temp: jobResultData.data.average?.mean };
-    const trendData = jobResultData.data.trend;
+    const averageData = {
+      temp: jobResultData.data.average?.mean,
+      stdDev: jobResultData.data.average?.standard_deviation
+    };
+    const trendData = {
+      slope: jobResultData.data.trend?.slope,
+      slopeError: jobResultData.data.trend?.slope_error,
+      unit: jobResultData.data.trend?.unit
+    };
     const summaryData = jobResultData.data.summary;
     const metadata = jobResultData.data.metadata;
     
@@ -479,7 +486,7 @@ async function fetchHistoricalData(): Promise<void> {
     const chart = createTemperatureChart(
       ctx,
       chartData,
-      averageData,
+      { temp: averageData.temp, stdDev: averageData.stdDev },
       'Today',
       friendlyDate,
       tempRange.min,

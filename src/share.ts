@@ -14,7 +14,7 @@ import {
 } from './constants/index';
 import type { ChartDataPoint, JobResultResponse } from './types/index';
 import { getOrdinal } from './utils/location';
-import { calculateTrendLine } from './chart/chart';
+import { calculateTrendLine, computeBarColors } from './chart/chart';
 
 // Chart.js global (loaded via CDN defer in index.html)
 declare const Chart: any;
@@ -444,12 +444,20 @@ async function renderShareChart(
   refs.summaryTextEl.textContent = data.summary || '';
 
   // Update average and trend text
-  refs.avgTextEl.textContent = `Average: ${data.average.mean.toFixed(tempDecimals)}${unitLabel}`;
+  const stdDev = data.average.standard_deviation;
+  let avgStr = `mean: ${data.average.mean.toFixed(tempDecimals)}${unitLabel}`;
+  if (stdDev !== undefined) avgStr += ` ± ${stdDev.toFixed(tempDecimals)}${unitLabel}`;
+  refs.avgTextEl.textContent = avgStr;
 
   const slope = data.trend.slope;
+  const slopeError = data.trend.slope_error;
   const direction = Math.abs(slope) < 0.05 ? 'stable' : slope > 0 ? 'rising' : 'falling';
-  refs.trendTextEl.textContent =
-    `Trend: ${direction} at ${Math.abs(slope).toFixed(1)}${data.trend.unit || `${unitLabel}/decade`}`;
+  const trendUnit = data.trend.unit || `${unitLabel}/decade`;
+  let trendStr = `trend: ${direction} at ${Math.abs(slope).toFixed(2)}${trendUnit}`;
+  if (slopeError !== undefined && Math.round(slopeError * 10) >= 1) {
+    trendStr += ` ± ${slopeError.toFixed(2)}${trendUnit}`;
+  }
+  refs.trendTextEl.textContent = trendStr;
 
   // Show generation datetime
   refs.generatedAtEl.textContent = formatGeneratedAt(meta.created_at);
@@ -484,10 +492,9 @@ async function renderShareChart(
           label: `Temperature in ${cityName} for ${periodLabel}`,
           type: 'bar',
           data: chartData,
-          backgroundColor: chartData.map(p =>
-            p.y === meta.ref_year ? CHART_COLORS.THIS_YEAR : CHART_COLORS.BAR
-          ),
+          backgroundColor: computeBarColors(chartData, data.average.mean, meta.ref_year, data.average.standard_deviation),
           borderWidth: 0,
+          borderRadius: 3,
           base: minTemp
         }
       ]
@@ -508,8 +515,8 @@ async function renderShareChart(
           annotations: {
             averageLine: {
               type: 'line',
-              yMin: minYear - 1,
-              yMax: maxYear + 1,
+              yMin: minYear - 1.5,
+              yMax: maxYear + 1.5,
               xMin: data.average.mean,
               xMax: data.average.mean,
               borderColor: CHART_COLORS.AVERAGE,
@@ -518,7 +525,7 @@ async function renderShareChart(
                 display: true,
                 content: `Average: ${data.average.mean.toFixed(tempDecimals)}${unitLabel}`,
                 position: 'start',
-                font: { size: CHART_FONT_SIZE_MEDIUM }
+                font: { size: CHART_FONT_SIZE_MEDIUM, family: "ui-monospace, 'SF Mono', 'Courier New', monospace" }
               }
             }
           }
@@ -526,7 +533,11 @@ async function renderShareChart(
         tooltip: {
           callbacks: {
             title: function(context: any) {
-              return `${context[0].parsed.y}: ${context[0].parsed.x.toFixed(1)}${unitLabel}`;
+              const year = context[0].parsed.y;
+              const temp = context[0].parsed.x;
+              const anomaly = temp - data.average.mean;
+              const sign = anomaly >= 0 ? '+' : '';
+              return `${year}: ${temp.toFixed(tempDecimals)}${unitLabel} (${sign}${anomaly.toFixed(tempDecimals)} vs avg)`;
             },
             label: function() { return ''; }
           }
@@ -535,17 +546,18 @@ async function renderShareChart(
       scales: {
         x: {
           type: 'linear',
+          position: 'top',
           border: { color: 'rgba(236, 236, 236, 0.35)' },
           title: {
             display: true,
             text: `Temperature (${unitLabel})`,
-            font: { size: CHART_FONT_SIZE_MEDIUM },
+            font: { size: CHART_FONT_SIZE_MEDIUM, family: "ui-monospace, 'SF Mono', 'Courier New', monospace" },
             color: CHART_AXIS_COLOR
           },
           min: minTemp,
           max: maxTemp,
           ticks: {
-            font: { size: CHART_FONT_SIZE_SMALL },
+            font: { size: CHART_FONT_SIZE_SMALL, family: "ui-monospace, 'SF Mono', 'Courier New', monospace" },
             color: CHART_AXIS_COLOR,
             stepSize: 2,
             callback: function(value: any) { return value; }
@@ -559,7 +571,7 @@ async function renderShareChart(
           ticks: {
             maxTicksLimit: 20,
             callback: (val: any) => val.toString(),
-            font: { size: CHART_FONT_SIZE_SMALL },
+            font: { size: CHART_FONT_SIZE_SMALL, family: "ui-monospace, 'SF Mono', 'Courier New', monospace" },
             color: CHART_AXIS_COLOR
           },
           title: { display: false },

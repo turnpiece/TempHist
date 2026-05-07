@@ -73,9 +73,11 @@ export interface TemperatureDataResponse {
   values: TemperatureDataPoint[];
   average: {
     mean: number;
+    standard_deviation?: number;
   };
   trend: {
     slope: number;
+    slope_error?: number;
     unit: string;
   };
   summary: string;

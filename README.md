@@ -25,11 +25,16 @@ This approach provides excellent performance (1-5ms API response times) while ma
 
 ## Features
 
-- Visualises 50 years of temperature data in an interactive chart
-- Multiple time period views: Today, Past Week, Past Month, Past Year
-- Automatically detects user's location with manual location selection via interactive carousel
-- Location carousel with images for easy visual selection
-- Shows average temperature and trend analysis
+- **Temperature history charts** — bar chart showing the same date/week/month/year across all recorded years, coloured warm/cool by Z-score (climate-stripes style)
+- **Four time-period views** — Today, Past Week, Past Month, Past Year
+- **Average & trend lines** — historical mean and long-term temperature trend with error margin (± °C/decade), displayed in a stats bubble below the chart
+- **Stats bubble** — standard deviation and trend rate displayed below the chart
+- **Temperature anomaly tooltip** — each bar shows the year's deviation from the period average
+- **Location search** — search any city in the world by name via an interactive visual carousel
+- **Automatic location detection** — uses GPS when permission is granted; falls back to IP geolocation then manual picker
+- **Recent & popular locations** — curated API-driven global list with location images
+- **°C / °F toggle** — US locations default to Fahrenheit
+- **Social sharing** — shareable snapshot links with Open Graph previews
 - Responsive design that works on both desktop and mobile
 - Handles edge cases like leap years and timezone differences
 - Zero layout shift (CLS) with skeleton loader and background fallback
@@ -271,10 +276,10 @@ Location data is fetched from `/v1/locations/preapproved` endpoint after Firebas
 2. If detection fails or you want to choose a different location, use the location carousel to select from available locations
 3. Navigate between different time periods: Today, Past Week, Past Month, Past Year
 4. The chart will display temperature data for the current date (or yesterday if before 1 AM)
-5. Hover over bars to see exact temperatures for each year
-6. The average temperature is shown as a horizontal line
-7. The current year's temperature is highlighted in green
-8. Trend analysis shows temperature changes over time
+5. Bars are colour-coded by how far each year's temperature deviates from the long-run average: red = warmer, blue = cooler, grey = near average; the current year is always green
+6. Hover over bars to see the year's temperature and its anomaly relative to the average
+7. The average temperature is shown as a horizontal grey line; the trend as a yellow line — both extend past the data range for clarity
+8. A stats bubble below the chart shows the mean ± standard deviation and the trend rate ± error margin
 
 ## Development
 

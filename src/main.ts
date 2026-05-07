@@ -337,50 +337,62 @@ function updateChartTrendLine(
 
 /**
  * Update summary, average, and trend text elements
- * @param summaryText - Summary text content
- * @param averageData - Average temperature data
- * @param trendData - Trend data from API (with slope and unit)
- * @param periodKey - Optional period key for period-specific views (e.g., 'week', 'month', 'year')
  */
 function updateSummaryTextElements(
   summaryText: string | null,
-  averageData: { temp: number },
-  trendData: { slope: number; unit?: string },
+  averageData: { temp: number; stdDev?: number },
+  trendData: { slope: number; slopeError?: number; unit?: string },
   periodKey: string = ''
 ): void {
   const summaryElId = periodKey ? `${periodKey}SummaryText` : 'summaryText';
   const avgElId = periodKey ? `${periodKey}AvgText` : 'avgText';
   const trendElId = periodKey ? `${periodKey}TrendText` : 'trendText';
-  
+
   const summaryTextEl = document.getElementById(summaryElId);
   const avgTextEl = document.getElementById(avgElId);
   const trendTextEl = document.getElementById(trendElId);
-  
+
   if (summaryTextEl) {
     summaryTextEl.textContent = summaryText || 'No summary available.';
     if (periodKey) {
       summaryTextEl.classList.add('summary-text');
     }
   }
-  
+
   if (avgTextEl) {
-    avgTextEl.textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
-    if (periodKey) {
-      avgTextEl.classList.add('avg-text');
+    let avgStr = `mean: ${averageData.temp.toFixed(1)}°C`;
+    if (averageData.stdDev !== undefined) {
+      avgStr += ` ± ${averageData.stdDev.toFixed(1)}°C`;
     }
+    avgTextEl.textContent = avgStr;
+    avgTextEl.classList.add('avg-text');
+    wrapInStatsBubble(avgTextEl, trendTextEl);
   }
-  
+
   if (trendTextEl && trendData) {
-    // Use actual slope value for direction determination, not rounded display value
-    const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' : 
-                     trendData.slope > 0 ? 'rising' : 'falling';
+    const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' :
+      trendData.slope > 0 ? 'rising' : 'falling';
     const unit = trendData.unit || '°C/decade';
-    const formatted = `Trend: ${direction} at ${Math.abs(trendData.slope).toFixed(1)}${unit}`;
-    trendTextEl.textContent = formatted;
-    if (periodKey) {
-      trendTextEl.classList.add('trend-text');
+    const slopeAbs = Math.abs(trendData.slope);
+    let trendStr = `trend: ${direction} at ${slopeAbs.toFixed(2)}${unit}`;
+    if (trendData.slopeError !== undefined && Math.round(trendData.slopeError * 10) >= 1) {
+      trendStr += ` ± ${trendData.slopeError.toFixed(2)}${unit}`;
     }
+    trendTextEl.textContent = trendStr;
+    trendTextEl.classList.add('trend-text');
   }
+}
+
+/**
+ * Wrap avg and trend elements inside a shared .stats-bubble if not already done.
+ */
+function wrapInStatsBubble(avgEl: HTMLElement, trendEl: HTMLElement | null): void {
+  if (avgEl.parentElement?.classList.contains('stats-bubble')) return;
+  const bubble = document.createElement('div');
+  bubble.className = 'stats-bubble';
+  avgEl.parentNode?.insertBefore(bubble, avgEl);
+  bubble.appendChild(avgEl);
+  if (trendEl) bubble.appendChild(trendEl);
 }
 
 

@@ -2,19 +2,23 @@
 @use "sass:color";
 
 :root {
-  --accent: #ff6b6b;
+  // Red now means warmth — use neutral grey for generic UI accents
+  --accent: #8E8E93;
   --success: #51cf66;
   --thisYear: #51cf66;
-  --trend: #aaaa00;
-  --avg: #4dabf7;
-  --warning: #ff6b6b;
+  --trend: #C8C400;
+  --avg: #D0D4DE;
+  // Warmth/cold semantic colours
+  --warm: #FF3B30;
+  --cool: #3B82F6;
+  --warning: #FF8C00;
   --error: #dc3545;
   --error-bg: rgba(36, 36, 86, 0.9);
   --sidebar-w: 240px;
 }
 
 // Colours
-$colour-primary: #ff6b6b;
+$colour-primary: #8E8E93;      // neutral grey — was red
 $colour-bg: #242456;
 $colour-bg-bottom: #343499;
 $colour-text: #ececec;
@@ -22,11 +26,11 @@ $colour-link: $colour-text;
 $colour-border: $colour-primary;
 $colour-loading-text: #51cf66;
 $colour-spinner: $colour-loading-text;
-$colour-spinner-bg: rgba(186, 0, 0, 0.2);
-$colour-warning: #ff6b6b;
+$colour-spinner-bg: rgba(0, 0, 0, 0.2);
+$colour-warning: #FF8C00;      // amber — distinct from red (warmth) and blue (cold)
 $colour-error: #dc3545;
 $colour-error-bg: rgba(36, 36, 86, 0.9);
-$colour-avg: #4dabf7;
+$colour-avg: #D0D4DE;          // neutral grey — was blue (blue now means cold)
 
 // Layout variables
 $max-content-width: 600px;
@@ -139,9 +143,9 @@ a {
   }
 }
 
-#header { 
+#header {
   padding: 8px 16px 12px 6px; // Reduced left padding by 10px to align logo with content
-  color: var(--accent); 
+  color: $colour-text;
   display: flex; 
   align-items: center; 
   justify-content: space-between;
@@ -361,7 +365,7 @@ a {
   
   &.location-manual {
     // User manually selected location
-    color: var(--accent);
+    color: var(--thisYear);
   }
   
   &.location-default {
@@ -376,7 +380,7 @@ a {
   
   &.location-cookie {
     // Location from cookie (returning user)
-    color: var(--accent);
+    color: var(--thisYear);
   }
 }
 
@@ -405,32 +409,23 @@ a {
 }
 
 #sidebar a:not(.sidebar-brand) {
-  color: var(--accent);
+  color: $colour-text;
   text-decoration: none;
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;  // pill shape
   display: block;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, color 0.2s;
   font-weight: normal;
   position: relative;
 }
 #sidebar a:not(.sidebar-brand):hover {
-  @extend .menu-selected-bg;
+  background: rgba($colour-loading-text, 0.12);
   color: var(--thisYear);
 }
-#sidebar a[aria-current="page"] { 
-  @extend .menu-selected-bg;
+#sidebar a[aria-current="page"] {
+  background: rgba($colour-loading-text, 0.18);
   color: var(--thisYear);
-  font-weight: normal;
-  
-  &::after {
-    content: '▶';
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.8em;
-  }
+  font-weight: 600;
 }
 
 #viewOutlet { 
@@ -548,8 +543,26 @@ body.privacy-page {
 }
 
 .summary-text {
-  color: var(--thisYear);
-  min-height: 2em; /* Ensure consistent chart positioning during loading */
+  color: #fff;
+  background: rgba(#51cf66, 0.22);
+  border-radius: 10px;
+  padding: 0.5em 0.85em;
+  min-height: 2em;
+  display: inline-block;
+  max-width: $max-content-width;
+}
+
+// Semi-transparent bubble grouping avg + trend + (optional std dev) below the chart
+.stats-bubble {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25em;
+  background: rgba(#607090, 0.35);
+  border-radius: 10px;
+  padding: 0.5em 0.85em;
+  margin-top: 0.4em;
+  max-width: $max-content-width;
+  font-size: 0.88em;
 }
 
 .avg-text {
@@ -558,6 +571,10 @@ body.privacy-page {
 
 .trend-text {
   color: var(--trend);
+}
+
+.stddev-text {
+  color: #8AAFD0;
 }
 
 // Status and notification colours
@@ -605,8 +622,8 @@ body.privacy-page {
     
     &.warning {
       color: var(--warning);
-      background: rgba(255,107,107,0.1);
-      border-color: rgba(255,107,107,0.3);
+      background: rgba(255, 140, 0, 0.1);
+      border-color: rgba(255, 140, 0, 0.3);
       padding: 20px;
       border-radius: 8px;
       border-width: 2px;
@@ -644,17 +661,17 @@ body.privacy-page {
       font-weight: 600;
       margin-bottom: 10px;
     }
-    
+
     .notice-subtitle.secondary {
-      color: var(--warning);
+      color: rgba($colour-text, 0.85);
       font-size: 16px;
       font-weight: 500;
       margin-bottom: 10px;
       line-height: 1.4;
     }
-    
+
     p {
-      color: var(--warning);
+      color: rgba($colour-text, 0.75);
       font-size: 14px;
       font-weight: 400;
       margin: 0 0 15px 0;
@@ -672,8 +689,8 @@ body.privacy-page {
   
   &.denied {
     color: var(--warning);
-    background: rgba(255,107,107,0.1);
-    border-color: rgba(255,107,107,0.3);
+    background: rgba(255, 140, 0, 0.1);
+    border-color: rgba(255, 140, 0, 0.3);
   }
   
   &.prompt {
@@ -748,11 +765,11 @@ body.privacy-page {
 }
 
 h2, .date-heading {
-  color: var(--accent);
+  color: $colour-text;
   font-size: 2em;
   margin-top: 0;
   margin-bottom: 0.5em;
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 1px solid rgba($colour-text, 0.2);
   padding-bottom: 0.3em;
   font-weight: normal;
 } 
@@ -836,10 +853,10 @@ h2, .date-heading {
     }
   }
 
-  // Keep brand accent colour on hover — prevent it turning green like nav links
+  // Keep brand colour on hover — prevent it turning green like nav links
   #sidebar .sidebar-brand:hover {
     background: transparent;
-    color: var(--accent);
+    color: var(--thisYear);
   }
 
   #sidebar.open { transform: translateX(0); }
@@ -1057,7 +1074,7 @@ h2, .date-heading {
 .splash-title {
   font-size: 2.5rem;
   font-weight: bold;
-  color: $colour-primary;
+  color: var(--thisYear);
   margin: 0;
   flex: 1;
 }
@@ -1139,12 +1156,11 @@ h2, .date-heading {
 }
 
 .btn-primary {
-  // Use a darker red (error colour) for better contrast with white text
-  background: $colour-error;
-  color: white;
-  
+  background: $colour-loading-text; // green — matches current-year / detected-location colour
+  color: #1a2e1a;
+
   &:hover:not(:disabled) {
-    background: color.adjust($colour-error, $lightness: 10%);
+    background: color.adjust($colour-loading-text, $lightness: 8%);
   }
 }
 
@@ -1159,9 +1175,10 @@ h2, .date-heading {
   }
 }
 
-// Navigation active state
+// Navigation active state (pill highlight)
 #sidebar a.active {
-  color: $colour-spinner !important;
+  background: rgba($colour-loading-text, 0.18);
+  color: var(--thisYear) !important;
 }
 
 @keyframes fadeIn {
@@ -1184,8 +1201,8 @@ h2, .date-heading {
   .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid rgba($colour-primary, 0.2);
-    border-top: 4px solid $colour-primary;
+    border: 4px solid rgba($colour-loading-text, 0.2);
+    border-top: 4px solid $colour-loading-text;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -1598,7 +1615,7 @@ html.is-share-page #splashScreen {
   text-align: left;
 
   a {
-    color: var(--accent, #ff6b6b);
+    color: var(--thisYear);
     text-decoration: none;
     font-size: 0.95rem;
 
