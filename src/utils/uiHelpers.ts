@@ -39,23 +39,23 @@ export function buildLocationDisplay(
     ? `${countryCodeToFlag(countryCode)} `
     : isDetected ? '🎯 ' : '📍 ';
 
-  // Text node for the location name
-  container.appendChild(document.createTextNode(`${prefix}${displayText} `));
-
-  // Edit button
+  // Single button wrapping flag + name + pencil — whole heading is the tap target
   const button = document.createElement('button');
   button.id = buttonId;
-  button.className = 'location-edit-icon';
+  button.className = 'location-edit-btn';
   button.title = 'Change location';
-  button.setAttribute('aria-label', 'Change location');
+  button.setAttribute('aria-label', `Change location: ${displayText}`);
 
-  // SVG icon
+  button.appendChild(document.createTextNode(`${prefix}${displayText}`));
+
+  // Pencil icon — decorative, signals editability
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('width', '16');
-  svg.setAttribute('height', '16');
+  svg.setAttribute('width', '18');
+  svg.setAttribute('height', '18');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('fill', 'none');
+  svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('xmlns', svgNS);
 
   const path = document.createElementNS(svgNS, 'path');
