@@ -140,8 +140,8 @@ export function renderStatsToElements(
                      trendData.slope > 0 ? 'rising' : 'falling';
     const unit = trendData.unit || `${unitLabel}/decade`;
     const slopeAbs = Math.abs(trendData.slope).toFixed(2);
-    const errorPart = trendData.slopeError != null && Math.abs(trendData.slopeError) >= 0.1
-      ? ` ± ${Math.abs(trendData.slopeError).toFixed(1)}`
+    const errorPart = trendData.slopeError != null
+      ? ` ± ${Math.abs(trendData.slopeError).toFixed(2)}`
       : '';
     trendTextEl.textContent = `Trend: ${direction} at ${slopeAbs}${errorPart}${unit}`;
   }

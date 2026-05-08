@@ -15,7 +15,7 @@ import {
 import type { ChartDataPoint, JobResultResponse } from './types/index';
 import { getOrdinal, countryCodeToFlag } from './utils/location';
 import type { PreapprovedLocation } from './types/index';
-import { calculateTrendLine, computeBarColors } from './chart/chart';
+import { calculateTrendLine, computeBarColors, buildExternalTooltipHandler } from './chart/chart';
 import { renderStatsToElements } from './utils/uiHelpers';
 
 // Chart.js global (loaded via CDN defer in index.html)
@@ -511,6 +511,7 @@ async function renderShareChart(
   if (!ctx) throw new Error('No canvas context');
 
   const periodLabel = formatPeriodLabel(meta);
+  const barColors = computeBarColors(chartData, data.average.mean, meta.ref_year, data.average.standard_deviation);
 
   const chart = new Chart(ctx, {
     type: 'bar',
@@ -530,7 +531,7 @@ async function renderShareChart(
           label: `Temperature in ${cityName} for ${periodLabel}`,
           type: 'bar',
           data: chartData,
-          backgroundColor: computeBarColors(chartData, data.average.mean, meta.ref_year, data.average.standard_deviation),
+          backgroundColor: barColors,
           borderWidth: 0,
           borderRadius: 3,
           base: minTemp
@@ -569,16 +570,8 @@ async function renderShareChart(
           }
         },
         tooltip: {
-          callbacks: {
-            title: function(context: any) {
-              const year = context[0].parsed.y;
-              const temp = context[0].parsed.x;
-              const anomaly = temp - data.average.mean;
-              const sign = anomaly >= 0 ? '+' : '';
-              return `${year}: ${temp.toFixed(tempDecimals)}${unitLabel} (${sign}${anomaly.toFixed(tempDecimals)} vs avg)`;
-            },
-            label: function() { return ''; }
-          }
+          enabled: false,
+          external: buildExternalTooltipHandler(data.average.mean, barColors, tempDecimals, unitLabel)
         }
       },
       scales: {

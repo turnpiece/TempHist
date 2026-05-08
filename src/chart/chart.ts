@@ -114,6 +114,59 @@ function getOrCreateTooltipEl(chart: any): HTMLElement {
   return el;
 }
 
+/**
+ * Build a Chart.js external tooltip handler for the temperature bar chart.
+ * Used by both the main chart views and the share page chart.
+ *
+ * @param averageTemp  The historical average temperature (for anomaly calculation)
+ * @param barColors    Per-bar colour array (indexed by dataIndex)
+ * @param decimals     Number of decimal places for temperatures (default 1)
+ * @param unitLabel    Temperature unit string, e.g. '°C' (default '°C')
+ */
+export function buildExternalTooltipHandler(
+  averageTemp: number,
+  barColors: string[],
+  decimals: number = 1,
+  unitLabel: string = '°C'
+): (context: any) => void {
+  return function(context: any) {
+    const { chart, tooltip } = context;
+    const tooltipEl = getOrCreateTooltipEl(chart);
+    if (tooltip.opacity === 0) {
+      tooltipEl.style.opacity = '0';
+      return;
+    }
+    if (tooltip.dataPoints && tooltip.dataPoints.length) {
+      const dp = tooltip.dataPoints[0];
+      const dataIndex = dp.dataIndex;
+      const year = dp.parsed.y;
+      const temp = dp.parsed.x;
+      const anomaly = temp - averageTemp;
+      const barColor = (barColors[dataIndex] as string) || '#8E8E93';
+      const anomalyColor = lighterColor(barColor);
+      let anomalyText: string;
+      if (Math.abs(anomaly) < 0.05) {
+        anomalyText = 'at the average';
+      } else {
+        const sign = anomaly > 0 ? '+' : '−';
+        const dir = anomaly > 0 ? 'above average' : 'below average';
+        anomalyText = `${sign}${Math.abs(anomaly).toFixed(decimals)}${unitLabel} ${dir}`;
+      }
+      tooltipEl.innerHTML =
+        `<div style="font-weight:600">${year}</div>` +
+        `<div>${temp.toFixed(decimals)}${unitLabel}</div>` +
+        `<div style="color:${anomalyColor}">${anomalyText}</div>`;
+    }
+    const posX = chart.canvas.offsetLeft;
+    const posY = chart.canvas.offsetTop;
+    tooltipEl.style.opacity = '1';
+    const maxLeft = posX + chart.canvas.offsetWidth - tooltipEl.offsetWidth - 4;
+    const desiredLeft = posX + tooltip.caretX + 14;
+    tooltipEl.style.left = Math.min(desiredLeft, maxLeft) + 'px';
+    tooltipEl.style.top = (posY + tooltip.caretY - 24) + 'px';
+  };
+}
+
 /** Linearly interpolate between two hex colours, returning an rgba string. */
 function lerpColor(a: [number, number, number], b: [number, number, number], t: number): string {
   const r = Math.round(a[0] + (b[0] - a[0]) * t);
@@ -274,42 +327,7 @@ export function createTemperatureChart(
         },
         tooltip: {
           enabled: false,
-          external: function(context: any) {
-            const { chart, tooltip } = context;
-            const tooltipEl = getOrCreateTooltipEl(chart);
-            if (tooltip.opacity === 0) {
-              tooltipEl.style.opacity = '0';
-              return;
-            }
-            if (tooltip.dataPoints && tooltip.dataPoints.length) {
-              const dp = tooltip.dataPoints[0];
-              const dataIndex = dp.dataIndex;
-              const year = dp.parsed.y;
-              const temp = dp.parsed.x;
-              const anomaly = temp - averageData.temp;
-              const barColor = (barColors[dataIndex] as string) || '#8E8E93';
-              const anomalyColor = lighterColor(barColor);
-              let anomalyText: string;
-              if (Math.abs(anomaly) < 0.05) {
-                anomalyText = 'at the average';
-              } else {
-                const sign = anomaly > 0 ? '+' : '−';
-                const dir = anomaly > 0 ? 'above average' : 'below average';
-                anomalyText = `${sign}${Math.abs(anomaly).toFixed(1)}°C ${dir}`;
-              }
-              tooltipEl.innerHTML =
-                `<div style="font-weight:600">${year}</div>` +
-                `<div>${temp.toFixed(1)}°C</div>` +
-                `<div style="color:${anomalyColor}">${anomalyText}</div>`;
-            }
-            const posX = chart.canvas.offsetLeft;
-            const posY = chart.canvas.offsetTop;
-            tooltipEl.style.opacity = '1';
-            const maxLeft = posX + chart.canvas.offsetWidth - tooltipEl.offsetWidth - 4;
-            const desiredLeft = posX + tooltip.caretX + 14;
-            tooltipEl.style.left = Math.min(desiredLeft, maxLeft) + 'px';
-            tooltipEl.style.top = (posY + tooltip.caretY - 24) + 'px';
-          }
+          external: buildExternalTooltipHandler(averageData.temp, barColors as string[])
         }
       },
       scales: {

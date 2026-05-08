@@ -453,37 +453,23 @@ a {
   }
 }
 
-/* Page-specific styles for privacy and about pages */
+/* Page-specific styles for about and privacy — covers both SPA views and standalone pages */
 #aboutView,
-#privacyView {
+#privacyView,
+body.about-page,
+body.privacy-page {
   h3 {
     color: var(--thisYear);
     font-size: 1.3em;
     margin: 1.5em 0 0.5em 0;
   }
-  
-  a {
-    color: inherit; // Links inherit the colour of their parent element (white text)
-    text-decoration: underline;
-  }
 
   p {
-    max-width: 700px
+    max-width: 700px;
   }
-}
 
-// Also apply h3 styling to standalone pages
-.container h3 {
-  color: var(--thisYear);
-  font-size: 1.3em;
-  margin: 1.5em 0 0.5em 0;
-}
-
-// Link styling for standalone about and privacy pages
-body.about-page,
-body.privacy-page {
   a {
-    color: inherit; // Links inherit the colour of their parent element (white text)
+    color: inherit;
     text-decoration: underline;
     transition: color 0.2s;
 
@@ -497,7 +483,19 @@ body.privacy-page {
   .sidebar-brand {
     text-decoration: none;
     color: var(--accent);
+
+    &:hover {
+      color: var(--thisYear);
+      text-decoration: none;
+    }
   }
+}
+
+// Also apply h3 styling to standalone pages
+.container h3 {
+  color: var(--thisYear);
+  font-size: 1.3em;
+  margin: 1.5em 0 0.5em 0;
 }
 
 // Image attribution styles
