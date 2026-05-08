@@ -34,10 +34,10 @@ export function buildLocationDisplay(
     container.removeChild(container.firstChild);
   }
 
-  // Choose prefix: flag for known location, 🎯 for GPS-detected without match, 📍 otherwise
+  // Choose prefix: flag for known location, 📍 for any other case
   const prefix = countryCode
     ? `${countryCodeToFlag(countryCode)} `
-    : isDetected ? '🎯 ' : '📍 ';
+    : '📍 ';
 
   // Single button wrapping flag + name + pencil — whole heading is the tap target
   const button = document.createElement('button');
@@ -313,51 +313,23 @@ export function hideChartElements(periodKey?: string): void {
  */
 export function showChartElements(periodKey?: string): void {
   const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
-  
+
+  // Only show the chart canvas — summary/stats visibility is controlled by
+  // updateSummaryTextElements once data is populated, to avoid empty bubbles.
   if (isTodayView) {
-    const chartElements = [
-      document.getElementById('tempChart'),
-      document.getElementById('summaryText'),
-      document.getElementById('avgText'),
-      document.getElementById('trendText')
-    ];
-    
-    chartElements.forEach(el => {
-      if (el) {
-        el.classList.add('visible');
-        el.classList.remove('hidden');
-      }
-    });
-    
-    // Also show all elements with the data-field class
-    const dataFields = document.querySelectorAll('.data-field');
-    dataFields.forEach(el => {
-      el.classList.add('visible');
-      el.classList.remove('hidden');
-    });
+    const chart = document.getElementById('tempChart');
+    if (chart) { chart.classList.add('visible'); chart.classList.remove('hidden'); }
   } else {
-    // For period-specific views
-    const chartElements = [
-      document.getElementById(`${periodKey}Chart`),
-      document.getElementById(`${periodKey}SummaryText`),
-      document.getElementById(`${periodKey}AvgText`),
-      document.getElementById(`${periodKey}TrendText`)
-    ];
-    
-    chartElements.forEach(el => {
-      if (el) {
-        el.classList.add('visible');
-        el.classList.remove('hidden');
-      }
-    });
-    
-    // Also show all elements with the data-field class
-    const dataFields = document.querySelectorAll('.data-field');
-    dataFields.forEach(el => {
-      el.classList.add('visible');
-      el.classList.remove('hidden');
-    });
+    const chart = document.getElementById(`${periodKey}Chart`);
+    if (chart) { chart.classList.add('visible'); chart.classList.remove('hidden'); }
   }
+
+  // Also show all elements with the data-field class
+  const dataFields = document.querySelectorAll('.data-field');
+  dataFields.forEach(el => {
+    el.classList.add('visible');
+    el.classList.remove('hidden');
+  });
 }
 
 /**

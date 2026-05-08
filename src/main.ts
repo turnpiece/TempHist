@@ -537,11 +537,16 @@ function hideChartElements(periodKey?: string): void {
       debugLog(`hideChartElements: Looking for element ${id}, found:`, element);
       if (element) {
         element.style.display = 'none';
+        element.classList.remove('visible');
         debugLog(`Hidden element: ${id}`);
       } else {
         debugLog(`hideChartElements: Element ${id} not found`);
       }
     });
+
+    // Also strip visible from the stats bubble
+    const statsBubble = document.getElementById(`${periodKey}StatsBubble`);
+    if (statsBubble) statsBubble.classList.remove('visible');
   } else {
     debugLog('hideChartElements: Hiding Today view elements');
     // Hide Today view elements
@@ -559,17 +564,22 @@ function hideChartElements(periodKey?: string): void {
       debugLog(`hideChartElements: Looking for Today element ${id}, found:`, element);
       if (element) {
         element.style.display = 'none';
+        element.classList.remove('visible');
         debugLog(`Hidden element: ${id}`);
       } else {
         debugLog(`hideChartElements: Today element ${id} not found`);
       }
     });
+
+    const statsBubble = document.getElementById('statsBubble');
+    if (statsBubble) statsBubble.classList.remove('visible');
   }
 
   // Also hide all elements with the data-field class
   const dataFields = document.querySelectorAll('.data-field');
   dataFields.forEach(element => {
     (element as HTMLElement).style.display = 'none';
+    (element as HTMLElement).classList.remove('visible');
     debugLog(`Hidden data-field element:`, element);
   });
 }

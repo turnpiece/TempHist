@@ -176,9 +176,15 @@ a {
   color: inherit;
 }
 
-#header h1 { 
-  font-size: 1.4em; 
-  margin: 0; 
+#header h1 {
+  font-size: 1.4em;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.15s ease;
+}
+
+#header a:hover h1 {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 #header #logo {
@@ -408,7 +414,7 @@ a {
 }
 
 #sidebar a:not(.sidebar-brand) {
-  color: $colour-text;
+  color: rgba($colour-text, 0.68);
   text-decoration: none;
   padding: 8px 14px;
   border-radius: 999px;  // pill shape
@@ -479,8 +485,13 @@ body.privacy-page {
   a {
     color: inherit; // Links inherit the colour of their parent element (white text)
     text-decoration: underline;
+    transition: color 0.2s;
+
+    &:hover {
+      color: var(--thisYear);
+    }
   }
-  
+
   // Don't underline the header logo/title link or mobile sidebar brand
   .header-left a,
   .sidebar-brand {
@@ -549,6 +560,7 @@ body.privacy-page {
   min-height: 2em;
   display: inline-block;
   max-width: $max-content-width;
+  margin-bottom: 1em;
   opacity: 0;
   transition: opacity 0.4s;
 
@@ -1087,7 +1099,7 @@ h2 {
 .splash-title {
   font-size: 2.5rem;
   font-weight: bold;
-  color: var(--thisYear);
+  color: rgba(255, 255, 255, 0.55);
   margin: 0;
   flex: 1;
 }
