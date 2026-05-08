@@ -141,7 +141,7 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
 
   appendParagraph(
     container,
-    'This policy covers the TempHist mobile app, operated by Turnpiece Ltd. It explains what data the app collects, how it is used, and what is stored on your device.'
+    'This policy covers the Temperature History (TempHist) mobile app, operated by Turnpiece Ltd. It explains what data the app collects, how it is used, and what is stored on your device.'
   );
 
   // Location data
