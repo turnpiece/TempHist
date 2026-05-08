@@ -225,7 +225,7 @@ export function buildAboutContent(container: HTMLElement, isSpa: boolean = false
   appendHeading(container, 'How it works');
   appendParagraph(
     container,
-    'Each view shows a bar chart with one bar per year — swipe or tap to move between time periods. The current year\'s bar is highlighted in green.'
+    'Each view shows a bar chart with one bar per year. The current year\'s bar is highlighted in green.'
   );
 
   // Period list with links
