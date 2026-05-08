@@ -4,7 +4,7 @@
 
 import type { AsyncJobResponse } from '../types/index';
 import { DEFAULT_LOCATION, INITIAL_LOADING_TEXT, LOADING_TIMEOUTS, API_CONFIG, DATE_RANGE_CONFIG } from '../constants/index';
-import { setLocationCookie, getDisplayCity, getOrdinal } from '../utils/location';
+import { setLocationCookie, getDisplayCity, getOrdinal, getCountryCodeForLocation } from '../utils/location';
 import { updateDataNotice } from '../utils/dataNotice';
 import { LoadingManager } from '../utils/LoadingManager';
 import { DataCache } from '../utils/DataCache';
@@ -571,10 +571,11 @@ function displayLocationAndFetchData(): void {
   const locationTextElement = document.getElementById('locationText');
   if (locationTextElement) {
     // Add classes based on location source
-    locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
+    locationTextElement.className = `location-heading location-${window.tempLocationSource || 'unknown'}`;
 
     // Show location with edit icon without using innerHTML
-    buildLocationDisplay(locationTextElement, locationDisplay);
+    const countryCode = getCountryCodeForLocation(window.tempLocation!);
+    buildLocationDisplay(locationTextElement, locationDisplay, '', countryCode);
 
     // Setup change location button click handler
     setupChangeLocationButton();

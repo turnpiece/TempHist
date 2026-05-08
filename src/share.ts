@@ -13,8 +13,10 @@ import {
   INITIAL_LOADING_TEXT
 } from './constants/index';
 import type { ChartDataPoint, JobResultResponse } from './types/index';
-import { getOrdinal } from './utils/location';
+import { getOrdinal, countryCodeToFlag } from './utils/location';
+import type { PreapprovedLocation } from './types/index';
 import { calculateTrendLine, computeBarColors } from './chart/chart';
+import { renderStatsToElements } from './utils/uiHelpers';
 
 // Chart.js global (loaded via CDN defer in index.html)
 declare const Chart: any;
@@ -40,7 +42,9 @@ interface ShareUIRefs {
   errorContainerEl: HTMLElement;
   errorMessageEl: HTMLElement;
   canvas: HTMLCanvasElement;
+  statsBubbleEl: HTMLElement;
   avgTextEl: HTMLElement;
+  stddevTextEl: HTMLElement;
   trendTextEl: HTMLElement;
   generatedAtEl: HTMLElement;
 }
@@ -205,10 +209,14 @@ export function initSharePage(): void {
 
   (async () => {
     try {
-      const meta = await fetchShareMetadata(shareId);
+      // Fetch share metadata and preapproved locations in parallel
+      const [meta, locations] = await Promise.all([
+        fetchShareMetadata(shareId),
+        loadShareLocations(),
+      ]);
       updatePageMeta(meta);
       const result = await fetchShareTemperatureData(meta);
-      await renderShareChart(refs, meta, result);
+      await renderShareChart(refs, meta, result, locations);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong.';
       showShareError(refs, message);
@@ -258,6 +266,22 @@ function hideAppChrome(): void {
   }
 }
 
+async function loadShareLocations(): Promise<PreapprovedLocation[]> {
+  try {
+    const res = await apiFetch(getApiUrl('/v1/locations/preapproved'));
+    if (!res.ok) return [];
+    const data = await res.json();
+    // API returns either a plain array or { locations: [...] }
+    const arr: unknown[] = Array.isArray(data) ? data : (Array.isArray(data?.locations) ? data.locations : []);
+    return arr.filter(
+      (l): l is PreapprovedLocation =>
+        !!l && typeof (l as any).name === 'string' && typeof (l as any).country_code === 'string'
+    );
+  } catch {
+    return [];
+  }
+}
+
 function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   const section = document.createElement('section');
   section.className = 'share-page';
@@ -270,13 +294,13 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   contentEl.className = 'share-page-pending';
   container.appendChild(contentEl);
 
-  const titleEl = document.createElement('h2');
-  titleEl.className = 'date-heading';
-  contentEl.appendChild(titleEl);
-
-  const locationEl = document.createElement('div');
-  locationEl.className = 'location-text';
+  const locationEl = document.createElement('h2');
+  locationEl.className = 'location-heading';
   contentEl.appendChild(locationEl);
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'period-subheading';
+  contentEl.appendChild(titleEl);
 
   const summaryTextEl = document.createElement('div');
   summaryTextEl.className = 'summary-text';
@@ -325,13 +349,21 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   belowChartEl.className = 'share-page-pending';
   container.appendChild(belowChartEl);
 
+  const statsBubbleEl = document.createElement('div');
+  statsBubbleEl.className = 'stats-bubble';
+  belowChartEl.appendChild(statsBubbleEl);
+
   const avgTextEl = document.createElement('div');
-  avgTextEl.className = 'standard-text avg-text';
-  belowChartEl.appendChild(avgTextEl);
+  avgTextEl.className = 'avg-text';
+  statsBubbleEl.appendChild(avgTextEl);
+
+  const stddevTextEl = document.createElement('div');
+  stddevTextEl.className = 'stddev-text';
+  statsBubbleEl.appendChild(stddevTextEl);
 
   const trendTextEl = document.createElement('div');
-  trendTextEl.className = 'standard-text trend-text';
-  belowChartEl.appendChild(trendTextEl);
+  trendTextEl.className = 'trend-text';
+  statsBubbleEl.appendChild(trendTextEl);
 
   const generatedAtEl = document.createElement('div');
   generatedAtEl.className = 'share-generated-at';
@@ -360,7 +392,9 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
     errorContainerEl,
     errorMessageEl,
     canvas,
+    statsBubbleEl,
     avgTextEl,
+    stddevTextEl,
     trendTextEl,
     generatedAtEl
   };
@@ -419,7 +453,8 @@ async function waitForChartJs(timeoutMs = 10000): Promise<void> {
 async function renderShareChart(
   refs: ShareUIRefs,
   meta: ShareMetadata,
-  result: JobResultResponse
+  result: JobResultResponse,
+  locations: PreapprovedLocation[] = []
 ): Promise<void> {
   await waitForChartJs();
 
@@ -436,28 +471,29 @@ async function renderShareChart(
   const tempDecimals = isFahrenheit ? 0 : 1;
   const cityName = meta.location.split(',')[0].trim();
 
-  // Update heading and location to match website pattern
+  // Look up flag from preapproved locations by city name
+  const cityLower = cityName.toLowerCase();
+  const matchedLocation = locations.find(l => l.name.toLowerCase() === cityLower);
+  const flag = matchedLocation ? countryCodeToFlag(matchedLocation.country_code) : null;
+  const locationLabel = flag ? `${flag} ${cityName}` : `\ud83d\udccd ${cityName}`;
+
+  // Update heading (location primary, period secondary)
+  refs.locationEl.textContent = locationLabel;
   refs.titleEl.textContent = formatPeriodHeading(meta);
-  refs.locationEl.textContent = cityName;
 
   // Display the API summary
   refs.summaryTextEl.textContent = data.summary || '';
 
-  // Update average and trend text
-  const stdDev = data.average.standard_deviation;
-  let avgStr = `mean: ${data.average.mean.toFixed(tempDecimals)}${unitLabel}`;
-  if (stdDev !== undefined) avgStr += ` ± ${stdDev.toFixed(tempDecimals)}${unitLabel}`;
-  refs.avgTextEl.textContent = avgStr;
-
-  const slope = data.trend.slope;
-  const slopeError = data.trend.slope_error;
-  const direction = Math.abs(slope) < 0.05 ? 'stable' : slope > 0 ? 'rising' : 'falling';
-  const trendUnit = data.trend.unit || `${unitLabel}/decade`;
-  let trendStr = `trend: ${direction} at ${Math.abs(slope).toFixed(2)}${trendUnit}`;
-  if (slopeError !== undefined && Math.round(slopeError * 10) >= 1) {
-    trendStr += ` ± ${slopeError.toFixed(2)}${trendUnit}`;
-  }
-  refs.trendTextEl.textContent = trendStr;
+  // Populate stats bubble
+  renderStatsToElements(
+    refs.avgTextEl,
+    refs.stddevTextEl,
+    refs.trendTextEl,
+    { temp: data.average.mean, stdDev: data.average.standard_deviation },
+    { slope: data.trend.slope, slopeError: data.trend.slope_error, unit: data.trend.unit },
+    unitLabel,
+    tempDecimals
+  );
 
   // Show generation datetime
   refs.generatedAtEl.textContent = formatGeneratedAt(meta.created_at);
@@ -466,6 +502,8 @@ async function renderShareChart(
   refs.loadingEl.classList.remove('visible');
   refs.loadingEl.classList.add('hidden');
   refs.canvas.classList.add('visible');
+  refs.summaryTextEl.classList.add('visible');
+  refs.statsBubbleEl.classList.add('visible');
   refs.contentEl.classList.replace('share-page-pending', 'share-page-ready');
   refs.belowChartEl.classList.replace('share-page-pending', 'share-page-ready');
 

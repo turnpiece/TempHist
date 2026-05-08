@@ -307,7 +307,7 @@ a {
   }
 }
 
-// Share icon button — sits inline with the date heading
+// Share icon button — sits inline with the period sub-heading
 .share-icon-btn {
   display: inline-flex;
   align-items: center;
@@ -315,7 +315,7 @@ a {
   background: none;
   border: none;
   padding: 4px;
-  margin-left: 8px;
+  margin-left: 0;
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--accent);
@@ -349,39 +349,33 @@ a {
   }
 }
 
-// Location type indicators
-.location-text {
-  // All location types get the same emoji for consistency
-  &::before {
-    content: "📍 ";
-  }
- 
-  min-height: 2.5em;
-  
-  &.location-detected {
-    // User's actual detected location
-    color: var(--success);
-  }
-  
-  &.location-manual {
-    // User manually selected location
-    color: var(--thisYear);
-  }
-  
-  &.location-default {
-    // Default fallback location
-    color: var(--trend);
-  }
-  
-  &.location-unknown {
-    // Unknown source (fallback)
-    color: var(--text);
-  }
-  
-  &.location-cookie {
-    // Location from cookie (returning user)
-    color: var(--thisYear);
-  }
+// Primary location heading — shown above the period label
+// Icons (flag or fallback emoji) are injected by buildLocationDisplay in JS
+.location-heading {
+  font-size: 2em;
+  margin-top: 0;
+  margin-bottom: 0.2em;
+  font-weight: normal;
+
+  &.location-detected { color: var(--success); }
+  &.location-manual   { color: var(--thisYear); }
+  &.location-default  { color: var(--trend); }
+  &.location-unknown  { color: var(--text); }
+  &.location-cookie   { color: var(--thisYear); }
+}
+
+// Period sub-heading — shown below the location name, with share button inline
+.period-subheading {
+  font-size: 1.2em;
+  font-weight: normal;
+  color: rgba($colour-text, 0.65);
+  margin-top: 0;
+  margin-bottom: 1em;
+  border-bottom: 1px solid rgba($colour-text, 0.2);
+  padding-bottom: 0.3em;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
 }
 
 // Inline location status messages
@@ -776,23 +770,25 @@ body.privacy-page {
   }
 }
 
-h2, .date-heading {
+h2 {
   color: $colour-text;
   font-size: 2em;
   margin-top: 0;
   margin-bottom: 0.5em;
-  border-bottom: 1px solid rgba($colour-text, 0.2);
-  padding-bottom: 0.3em;
   font-weight: normal;
-} 
+}
 
 @media (max-width: $max-content-width) {
   .standard-text {
     min-height: 2em;
   }
-  
-  h2, .date-heading {
+
+  h2, .location-heading {
     font-size: 1.5em;
+  }
+
+  .period-subheading {
+    font-size: 1em;
   }
 }
 

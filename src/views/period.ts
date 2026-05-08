@@ -4,7 +4,7 @@
 
 import type { AsyncJobResponse } from '../types/index';
 import { DEFAULT_LOCATION, INITIAL_LOADING_TEXT, LOADING_TIMEOUTS, DATE_RANGE_CONFIG } from '../constants/index';
-import { getDisplayCity, getOrdinal } from '../utils/location';
+import { getDisplayCity, getOrdinal, getCountryCodeForLocation } from '../utils/location';
 import { LoadingManager } from '../utils/LoadingManager';
 import { DataCache } from '../utils/DataCache';
 import { FeatureFlags } from '../utils/FeatureFlags';
@@ -69,15 +69,15 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   const container = document.createElement('div');
   container.className = 'container';
 
-  const dateHeading = document.createElement('h2');
-  dateHeading.id = `${periodKey}DateText`;
-  dateHeading.className = 'date-heading';
-  container.appendChild(dateHeading);
-
-  const locationText = document.createElement('div');
+  const locationText = document.createElement('h2');
   locationText.id = `${periodKey}LocationText`;
-  locationText.className = 'standard-text';
+  locationText.className = 'location-heading';
   container.appendChild(locationText);
+
+  const dateHeading = document.createElement('div');
+  dateHeading.id = `${periodKey}DateText`;
+  dateHeading.className = 'period-subheading';
+  container.appendChild(dateHeading);
 
   const dataNotice = document.createElement('div');
   dataNotice.id = `${periodKey}DataNotice`;
@@ -86,7 +86,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
 
   const summaryText = document.createElement('div');
   summaryText.id = `${periodKey}SummaryText`;
-  summaryText.className = 'standard-text summary-text data-field';
+  summaryText.className = 'standard-text summary-text';
   container.appendChild(summaryText);
 
   const chartContainer = document.createElement('div');
@@ -137,7 +137,8 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   container.appendChild(chartContainer);
 
   const statsBubble = document.createElement('div');
-  statsBubble.className = 'stats-bubble data-field';
+  statsBubble.id = `${periodKey}StatsBubble`;
+  statsBubble.className = 'stats-bubble';
   container.appendChild(statsBubble);
 
   const avgText = document.createElement('div');
@@ -213,10 +214,11 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   const locationTextElement = document.getElementById(`${periodKey}LocationText`);
   if (locationTextElement) {
     // Add classes based on location source
-    locationTextElement.className = `location-text location-${window.tempLocationSource || 'unknown'}`;
+    locationTextElement.className = `location-heading location-${window.tempLocationSource || 'unknown'}`;
 
     // Show location with edit icon without using innerHTML
-    buildLocationDisplay(locationTextElement, displayLocation, periodKey);
+    const countryCode = getCountryCodeForLocation(window.tempLocation!);
+    buildLocationDisplay(locationTextElement, displayLocation, periodKey, countryCode);
 
     // Setup change location button click handler
     setupChangeLocationButton(periodKey);

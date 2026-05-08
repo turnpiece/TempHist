@@ -86,3 +86,30 @@ export function getOrdinal(n: number): string {
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
+
+/**
+ * Convert ISO 3166-1 alpha-2 country code to emoji flag.
+ * On older Windows the flag renders as two-letter country code letters — still legible.
+ */
+export function countryCodeToFlag(code: string): string {
+  return [...code.toUpperCase()].map(c =>
+    String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
+  ).join('');
+}
+
+/**
+ * Look up the country code for the current location string against the prefetched
+ * approved locations list. Returns null if no match (e.g. GPS-detected location
+ * not in the approved list).
+ */
+export function getCountryCodeForLocation(locationSlug: string): string | null {
+  const locations = window.TempHist?.prefetchedLocations;
+  if (!locations) return null;
+  const decoded = decodeURIComponent(locationSlug);
+  const city = decoded.split(',')[0].trim().toLowerCase();
+  const match = locations.find(l =>
+    l.slug === locationSlug ||
+    l.name.toLowerCase() === city
+  );
+  return match?.country_code ?? null;
+}

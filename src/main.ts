@@ -13,7 +13,7 @@ declare global {
 declare const Chart: any;
 
 // Import our TypeScript modules
-import { setLocationCookie, getLocationCookie, getDisplayCity, getOrdinal } from './utils/location';
+import { setLocationCookie, getLocationCookie, getDisplayCity, getOrdinal, getCountryCodeForLocation } from './utils/location';
 import { updateDataNotice } from './utils/dataNotice';
 import { LoadingManager } from './utils/LoadingManager';
 import { LazyLoader } from './utils/LazyLoader';
@@ -29,7 +29,7 @@ import { renderAboutPage, renderPrivacyPage, buildAboutContent, buildPrivacyWebC
 import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize } from './splash/splash';
-import { clearAllLoadingIntervals } from './utils/uiHelpers';
+import { clearAllLoadingIntervals, buildLocationDisplay } from './utils/uiHelpers';
 import { isSharePagePath, initSharePage } from './share';
 
 
@@ -218,49 +218,19 @@ if (DEBUGGING) {
   };
 }
 
-// Helper function to build location display with edit icon (Trusted Types safe)
-function buildLocationDisplay(
-  container: HTMLElement,
-  displayText: string,
-  periodKey: string = ''
-): void {
-  const buttonId = periodKey ? `changeLocationBtn-${periodKey}` : 'changeLocationBtn';
-
-  // Clear existing contents
-  while (container.firstChild) {
-    container.removeChild(container.firstChild);
-  }
-
-  // Text node for the location name
-  container.appendChild(document.createTextNode(displayText + ' '));
-
-  // Edit button
-  const button = document.createElement('button');
-  button.id = buttonId;
-  button.className = 'location-edit-icon';
-  button.title = 'Change location';
-  button.setAttribute('aria-label', 'Change location');
-
-  // SVG icon
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('width', '14');
-  svg.setAttribute('height', '14');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('xmlns', svgNS);
-
-  const path = document.createElementNS(svgNS, 'path');
-  path.setAttribute(
-    'd',
-    'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'
-  );
-  path.setAttribute('fill', 'currentColor');
-
-  svg.appendChild(path);
-  button.appendChild(svg);
-
-  container.appendChild(button);
+// After prefetchedLocations loads, re-render any visible location heading with the correct flag
+function refreshLocationFlag(): void {
+  if (!window.tempLocation) return;
+  const countryCode = getCountryCodeForLocation(window.tempLocation);
+  if (!countryCode) return;
+  const displayCity = getDisplayCity(window.tempLocation);
+  // Update all visible location headings (today + active period views)
+  const headings = document.querySelectorAll<HTMLElement>('.location-heading');
+  headings.forEach(el => {
+    if (el.offsetParent !== null) { // only update visible elements
+      buildLocationDisplay(el, displayCity, '', countryCode);
+    }
+  });
 }
 
 // Helper function to generate context-specific error messages
@@ -1116,6 +1086,10 @@ async function prefetchApprovedLocations(): Promise<void> {
     // Store in a global cache for immediate use
     window.TempHist = window.TempHist || {};
     window.TempHist.prefetchedLocations = locations;
+
+    // If a location heading is already visible (cookie fast-path rendered before prefetch),
+    // re-render it now with the correct country flag
+    refreshLocationFlag();
   } catch (error) {
     debugLog('Failed to prefetch approved locations:', error);
     // Store empty array if prefetch fails

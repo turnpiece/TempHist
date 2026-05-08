@@ -5,6 +5,7 @@
 import type { TemperatureDataMetadata } from '../types/index';
 import { LoadingManager } from './LoadingManager';
 import { updateDataNotice } from './dataNotice';
+import { countryCodeToFlag } from './location';
 
 declare const debugLog: (...args: any[]) => void;
 
@@ -16,22 +17,30 @@ export function clearAllLoadingIntervals(): void {
 }
 
 /**
- * Build location display with edit button
+ * Build location display with icon, optional country flag, and edit button.
+ * Flag is shown for pre-approved locations; fallback icons for detected/manual.
  */
 export function buildLocationDisplay(
   container: HTMLElement,
   displayText: string,
-  periodKey: string = ''
+  periodKey: string = '',
+  countryCode?: string | null
 ): void {
   const buttonId = periodKey ? `changeLocationBtn-${periodKey}` : 'changeLocationBtn';
+  const isDetected = container.classList.contains('location-detected');
 
   // Clear existing contents
   while (container.firstChild) {
     container.removeChild(container.firstChild);
   }
 
+  // Choose prefix: flag for known location, 🎯 for GPS-detected without match, 📍 otherwise
+  const prefix = countryCode
+    ? `${countryCodeToFlag(countryCode)} `
+    : isDetected ? '🎯 ' : '📍 ';
+
   // Text node for the location name
-  container.appendChild(document.createTextNode(displayText + ' '));
+  container.appendChild(document.createTextNode(`${prefix}${displayText} `));
 
   // Edit button
   const button = document.createElement('button');
@@ -43,8 +52,8 @@ export function buildLocationDisplay(
   // SVG icon
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('width', '14');
-  svg.setAttribute('height', '14');
+  svg.setAttribute('width', '16');
+  svg.setAttribute('height', '16');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('fill', 'none');
   svg.setAttribute('xmlns', svgNS);
@@ -101,7 +110,45 @@ export function isAbortError(error: unknown): boolean {
 }
 
 /**
- * Update summary, average, and trend text elements
+ * Populate avg, stddev, and trend elements from stats data.
+ * Unit-aware — pass '°F' and decimals=0 for Fahrenheit views.
+ */
+export function renderStatsToElements(
+  avgTextEl: HTMLElement | null,
+  stddevTextEl: HTMLElement | null,
+  trendTextEl: HTMLElement | null,
+  averageData: { temp: number; stdDev?: number | null },
+  trendData: { slope: number; slopeError?: number | null; unit?: string },
+  unitLabel: string = '°C',
+  decimals: number = 1
+): void {
+  if (avgTextEl) {
+    avgTextEl.textContent = `Average: ${averageData.temp.toFixed(decimals)}${unitLabel}`;
+  }
+
+  if (stddevTextEl) {
+    if (averageData.stdDev != null) {
+      stddevTextEl.textContent = `Standard deviation: ± ${averageData.stdDev.toFixed(decimals)}${unitLabel}`;
+      stddevTextEl.style.display = '';
+    } else {
+      stddevTextEl.style.display = 'none';
+    }
+  }
+
+  if (trendTextEl) {
+    const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' :
+                     trendData.slope > 0 ? 'rising' : 'falling';
+    const unit = trendData.unit || `${unitLabel}/decade`;
+    const slopeAbs = Math.abs(trendData.slope).toFixed(2);
+    const errorPart = trendData.slopeError != null && Math.abs(trendData.slopeError) >= 0.1
+      ? ` ± ${Math.abs(trendData.slopeError).toFixed(1)}`
+      : '';
+    trendTextEl.textContent = `Trend: ${direction} at ${slopeAbs}${errorPart}${unit}`;
+  }
+}
+
+/**
+ * Update summary, average, and trend text elements (ID-based lookup for normal views)
  */
 export function updateSummaryTextElements(
   summaryText: string | null,
@@ -123,37 +170,15 @@ export function updateSummaryTextElements(
     summaryTextEl.textContent = summaryText || 'No summary available.';
     if (periodKey) {
       summaryTextEl.classList.add('summary-text');
+      summaryTextEl.classList.add('visible');
     }
   }
 
-  if (avgTextEl) {
-    avgTextEl.textContent = `Average: ${averageData.temp.toFixed(1)}°C`;
-    if (periodKey) {
-      avgTextEl.classList.add('avg-text');
-    }
-  }
+  renderStatsToElements(avgTextEl, stddevTextEl, trendTextEl, averageData, trendData);
 
-  if (stddevTextEl) {
-    if (averageData.stdDev != null) {
-      stddevTextEl.textContent = `Standard deviation: ± ${averageData.stdDev.toFixed(1)}°C`;
-      stddevTextEl.style.display = '';
-    } else {
-      stddevTextEl.style.display = 'none';
-    }
-  }
-
-  if (trendTextEl && trendData) {
-    const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' :
-                     trendData.slope > 0 ? 'rising' : 'falling';
-    const unit = trendData.unit || '°C/decade';
-    const slopeAbs = Math.abs(trendData.slope).toFixed(2);
-    const errorPart = trendData.slopeError != null && Math.abs(trendData.slopeError) >= 0.1
-      ? ` ± ${Math.abs(trendData.slopeError).toFixed(1)}`
-      : '';
-    trendTextEl.textContent = `Trend: ${direction} at ${slopeAbs}${errorPart}${unit}`;
-    if (periodKey) {
-      trendTextEl.classList.add('trend-text');
-    }
+  if (periodKey) {
+    const statsBubble = document.getElementById(`${periodKey}StatsBubble`);
+    if (statsBubble) statsBubble.classList.add('visible');
   }
 }
 
