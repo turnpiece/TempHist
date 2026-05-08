@@ -23,7 +23,7 @@ import { Logger, LogLevel } from './utils/Logger';
 import { getApiUrl, apiFetch, fetchTemperatureDataAsync } from './api/temperature';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from './services/locationDetection';
 import { initLocationCarousel, renderImageAttributions } from './services/locationCarousel';
-import { mainAppLogic } from './views/today';
+import { mainAppLogic, setupChangeLocationButton } from './views/today';
 import { renderPeriod } from './views/period';
 import { renderAboutPage, renderPrivacyPage, buildAboutContent, buildPrivacyWebContent, buildPrivacyAppContent } from './views/about';
 import { TempHistRouter } from './routing/router';
@@ -228,7 +228,9 @@ function refreshLocationFlag(): void {
   const headings = document.querySelectorAll<HTMLElement>('.location-heading');
   headings.forEach(el => {
     if (el.offsetParent !== null) { // only update visible elements
-      buildLocationDisplay(el, displayCity, '', countryCode);
+      const periodKey = el.id === 'locationText' ? '' : el.id.replace('LocationText', '');
+      buildLocationDisplay(el, displayCity, periodKey, countryCode);
+      setupChangeLocationButton(periodKey);
     }
   });
 }
