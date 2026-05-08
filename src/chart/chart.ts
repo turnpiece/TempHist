@@ -263,6 +263,12 @@ export function createTemperatureChart(
 
   const axisFont = { size: CHART_FONT_SIZE_SMALL, family: CHART_AXIS_FONT_FAMILY };
 
+  // Pick an integer step size so tick labels are always whole numbers.
+  // Derived from the axis range — no maxTicksLimit needed because the step
+  // guarantees a bounded number of ticks regardless of range width.
+  const tempRange = maxTemp - minTemp;
+  const xStepSize = tempRange <= 10 ? 1 : tempRange <= 20 ? 2 : 5;
+
   return new Chart(ctx, {
     type: 'bar',
     data: {
@@ -287,7 +293,8 @@ export function createTemperatureChart(
           backgroundColor: barColors,
           borderWidth: 0,
           borderRadius: 3,
-          base: minTemp
+          base: minTemp,
+          minBarLength: 30
         }
       ]
     },
@@ -354,9 +361,12 @@ export function createTemperatureChart(
           ticks: {
             font: axisFont,
             color: CHART_AXIS_COLOR,
-            stepSize: 1,
-            maxTicksLimit: 10,
+            stepSize: xStepSize,
             callback: function(value: any) {
+              // Suppress labels that don't align with the step boundary from minTemp.
+              // Chart.js adds the explicit axis max as a bonus tick even when it
+              // doesn't fall on a step interval (e.g. 11 in a 0,2,4,6,8,10 series).
+              if ((value - minTemp) % xStepSize !== 0) return '';
               return value;
             }
           }

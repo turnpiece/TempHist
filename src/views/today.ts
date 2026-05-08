@@ -66,20 +66,32 @@ const debouncedLocationChange = Debouncer.debounce(
 function showInitialLoadingState(): void {
   const loadingEl = document.getElementById('loading');
   const canvasEl = document.getElementById('tempChart');
-  
+
   if (loadingEl) {
     loadingEl.classList.add('visible');
     loadingEl.classList.remove('hidden');
   }
-  
+
   if (canvasEl) {
     canvasEl.classList.add('hidden');
     canvasEl.classList.remove('visible');
   }
-  
+
+  // Hide summary and stats bubbles from any previous load (e.g. after location change)
+  // so an empty bubble doesn't linger while the new data is fetched.
+  const summaryTextEl = document.getElementById('summaryText');
+  if (summaryTextEl) {
+    summaryTextEl.classList.remove('visible');
+    summaryTextEl.textContent = '';
+  }
+  const statsBubble = document.getElementById('todayStatsBubble');
+  if (statsBubble) {
+    statsBubble.classList.remove('visible');
+  }
+
   // Start global loading messages
   LoadingManager.startGlobalLoading();
-  
+
   // Set initial loading text
   const loadingText = document.getElementById('loadingText');
   if (loadingText) {
