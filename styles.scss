@@ -47,6 +47,7 @@ html {
   max-width: 100%; // Prevent overflow
   position: relative;
   box-sizing: border-box;
+  scrollbar-gutter: stable; // Reserve scrollbar space so layout doesn't shift when scrollbar appears
 }
 
 body {
