@@ -168,18 +168,16 @@ export function updateSummaryTextElements(
 
   if (summaryTextEl) {
     summaryTextEl.textContent = summaryText || 'No summary available.';
-    if (periodKey) {
-      summaryTextEl.classList.add('summary-text');
-      summaryTextEl.classList.add('visible');
-    }
+    summaryTextEl.classList.add('summary-text');
+    summaryTextEl.classList.add('visible');
   }
 
   renderStatsToElements(avgTextEl, stddevTextEl, trendTextEl, averageData, trendData);
 
-  if (periodKey) {
-    const statsBubble = document.getElementById(`${periodKey}StatsBubble`);
-    if (statsBubble) statsBubble.classList.add('visible');
-  }
+  // Show stats bubble — use period-specific ID for period views, 'todayStatsBubble' for Today view
+  const bubbleId = periodKey ? `${periodKey}StatsBubble` : 'todayStatsBubble';
+  const statsBubble = document.getElementById(bubbleId);
+  if (statsBubble) statsBubble.classList.add('visible');
 }
 
 /**
@@ -323,13 +321,6 @@ export function showChartElements(periodKey?: string): void {
     const chart = document.getElementById(`${periodKey}Chart`);
     if (chart) { chart.classList.add('visible'); chart.classList.remove('hidden'); }
   }
-
-  // Also show all elements with the data-field class
-  const dataFields = document.querySelectorAll('.data-field');
-  dataFields.forEach(el => {
-    el.classList.add('visible');
-    el.classList.remove('hidden');
-  });
 }
 
 /**

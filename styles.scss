@@ -440,7 +440,7 @@ a {
   padding-bottom: 4rem; // Extra bottom padding for mobile browser bar
   position: relative;
   overflow-y: auto;
-  overflow-x: clip; // Clip horizontal overflow without creating a new scroll container
+  overflow-x: hidden; // Prevent horizontal scroll on all viewports
   overscroll-behavior-x: none; // Prevent iOS lateral rubber-band on this scroll container
   max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
   box-sizing: border-box; // Include padding in width calculation

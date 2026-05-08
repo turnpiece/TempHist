@@ -628,9 +628,12 @@ export function calculateTemperatureRange(chartData: ChartDataPoint[]): { min: n
   }
   
   const temps = chartData.map(p => p.x);
-  // Find the nearest step-2 boundary strictly outside the data range — one label below min, one above max
-  const minTemp = (Math.ceil(Math.min(...temps) / 2) - 1) * 2;
-  const maxTemp = (Math.floor(Math.max(...temps) / 2) + 1) * 2;
+  // Round outward to integer boundaries with minimal padding.
+  // If the data value exactly hits an integer, add 1 unit of extra space so bars don't touch the axis.
+  const actualMin = Math.min(...temps);
+  const actualMax = Math.max(...temps);
+  const minTemp = Number.isInteger(actualMin) ? actualMin - 1 : Math.floor(actualMin);
+  const maxTemp = Number.isInteger(actualMax) ? actualMax + 1 : Math.ceil(actualMax);
 
   return { min: minTemp, max: maxTemp };
 }

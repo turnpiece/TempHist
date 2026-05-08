@@ -163,7 +163,12 @@ export function buildExternalTooltipHandler(
     const maxLeft = posX + chart.canvas.offsetWidth - tooltipEl.offsetWidth - 4;
     const desiredLeft = posX + tooltip.caretX + 14;
     tooltipEl.style.left = Math.min(desiredLeft, maxLeft) + 'px';
-    tooltipEl.style.top = (posY + tooltip.caretY - 24) + 'px';
+    // Clamp tooltip so it doesn't overflow the bottom of the chart container
+    const containerHeight = (chart.canvas.parentNode as HTMLElement).offsetHeight;
+    const tooltipHeight = tooltipEl.offsetHeight || 72;
+    const desiredTop = posY + tooltip.caretY - 24;
+    const maxTop = containerHeight - tooltipHeight - 4;
+    tooltipEl.style.top = Math.min(desiredTop, maxTop) + 'px';
   };
 }
 
@@ -349,7 +354,8 @@ export function createTemperatureChart(
           ticks: {
             font: axisFont,
             color: CHART_AXIS_COLOR,
-            stepSize: 2,
+            stepSize: 1,
+            maxTicksLimit: 10,
             callback: function(value: any) {
               return value;
             }
