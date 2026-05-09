@@ -60,6 +60,7 @@ body {
   background-color: $colour-bg;
   background-image: linear-gradient($colour-bg, $colour-bg-bottom);
   color: $colour-text;
+  margin: 0; // Reset browser default 8px margin — combined with `width: 100%` it pushes the body 16px past the viewport on iOS Safari and is the root cause of the lateral wobble.
   padding: 10px;
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.4;
@@ -1046,8 +1047,8 @@ h2 {
   opacity: 1;
   transition: opacity 0.5s ease-out;
   overflow-y: auto;
-  overflow-x: hidden; // Prevent horizontal scrolling on splash screen
-  max-width: 100vw; // Ensure it doesn't exceed viewport width
+  overflow-x: clip; // Prevent horizontal scrolling without iOS Safari promoting to a 2-axis scroll container
+  max-width: 100%; // Avoid 100vw — on iOS Safari it can exceed the visual viewport and cause lateral wobble
   -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
   overscroll-behavior: contain; // Prevent scroll chaining to body
   overscroll-behavior-y: contain; // Explicitly prevent vertical scroll chaining
