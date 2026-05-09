@@ -40,14 +40,20 @@ html {
   background-color: $colour-bg;
   background-image: linear-gradient($colour-bg, $colour-bg-bottom);
   min-height: 100vh;
-  overflow-x: hidden; // Prevent horizontal page scroll
+  overflow-x: clip; // Prevent horizontal page scroll without creating a scroll container (avoids iOS Safari promoting overflow:hidden+overflow:auto into a 2-axis scroll container)
   overflow-y: auto; // Allow vertical scrolling
   overscroll-behavior-x: none; // Prevent iOS lateral rubber-band scroll
   width: 100%;
   max-width: 100%; // Prevent overflow
   position: relative;
   box-sizing: border-box;
-  scrollbar-gutter: stable; // Reserve scrollbar space so layout doesn't shift when scrollbar appears
+
+  // Only reserve scrollbar gutter on devices with classic (non-overlay) scrollbars.
+  // iOS/Android use overlay scrollbars, so the rule does nothing useful there and can
+  // interact poorly with viewport width calculations.
+  @media (hover: hover) and (pointer: fine) {
+    scrollbar-gutter: stable;
+  }
 }
 
 body {
@@ -59,7 +65,7 @@ body {
   line-height: 1.4;
   min-height: 100vh;
   padding-bottom: 3rem; // Extra bottom padding for mobile browser bar
-  overflow-x: hidden; // Prevent horizontal page scroll
+  overflow-x: clip; // Prevent horizontal page scroll without creating a 2-axis scroll container on iOS Safari
   overscroll-behavior-x: none; // Prevent iOS lateral rubber-band scroll
   touch-action: pan-y; // Disable horizontal touch-panning at document level
   position: relative; // Establish positioning context
@@ -225,8 +231,8 @@ a {
   max-width: 100%; // Prevent overflow
   box-sizing: border-box;
   position: relative;
-  overflow-x: hidden; // Prevent horizontal overflow
-  
+  overflow-x: clip; // Prevent horizontal overflow without iOS Safari promoting to a scroll container
+
   &.hidden {
     display: none;
   }
@@ -262,7 +268,7 @@ a {
       padding-top: 0; // Start at top - no space needed for header since it's in sidebar area
       min-height: calc(100vh + 60px); // Add 60px to account for negative margin so content isn't cut off
       overflow-y: auto; // Allow vertical scrolling
-      overflow-x: hidden; // Prevent horizontal scrolling
+      overflow-x: clip; // Prevent horizontal scrolling without iOS scroll-container promotion
       position: relative; // Establish positioning context
     }
 
@@ -441,7 +447,7 @@ a {
   padding-bottom: 4rem; // Extra bottom padding for mobile browser bar
   position: relative;
   overflow-y: auto;
-  overflow-x: hidden; // Prevent horizontal scroll on all viewports
+  overflow-x: clip; // Prevent horizontal scroll on all viewports without iOS scroll-container promotion
   overscroll-behavior-x: none; // Prevent iOS lateral rubber-band on this scroll container
   max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
   box-sizing: border-box; // Include padding in width calculation
@@ -450,7 +456,7 @@ a {
   // On desktop, allow overflow upward for negative margin
   @media (min-width: 901px) {
     overflow-y: auto; // Allow vertical scrolling
-    overflow-x: hidden; // Prevent horizontal scrolling
+    overflow-x: clip; // Prevent horizontal scrolling without iOS scroll-container promotion
   }
 }
 
