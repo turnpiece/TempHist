@@ -993,8 +993,10 @@ function initializeSplashScreen(): void {
     const scrollY = window.scrollY;
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100vw'; // Use viewport width to avoid padding overflow
-    document.body.style.maxWidth = '100vw'; // Ensure it doesn't exceed viewport
+    // Use 100% (not 100vw) — on iOS Safari 100vw can exceed the visual viewport
+    // and causes lateral wobble. CSS `overflow-x: clip` keeps the layout in check.
+    document.body.style.width = '100%';
+    document.body.style.maxWidth = '100%';
     document.body.style.left = '0';
     document.body.style.right = '0';
     document.body.style.overflow = 'hidden';
@@ -1456,14 +1458,12 @@ async function proceedWithLocation(
             }
             void viewOutlet.offsetWidth; // Force reflow
           }
-          
-          // Ensure body and html don't exceed viewport width
-          if (document.body.scrollWidth > window.innerWidth) {
-            document.body.style.maxWidth = `${window.innerWidth}px`;
-          }
-          if (document.documentElement.scrollWidth > window.innerWidth) {
-            document.documentElement.style.maxWidth = `${window.innerWidth}px`;
-          }
+
+          // Note: previously we clamped body/html maxWidth to window.innerWidth in
+          // pixels here as a defensive measure against horizontal overflow, but
+          // that left the layout pinned to a stale width on rotation/resize and
+          // caused lateral wobble. With `overflow-x: clip` on html/body the
+          // clamp is unnecessary — let CSS handle it.
         });
       });
     }, 1500); // Match transition duration
