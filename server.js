@@ -34,7 +34,7 @@ app.use((req, res, next) => {
     "form-action 'self'",
     "frame-ancestors 'none'",
     "require-trusted-types-for 'script'",
-    "trusted-types 'none'",
+    "trusted-types default",
     "upgrade-insecure-requests"
   ].join('; ');
   
