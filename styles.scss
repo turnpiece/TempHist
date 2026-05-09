@@ -39,6 +39,8 @@ $max-chart-height: 1800px;
 html {
   background-color: $colour-bg;
   background-image: linear-gradient($colour-bg, $colour-bg-bottom);
+  background-repeat: no-repeat;
+  background-size: 100% 100%; // Stretch gradient to full element height — prevents tiling on long pages in Firefox
   min-height: 100vh;
   overflow-x: clip; // Prevent horizontal page scroll without creating a scroll container (avoids iOS Safari promoting overflow:hidden+overflow:auto into a 2-axis scroll container)
   overflow-y: auto; // Allow vertical scrolling
@@ -59,6 +61,8 @@ html {
 body {
   background-color: $colour-bg;
   background-image: linear-gradient($colour-bg, $colour-bg-bottom);
+  background-repeat: no-repeat;
+  background-size: 100% 100%; // Stretch gradient to full element height — prevents tiling on long pages in Firefox
   color: $colour-text;
   margin: 0; // Reset browser default 8px margin — combined with `width: 100%` it pushes the body 16px past the viewport on iOS Safari and is the root cause of the lateral wobble.
   padding: 10px;
