@@ -38,9 +38,9 @@ $max-chart-height: 1800px;
 
 html {
   background-color: $colour-bg;
-  background-image: linear-gradient($colour-bg, $colour-bg-bottom);
-  background-repeat: no-repeat;
-  background-size: 100% 100%; // Stretch gradient to full element height — prevents tiling on long pages in Firefox
+  // Gradient lives on body only — body's height equals content height in all browsers,
+  // so background-size: 100% 100% on body is correct cross-browser. Keeping it here
+  // caused Safari to clip the gradient to viewport height (#27).
   min-height: 100vh;
   overflow-x: clip; // Prevent horizontal page scroll without creating a scroll container (avoids iOS Safari promoting overflow:hidden+overflow:auto into a 2-axis scroll container)
   overflow-y: auto; // Allow vertical scrolling
