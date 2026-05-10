@@ -363,11 +363,13 @@ export function createTemperatureChart(
             color: CHART_AXIS_COLOR,
             stepSize: xStepSize,
             callback: function(value: any) {
-              // Suppress labels that don't align with the step boundary from minTemp.
-              // Chart.js adds the explicit axis max as a bonus tick even when it
-              // doesn't fall on a step interval (e.g. 11 in a 0,2,4,6,8,10 series).
-              if ((value - minTemp) % xStepSize !== 0) return '';
-              return value;
+              // Chart.js appends explicit min/max as float ticks even when they don't
+              // fall on a step boundary. Suppress them, then only show labels that are
+              // multiples of xStepSize (Chart.js steps from 0, not from minTemp).
+              const rounded = Math.round(value);
+              if (Math.abs(value - rounded) > 0.001) return '';
+              if (rounded % xStepSize !== 0) return '';
+              return rounded;
             }
           }
         },
