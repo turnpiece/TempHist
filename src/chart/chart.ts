@@ -296,7 +296,7 @@ export function createTemperatureChart(
           backgroundColor: barColors,
           borderWidth: 0,
           borderRadius: 3,
-          base: minTemp,
+          base: xAxisMin,
           minBarLength: 30
         }
       ]
