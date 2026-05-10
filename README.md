@@ -62,6 +62,12 @@ A web application that shows how today's temperature (or this week's, month's, o
    API_BASE=http://localhost:8000
    ```
 
+   `API_BASE` is the address of the [TempHist API](https://github.com/turnpiece/TempHist-API). With `http://localhost:8000` you'll need the API running locally — follow its setup instructions. Alternatively, point it at the dev or staging API to avoid running the API locally:
+
+   ```
+   API_BASE=https://devapi.temphist.com
+   ```
+
 4. Start the local dev server (in separate terminals):
 
    ```bash
@@ -102,7 +108,7 @@ npm run start:local    # serve on localhost:3000 with OG injection
 | `VITE_API_BASE` | Yes | API base URL. Dev: `/api` (relative — proxied by Vite or `server-local.js`). Prod: `https://api.temphist.com` |
 | `VITE_TEST_TOKEN` | Dev only | Test token injected by `server-local.js` when Firebase auth is unavailable |
 | `PORT` | No | Server port (default: 3000). Set automatically by Railway in production |
-| `API_BASE` | Dev only | Local backend URL used by `server-local.js` (default: `http://localhost:8000`) |
+| `API_BASE` | Dev only | [TempHist API](https://github.com/turnpiece/TempHist-API) URL used by `server-local.js`. Set to `http://localhost:8000` to run the API locally, or point at `https://devapi.temphist.com` / `https://stagingapi.temphist.com` to skip running it locally. |
 
 ## Building for Production
 
