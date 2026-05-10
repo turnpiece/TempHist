@@ -57,31 +57,49 @@ A web application that shows how today's temperature (or this week's, month's, o
 3. Create a `.env` file:
 
    ```
-   VITE_API_BASE=http://localhost:3000/api
+   VITE_API_BASE=/api
    VITE_TEST_TOKEN=your_test_token_here
-   PORT=3000
    API_BASE=http://localhost:8000
    ```
 
-4. Start the Vite dev server:
+4. Start the local dev server (in separate terminals):
 
    ```bash
-   npm run dev
+   npm run dev          # Vite dev server — hot reload, no OG injection
    ```
 
-5. Start the backend proxy (separate terminal):
+   The app is available at `http://localhost:5173`.
 
-   ```bash
-   npm start
-   ```
+### Choosing a local server
 
-The app is available at `http://localhost:5173`.
+There are two ways to run the frontend locally, depending on what you're testing:
+
+| Mode | Command | Port | Hot reload | API proxy | OG tag injection |
+|---|---|---|---|---|---|
+| **Dev (daily use)** | `npm run dev` | 5173 | ✅ | via Vite | ❌ |
+| **Prod-like (OG testing)** | `npm run start:local` | 3000 | ❌ | ✅ | ✅ |
+
+**`npm run dev`** — use this for everyday development, like if you're updating the styles or content. Vite serves source files directly and watches for changes: edits to `.scss` styles, TypeScript, or HTML are reflected in the browser instantly without a build step or page reload. API calls are proxied to `http://localhost:8000` automatically.
+
+**`npm run start:local`** — use this when testing social sharing or OG image previews (e.g. Share to Notes in Safari). It serves the built `dist/` files, proxies `/api` to `localhost:8000`, and injects `og:image` / `og:title` tags server-side for `/s/:id` share URLs.
+
+> **Note:** `npm run start:local` serves the last build. Run `npm run build` first if you've changed source files since the last build.
+
+> **Note:** `npm start` runs `server.js`, the production server. It has no API proxy and is not suitable for local development.
+
+To test OG sharing locally:
+
+```bash
+npm run build          # build latest source into dist/
+npm run start:local    # serve on localhost:3000 with OG injection
+# then visit http://localhost:3000/s/<share-id> in Safari and share
+```
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |---|---|---|
-| `VITE_API_BASE` | Yes | API base URL. Dev: `http://localhost:3000/api`. Prod: `https://api.temphist.com` |
+| `VITE_API_BASE` | Yes | API base URL. Dev: `/api` (relative — proxied by Vite or `server-local.js`). Prod: `https://api.temphist.com` |
 | `VITE_TEST_TOKEN` | Dev only | Test token injected by `server-local.js` when Firebase auth is unavailable |
 | `PORT` | No | Server port (default: 3000). Set automatically by Railway in production |
 | `API_BASE` | Dev only | Local backend URL used by `server-local.js` (default: `http://localhost:8000`) |

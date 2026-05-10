@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
 const app = express();
 app.set('trust proxy', true);
 
@@ -102,9 +103,9 @@ app.use(async (req, res, next) => {
   // Only allow characters that are safe to forward to the API
   if (!/^[a-zA-Z0-9_-]+$/.test(shareId)) return next();
 
-  const apiBase = process.env.VITE_API_BASE;
-  if (!apiBase) {
-    console.warn('[OG] VITE_API_BASE is not set — skipping OG injection for', shareId);
+  const apiBase = process.env.API_BASE || process.env.VITE_API_BASE;
+  if (!apiBase || !apiBase.startsWith('http')) {
+    console.warn('[OG] No absolute API base URL configured — skipping OG injection for', shareId);
     return next();
   }
 
