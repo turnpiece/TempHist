@@ -1743,7 +1743,7 @@ window.TempHistSendAnalytics = sendAnalytics;
 // Initialise mobile navigation for all pages
 document.addEventListener('DOMContentLoaded', () => {
   setupMobileNavigation();
-  
+
   // Add window resize listener to handle dynamic burger button visibility
   window.addEventListener('resize', handleWindowResize);
 });
@@ -1754,7 +1754,32 @@ if (document.readyState === 'loading') {
 } else {
   // DOM is already loaded
   setupMobileNavigation();
-  
+
   // Add window resize listener to handle dynamic burger button visibility
   window.addEventListener('resize', handleWindowResize);
+}
+
+// Keep html background-size synced to the full scroll height so the gradient covers
+// the entire page. CSS-only 100% 100% resolves to the element's box height (not
+// scrollHeight) because #appShell has height:100vh, making the content overflow it.
+// ResizeObserver on .container fires when chart data loads and changes content height.
+function syncGradientHeight(): void {
+  document.documentElement.style.backgroundSize =
+    `100% ${document.documentElement.scrollHeight}px`;
+}
+
+syncGradientHeight();
+window.addEventListener('resize', syncGradientHeight);
+
+if (typeof ResizeObserver !== 'undefined') {
+  const ro = new ResizeObserver(syncGradientHeight);
+  const observe = () => {
+    const target = document.querySelector('.container') ?? document.body;
+    ro.observe(target);
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observe);
+  } else {
+    observe();
+  }
 }
