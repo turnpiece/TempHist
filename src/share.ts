@@ -511,7 +511,7 @@ async function renderShareChart(
   if (!ctx) throw new Error('No canvas context');
 
   const periodLabel = formatPeriodLabel(meta);
-  const barColors = computeBarColors(chartData, data.average.mean, meta.ref_year, data.average.standard_deviation);
+  const barColors = computeBarColors(chartData, data.average.mean, data.average.standard_deviation);
 
   const chart = new Chart(ctx, {
     type: 'bar',

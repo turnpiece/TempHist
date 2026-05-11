@@ -207,25 +207,19 @@ function barColorForZScore(z: number): string {
 export function computeBarColors(
   chartData: ChartDataPoint[],
   averageTemp: number,
-  currentYear: number,
   stdDev?: number
 ): string[] {
   const anomalies = chartData.map(p => p.x - averageTemp);
 
   if (stdDev && stdDev > 0) {
-    return chartData.map((p, i) =>
-      p.y === currentYear
-        ? CHART_COLORS.THIS_YEAR
-        : barColorForZScore(anomalies[i] / stdDev)
-    );
+    return chartData.map((_, i) => barColorForZScore(anomalies[i] / stdDev));
   }
 
   // Fallback: normalise against the largest observed anomaly
   const maxWarm = Math.max(0, ...anomalies);
   const maxCool = Math.max(0, ...anomalies.map(a => -a));
 
-  return chartData.map((p, i) => {
-    if (p.y === currentYear) return CHART_COLORS.THIS_YEAR;
+  return chartData.map((_, i) => {
     const a = anomalies[i];
     if (Math.abs(a) < 0.01) return CHART_COLORS.BAR_NEUTRAL;
     const ref = a >= 0 ? maxWarm : maxCool;
@@ -252,7 +246,7 @@ export function createTemperatureChart(
     throw new Error('Invalid canvas context provided to createTemperatureChart');
   }
 
-  const barColors = computeBarColors(chartData, averageData.temp, currentYear, averageData.stdDev);
+  const barColors = computeBarColors(chartData, averageData.temp, averageData.stdDev);
   const trendColour = CHART_COLORS.TREND;
   const avgColour = CHART_COLORS.AVERAGE;
   const showTrend = true;

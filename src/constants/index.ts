@@ -19,7 +19,6 @@ export const CHART_COLORS = {
   BAR_WARM: '#FF3B30',
   BAR_COOL: '#3B82F6',
   BAR_NEUTRAL: '#8E8E93',
-  THIS_YEAR: '#51cf66',
   TREND: '#C8C400',
   AVERAGE: '#D0D4DE'
 } as const;
