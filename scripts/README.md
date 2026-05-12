@@ -8,6 +8,14 @@ Builds favicon and touch icons from `assets/logo.svg`, plus a multi-resolution `
 node scripts/generate-favicons.js
 ```
 
+## `generate-og-default.js`
+
+Builds `assets/og-default.png` (1200×630): site gradient background plus centred logo, used as `og:image` / `twitter:image` for link previews. Re-run after changing brand colours in `styles.scss` (`$colour-bg` / `$colour-bg-bottom`) or the logo SVG.
+
+```bash
+node scripts/generate-og-default.js
+```
+
 ## Location carousel images
 
 Location photos are **not** part of this web repository. The splash location carousel loads preapproved locations from **`GET /v1/locations/preapproved`**. Each entry includes image URLs (typically WebP and JPEG) served from the API host, for example:

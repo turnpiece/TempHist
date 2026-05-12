@@ -48,6 +48,44 @@ app.use((req, res, next) => {
   next();
 });
 
+/** Public site origin for OG / JSON-LD URLs (honours reverse proxies). */
+function getPublicOrigin(req) {
+  const xfProto = req.get('x-forwarded-proto');
+  const proto = (xfProto ? xfProto.split(',')[0].trim() : '') || req.protocol || 'https';
+  const host = req.get('x-forwarded-host') || req.get('host') || 'temphist.com';
+  return `${proto}://${host}`;
+}
+
+/** Rewrite baked-in production URLs so link previews use this host’s assets (e.g. dev vs prod). */
+function applySiteOriginToHtml(html, req) {
+  return html.replace(/https:\/\/temphist\.com/g, getPublicOrigin(req));
+}
+
+function sendDistHtml(req, res, filename) {
+  const filePath = path.join(__dirname, 'dist', filename);
+  const html = applySiteOriginToHtml(fs.readFileSync(filePath, 'utf-8'), req);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.send(html);
+}
+
+// HTML entry points: rewrite canonical https://temphist.com → request origin before static
+// (otherwise express.static index would serve / without this pass).
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  let file = null;
+  if (req.path === '/' || req.path === '/index.html') file = 'index.html';
+  else if (req.path.endsWith('.html')) file = path.basename(req.path);
+  else return next();
+  const filePath = path.join(__dirname, 'dist', file);
+  if (!fs.existsSync(filePath)) return next();
+  try {
+    sendDistHtml(req, res, file);
+  } catch (e) {
+    next(e);
+  }
+});
+
 // --- Open Graph tag injection for /s/:id share pages ---
 
 // Cache the base HTML to avoid repeated disk reads on every share page request
@@ -153,10 +191,11 @@ app.use(async (req, res, next) => {
 
     // Strip generic og: / twitter: tags baked into index.html so that the
     // share-specific tags injected below are the only ones crawlers see.
-    const html = getIndexHtml()
+    let html = getIndexHtml()
       .replace(/<meta\s+(?:property="og:[^"]*"|name="twitter:[^"]*")[^>]*\/?\s*>/gi, '')
       .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttr(title)}</title>`)
       .replace('</head>', `    ${ogTags}\n  </head>`);
+    html = applySiteOriginToHtml(html, req);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     return res.send(html);
@@ -209,19 +248,19 @@ app.use((req, res, next) => {
     return res.status(404).send('File not found');
   }
   
-  // Handle specific HTML pages
-  if (requestedPath === '/about' || requestedPath === '/about.html') {
-    return res.sendFile(path.join(__dirname, 'dist', 'about.html'));
+  // Handle specific HTML pages (clean URLs — *.html is handled above)
+  if (requestedPath === '/about') {
+    return sendDistHtml(req, res, 'about.html');
   }
-  if (requestedPath === '/privacy' || requestedPath === '/privacy.html') {
-    return res.sendFile(path.join(__dirname, 'dist', 'privacy.html'));
+  if (requestedPath === '/privacy') {
+    return sendDistHtml(req, res, 'privacy.html');
   }
-  if (requestedPath === '/privacy/app' || requestedPath === '/privacy/app.html') {
-    return res.sendFile(path.join(__dirname, 'dist', 'privacy-app.html'));
+  if (requestedPath === '/privacy/app') {
+    return sendDistHtml(req, res, 'privacy-app.html');
   }
   
   // Default to index.html for all other routes (SPA behavior)
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  return sendDistHtml(req, res, 'index.html');
 });
 
 app.listen(port, '0.0.0.0', () => {

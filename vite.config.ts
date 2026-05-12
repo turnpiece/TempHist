@@ -125,7 +125,7 @@ export default defineConfig(({ mode }) => {
               "Daily, weekly, monthly, and yearly views"
             ],
             browserRequirements: "Requires JavaScript and location access",
-            screenshot: "https://temphist.com/assets/logo.png"
+            screenshot: "https://temphist.com/assets/og-default.png"
           }
           // Format the merged JSON with proper indentation (skip the outer braces)
           const mergedJsonStr = JSON.stringify(mergedJson, null, 2)
@@ -135,7 +135,7 @@ export default defineConfig(({ mode }) => {
             .join('\n')
           // Replace from after @context to the closing brace, removing the placeholder and all properties
           html = html.replace(
-            /"@context": "https:\/\/schema\.org",\s*<!-- INCLUDE:webapplication-json -->,[\s\S]*?"screenshot": "https:\/\/temphist\.com\/assets\/logo\.png"\s*\n\s*\}/m,
+            /"@context": "https:\/\/schema\.org",\s*<!-- INCLUDE:webapplication-json -->,[\s\S]*?"screenshot": "https:\/\/temphist\.com\/assets\/og-default\.png"\s*\n\s*\}/m,
             `"@context": "https://schema.org",\n${mergedJsonStr}\n    }`
           )
         } else {
@@ -155,7 +155,13 @@ export default defineConfig(({ mode }) => {
       transformIndexHtml(html) {
         // Replace %VITE_API_BASE% with actual environment variable
         const apiBase = env.VITE_API_BASE || 'https://api.temphist.com'
-        return html.replace(/%VITE_API_BASE%/g, apiBase)
+        html = html.replace(/%VITE_API_BASE%/g, apiBase)
+        // Optional: bake a non-production canonical origin for static-only hosts (no Node HTML rewrite)
+        const siteOrigin = env.VITE_SITE_ORIGIN
+        if (siteOrigin) {
+          html = html.replace(/https:\/\/temphist\.com/g, siteOrigin.replace(/\/$/, ''))
+        }
+        return html
       }
     },
     {
