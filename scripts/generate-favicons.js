@@ -36,7 +36,22 @@ async function generateFavicons() {
       console.error(`✗ Failed to generate ${name}:`, error.message);
     }
   }
-  
+
+  // PNG fallback for <img> onerror (same artwork as logo.svg; 160px for sharp display up to ~80px CSS)
+  const logoPngPath = path.join(outputDir, 'assets', 'logo.png');
+  try {
+    await sharp(svgPath)
+      .resize(160, 160, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toFile(logoPngPath);
+    console.log('✓ Generated assets/logo.png (160×160 from logo.svg)');
+  } catch (error) {
+    console.error('✗ Failed to generate assets/logo.png:', error.message);
+  }
+
   const png512Path = path.join(outputDir, 'favicon-512.png');
   const icoSizes = [16, 32, 48];
   const icoBuffers = await Promise.all(

@@ -2,7 +2,7 @@
 
 ## `generate-favicons.js`
 
-Builds favicon and touch icons from `assets/logo.svg`, plus a multi-resolution `favicon.ico` derived from the generated `favicon-512.png`.
+Builds favicon and touch icons from `assets/logo.svg`, plus a multi-resolution `favicon.ico` derived from the generated `favicon-512.png`, and **`assets/logo.png`** (raster fallback when SVG fails in header / nav / splash).
 
 ```bash
 node scripts/generate-favicons.js
