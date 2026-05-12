@@ -143,13 +143,18 @@ app.use(async (req, res, next) => {
       `<meta property="og:description" content="${escapeAttr(description)}">`,
       `<meta property="og:url" content="${escapeAttr(shareUrl)}">`,
       `<meta property="og:image" content="${escapeAttr(imageUrl)}">`,
+      `<meta property="og:image:width" content="1200">`,
+      `<meta property="og:image:height" content="630">`,
       `<meta name="twitter:card" content="summary_large_image">`,
       `<meta name="twitter:title" content="${escapeAttr(title)}">`,
       `<meta name="twitter:description" content="${escapeAttr(description)}">`,
       `<meta name="twitter:image" content="${escapeAttr(imageUrl)}">`,
     ].join('\n    ');
 
+    // Strip generic og: / twitter: tags baked into index.html so that the
+    // share-specific tags injected below are the only ones crawlers see.
     const html = getIndexHtml()
+      .replace(/<meta\s+(?:property="og:[^"]*"|name="twitter:[^"]*")[^>]*\/?\s*>/gi, '')
       .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttr(title)}</title>`)
       .replace('</head>', `    ${ogTags}\n  </head>`);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
