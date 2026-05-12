@@ -15,7 +15,12 @@ import {
 import type { ChartDataPoint, JobResultResponse } from './types/index';
 import { getOrdinal, countryCodeToFlag } from './utils/location';
 import type { PreapprovedLocation } from './types/index';
-import { calculateTrendLine, computeBarColors, buildExternalTooltipHandler } from './chart/chart';
+import {
+  calculateTrendLine,
+  computeBarColors,
+  buildExternalTooltipHandler,
+  getTemperatureLinearAxisExtents
+} from './chart/chart';
 import { renderStatsToElements } from './utils/uiHelpers';
 
 // Chart.js global (loaded via CDN defer in index.html)
@@ -460,7 +465,11 @@ async function renderShareChart(
 
   const data = result.data;
   const chartData = transformToChartData(data.values);
-  const { min: minTemp, max: maxTemp } = calculateTemperatureRange(chartData);
+  const rawRange = calculateTemperatureRange(chartData);
+  const { min: xAxisMin, max: xAxisMax, stepSize: xStepSize } = getTemperatureLinearAxisExtents(
+    rawRange.min,
+    rawRange.max
+  );
 
   const years = chartData.map(d => d.y);
   const minYear = Math.min(...years);
@@ -534,7 +543,7 @@ async function renderShareChart(
           backgroundColor: barColors,
           borderWidth: 0,
           borderRadius: 3,
-          base: minTemp
+          base: xAxisMin
         }
       ]
     },
@@ -585,13 +594,12 @@ async function renderShareChart(
             font: { size: CHART_FONT_SIZE_MEDIUM, family: "ui-monospace, 'SF Mono', 'Courier New', monospace" },
             color: CHART_AXIS_COLOR
           },
-          min: minTemp,
-          max: maxTemp,
+          min: xAxisMin,
+          max: xAxisMax,
           ticks: {
             font: { size: CHART_FONT_SIZE_SMALL, family: "ui-monospace, 'SF Mono', 'Courier New', monospace" },
             color: CHART_AXIS_COLOR,
-            stepSize: 2,
-            callback: function(value: any) { return value; }
+            stepSize: xStepSize
           }
         },
         y: {

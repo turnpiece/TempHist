@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
+    // Only run tests from this repo's test/ tree (not .claude/worktrees copies)
+    include: ['test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     environment: 'jsdom', // For DOM testing
     globals: true, // Enable global test functions (describe, it, expect)
     setupFiles: ['./test/setup.ts'], // Test setup file

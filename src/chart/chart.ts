@@ -229,6 +229,21 @@ export function computeBarColors(
 }
 
 /**
+ * Integer step and aligned min/max for the linear temperature (x) axis.
+ * Used by main chart views and the share page so tick spacing matches.
+ */
+export function getTemperatureLinearAxisExtents(
+  minTemp: number,
+  maxTemp: number
+): { min: number; max: number; stepSize: number } {
+  const tempRange = maxTemp - minTemp;
+  const stepSize = tempRange <= 10 ? 1 : tempRange <= 20 ? 2 : 5;
+  const min = Math.floor(minTemp / stepSize) * stepSize;
+  const max = Math.ceil(maxTemp / stepSize) * stepSize;
+  return { min, max, stepSize };
+}
+
+/**
  * Create a temperature chart
  */
 export function createTemperatureChart(
@@ -257,14 +272,8 @@ export function createTemperatureChart(
 
   const axisFont = { size: CHART_FONT_SIZE_SMALL, family: CHART_AXIS_FONT_FAMILY };
 
-  // Pick an integer step size so tick labels are always whole numbers.
-  // Align the axis min/max to multiples of the step so Chart.js generates a clean
-  // sequence with no "bonus" off-step boundary ticks (which were causing all ticks
-  // to be suppressed when the sequence happened to land on odd numbers).
-  const tempRange = maxTemp - minTemp;
-  const xStepSize = tempRange <= 10 ? 1 : tempRange <= 20 ? 2 : 5;
-  const xAxisMin = Math.floor(minTemp / xStepSize) * xStepSize;
-  const xAxisMax = Math.ceil(maxTemp / xStepSize) * xStepSize;
+  const { min: xAxisMin, max: xAxisMax, stepSize: xStepSize } =
+    getTemperatureLinearAxisExtents(minTemp, maxTemp);
 
   return new Chart(ctx, {
     type: 'bar',
