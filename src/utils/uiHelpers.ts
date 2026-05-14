@@ -27,7 +27,6 @@ export function buildLocationDisplay(
   countryCode?: string | null
 ): void {
   const buttonId = periodKey ? `changeLocationBtn-${periodKey}` : 'changeLocationBtn';
-  const isDetected = container.classList.contains('location-detected');
 
   // Clear existing contents
   while (container.firstChild) {
@@ -137,7 +136,7 @@ export function renderStatsToElements(
 
   if (trendTextEl) {
     const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' :
-                     trendData.slope > 0 ? 'rising' : 'falling';
+    trendData.slope > 0 ? 'rising' : 'falling';
     const unit = trendData.unit || `${unitLabel}/decade`;
     const slopeAbs = Math.abs(trendData.slope).toFixed(2);
     const errorPart = trendData.slopeError != null
@@ -221,7 +220,7 @@ export function checkDataCompleteness(metadata: TemperatureDataMetadata | undefi
 /**
  * Show fatal error when no data is available (0% completeness)
  */
-function showFatalError(periodKey?: string): void {
+export function showFatalError(periodKey?: string): void {
   debugLog('showFatalError called for periodKey:', periodKey);
   debugLog('showFatalError: Starting to hide chart elements...');
 
@@ -431,7 +430,7 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?:
 /**
  * Hide incomplete data notice
  */
-function hideIncompleteDataNotice(periodKey?: string): void {
+export function hideIncompleteDataNotice(periodKey?: string): void {
   // Check if this is the Today view (no periodKey, 'today', or 'daily')
   const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
   

@@ -6,12 +6,15 @@ import { setLocationCookie, getLocationCookie } from '../utils/location';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from '../services/locationDetection';
 import { resetCarouselState } from '../services/locationCarousel';
 import { apiFetch, getApiUrl } from '../api/temperature';
-import { LazyLoader } from '../utils/LazyLoader';
+import { getCountryCodeForLocation, getDisplayCity } from '../utils/location';
 import { DataCache } from '../utils/DataCache';
 import { LoadingManager } from '../utils/LoadingManager';
+import { LazyLoader } from '../utils/LazyLoader';
 import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
 import { renderAboutPage, renderPrivacyPage } from '../views/about';
+import { buildLocationDisplay } from '../utils/uiHelpers';
+import { setupChangeLocationButton } from '../views/today';
 
 declare const Chart: any;
 declare const debugLog: (...args: any[]) => void;
@@ -197,6 +200,25 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
 }
 
 /**
+ * After prefetchedLocations loads, re-render any visible location heading with the correct flag
+ */
+function refreshLocationFlag(): void {
+  if (!window.tempLocation) return;
+  const countryCode = getCountryCodeForLocation(window.tempLocation);
+  if (!countryCode) return;
+  const displayCity = getDisplayCity(window.tempLocation);
+  // Update all visible location headings (today + active period views)
+  const headings = document.querySelectorAll<HTMLElement>('.location-heading');
+  headings.forEach(el => {
+    if (el.offsetParent !== null) { // only update visible elements
+      const periodKey = el.id === 'locationText' ? '' : el.id.replace('LocationText', '');
+      buildLocationDisplay(el, displayCity, periodKey, countryCode);
+      setupChangeLocationButton(periodKey);
+    }
+  });
+}
+
+/**
  * Prefetch approved locations for manual selection
  */
 export async function prefetchApprovedLocations(): Promise<void> {
@@ -225,6 +247,10 @@ export async function prefetchApprovedLocations(): Promise<void> {
     // Store in a global cache for immediate use
     window.TempHist = window.TempHist || {};
     window.TempHist.prefetchedLocations = locations;
+
+    // If a location heading is already visible (cookie fast-path rendered before prefetch),
+    // re-render it now with the correct country flag
+    refreshLocationFlag();
   } catch (error) {
     debugLog('Failed to prefetch approved locations:', error);
     // Store empty array if prefetch fails
@@ -582,7 +608,7 @@ export function startPeriodDataPrefetch(): void {
 /**
  * Proceed with selected location
  */
-async function proceedWithLocation(
+export async function proceedWithLocation(
   location: string, 
   isDetectedLocation: boolean = false, 
   locationSource: string = 'unknown'
@@ -935,4 +961,3 @@ export function handleLocationChangeInternal(): void {
 
 // Expose handleManualLocationSelection globally for use by location carousel
 (window as any).handleManualLocationSelection = handleManualLocationSelection;
-

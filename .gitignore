@@ -65,3 +65,10 @@ start.sh
 
 # Override global gitignore for this project
 !.htaccess
+# Graphify - keep outputs, ignore temp/cache files
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+graphify-out/.graphify_*.json
+graphify-out/.chunk_files_*.txt
+graphify-out/obsidian/
+graphify-out/converted/
