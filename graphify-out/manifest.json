@@ -1,0 +1,262 @@
+{
+  "/Users/paul/Sites/temphist-workspace/web/server.js": {
+    "mtime": 1778607347.2901728,
+    "hash": "d29f8b6d159bd5c0ebbb737dd0e90564"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/vitest.config.js": {
+    "mtime": 1778607347.293038,
+    "hash": "e78e1f354f8f6361c93931ed4fff553d"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/server-local.js": {
+    "mtime": 1778607347.2900038,
+    "hash": "6c2393d60684e869c58e6a9771011c16"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/vite.config.ts": {
+    "mtime": 1778607347.292889,
+    "hash": "b82a5e730ab2927a6943268f495ce711"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/test/mobile-overflow.test.ts": {
+    "mtime": 1775576334.884663,
+    "hash": "79123ce0ac300678b3286e131b5968dc"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/test/utils.test.ts": {
+    "mtime": 1775576334.884973,
+    "hash": "81096836fff5deb6fa129e396575338a"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/test/platform.test.ts": {
+    "mtime": 1775576334.8848221,
+    "hash": "5372c9f488b9e41c0b070e3adbe9a94f"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/test/location.test.ts": {
+    "mtime": 1775576334.8845,
+    "hash": "2ce9e4526434ac69e9c32659dc94dcbd"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/test/setup.ts": {
+    "mtime": 1770386341.818703,
+    "hash": "1adf10e7d39bac237f7ab6388236d61c"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/test/debouncer.test.ts": {
+    "mtime": 1770386341.8181145,
+    "hash": "6b75c87ba8b35f36da081e1f744575e8"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/test/integration.test.ts": {
+    "mtime": 1775576334.8843513,
+    "hash": "0cee99b89d2c13074d1f3c584936201b"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/test/api.test.ts": {
+    "mtime": 1770386341.8180025,
+    "hash": "55fea2329e49d7f4d6bfb767b00fe6dc"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/test/logger.test.ts": {
+    "mtime": 1770386341.8184056,
+    "hash": "416f3f33106d0e9d3b1fca4d4ba3d6f9"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/scripts/generate-favicons.js": {
+    "mtime": 1778663987.6726508,
+    "hash": "e36eb78ca1073084fffdb9be8b116286"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/scripts/generate-og-default.js": {
+    "mtime": 1778607347.2898078,
+    "hash": "d8bdbcdf9d215086f2cddb2fb707198e"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/main.ts": {
+    "mtime": 1778757822.1165314,
+    "hash": "660123a58f2d97a2bffb007bfe343934"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/share.ts": {
+    "mtime": 1778607347.2913134,
+    "hash": "1836b3ac99a9fcffc213ef5ef516fce2"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/vite-env.d.ts": {
+    "mtime": 1770386341.8170702,
+    "hash": "ca4297af252a2330dadcfe8ae7da5d2f"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/splash/splash.ts": {
+    "mtime": 1778756179.7272363,
+    "hash": "238abb2a7a86abbcf1cbae5b5f25e724"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/types/index.ts": {
+    "mtime": 1778607347.2916334,
+    "hash": "ae9fb844e4be8a895cc50897b53ffe7b"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/constants/index.ts": {
+    "mtime": 1778607347.2906766,
+    "hash": "c3c32d2749ccecc5dd312c4755b37ac2"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/chart/chart.ts": {
+    "mtime": 1778607347.2905161,
+    "hash": "728c8a557b49d91ef00ba46af9dfd1c1"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/ErrorBoundary.ts": {
+    "mtime": 1776252883.791295,
+    "hash": "5d4235de1383a5f5cd68d41121a17d64"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/LazyLoader.ts": {
+    "mtime": 1775576334.8819115,
+    "hash": "0795a9e69b2146aa97610d75af2d9430"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/uiHelpers.ts": {
+    "mtime": 1778757851.6196578,
+    "hash": "a8f96d31a6b231c5b8b6341b3fc22d2d"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/PerformanceMonitor.ts": {
+    "mtime": 1775576334.8823445,
+    "hash": "75943487ca925b635443210952ca38be"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/FeatureFlags.ts": {
+    "mtime": 1775576334.881739,
+    "hash": "fd2253b4ae521cd57395d0d0262fc6df"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/location.ts": {
+    "mtime": 1778607347.291765,
+    "hash": "5b82ed0190f6176d8ee2e717981acd3a"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/platform.ts": {
+    "mtime": 1775576334.8826952,
+    "hash": "3543d97717df5acf07adc1d85a15dfd6"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/DataCache.ts": {
+    "mtime": 1770386341.8158023,
+    "hash": "e752b953457e90ee27a36e2fc6daa0ff"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/Logger.ts": {
+    "mtime": 1770386341.816684,
+    "hash": "8c51310cb56c1d26da17bf8e01f7bc58"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/Debouncer.ts": {
+    "mtime": 1770386341.8158808,
+    "hash": "feb0c0ff264752838a8b5ef514bb7616"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/dataNotice.ts": {
+    "mtime": 1770386341.8168652,
+    "hash": "929e86c0f2a89daba2a5f1ca58f209e1"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/utils/LoadingManager.ts": {
+    "mtime": 1776252883.7914436,
+    "hash": "ae5a454149d8da569105c38d34adcc85"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/api/temperature.ts": {
+    "mtime": 1778607347.290307,
+    "hash": "1e01d4a7568167a7d85db8b0d0da4a0b"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/routing/router.ts": {
+    "mtime": 1775576334.8800812,
+    "hash": "b1e13488da773f4ae5a33e8ba2b1475c"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/views/today.ts": {
+    "mtime": 1778607347.2924187,
+    "hash": "28e3a5e8df073b59e512fee776681fbf"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/views/period.ts": {
+    "mtime": 1778607347.292254,
+    "hash": "3a52bebd84684049750252315dbbf1d0"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/views/about.ts": {
+    "mtime": 1778607347.2920985,
+    "hash": "b9e9a7cecb884d73b573fbe5403264a8"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/services/locationCarousel.ts": {
+    "mtime": 1775576334.880271,
+    "hash": "68edea4ee857694b3546377fb90d7a0b"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/services/locationDetection.ts": {
+    "mtime": 1775576334.8806815,
+    "hash": "817182ad4b0402a7a40cbc1eeacc6d44"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/src/analytics/analytics.ts": {
+    "mtime": 1775576334.879024,
+    "hash": "fa89049715fd5392919a53d82971bc27"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/index.html": {
+    "mtime": 1778607347.2879071,
+    "hash": "cfbdc689a7d5efb18eaa931b4f12d7b1"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/privacy-app.html": {
+    "mtime": 1778607347.289202,
+    "hash": "3fe29bc21b90004722d67f3fb6a0431b"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/about.html": {
+    "mtime": 1778607347.2859492,
+    "hash": "348306843d36a6d61539d5eadeb3c19c"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/README.md": {
+    "mtime": 1778607347.285811,
+    "hash": "35d97e15688edf6a1bd19f190495f8ee"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/RAILWAY_DEPLOYMENT.md": {
+    "mtime": 1770386341.8120413,
+    "hash": "2e9039bfbb6de2562b107b5cea4c8da5"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/privacy.html": {
+    "mtime": 1778607347.2893393,
+    "hash": "7cce677bee449c933f60cf00c3784f99"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/test/README.md": {
+    "mtime": 1770386341.8179348,
+    "hash": "4999ec786886ba9488603d1bfdee26cd"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/scripts/README.md": {
+    "mtime": 1778663987.6761708,
+    "hash": "5bb67128206124af6e5f47ab61db2cbf"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/templates/head-common.html": {
+    "mtime": 1778607347.2927234,
+    "hash": "621f707ef8d0ca13e560279083fc164e"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/templates/header.html": {
+    "mtime": 1770386341.8176517,
+    "hash": "a5be757738bb4f414ffad04cbe8b447d"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/templates/nav.html": {
+    "mtime": 1778593739.0118842,
+    "hash": "56e3589b39b2171456ef7ba2a6e9a987"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/favicon-48.png": {
+    "mtime": 1778611618.4141629,
+    "hash": "a98b8acc2f9506257a20ed29ced57368"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/favicon-192.png": {
+    "mtime": 1778611618.4199002,
+    "hash": "9d5c8162e5dab0cab8773dee623fd5b5"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/apple-touch-icon.png": {
+    "mtime": 1778611618.4178348,
+    "hash": "8af1aff4545b427c5d9ecdea7a2c6fd6"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/favicon-64.png": {
+    "mtime": 1778611618.4155397,
+    "hash": "a7244c8c40cf289eb519fc53ab2e8646"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/favicon-16.png": {
+    "mtime": 1778611618.4044123,
+    "hash": "574057f9d5d311037543ac2e213dc17b"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/favicon-32.png": {
+    "mtime": 1778611618.4123309,
+    "hash": "d0e0b08bcee88f599a9c04e2bfb7fdd0"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/favicon-512.png": {
+    "mtime": 1778611618.4227605,
+    "hash": "7699e27b1327ad36b797519469becbff"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/assets/og-default.png": {
+    "mtime": 1778607347.286325,
+    "hash": "cbea63f714bf369f14aedd8cccf7b837"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/assets/tp-logo-white-transparent-fixed.png": {
+    "mtime": 1770386341.8126266,
+    "hash": "1c253139186c4aae7fa451bd8486be6b"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/assets/logo.png": {
+    "mtime": 1778611748.4646657,
+    "hash": "0f877abe8008c136915f919c191e872d"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/assets/logo.svg": {
+    "mtime": 1778607347.2861898,
+    "hash": "f74b15e128727ca3684a02c02d32a05b"
+  },
+  "/Users/paul/Sites/temphist-workspace/web/assets/tp-logo-white-transparent-fixed.svg": {
+    "mtime": 1770386341.81283,
+    "hash": "7d04266b1fd8b2e00af33583675659e9"
+  }
+}
