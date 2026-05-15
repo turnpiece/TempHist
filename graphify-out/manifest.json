@@ -1,7 +1,7 @@
 {
   "/Users/paul/Sites/temphist-workspace/web/server.js": {
-    "mtime": 1778607347.2901728,
-    "hash": "d29f8b6d159bd5c0ebbb737dd0e90564"
+    "mtime": 1778861769.7884662,
+    "hash": "a609227727096e6b8beb4ca92afcebbb"
   },
   "/Users/paul/Sites/temphist-workspace/web/vitest.config.js": {
     "mtime": 1778607347.293038,
@@ -60,8 +60,8 @@
     "hash": "d8bdbcdf9d215086f2cddb2fb707198e"
   },
   "/Users/paul/Sites/temphist-workspace/web/src/main.ts": {
-    "mtime": 1778757822.1165314,
-    "hash": "660123a58f2d97a2bffb007bfe343934"
+    "mtime": 1778861769.788857,
+    "hash": "fcc3cc482ab0ee3a4a11008d2fc74fe8"
   },
   "/Users/paul/Sites/temphist-workspace/web/src/share.ts": {
     "mtime": 1778607347.2913134,
@@ -72,7 +72,7 @@
     "hash": "ca4297af252a2330dadcfe8ae7da5d2f"
   },
   "/Users/paul/Sites/temphist-workspace/web/src/splash/splash.ts": {
-    "mtime": 1778756179.7272363,
+    "mtime": 1778760906.8386762,
     "hash": "238abb2a7a86abbcf1cbae5b5f25e724"
   },
   "/Users/paul/Sites/temphist-workspace/web/src/types/index.ts": {
@@ -96,7 +96,7 @@
     "hash": "0795a9e69b2146aa97610d75af2d9430"
   },
   "/Users/paul/Sites/temphist-workspace/web/src/utils/uiHelpers.ts": {
-    "mtime": 1778757851.6196578,
+    "mtime": 1778760906.8395803,
     "hash": "a8f96d31a6b231c5b8b6341b3fc22d2d"
   },
   "/Users/paul/Sites/temphist-workspace/web/src/utils/PerformanceMonitor.ts": {
