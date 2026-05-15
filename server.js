@@ -29,7 +29,7 @@ app.use((req, res, next) => {
     "img-src 'self' data: https:",
     "font-src 'self'",
     "connect-src 'self' https://stagingapi.temphist.com https://devapi.temphist.com https://api.temphist.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://nominatim.openstreetmap.org https://ipapi.co https://*.firebaseapp.com https://*.googleapis.com https://cloudflareinsights.com https://www.google.com/recaptcha/ https://recaptchaenterprise.googleapis.com",
-    "frame-src 'self' https://temphist-2c787.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com",
+    "frame-src 'self' https://temphist-2c787.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
     "object-src 'self' data:",
     "base-uri 'self'",
     "form-action 'self'",
