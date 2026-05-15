@@ -9,6 +9,7 @@ if (typeof window !== 'undefined' && (window as any).trustedTypes?.createPolicy)
 import '../styles.scss';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 // Chart.js types
 declare global {
@@ -405,6 +406,19 @@ const firebaseConfig = {
 // Initialise Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+// App Check: proves requests originate from this website (reCAPTCHA v3, invisible to users).
+// In dev mode, Firebase generates a debug token (logged to console) that you register once in
+// the Firebase Console → App Check → Manage debug tokens, so local dev works without reCAPTCHA.
+if (import.meta.env.DEV) {
+  (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+}
+if (import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
 
 // Sign in anonymously
 debugLog('Starting Firebase anonymous sign-in...');

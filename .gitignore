@@ -9,6 +9,10 @@ yarn-error.log
 .env.local
 .env.*.local
 
+# Firebase
+firebase.json
+.firebaserc
+
 # IDE
 .idea/
 .vscode/
@@ -49,19 +53,8 @@ webhook.php
 __pycache__/
 weather_cache/
 
-# Deployment scripts (contain sensitive server information)
-deploy.sh
-deploy-dev.sh
-deploy-local-build.sh
-upload-dev.sh
-upload-prod.sh
-upload-sftp.sh
-
 # Build styles script
 build-styles.sh
-
-# start application script
-start.sh
 
 # Override global gitignore for this project
 !.htaccess
