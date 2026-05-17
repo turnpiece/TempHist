@@ -35,8 +35,9 @@ import { renderAboutPage, renderPrivacyPage } from './views/about';
 import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
-import { clearAllLoadingIntervals, checkDataCompleteness, showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice } from './utils/uiHelpers';
+import { clearAllLoadingIntervals, showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice } from './utils/uiHelpers';
 import { isSharePagePath, initSharePage } from './share';
+import { installDevTestHooks } from './dev/testHooks';
 
 
 // Initialise location carousel when DOM is ready
@@ -47,10 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 // Import types
-import type { 
-  ChartDataPoint, 
-  FirebaseUser
-} from './types/index.js';
+import type { FirebaseUser } from './types/index.js';
 
 // Global namespace and cache
 window.TempHist = window.TempHist || {};
@@ -140,180 +138,10 @@ window.debugLog = debugLog;
 window.debugTime = debugTime;
 window.debugTimeEnd = debugTimeEnd;
 
-// Test functions only available in debug mode
 if (DEBUGGING) {
-  // Test function to simulate incomplete data
-  window.testIncompleteData = function() {
-    debugLog('Testing incomplete data scenario...');
-    const testMetadata = {
-      total_years: 50,
-      available_years: 35,
-      missing_years: [
-        { year: 1975, reason: 'Data unavailable' },
-        { year: 1980, reason: 'Data unavailable' },
-        { year: 1985, reason: 'Data unavailable' }
-      ],
-      completeness: 70,
-      period_days: 1,
-      end_date: '2024-01-01'
-    };
-
-    debugLog('Test metadata:', testMetadata);
-    checkDataCompleteness(testMetadata, 'today');
-  };
-
-  // Test function to simulate fatal error (no data)
-  window.testFatalError = function() {
-    debugLog('Testing fatal error scenario...');
-    debugLog('testFatalError function called');
-
-    const testMetadata = {
-      total_years: 51,
-      available_years: 0,
-      missing_years: [],
-      completeness: 0,
-      period_days: 1,
-      end_date: '2024-01-01'
-    };
-
-    debugLog('Test metadata:', testMetadata);
-    debugLog('About to call checkDataCompleteness...');
-
-    const result = checkDataCompleteness(testMetadata, 'today');
-    debugLog('checkDataCompleteness returned:', result);
-
-    // Also test the showFatalError function directly
-    debugLog('Testing showFatalError directly...');
-    showFatalError('today');
-  };
-
-  // Simple test function to test basic functionality
-  window.testBasicFunctions = function() {
-    debugLog('Testing basic functions...');
-    debugLog('Testing showFatalError with no periodKey...');
-    showFatalError();
-
-    debugLog('Testing hideChartElements with no periodKey...');
-    hideChartElements();
-
-    debugLog('Testing showChartElements with no periodKey...');
-    showChartElements();
-
-    debugLog('Testing showFatalError with "today" periodKey...');
-    showFatalError('today');
-
-    debugLog('Basic function tests complete');
-  };
-
-  // Test function to test retry button functionality
-  window.testRetryButton = function() {
-    debugLog('Testing retry button functionality...');
-
-    // Show fatal error
-    showFatalError();
-
-    // Wait a moment, then simulate clicking retry
-    setTimeout(() => {
-      debugLog('Simulating retry button click...');
-      retryDataFetch();
-    }, 2000);
-
-    debugLog('Retry button test complete');
-  };
+  installDevTestHooks(debugLog);
 }
 
-/**
- * Update trend line on chart with calculated trend data
- * @param chart - The Chart.js chart instance
- * @param chartData - The chart data points (format: {x: temperature, y: year})
- * @param startYear - The starting year for trend calculation
- * @param endYear - The ending year for trend calculation
- */
-function updateChartTrendLine(
-  chart: any,
-  chartData: ChartDataPoint[],
-  startYear: number,
-  endYear: number
-): void {
-  if (!chart || !chart.data || !chart.data.datasets) {
-    return;
-  }
-  
-  // Use global calculateTrendLine function (available via window.calculateTrendLine)
-  const calculateTrendLineFn = window.calculateTrendLine;
-  if (!calculateTrendLineFn) {
-    console.warn('calculateTrendLine not available');
-    return;
-  }
-  
-  // chartData is {x: temperature, y: year}, but calculateTrendLine expects {x: year, y: temperature}
-  const calculatedTrendData = calculateTrendLineFn(
-    chartData.map((d: ChartDataPoint) => ({ x: d.y, y: d.x })), 
-    startYear - 0.5, 
-    endYear + 0.5
-  );
-  chart.data.datasets[0].data = calculatedTrendData.points.map((p: { x: number; y: number }) => ({ x: p.y, y: p.x }));
-  chart.update();
-}
-
-/**
- * Update summary, average, and trend text elements
- */
-function updateSummaryTextElements(
-  summaryText: string | null,
-  averageData: { temp: number; stdDev?: number },
-  trendData: { slope: number; slopeError?: number; unit?: string },
-  periodKey: string = ''
-): void {
-  const summaryElId = periodKey ? `${periodKey}SummaryText` : 'summaryText';
-  const avgElId = periodKey ? `${periodKey}AvgText` : 'avgText';
-  const trendElId = periodKey ? `${periodKey}TrendText` : 'trendText';
-  const summaryTextEl = document.getElementById(summaryElId);
-  const avgTextEl = document.getElementById(avgElId);
-  const trendTextEl = document.getElementById(trendElId);
-
-  if (summaryTextEl) {
-    summaryTextEl.textContent = summaryText || 'No summary available.';
-    if (periodKey) {
-      summaryTextEl.classList.add('summary-text');
-    }
-  }
-
-  if (avgTextEl) {
-    let avgStr = `mean: ${averageData.temp.toFixed(1)}°C`;
-    if (averageData.stdDev !== undefined) {
-      avgStr += ` ± ${averageData.stdDev.toFixed(1)}°C`;
-    }
-    avgTextEl.textContent = avgStr;
-    avgTextEl.classList.add('avg-text');
-    wrapInStatsBubble(avgTextEl, trendTextEl);
-  }
-
-  if (trendTextEl && trendData) {
-    const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' :
-      trendData.slope > 0 ? 'rising' : 'falling';
-    const unit = trendData.unit || '°C/decade';
-    const slopeAbs = Math.abs(trendData.slope);
-    let trendStr = `trend: ${direction} at ${slopeAbs.toFixed(2)}${unit}`;
-    if (trendData.slopeError !== undefined && Math.round(trendData.slopeError * 10) >= 1) {
-      trendStr += ` ± ${trendData.slopeError.toFixed(2)}${unit}`;
-    }
-    trendTextEl.textContent = trendStr;
-    trendTextEl.classList.add('trend-text');
-  }
-}
-
-/**
- * Wrap avg and trend elements inside a shared .stats-bubble if not already done.
- */
-function wrapInStatsBubble(avgEl: HTMLElement, trendEl: HTMLElement | null): void {
-  if (avgEl.parentElement?.classList.contains('stats-bubble')) return;
-  const bubble = document.createElement('div');
-  bubble.className = 'stats-bubble';
-  avgEl.parentNode?.insertBefore(bubble, avgEl);
-  bubble.appendChild(avgEl);
-  if (trendEl) bubble.appendChild(trendEl);
-}
 
 /**
  * Get the current view name

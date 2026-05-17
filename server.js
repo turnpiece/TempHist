@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const { getOrdinal } = require('./lib/getOrdinal');
 require('dotenv').config();
 const app = express();
 app.set('trust proxy', true);
@@ -95,12 +96,6 @@ function getIndexHtml() {
     _indexHtmlCache = fs.readFileSync(path.join(__dirname, 'dist', 'index.html'), 'utf-8');
   }
   return _indexHtmlCache;
-}
-
-function getOrdinal(n) {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 function formatSharePeriodHeading(meta) {
