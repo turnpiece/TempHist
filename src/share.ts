@@ -733,7 +733,7 @@ function setMetaTag(attrName: 'property' | 'name', attrValue: string, content: s
 function showShareError(refs: ShareUIRefs, message: string): void {
   refs.loadingEl.classList.remove('visible');
   refs.loadingEl.classList.add('hidden');
-  refs.titleEl.textContent = 'Not found';
+  refs.titleEl.textContent = 'Share not found';
   refs.locationEl.style.display = 'none';
   refs.errorContainerEl.style.display = 'block';
   refs.errorMessageEl.textContent = message;

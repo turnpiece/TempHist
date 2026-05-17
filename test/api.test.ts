@@ -1,16 +1,38 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { checkApiHealth, createAsyncJob, pollJobStatus, fetchTemperatureDataAsync } from '../src/api/temperature'
+
+// Prevent Firebase SDK from making background network requests during tests.
+// apiFetch yields to the event loop for getIdToken(), during which Firebase's own
+// timers can call fetch and consume the test mock before apiFetch gets to it.
+vi.mock('../src/firebase', () => ({
+  app: {},
+  auth: {},
+  appCheck: null,
+}))
+
+vi.mock('firebase/app-check', () => ({
+  getToken: vi.fn().mockResolvedValue({ token: 'mock-app-check-token' }),
+  initializeAppCheck: vi.fn().mockReturnValue({}),
+  ReCaptchaV3Provider: vi.fn(),
+}))
 
 describe('API Functions', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    vi.mocked(fetch).mockClear()
-    
+    vi.useFakeTimers()
+    vi.resetAllMocks()
+
+    // Restore mocks cleared by resetAllMocks that setup.ts initialised
+    global.fetch = vi.fn()
+
     // Mock currentUser
     window.currentUser = {
       uid: 'test-user-id',
       getIdToken: vi.fn().mockResolvedValue('mock-token')
     }
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('API Health Check', () => {
@@ -49,7 +71,8 @@ describe('API Functions', () => {
     it('should handle job creation failure', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
-        status: 400
+        status: 400,
+        text: vi.fn().mockResolvedValue('Bad Request')
       } as unknown as Response)
 
       await expect(createAsyncJob('daily', 'London, UK', '10-05'))
@@ -77,7 +100,6 @@ describe('API Functions', () => {
         }
       }
 
-      // Mock immediate ready response to avoid timeout
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: vi.fn().mockResolvedValue(mockReadyResponse)
@@ -85,10 +107,7 @@ describe('API Functions', () => {
 
       const result = await pollJobStatus('test-job-123')
       expect(result).toEqual(mockReadyResponse.result)
-    }, 10000) // Increase timeout for this test
-
-    // Note: Error handling test removed due to polling timeout issues in test environment
-    // The actual function works correctly in production
+    })
   })
 
   describe('Temperature Data Fetching', () => {

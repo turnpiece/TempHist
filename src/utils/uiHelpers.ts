@@ -87,7 +87,7 @@ export function generateErrorMessage(error: unknown): string {
     } else if (error.message.includes('Job polling timed out')) {
       errorMessage = 'The data processing has timed out. Please try again later.';
     } else if (error.message.includes('Failed to create job')) {
-      errorMessage = 'Unable to start data processing. Please check your connection and try again.';
+      errorMessage = 'Unable to connect to the temperature data server. Please wait a moment and try again.';
     }
   }
   
@@ -245,7 +245,7 @@ export function showFatalError(periodKey?: string): void {
   hideChartElements(periodKey);
 
   // Show error message at the top using dataNotice
-  const errorMessage = 'Unable to load temperature data. Please check your connection and try again.';
+  const errorMessage = 'Unable to load temperature data. The server may be temporarily unavailable — please wait a moment and try again.';
   updateDataNotice(errorMessage, {
     type: 'error',
     title: '❌ No Data Available',
