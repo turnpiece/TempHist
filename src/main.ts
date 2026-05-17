@@ -7,9 +7,8 @@ if (typeof window !== 'undefined' && (window as any).trustedTypes?.createPolicy)
 }
 
 import '../styles.scss';
-import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { app, auth } from './firebase';
 
 // Chart.js types
 declare global {
@@ -220,37 +219,9 @@ window.showFatalError = showFatalError;
 window.hideChartElements = hideChartElements;
 window.showChartElements = showChartElements;
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyC8CgPOwaXkGgCRgAtEn1VIGCxEHI-brjg",
-  authDomain: "temphist-2c787.firebaseapp.com",
-  projectId: "temphist-2c787",
-  storageBucket: "temphist-2c787.firebasestorage.app",
-  messagingSenderId: "355243461054",
-  appId: "1:355243461054:web:d3471deb717abb569a51ef",
-  measurementId: "G-117YTQEW98"
-};
-
-// Initialise Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-// App Check: proves requests originate from this website (reCAPTCHA v3, invisible to users).
-// In dev mode, Firebase generates a debug token (logged to console) that you register once in
-// the Firebase Console → App Check → Manage debug tokens, so local dev works without reCAPTCHA.
-if (import.meta.env.DEV) {
-  (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-}
-if (import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
-  initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
-    isTokenAutoRefreshEnabled: true,
-  });
-}
-
 // Sign in anonymously
 debugLog('Starting Firebase anonymous sign-in...');
-debugLog('Firebase project ID:', firebaseConfig.projectId);
+debugLog('Firebase project ID:', app.options.projectId);
 signInAnonymously(auth)
   .then((userCredential) => {
     debugLog('Firebase sign-in successful:', userCredential.user?.uid);

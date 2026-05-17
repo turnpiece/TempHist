@@ -4,6 +4,8 @@ import type {
   ChartDataPoint,
   JobResultResponse,
 } from '../../types/index';
+import { getToken } from 'firebase/app-check';
+import { appCheck } from '../../firebase';
 import { API_CONFIG } from '../../constants/index';
 import { LoadingManager } from '../../utils/LoadingManager';
 import {
@@ -46,6 +48,15 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
     Accept: 'application/json',
     ...options.headers,
   };
+
+  if (appCheck) {
+    try {
+      const { token } = await getToken(appCheck, /* forceRefresh= */ false);
+      (headers as Record<string, string>)['X-Firebase-AppCheck'] = token;
+    } catch (acError) {
+      debugLog('apiFetch: App Check token error (non-fatal):', acError);
+    }
+  }
 
   const MAX_RETRIES = 3;
   const RETRY_DELAYS_MS = [1000, 2000, 4000];
