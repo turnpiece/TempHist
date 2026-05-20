@@ -619,14 +619,6 @@ h2, .date-heading {
   opacity: 0;
   pointer-events: none;
 }
-#loading .loading .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(186, 0, 0, 0.2);
-  border-top: 4px solid #51cf66;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -634,12 +626,6 @@ h2, .date-heading {
   100% {
     transform: rotate(360deg);
   }
-}
-#loading .loading .loading-text {
-  margin: 1rem 0 0;
-  color: #51cf66;
-  font-size: 1.1rem;
-  text-align: left;
 }
 
 /* Global loading styles */
@@ -653,7 +639,7 @@ h2, .date-heading {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(186, 0, 0, 0.2);
+  border: 4px solid rgba(81, 207, 102, 0.2);
   border-top: 4px solid #51cf66;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -963,14 +949,6 @@ nav a.active {
   align-items: center;
   gap: 1rem;
   margin-top: 2rem;
-}
-.location-loading .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(255, 107, 107, 0.2);
-  border-top: 4px solid #51cf66;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
 }
 .location-loading .loading-text {
   color: #ececec;

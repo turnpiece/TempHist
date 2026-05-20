@@ -26,7 +26,7 @@ $colour-link: $colour-text;
 $colour-border: $colour-primary;
 $colour-loading-text: #51cf66;
 $colour-spinner: $colour-loading-text;
-$colour-spinner-bg: rgba(0, 0, 0, 0.03);
+$colour-spinner-bg: rgba($colour-loading-text, 0.2);
 $colour-warning: #FF8C00;      // amber — distinct from red (warmth) and blue (cold)
 $colour-error: #dc3545;
 $colour-error-bg: rgba(36, 36, 86, 0.9);
