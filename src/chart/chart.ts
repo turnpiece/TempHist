@@ -141,11 +141,15 @@ export function buildExternalTooltipHandler(
       const dataIndex = dp.dataIndex;
       const year = dp.parsed.y;
       const temp = dp.parsed.x;
-      const anomaly = temp - averageTemp;
+      // Round both values to display precision before computing anomaly so
+      // the three numbers in the tooltip are always self-consistent.
+      const displayTemp = parseFloat(temp.toFixed(decimals));
+      const displayAvg = parseFloat(averageTemp.toFixed(decimals));
+      const anomaly = displayTemp - displayAvg;
       const barColor = (barColors[dataIndex] as string) || '#8E8E93';
       const anomalyColor = lighterColor(barColor);
       let anomalyText: string;
-      if (Math.abs(anomaly) < 0.05) {
+      if (anomaly === 0) {
         anomalyText = 'at the average';
       } else {
         const sign = anomaly > 0 ? '+' : '−';
@@ -154,7 +158,7 @@ export function buildExternalTooltipHandler(
       }
       tooltipEl.innerHTML =
         `<div style="font-weight:600">${year}</div>` +
-        `<div>${temp.toFixed(decimals)}${unitLabel}</div>` +
+        `<div>${displayTemp.toFixed(decimals)}${unitLabel}</div>` +
         `<div style="color:${anomalyColor}">${anomalyText}</div>`;
     }
     const posX = chart.canvas.offsetLeft;
@@ -333,7 +337,7 @@ export function createTemperatureChart(
               borderWidth: 2,
               label: {
                 display: true,
-                content: `Average: ${averageData.temp.toFixed(1)}°C`,
+                content: `Average: ${averageData.temp.toFixed(2)}°C`,
                 position: 'start',
                 font: {
                   size: CHART_FONT_SIZE_MEDIUM,
@@ -345,7 +349,7 @@ export function createTemperatureChart(
         },
         tooltip: {
           enabled: false,
-          external: buildExternalTooltipHandler(averageData.temp, barColors as string[])
+          external: buildExternalTooltipHandler(averageData.temp, barColors as string[], 2)
         }
       },
       scales: {

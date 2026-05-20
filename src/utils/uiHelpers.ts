@@ -138,9 +138,9 @@ export function renderStatsToElements(
     const direction = Math.abs(trendData.slope) < 0.05 ? 'stable' :
     trendData.slope > 0 ? 'rising' : 'falling';
     const unit = trendData.unit || `${unitLabel}/decade`;
-    const slopeAbs = Math.abs(trendData.slope).toFixed(2);
+    const slopeAbs = Math.abs(trendData.slope).toFixed(decimals);
     const errorPart = trendData.slopeError != null
-      ? ` ± ${Math.abs(trendData.slopeError).toFixed(2)}`
+      ? ` ± ${Math.abs(trendData.slopeError).toFixed(decimals)}`
       : '';
     trendTextEl.textContent = `Trend: ${direction} at ${slopeAbs}${errorPart}${unit}`;
   }
@@ -171,7 +171,7 @@ export function updateSummaryTextElements(
     summaryTextEl.classList.add('visible');
   }
 
-  renderStatsToElements(avgTextEl, stddevTextEl, trendTextEl, averageData, trendData);
+  renderStatsToElements(avgTextEl, stddevTextEl, trendTextEl, averageData, trendData, '°C', 2);
 
   // Show stats bubble — use period-specific ID for period views, 'todayStatsBubble' for Today view
   const bubbleId = periodKey ? `${periodKey}StatsBubble` : 'todayStatsBubble';
