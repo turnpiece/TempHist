@@ -1,11 +1,3 @@
-// Allow Chart.js tooltip innerHTML writes under Trusted Types CSP
-if (typeof window !== 'undefined' && (window as any).trustedTypes?.createPolicy) {
-  (window as any).trustedTypes.createPolicy('default', {
-    createHTML: (s: string) => s,
-    createScriptURL: (s: string) => s,
-  });
-}
-
 import '../styles.scss';
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { app, auth } from './firebase';
