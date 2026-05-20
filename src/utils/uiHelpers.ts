@@ -325,57 +325,58 @@ export function showChartElements(periodKey?: string): void {
 /**
  * Show incomplete data notice
  */
+function buildMissingYearsText(metadata: TemperatureDataMetadata): string {
+  const years = metadata.missing_years.map(y => y.year).sort();
+  if (years.length === 0) return '';
+  if (years.length === 1) return `Data for ${years[0]} could not be loaded.`;
+  if (years.length === 2) return `Data for ${years[0]} and ${years[1]} could not be loaded.`;
+  return `Data for ${years.slice(0, -1).join(', ')} and ${years[years.length - 1]} could not be loaded.`;
+}
+
+function buildIncompleteNoticeContent(metadata: TemperatureDataMetadata): HTMLDivElement {
+  const missingYearsText = buildMissingYearsText(metadata);
+
+  const contentEl = document.createElement('div');
+  contentEl.className = 'notice-content warning inline';
+
+  const retryButton = document.createElement('button');
+  retryButton.className = 'notice-retry-btn';
+  retryButton.textContent = 'Retry';
+  retryButton.onclick = () => {
+    if (window.retryDataFetch && typeof window.retryDataFetch === 'function') {
+      window.retryDataFetch();
+    }
+  };
+  contentEl.appendChild(retryButton);
+
+  const titleEl = document.createElement('p');
+  titleEl.className = 'notice-title large';
+  titleEl.textContent = '⚠ Failed to load some chart data.';
+  contentEl.appendChild(titleEl);
+
+  if (missingYearsText) {
+    const subtitleEl = document.createElement('p');
+    subtitleEl.className = 'notice-subtitle secondary';
+    subtitleEl.textContent = missingYearsText;
+    contentEl.appendChild(subtitleEl);
+  }
+
+  return contentEl;
+}
+
 function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?: string): void {
   debugLog('showIncompleteDataNotice called with metadata:', metadata, 'periodKey:', periodKey);
+  debugLog('Missing years count:', metadata.missing_years.length);
 
-  const missingCount = metadata.missing_years.length;
-  const completeness = Math.round(metadata.completeness);
-
-  debugLog('Missing years count:', missingCount);
-  debugLog('Completeness:', completeness, '%');
-
-  // Check if this is the Today view (no periodKey, 'today', or 'daily')
   const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
 
   if (isTodayView) {
-    // For Today view, use the dataNotice element with updateDataNotice
-    const warningMessage = `Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).${missingCount > 0 ? ` ${missingCount} ${missingCount === 1 ? 'year is' : 'years are'} missing.` : ''}`;
-
-    updateDataNotice(warningMessage, {
-      type: 'warning',
-      title: 'Incomplete Data',
-      useStructuredHtml: true,
-      largeTitle: true
-    });
-
-    // Add retry button to the dataNotice element
     const dataNotice = document.getElementById('dataNotice');
-    if (dataNotice) {
-      // Check if we need to add a retry button
-      const existingButton = dataNotice.querySelector('.btn');
-      if (!existingButton) {
-        const retryButton = document.createElement('button');
-        retryButton.className = 'btn btn-primary';
-        retryButton.textContent = 'Try Again';
-        retryButton.onclick = () => {
-          if (window.retryDataFetch && typeof window.retryDataFetch === 'function') {
-            window.retryDataFetch();
-          }
-        };
-        retryButton.style.marginTop = '10px';
+    if (!dataNotice) return;
 
-        // Add the button to the notice content
-        const contentEl = dataNotice.querySelector('.notice-content');
-        if (contentEl) {
-          contentEl.appendChild(retryButton);
-          debugLog('showIncompleteDataNotice: Added retry button to Today view');
-        } else {
-          // Fallback: add directly to dataNotice
-          dataNotice.appendChild(retryButton);
-          debugLog('showIncompleteDataNotice: Added retry button directly to dataNotice');
-        }
-      }
-    }
+    while (dataNotice.firstChild) dataNotice.removeChild(dataNotice.firstChild);
+    dataNotice.className = 'notice status-warning';
+    dataNotice.appendChild(buildIncompleteNoticeContent(metadata));
 
     debugLog('Incomplete data warning displayed for Today view');
     return;
@@ -384,43 +385,12 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?:
   // For period-specific views, use the period-specific notice element
   const noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
   debugLog(`${periodKey}IncompleteDataNotice element found:`, noticeEl);
-  
+
   if (noticeEl) {
-    // Clear any existing content (Trusted Types safe)
-    while (noticeEl.firstChild) {
-      noticeEl.removeChild(noticeEl.firstChild);
-    }
-    
-    // Create the warning content
-    const contentEl = document.createElement('div');
-    contentEl.className = 'notice-content warning';
-    
-    const titleEl = document.createElement('h3');
-    titleEl.className = 'notice-title large';
-    titleEl.textContent = 'Incomplete Data';
-    
-    const subtitleEl = document.createElement('p');
-    subtitleEl.className = 'notice-subtitle secondary';
-    subtitleEl.textContent = `Only ${completeness}% of the expected data is available (${metadata.available_years} of ${metadata.total_years} years).${missingCount > 0 ? ` ${missingCount} ${missingCount === 1 ? 'year is' : 'years are'} missing.` : ''}`;
-    
-    const buttonEl = document.createElement('button');
-    buttonEl.className = 'btn btn-primary';
-    buttonEl.textContent = 'Try Again';
-    buttonEl.onclick = () => {
-      if (window.retryDataFetch && typeof window.retryDataFetch === 'function') {
-        window.retryDataFetch();
-      }
-    };
-    
-    contentEl.appendChild(titleEl);
-    contentEl.appendChild(subtitleEl);
-    contentEl.appendChild(buttonEl);
-    noticeEl.appendChild(contentEl);
-    
-    // Show the notice
+    while (noticeEl.firstChild) noticeEl.removeChild(noticeEl.firstChild);
+    noticeEl.appendChild(buildIncompleteNoticeContent(metadata));
     noticeEl.style.display = 'block';
     noticeEl.className = 'notice status-warning';
-    
     debugLog('Incomplete data warning displayed in dedicated notice element');
   } else {
     debugLog('Incomplete data notice element not found, cannot show warning');

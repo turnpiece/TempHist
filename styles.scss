@@ -35,6 +35,7 @@ $colour-avg: #D0D4DE;          // neutral grey — was blue (blue now means cold
 // Layout variables
 $max-content-width: 600px;
 $max-chart-height: 1800px;
+$sidebar-w: 240px; // Must match --sidebar-w CSS custom property
 
 html {
   background-color: $colour-bg-bottom; // solid fallback shown below the gradient on long pages
@@ -74,6 +75,13 @@ body {
   width: 100%;
   max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
   box-sizing: border-box; // Include padding in width calculation
+
+  // On very wide screens, centre the page so the sidebar isn't stranded far to the left
+  @media (min-width: 901px) {
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 a {
@@ -83,7 +91,7 @@ a {
 
 .container {
   position: relative;
-  max-width: 800px;
+  max-width: $max-content-width;
   margin: 0 auto 1em;
 }
 
@@ -92,7 +100,7 @@ a {
   width: 100%;
   height: 800px;
   min-width: 300px;
-  max-width: 100%; // Prevent overflow
+  max-width: $max-content-width;
   max-height: $max-chart-height;
   overflow: hidden; // Prevent content from overflowing container
 
@@ -692,26 +700,53 @@ body.privacy-page {
   .notice-content.warning {
     .notice-title.large {
       color: var(--warning);
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 600;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
 
     .notice-subtitle.secondary {
-      color: rgba($colour-text, 0.85);
-      font-size: 16px;
-      font-weight: 500;
-      margin-bottom: 10px;
+      color: rgba($colour-text, 0.65);
+      font-size: 13px;
+      font-weight: 400;
+      margin-bottom: 0;
       line-height: 1.4;
     }
 
     p {
-      color: rgba($colour-text, 0.75);
-      font-size: 14px;
+      color: rgba($colour-text, 0.65);
+      font-size: 13px;
       font-weight: 400;
-      margin: 0 0 15px 0;
+      margin: 0 0 6px 0;
       line-height: 1.4;
     }
+
+    // Inline variant — no bubble border/background (used for incomplete data notice)
+    &.inline {
+      background: none;
+      border: none;
+      padding: 0.25em 0;
+      overflow: hidden; // contain the floated retry button
+    }
+  }
+}
+
+// Retry button in the incomplete data notice
+.notice-retry-btn {
+  background: rgba($colour-warning, 0.08);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+  border-radius: 999px;
+  font-size: 0.82em;
+  font-weight: 600;
+  cursor: pointer;
+  float: right;
+  padding: 2px 10px;
+  margin: 0;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba($colour-warning, 0.2);
   }
 }
 
@@ -1234,16 +1269,7 @@ h2 {
   align-items: center;
   gap: 1rem;
   margin-top: 2rem;
-  
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid rgba($colour-loading-text, 0.03);
-    border-top: 4px solid $colour-loading-text;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-  
+
   .loading-text {
     color: $colour-text;
     font-size: 1rem;

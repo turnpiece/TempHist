@@ -863,7 +863,11 @@ export function initializeSplashScreen(): void {
     // visual viewport — 100vw on iOS can exceed the actual visible width and
     // causes lateral wobble.
     document.body.style.width = '100%';
-    document.body.style.maxWidth = '100%';
+    // Only override maxWidth on mobile — on desktop the CSS max-width centres the
+    // layout and overriding it with 100% causes a visible shift when the app appears.
+    if (window.innerWidth <= 900) {
+      document.body.style.maxWidth = '100%';
+    }
     document.body.style.left = '0';
     document.body.style.right = '0';
     document.body.style.overflow = 'hidden';
@@ -904,7 +908,10 @@ export function handleLocationChangeInternal(): void {
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = '100%'; // Use percentage instead of 100vw to avoid scrollbar issues
-    document.body.style.maxWidth = '100%'; // Ensure it doesn't exceed viewport
+    // Only override maxWidth on mobile — on desktop this would cause a layout shift
+    if (window.innerWidth <= 900) {
+      document.body.style.maxWidth = '100%';
+    }
     document.body.style.left = '0';
     document.body.style.right = '0';
     document.body.style.overflow = 'hidden';
