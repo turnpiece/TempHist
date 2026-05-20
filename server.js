@@ -36,7 +36,7 @@ app.use((req, res, next) => {
     "form-action 'self'",
     "frame-ancestors 'none'",
     "require-trusted-types-for 'script'",
-    "trusted-types default goog#html firebase-js-sdk 'allow-duplicates'",
+    "trusted-types default goog#html firebase-js-sdk gapi#gapi 'allow-duplicates'",
     "upgrade-insecure-requests"
   ].join('; ');
   
