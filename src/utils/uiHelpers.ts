@@ -17,6 +17,22 @@ export function clearAllLoadingIntervals(): void {
 }
 
 /**
+ * Create a logo-inspired animated loader element.
+ * Returns a <div class="logo-loader"> containing 6 animated bars.
+ * Use this wherever a spinner was previously used.
+ */
+export function createLogoLoader(): HTMLElement {
+  const loader = document.createElement('div');
+  loader.className = 'logo-loader';
+  for (let i = 1; i <= 6; i++) {
+    const bar = document.createElement('div');
+    bar.className = `logo-bar logo-bar-${i}`;
+    loader.appendChild(bar);
+  }
+  return loader;
+}
+
+/**
  * Build location display with icon, optional country flag, and edit button.
  * Flag is shown for pre-approved locations; fallback icons for detected/manual.
  */

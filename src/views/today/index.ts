@@ -121,18 +121,12 @@ export function mainAppLogic(): void {
     const avgText = document.getElementById('avgText');
     const trendText = document.getElementById('trendText');
     const header = document.getElementById('header');
-    const spinner = document.querySelector('.spinner');
 
     if (summaryText) summaryText.classList.add('summary-text');
     if (avgText) avgText.classList.add('avg-text');
     if (trendText) trendText.classList.add('trend-text');
 
     if (header) (header as HTMLElement).style.color = barColour;
-
-    if (spinner) {
-      (spinner as HTMLElement).style.borderColor = `${barColour}33`;
-      (spinner as HTMLElement).style.borderTopColor = barColour;
-    }
   }
 
   applyTextColors();

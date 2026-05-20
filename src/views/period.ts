@@ -10,7 +10,7 @@ import { DataCache } from '../utils/DataCache';
 import { FeatureFlags } from '../utils/FeatureFlags';
 import { fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange, validateTemperatureDataResponse } from '../api/temperature';
 import { createTemperatureChart, updateChartTrendLine } from '../chart/chart';
-import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals } from '../utils/uiHelpers';
+import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, createLogoLoader } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from './today';
 import { setupShareButton } from '../share';
 
@@ -96,9 +96,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   loadingDiv.id = `${periodKey}Loading`;
   loadingDiv.className = 'loading';
 
-  const spinnerDiv = document.createElement('div');
-  spinnerDiv.className = 'spinner';
-  loadingDiv.appendChild(spinnerDiv);
+  loadingDiv.appendChild(createLogoLoader());
 
   const loadingText = document.createElement('p');
   loadingText.id = `${periodKey}LoadingText`;

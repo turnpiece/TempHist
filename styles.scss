@@ -15,6 +15,15 @@
   --error: #dc3545;
   --error-bg: rgba(36, 36, 86, 0.9);
   --sidebar-w: 240px;
+  // Logo colours (used by logo-loader animation)
+  --logo-blue: #267CFA;
+  --logo-light-red: #E64C43;
+  --logo-grey: #80848E;
+  --logo-bright-red: #FF1A1A;
+  --logo-muted-blue: #4F7BD3;
+  --logo-dark-red: #A35C53;
+  --dynamic-hot-red: #FF1A1A;
+  --dynamic-cold-blue: #1A66FF;
 }
 
 // Colours
@@ -973,18 +982,76 @@ h2 {
   text-align: left;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid $colour-spinner-bg;
-  border-top: 4px solid $colour-spinner;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+// Logo-loader — horizontal bars extending right from a left axis, inspired by the TempHist logo
+.logo-loader {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-left: 3px;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.logo-bar {
+  height: 7px;
+  border-radius: 0 3px 3px 0;
+  animation-duration: 2.2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.logo-bar-1 {
+  background-color: var(--logo-blue);
+  animation-name: bar-pulse-1;
+  animation-delay: 0s;
+}
+.logo-bar-2 {
+  background-color: var(--logo-light-red);
+  animation-name: bar-pulse-2;
+  animation-delay: 0.1s;
+}
+.logo-bar-3 {
+  background-color: var(--logo-grey);
+  animation-name: bar-pulse-3;
+  animation-delay: 0.2s;
+}
+.logo-bar-4 {
+  background-color: var(--logo-bright-red);
+  animation-name: bar-pulse-4;
+  animation-delay: 0.3s;
+}
+.logo-bar-5 {
+  background-color: var(--logo-muted-blue);
+  animation-name: bar-pulse-5;
+  animation-delay: 0.4s;
+}
+.logo-bar-6 {
+  background-color: var(--logo-dark-red);
+  animation-name: bar-pulse-6;
+  animation-delay: 0.5s;
+}
+
+@keyframes bar-pulse-1 {
+  0%, 100% { width: 28px; background-color: var(--logo-blue); }
+  50% { width: 48px; background-color: var(--dynamic-hot-red); }
+}
+@keyframes bar-pulse-2 {
+  0%, 100% { width: 44px; background-color: var(--logo-light-red); }
+  50% { width: 24px; background-color: var(--dynamic-cold-blue); }
+}
+@keyframes bar-pulse-3 {
+  0%, 100% { width: 36px; background-color: var(--logo-grey); }
+  50% { width: 52px; background-color: var(--dynamic-hot-red); }
+}
+@keyframes bar-pulse-4 {
+  0%, 100% { width: 52px; background-color: var(--logo-bright-red); }
+  50% { width: 32px; background-color: var(--dynamic-cold-blue); }
+}
+@keyframes bar-pulse-5 {
+  0%, 100% { width: 22px; background-color: var(--logo-muted-blue); }
+  50% { width: 44px; background-color: var(--dynamic-hot-red); }
+}
+@keyframes bar-pulse-6 {
+  0%, 100% { width: 40px; background-color: var(--logo-dark-red); }
+  50% { width: 20px; background-color: var(--dynamic-cold-blue); }
 }
 
 
