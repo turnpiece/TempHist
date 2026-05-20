@@ -17,7 +17,6 @@ A web application that shows how today's temperature (or this week's, month's, o
 - **Location carousel** — curated list of global cities with location photographs, browsable on the splash screen
 - **Country flag disambiguation** — flag emoji before the city name (e.g. 🇬🇧 Birmingham vs 🇺🇸 Birmingham), sourced from the preapproved locations list
 - **Editable location heading** — tap/click the location name at the top of any view to change location
-- **°C / °F toggle** — US locations default to Fahrenheit
 
 ### Sharing
 - **Social sharing** — tap the share icon next to the period heading to generate a permanent snapshot URL
