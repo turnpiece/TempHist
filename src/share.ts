@@ -21,7 +21,7 @@ import {
   buildExternalTooltipHandler,
   getTemperatureLinearAxisExtents
 } from './chart/chart';
-import { renderStatsToElements, createLogoLoader } from './utils/uiHelpers';
+import { renderStatsToElements, createSpinner } from './utils/uiHelpers';
 
 // Chart.js global (loaded via CDN defer in index.html)
 declare const Chart: any;
@@ -318,7 +318,7 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   const loadingEl = document.createElement('div');
   loadingEl.className = 'loading visible';
 
-  loadingEl.appendChild(createLogoLoader());
+  loadingEl.appendChild(createSpinner());
 
   const loadingTextEl = document.createElement('p');
   loadingTextEl.className = 'loading-text';

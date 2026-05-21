@@ -17,19 +17,12 @@ export function clearAllLoadingIntervals(): void {
 }
 
 /**
- * Create a logo-inspired animated loader element.
- * Returns a <div class="logo-loader"> containing 6 animated bars.
- * Use this wherever a spinner was previously used.
+ * Create a spinner element for use in loading states.
  */
-export function createLogoLoader(): HTMLElement {
-  const loader = document.createElement('div');
-  loader.className = 'logo-loader';
-  for (let i = 1; i <= 6; i++) {
-    const bar = document.createElement('div');
-    bar.className = `logo-bar logo-bar-${i}`;
-    loader.appendChild(bar);
-  }
-  return loader;
+export function createSpinner(): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'spinner';
+  return el;
 }
 
 /**
