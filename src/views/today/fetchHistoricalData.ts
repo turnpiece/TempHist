@@ -1,6 +1,7 @@
 import type { AsyncJobResponse } from '../../types/index';
 import { API_CONFIG, DATE_RANGE_CONFIG } from '../../constants/index';
 import { getOrdinal } from '../../utils/location';
+import { getEffectiveDateForLocation } from '../../utils/dateUtils';
 import { DataCache } from '../../utils/DataCache';
 import { FeatureFlags } from '../../utils/FeatureFlags';
 import { PerformanceMonitor } from '../../utils/PerformanceMonitor';
@@ -75,20 +76,7 @@ export async function fetchHistoricalData(): Promise<void> {
       console.warn('API health check failed, but proceeding with data fetch...');
     }
 
-    const now = new Date();
-    const useYesterday = now.getHours() < 1;
-    const dateToUse = new Date(now);
-    if (useYesterday) {
-      dateToUse.setDate(dateToUse.getDate() - 1);
-    }
-
-    const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
-    if (isLeapDay) {
-      dateToUse.setDate(28);
-    }
-
-    const day = String(dateToUse.getDate()).padStart(2, '0');
-    const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
+    const { day, month, year: rawYear } = getEffectiveDateForLocation(window.tempLocationTimezone);
     const identifier = `${month}-${day}`;
     debugLog('About to fetch data - tempLocation:', window.tempLocation, 'identifier:', identifier);
 
@@ -188,7 +176,7 @@ export async function fetchHistoricalData(): Promise<void> {
 
     const dayNum = Number(day);
     const friendlyDate = `${getOrdinal(dayNum)} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
-    const currentYear = dateToUse.getFullYear();
+    const currentYear = rawYear;
 
     const maxAllowedYear = new Date().getFullYear() + DATE_RANGE_CONFIG.LATEST_YEAR_OFFSET;
     const validatedCurrentYear = Math.min(

@@ -130,14 +130,17 @@ export function detectUserLocationWithGeolocation(): Promise<string> {
 /**
  * Get location from IP address using ipapi.co
  */
-export async function getLocationFromIP(): Promise<string | null> {
+export async function getLocationFromIP(): Promise<{ location: string; timezone: string | null } | null> {
   try {
     const response = await fetch('https://ipapi.co/json/');
     if (!response.ok) throw new Error('IP lookup failed');
-    
+
     const data: IPLocationResponse = await response.json();
     if (data.city && data.country_name) {
-      return `${data.city}, ${data.country_name}`;
+      return {
+        location: `${data.city}, ${data.country_name}`,
+        timezone: data.timezone ?? null,
+      };
     }
     return null;
   } catch (error) {

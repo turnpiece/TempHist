@@ -162,6 +162,7 @@ export interface NominatimResponse {
 export interface IPLocationResponse {
   city: string;
   country_name: string;
+  timezone?: string;
 }
 
 // Analytics types
@@ -213,6 +214,7 @@ export interface DataNoticeOptions {
 declare global {
   interface Window {
     tempLocation: string | null;
+    tempLocationTimezone: string | null;
     tempLocationSource: string | null;
     tempLocationIsDetected: boolean | null;
     currentUser: FirebaseUser | null;

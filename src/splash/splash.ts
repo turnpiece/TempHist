@@ -4,6 +4,7 @@
 
 import { setLocationCookie, getLocationCookie } from '../utils/location';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from '../services/locationDetection';
+import { getEffectiveDateForLocation } from '../utils/dateUtils';
 import { resetCarouselState } from '../services/locationCarousel';
 import { apiFetch, getApiUrl } from '../api/temperature';
 import { getCountryCodeForLocation, getDisplayCity } from '../utils/location';
@@ -293,10 +294,10 @@ async function handleUseLocation(): Promise<void> {
 
   // If geolocation fails for reasons other than permission denied, try IP-based fallback
   try {
-    const ipLocation = await getLocationFromIP();
-    if (ipLocation) {
+    const ipResult = await getLocationFromIP();
+    if (ipResult) {
       // Auto-select the IP-based location and proceed
-      await proceedWithLocation(ipLocation, true, 'detected'); // Mark as detected location
+      await proceedWithLocation(ipResult.location, true, 'detected', ipResult.timezone); // Mark as detected location
       return;
     }
   } catch (error) {
@@ -436,9 +437,9 @@ function populateLocationDropdown(locations: PreapprovedLocation[]): void {
 /**
  * Handle manual location selection
  */
-export async function handleManualLocationSelection(selectedLocation: string): Promise<void> {
+export async function handleManualLocationSelection(selectedLocation: string, timezone: string | null = null): Promise<void> {
   debugLog('Manual location selected:', selectedLocation);
-  await proceedWithLocation(selectedLocation, false, 'manual'); // Mark as manual selection
+  await proceedWithLocation(selectedLocation, false, 'manual', timezone); // Mark as manual selection
 }
 
 /**
@@ -525,20 +526,8 @@ export function clearAllCachedData(): void {
  * Check if we need to clear data due to date change
  */
 export function checkAndHandleDateChange(): boolean {
-  const now = new Date();
-  const useYesterday = now.getHours() < 1;
-  const dateToUse = new Date(now);
-  if (useYesterday) {
-    dateToUse.setDate(dateToUse.getDate() - 1);
-  }
-  
-  // Handle 29 Feb fallback to 28 Feb if not a leap year
-  const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
-  if (isLeapDay) {
-    dateToUse.setDate(28);
-  }
-  
-  const currentIdentifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+  const { day, month } = getEffectiveDateForLocation(window.tempLocationTimezone);
+  const currentIdentifier = `${month}-${day}`;
   
   // Check if we have a stored identifier and if it's different from current
   const lastIdentifier = (window.TempHist as any)?.lastIdentifier;
@@ -561,21 +550,8 @@ export function checkAndHandleDateChange(): boolean {
 export function startPeriodDataPrefetch(): void {
   debugLog('Starting background prefetch for period data...');
         
-  // Get current date for identifier
-  const now = new Date();
-  const useYesterday = now.getHours() < 1;
-  const dateToUse = new Date(now);
-  if (useYesterday) {
-    dateToUse.setDate(dateToUse.getDate() - 1);
-  }
-  
-  // Handle 29 Feb fallback to 28 Feb if not a leap year
-  const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
-  if (isLeapDay) {
-    dateToUse.setDate(28);
-  }
-  
-  const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+  const { day, month } = getEffectiveDateForLocation(window.tempLocationTimezone);
+  const identifier = `${month}-${day}`;
   const location = window.tempLocation!;
   
   // Prefetch period data using DataCache (same system as period pages)
@@ -609,17 +585,19 @@ export function startPeriodDataPrefetch(): void {
  * Proceed with selected location
  */
 export async function proceedWithLocation(
-  location: string, 
-  isDetectedLocation: boolean = false, 
-  locationSource: string = 'unknown'
+  location: string,
+  isDetectedLocation: boolean = false,
+  locationSource: string = 'unknown',
+  timezone: string | null = null
 ): Promise<void> {
   debugLog('Proceeding with location:', location, 'isDetectedLocation:', isDetectedLocation, 'source:', locationSource);
-  
+
   // Set the global location FIRST - this is critical for router
   window.tempLocation = location;
+  window.tempLocationTimezone = timezone;
   window.tempLocationIsDetected = isDetectedLocation; // Track if this was actually detected
   window.tempLocationSource = locationSource; // Track the source: 'detected', 'manual', 'default'
-  debugLog('Set window.tempLocation to:', window.tempLocation);
+  debugLog('Set window.tempLocation to:', window.tempLocation, 'timezone:', timezone);
 
   // Store in cookie for future visits
   setLocationCookie(location, locationSource);
@@ -788,9 +766,12 @@ function setupSplashScreenListeners(): void {
   // Confirm location button handler
   if (confirmLocationBtn) {
     confirmLocationBtn.addEventListener('click', async () => {
-      const selectedLocation = (locationSelect as HTMLSelectElement).value;
+      const select = locationSelect as HTMLSelectElement;
+      const selectedLocation = select.value;
       if (selectedLocation) {
-        await handleManualLocationSelection(selectedLocation);
+        const selectedOption = select.options[select.selectedIndex];
+        const timezone = selectedOption?.dataset?.timezone ?? null;
+        await handleManualLocationSelection(selectedLocation, timezone);
       }
     });
   }

@@ -10,6 +10,7 @@ import { setupMobileNavigation, checkAndHandleDateChange } from '../../splash/sp
 import { displayLocationAndFetchData } from './locationHandlers';
 import { fetchHistoricalData } from './fetchHistoricalData';
 import { hideError } from './chartDisplay';
+import { getEffectiveDateForLocation } from '../../utils/dateUtils';
 
 declare const Chart: any;
 declare const debugLog: (...args: any[]) => void;
@@ -44,28 +45,7 @@ export function mainAppLogic(): void {
 
   debugLog('Constants initialized');
 
-  const now = new Date();
-  const useYesterday = now.getHours() < 1;
-  const dateToUse = new Date(now);
-
-  debugLog('Date calculations complete:', { now, useYesterday, dateToUse });
-
-  if (useYesterday) {
-    dateToUse.setDate(dateToUse.getDate() - 1);
-    debugLog("Using yesterday's date");
-  }
-
-  const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
-
-  if (isLeapDay) {
-    dateToUse.setDate(28);
-    updateDataNotice('29th February detected — comparing 28th Feb instead for consistency.');
-    debugLog('Leap day detected, using 28th Feb instead');
-  }
-
-  const day = String(dateToUse.getDate()).padStart(2, '0');
-  const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
-  const currentYear = dateToUse.getFullYear();
+  const { day, month, year: currentYear } = getEffectiveDateForLocation(window.tempLocationTimezone);
 
   debugLog('Date components prepared:', { day, month, currentYear });
 
