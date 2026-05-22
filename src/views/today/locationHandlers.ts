@@ -1,4 +1,4 @@
-import { DEFAULT_LOCATION, INITIAL_LOADING_TEXT } from '../../constants/index';
+import { INITIAL_LOADING_TEXT } from '../../constants/index';
 import { setLocationCookie, getDisplayCity, getCountryCodeForLocation } from '../../utils/location';
 import { updateDataNotice } from '../../utils/dataNotice';
 import { Logger } from '../../utils/Logger';

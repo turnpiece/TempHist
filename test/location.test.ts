@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { detectUserLocationWithGeolocation, getLocationFromIP } from '../src/services/locationDetection'
+import type {} from '../src/types/index'
 
 describe('Location Detection', () => {
   beforeEach(() => {

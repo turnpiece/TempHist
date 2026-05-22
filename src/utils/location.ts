@@ -31,6 +31,8 @@ export function setLocationCookie(city: string, source: string | null = null, ti
     if (timezone) {
       const encodedTz = encodeURIComponent(timezone);
       document.cookie = `tempLocationTimezone=${encodedTz};expires=${expiry.toUTCString()};path=/`;
+    } else {
+      document.cookie = 'tempLocationTimezone=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
     }
   } catch (error) {
     console.error('setLocationCookie: Error setting cookies:', error);

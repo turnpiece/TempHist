@@ -26,7 +26,7 @@ import { renderAboutPage, renderPrivacyPage } from './views/about';
 import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
-import { clearAllLoadingIntervals, showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice } from './utils/uiHelpers';
+import { showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice } from './utils/uiHelpers';
 import { isSharePagePath, initSharePage } from './share';
 import { installDevTestHooks } from './dev/testHooks';
 
