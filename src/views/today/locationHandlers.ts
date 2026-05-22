@@ -66,7 +66,7 @@ export function displayLocationAndFetchData(): void {
     subtitle: INITIAL_LOADING_TEXT,
   });
 
-  setLocationCookie(window.tempLocation!, window.tempLocationSource!);
+  setLocationCookie(window.tempLocation!, window.tempLocationSource!, window.tempLocationTimezone);
 
   fetchHistoricalData();
 }

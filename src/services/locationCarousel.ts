@@ -210,7 +210,7 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
     
     // Call handleManualLocationSelection from main.ts (available globally)
     if (typeof window.handleManualLocationSelection === 'function') {
-      await window.handleManualLocationSelection(fullLocationString);
+      await window.handleManualLocationSelection(fullLocationString, location.timezone ?? null);
     } else {
       // Fallback: trigger location change directly
       console.warn('handleManualLocationSelection not available, using fallback');

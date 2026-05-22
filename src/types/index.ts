@@ -258,7 +258,7 @@ declare global {
     getDisplayCity: (fullLocation: string) => string;
     getOrdinal: (n: number) => string;
     mainAppLogic: () => void;
-    handleManualLocationSelection: (selectedLocation: string) => Promise<void>;
+    handleManualLocationSelection: (selectedLocation: string, timezone?: string | null) => Promise<void>;
     calculateTrendLine: (points: ChartDataPoint[], startX: number, endX: number) => {
       points: ChartDataPoint[];
       slope: number;
