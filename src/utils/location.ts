@@ -4,31 +4,33 @@ import { CACHE_CONFIG } from '../constants/index';
 /**
  * Cookie management functions with proper TypeScript types
  */
-export function setLocationCookie(city: string, source: string | null = null): void {
+export function setLocationCookie(city: string, source: string | null = null, timezone: string | null = null): void {
   const expiry = new Date();
   expiry.setHours(expiry.getHours() + CACHE_CONFIG.LOCATION_COOKIE_HOURS); // Expire after configured hours
-  
+
   // Safety check: if city is an object, don't store it
   if (typeof city === 'object' && city !== null) {
     console.error('setLocationCookie received an object instead of string:', city);
     return;
   }
-  
+
   // Ensure we're storing a string, not an object
   const cityString = String(city);
   const sourceString = source ? String(source) : null;
-  
+
   try {
     const encodedLocation = encodeURIComponent(cityString);
     const locationCookie = `tempLocation=${encodedLocation};expires=${expiry.toUTCString()};path=/`;
-    
     document.cookie = locationCookie;
-    
-    // Also store the location source if provided
+
     if (sourceString) {
       const encodedSource = encodeURIComponent(sourceString);
-      const sourceCookie = `tempLocationSource=${encodedSource};expires=${expiry.toUTCString()};path=/`;
-      document.cookie = sourceCookie;
+      document.cookie = `tempLocationSource=${encodedSource};expires=${expiry.toUTCString()};path=/`;
+    }
+
+    if (timezone) {
+      const encodedTz = encodeURIComponent(timezone);
+      document.cookie = `tempLocationTimezone=${encodedTz};expires=${expiry.toUTCString()};path=/`;
     }
   } catch (error) {
     console.error('setLocationCookie: Error setting cookies:', error);
@@ -39,7 +41,8 @@ export function getLocationCookie(): CookieData {
   const cookies = document.cookie.split(';');
   let location: string | null = null;
   let source: string | null = null;
-  
+  let timezone: string | null = null;
+
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=');
     if (name === 'tempLocation' && value) {
@@ -47,7 +50,6 @@ export function getLocationCookie(): CookieData {
         location = decodeURIComponent(value);
       } catch (error) {
         console.warn('getLocationCookie: Failed to decode tempLocation cookie value:', error);
-        // Invalid encoded data - treat as if cookie doesn't exist
         location = null;
       }
     } else if (name === 'tempLocationSource' && value) {
@@ -55,13 +57,19 @@ export function getLocationCookie(): CookieData {
         source = decodeURIComponent(value);
       } catch (error) {
         console.warn('getLocationCookie: Failed to decode tempLocationSource cookie value:', error);
-        // Invalid encoded data - treat as if cookie doesn't exist
         source = null;
+      }
+    } else if (name === 'tempLocationTimezone' && value) {
+      try {
+        timezone = decodeURIComponent(value);
+      } catch (error) {
+        console.warn('getLocationCookie: Failed to decode tempLocationTimezone cookie value:', error);
+        timezone = null;
       }
     }
   }
-  
-  return { location, source };
+
+  return { location, source, timezone };
 }
 
 /**

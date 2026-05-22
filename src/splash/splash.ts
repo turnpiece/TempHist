@@ -600,7 +600,7 @@ export async function proceedWithLocation(
   debugLog('Set window.tempLocation to:', window.tempLocation, 'timezone:', timezone);
 
   // Store in cookie for future visits
-  setLocationCookie(location, locationSource);
+  setLocationCookie(location, locationSource, timezone);
 
   // Clear any cached data from previous location/date to prevent showing stale data
   clearAllCachedData();
@@ -829,7 +829,7 @@ export function initializeSplashScreen(): void {
     const source = cookieData.source || 'cookie';
     
     // Proceed immediately - Firebase should be ready since we're in the auth callback
-    proceedWithLocation(cookieData.location, source === 'detected', source);
+    proceedWithLocation(cookieData.location, source === 'detected', source, cookieData.timezone);
     return;
   }
 

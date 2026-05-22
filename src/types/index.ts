@@ -37,6 +37,7 @@ export interface PreapprovedLocation {
 export interface CookieData {
   location: string | null;
   source: string | null;
+  timezone: string | null;
 }
 
 // API response types
