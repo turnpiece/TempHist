@@ -152,9 +152,9 @@ describe('reapplyTrendBackground', () => {
     expect(document.getElementById('trend-bg')!.style.opacity).toBe('0')
   })
 
-  it('does nothing when no gradient was previously stored', () => {
+  it('hides the overlay when no Today gradient is stored', () => {
     reapplyTrendBackground()
-    expect(document.getElementById('trend-bg')!.style.opacity).toBe('')
+    expect(document.getElementById('trend-bg')!.style.opacity).toBe('0')
   })
 })
 

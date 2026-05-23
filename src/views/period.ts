@@ -10,7 +10,7 @@ import { DataCache } from '../utils/DataCache';
 import { FeatureFlags } from '../utils/FeatureFlags';
 import { fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange, validateTemperatureDataResponse } from '../api/temperature';
 import { createTemperatureChart, updateChartTrendLine } from '../chart/chart';
-import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, createSpinner, applyTrendBackground } from '../utils/uiHelpers';
+import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, createSpinner, applyTrendBackground, resetTrendBackground } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from './today';
 import { setupShareButton } from '../share';
 import { getEffectiveDateForLocation } from '../utils/dateUtils';
@@ -23,6 +23,8 @@ declare const debugLog: (...args: any[]) => void;
 export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month' | 'year', title: string): Promise<void> {
   const sec = document.getElementById(sectionId);
   if (!sec) return;
+
+  resetTrendBackground();
 
   // Check if the app is properly initialised
   if (!window.tempLocation) {

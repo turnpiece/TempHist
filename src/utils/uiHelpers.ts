@@ -248,6 +248,8 @@ export function reapplyTrendBackground(): void {
   if (stored) {
     el.style.backgroundImage = stored;
     el.style.opacity = '1';
+  } else {
+    el.style.opacity = '0';
   }
 }
 
