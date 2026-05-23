@@ -13,6 +13,7 @@ import { createTemperatureChart, updateChartTrendLine } from '../chart/chart';
 import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, createSpinner } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from './today';
 import { setupShareButton } from '../share';
+import { getEffectiveDateForLocation } from '../utils/dateUtils';
 
 declare const debugLog: (...args: any[]) => void;
 
@@ -43,22 +44,10 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 
-  // Get current date for display
-  const now = new Date();
-  const useYesterday = now.getHours() < 1;
-  const dateToUse = new Date(now);
-  if (useYesterday) {
-    dateToUse.setDate(dateToUse.getDate() - 1);
-  }
-  
-  // Handle 29 Feb fallback to 28 Feb if not a leap year
-  const isLeapDay = dateToUse.getDate() === 29 && dateToUse.getMonth() === 1;
-  if (isLeapDay) {
-    dateToUse.setDate(28);
-  }
-  
-  const day = dateToUse.getDate();
-  const monthName = dateToUse.toLocaleString('en-GB', { month: 'long' });
+  // Get current date for display — use location's timezone (matches Today page)
+  const { day: dayStr, month: monthStr, year: yearNum } = getEffectiveDateForLocation(window.tempLocationTimezone);
+  const day = Number(dayStr);
+  const monthName = new Date(yearNum, Number(monthStr) - 1, 1).toLocaleString('en-GB', { month: 'long' });
   const friendlyDate = `${getOrdinal(day)} ${monthName}`;
   
   // Match Today page layout exactly without using innerHTML (Trusted Types safe)
@@ -239,7 +228,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
 
   try {
     // Use same caching system as Today page (DataCache)
-    const identifier = `${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+    const identifier = `${monthStr}-${dayStr}`;
     
     // Check cache first (if feature flag is enabled)
     let weatherData: any;
