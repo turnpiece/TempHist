@@ -11,6 +11,7 @@ import { displayLocationAndFetchData } from './locationHandlers';
 import { fetchHistoricalData } from './fetchHistoricalData';
 import { hideError } from './chartDisplay';
 import { getEffectiveDateForLocation } from '../../utils/dateUtils';
+import { clearTrendBackground } from '../../utils/uiHelpers';
 
 declare const Chart: any;
 declare const debugLog: (...args: any[]) => void;
@@ -26,6 +27,7 @@ export function mainAppLogic(): void {
     return;
   }
 
+  clearTrendBackground();
   window.scrollTo({ top: 0, behavior: 'instant' });
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;

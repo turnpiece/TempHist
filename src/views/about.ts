@@ -3,6 +3,7 @@
  */
 
 import { renderImageAttributions } from '../services/locationCarousel';
+import { resetTrendBackground } from '../utils/uiHelpers';
 
 // ─── Shared DOM helper functions ────────────────────────────────────────────
 
@@ -284,6 +285,7 @@ export function buildAboutContent(container: HTMLElement, isSpa: boolean = false
  * Render the About page content into the #aboutView SPA section.
  */
 export function renderAboutPage(): void {
+  resetTrendBackground();
   const aboutView = document.getElementById('aboutView');
   if (!aboutView) return;
 
@@ -305,6 +307,7 @@ export function renderAboutPage(): void {
  * Render the website privacy policy into the #privacyView SPA section.
  */
 export function renderPrivacyPage(): void {
+  resetTrendBackground();
   const privacyView = document.getElementById('privacyView');
   if (!privacyView) return;
 

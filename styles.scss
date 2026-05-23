@@ -46,6 +46,17 @@ $max-content-width: 600px;
 $max-chart-height: 1800px;
 $sidebar-w: 240px; // Must match --sidebar-w CSS custom property
 
+#trend-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 1s ease;
+  background-repeat: no-repeat;
+  background-size: 100% 1000px;
+}
+
 html {
   background-color: $colour-bg-bottom; // solid fallback shown below the gradient on long pages
   background-image: linear-gradient($colour-bg, $colour-bg-bottom);

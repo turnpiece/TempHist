@@ -10,7 +10,7 @@ import { DataCache } from '../utils/DataCache';
 import { FeatureFlags } from '../utils/FeatureFlags';
 import { fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange, validateTemperatureDataResponse } from '../api/temperature';
 import { createTemperatureChart, updateChartTrendLine } from '../chart/chart';
-import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, createSpinner } from '../utils/uiHelpers';
+import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, createSpinner, applyTrendBackground } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from './today';
 import { setupShareButton } from '../share';
 import { getEffectiveDateForLocation } from '../utils/dateUtils';
@@ -269,7 +269,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
     // Handle both prefetched data (direct format) and fresh API data (job result format)
     // First, determine which format we have and validate the structure
     let validationData: any;
-    let temperatureData: any[], averageData: any, trendData: any, summaryData: any, metadata: any;
+    let temperatureData: any[], averageData: any, trendData: any, summaryData: any, metadata: any, unitGroup: string;
     
     if (weatherData.data && weatherData.data.values) {
       // Fresh API data (job result format)
@@ -304,6 +304,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       };
       summaryData = weatherData.data.summary;
       metadata = weatherData.data.metadata;
+      unitGroup = weatherData.data.unit_group || '';
     } else if (weatherData.values) {
       // Prefetched data (direct format)
       averageData = {
@@ -317,6 +318,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       };
       summaryData = weatherData.summary;
       metadata = weatherData.metadata;
+      unitGroup = weatherData.unit_group || '';
     }
     
     // Check data completeness and show warning if needed
@@ -432,6 +434,8 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       
       // Update summary, average, and trend text
       updateSummaryTextElements(summaryData, averageData, trendData, periodKey);
+
+      applyTrendBackground(trendData?.slope ?? null, unitGroup);
 
       // Reveal share button now that data is ready
       setupShareButton(periodKey, { period: apiPeriod, identifier, ref_year: actualCurrentYear });

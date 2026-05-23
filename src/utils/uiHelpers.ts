@@ -188,6 +188,69 @@ export function updateSummaryTextElements(
   if (statsBubble) statsBubble.classList.add('visible');
 }
 
+/** Hide the overlay without clearing the stored gradient (used by non-data pages so Today can restore it on return). */
+export function resetTrendBackground(): void {
+  const el = document.getElementById('trend-bg') as HTMLDivElement | null;
+  if (el) el.style.opacity = '0';
+}
+
+/** Hide the overlay AND clear the stored gradient (used on location change so the stale gradient isn't restored). */
+export function clearTrendBackground(): void {
+  const el = document.getElementById('trend-bg') as HTMLDivElement | null;
+  if (!el) return;
+  el.style.opacity = '0';
+  el.dataset.gradient = '';
+  el.dataset.todayGradient = '';
+}
+
+const BG_TOP:    [number,number,number] = [0x24, 0x24, 0x56];
+const BG_BOTTOM: [number,number,number] = [0x34, 0x34, 0x99];
+const DARK_WARM: [number,number,number] = [0xB3, 0x1A, 0x0D];
+const DARK_COOL: [number,number,number] = [0x10, 0x50, 0xB0];
+
+function lerpBg(a: [number,number,number], b: [number,number,number], t: number): string {
+  const r = Math.round(a[0] + (b[0] - a[0]) * t);
+  const g = Math.round(a[1] + (b[1] - a[1]) * t);
+  const bl = Math.round(a[2] + (b[2] - a[2]) * t);
+  return `rgb(${r},${g},${bl})`;
+}
+
+export function trendBackground(slopeCelsius: number): { top: string; bottom: string } | null {
+  if (Math.abs(slopeCelsius) < 0.05) return null;
+  const t = Math.sqrt(Math.min(Math.abs(slopeCelsius) / 0.65, 1.0));
+  if (slopeCelsius > 0) {
+    return { top: lerpBg(BG_TOP, DARK_WARM, t), bottom: lerpBg(BG_BOTTOM, DARK_COOL, t) };
+  } else {
+    return { top: lerpBg(BG_TOP, DARK_COOL, t), bottom: lerpBg(BG_BOTTOM, DARK_WARM, t) };
+  }
+}
+
+export function applyTrendBackground(slopeRaw: number | null, unitGroup: string, storeKey: string = 'gradient'): void {
+  const el = document.getElementById('trend-bg') as HTMLDivElement | null;
+  if (!el) return;
+  const slopeCelsius = slopeRaw != null ? (unitGroup === 'fahrenheit' ? slopeRaw * 5 / 9 : slopeRaw) : null;
+  const grad = slopeCelsius != null ? trendBackground(slopeCelsius) : null;
+  if (grad) {
+    const bg = `linear-gradient(${grad.top}, ${grad.bottom})`;
+    el.style.backgroundImage = bg;
+    el.dataset[storeKey] = bg;
+    el.style.opacity = '1';
+  } else {
+    el.dataset[storeKey] = '';
+    el.style.opacity = '0';
+  }
+}
+
+export function reapplyTrendBackground(): void {
+  const el = document.getElementById('trend-bg') as HTMLDivElement | null;
+  if (!el) return;
+  const stored = el.dataset.todayGradient;
+  if (stored) {
+    el.style.backgroundImage = stored;
+    el.style.opacity = '1';
+  }
+}
+
 /**
  * Check if data is incomplete and show appropriate UI
  */

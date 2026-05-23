@@ -21,7 +21,7 @@ import {
   buildExternalTooltipHandler,
   getTemperatureLinearAxisExtents
 } from './chart/chart';
-import { renderStatsToElements, createSpinner } from './utils/uiHelpers';
+import { renderStatsToElements, createSpinner, applyTrendBackground } from './utils/uiHelpers';
 
 // Chart.js global (loaded via CDN defer in index.html)
 declare const Chart: any;
@@ -504,6 +504,8 @@ async function renderShareChart(
 
   // Show generation datetime
   refs.generatedAtEl.textContent = formatGeneratedAt(meta.created_at);
+
+  applyTrendBackground(data.trend.slope ?? null, isFahrenheit ? 'fahrenheit' : '');
 
   // Hide spinner, show canvas, reveal all text content
   refs.loadingEl.classList.remove('visible');

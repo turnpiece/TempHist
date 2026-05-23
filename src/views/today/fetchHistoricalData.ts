@@ -20,6 +20,7 @@ import {
   showChartElements,
   generateErrorMessage,
   isAbortError,
+  applyTrendBackground,
 } from '../../utils/uiHelpers';
 import { setupShareButton } from '../../share';
 import { startPeriodDataPrefetch } from '../../splash/splash';
@@ -262,6 +263,7 @@ export async function fetchHistoricalData(): Promise<void> {
     }
 
     updateSummaryTextElements(summaryData, averageData, trendData);
+    applyTrendBackground(trendData?.slope ?? null, jobResultData.data?.unit_group || '', 'todayGradient');
 
     showChart();
     chart.update();

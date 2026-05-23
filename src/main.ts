@@ -26,7 +26,7 @@ import { renderAboutPage, renderPrivacyPage } from './views/about';
 import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
-import { showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice } from './utils/uiHelpers';
+import { showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice, reapplyTrendBackground } from './utils/uiHelpers';
 import { isSharePagePath, initSharePage } from './share';
 import { installDevTestHooks } from './dev/testHooks';
 
@@ -263,6 +263,7 @@ function startAppWithFirebaseUser(user: FirebaseUser): void {
 window.mainAppLogic = mainAppLogic;
 
 // Register view renderers
+window.TempHistViews.today = { render: () => reapplyTrendBackground() };
 window.TempHistViews.week = { render: () => renderPeriod('weekView', 'week', 'Week') };
 window.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 'Month') };
 window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
@@ -281,6 +282,7 @@ window.TempHistViews.privacy = { render: () => renderPrivacyPage() };
 if (!isSharePagePath()) {
   window.TempHistRouter = new TempHistRouter();
   if (window.TempHistRouter && typeof window.TempHistRouter.registerView === 'function') {
+    window.TempHistRouter.registerView('today', window.TempHistViews.today);
     window.TempHistRouter.registerView('week', window.TempHistViews.week);
     window.TempHistRouter.registerView('month', window.TempHistViews.month);
     window.TempHistRouter.registerView('year', window.TempHistViews.year);
