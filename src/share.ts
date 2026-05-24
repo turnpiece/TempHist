@@ -505,7 +505,7 @@ async function renderShareChart(
   // Show generation datetime
   refs.generatedAtEl.textContent = formatGeneratedAt(meta.created_at);
 
-  applyTrendBackground(data.trend.slope ?? null, isFahrenheit ? 'fahrenheit' : '');
+  applyTrendBackground(data.trend.slope ?? null, isFahrenheit ? 'fahrenheit' : '', undefined, data.trend.gradient_factor ?? null);
 
   // Hide spinner, show canvas, reveal all text content
   refs.loadingEl.classList.remove('visible');

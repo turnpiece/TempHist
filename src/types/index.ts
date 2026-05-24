@@ -80,6 +80,7 @@ export interface TemperatureDataResponse {
     slope: number;
     slope_error?: number;
     unit: string;
+    gradient_factor?: number;
   };
   summary: string;
   metadata?: TemperatureDataMetadata;

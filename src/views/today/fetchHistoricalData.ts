@@ -131,6 +131,7 @@ export async function fetchHistoricalData(): Promise<void> {
       slope: jobResultData.data.trend?.slope,
       slopeError: jobResultData.data.trend?.slope_error,
       unit: jobResultData.data.trend?.unit,
+      gradientFactor: jobResultData.data.trend?.gradient_factor ?? null,
     };
     const summaryData = jobResultData.data.summary;
     const metadata = jobResultData.data.metadata;
@@ -263,7 +264,7 @@ export async function fetchHistoricalData(): Promise<void> {
     }
 
     updateSummaryTextElements(summaryData, averageData, trendData);
-    applyTrendBackground(trendData?.slope ?? null, jobResultData.data?.unit_group || '', 'todayGradient');
+    applyTrendBackground(trendData?.slope ?? null, jobResultData.data?.unit_group || '', 'todayGradient', trendData?.gradientFactor ?? null);
 
     showChart();
     chart.update();

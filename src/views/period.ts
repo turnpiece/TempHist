@@ -302,7 +302,8 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       trendData = {
         slope: weatherData.data.trend.slope,
         slopeError: weatherData.data.trend.slope_error,
-        unit: weatherData.data.trend.unit
+        unit: weatherData.data.trend.unit,
+        gradientFactor: weatherData.data.trend.gradient_factor ?? null,
       };
       summaryData = weatherData.data.summary;
       metadata = weatherData.data.metadata;
@@ -316,7 +317,8 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       trendData = {
         slope: weatherData.trend.slope,
         slopeError: weatherData.trend.slope_error,
-        unit: weatherData.trend.unit
+        unit: weatherData.trend.unit,
+        gradientFactor: weatherData.trend.gradient_factor ?? null,
       };
       summaryData = weatherData.summary;
       metadata = weatherData.metadata;
@@ -437,7 +439,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       // Update summary, average, and trend text
       updateSummaryTextElements(summaryData, averageData, trendData, periodKey);
 
-      applyTrendBackground(trendData?.slope ?? null, unitGroup);
+      applyTrendBackground(trendData?.slope ?? null, unitGroup, undefined, trendData?.gradientFactor ?? null);
 
       // Reveal share button now that data is ready
       setupShareButton(periodKey, { period: apiPeriod, identifier, ref_year: actualCurrentYear });

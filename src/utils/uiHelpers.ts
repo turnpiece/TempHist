@@ -225,7 +225,29 @@ export function trendBackground(slopeCelsius: number): { top: string; bottom: st
   }
 }
 
-export function applyTrendBackground(slopeRaw: number | null, unitGroup: string, storeKey: string = 'gradient'): void {
+export function applyTrendBackgroundFromFactor(factor: number, storeKey: string = 'gradient'): void {
+  const el = document.getElementById('trend-bg') as HTMLDivElement | null;
+  if (!el) return;
+  const t = Math.abs(factor);
+  if (t < 0.01) {
+    el.dataset[storeKey] = '';
+    el.style.opacity = '0';
+    return;
+  }
+  const grad = factor > 0
+    ? { top: lerpBg(BG_TOP, DARK_WARM, t), bottom: lerpBg(BG_BOTTOM, DARK_COOL, t) }
+    : { top: lerpBg(BG_TOP, DARK_COOL, t), bottom: lerpBg(BG_BOTTOM, DARK_WARM, t) };
+  const bg = `linear-gradient(${grad.top}, ${grad.bottom})`;
+  el.style.backgroundImage = bg;
+  el.dataset[storeKey] = bg;
+  el.style.opacity = '1';
+}
+
+export function applyTrendBackground(slopeRaw: number | null, unitGroup: string, storeKey: string = 'gradient', gradientFactor?: number | null): void {
+  if (gradientFactor != null && isFinite(gradientFactor)) {
+    applyTrendBackgroundFromFactor(gradientFactor, storeKey);
+    return;
+  }
   const el = document.getElementById('trend-bg') as HTMLDivElement | null;
   if (!el) return;
   const slopeCelsius = slopeRaw != null ? (unitGroup === 'fahrenheit' ? slopeRaw * 5 / 9 : slopeRaw) : null;
