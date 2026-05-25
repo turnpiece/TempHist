@@ -3,6 +3,7 @@ import {
   showFatalError,
   hideChartElements,
   showChartElements,
+  applyTrendBackground,
 } from '../utils/uiHelpers';
 
 /**
@@ -63,4 +64,24 @@ export function installDevTestHooks(debugLog: (...args: unknown[]) => void): voi
     }, 2000);
     debugLog('Retry button test complete');
   };
+
+  // mockTrend(slope) — apply a trend background without real data.
+  // slope is °C/decade; use a negative value for cooling, positive for warming.
+  // Presets: mockTrend('cooling') → -0.5, mockTrend('warming') → 0.5
+  window.mockTrend = function (slope: number | 'cooling' | 'warming' = 'cooling') {
+    const s = slope === 'cooling' ? -0.5 : slope === 'warming' ? 0.5 : slope;
+    applyTrendBackground(s, 'metric');
+    debugLog(`mockTrend: applied slope ${s}°C/decade (direction: ${s < 0 ? 'cooling' : 'warming'})`);
+  };
+
+  // Auto-apply if ?mockTrend=cooling|warming|<number> is in the URL.
+  const mockParam = new URLSearchParams(window.location.search).get('mockTrend');
+  if (mockParam !== null) {
+    const parsed = parseFloat(mockParam);
+    const slope = !isNaN(parsed) ? parsed : (mockParam as 'cooling' | 'warming');
+    // Defer so the page has had a chance to hide the overlay via its own load logic.
+    setTimeout(() => window.mockTrend!(slope), 500);
+    debugLog(`mockTrend: auto-applying from URL param "${mockParam}"`);
+  }
+
 }

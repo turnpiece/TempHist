@@ -273,6 +273,7 @@ declare global {
     testFatalError: () => void;
     testBasicFunctions: () => void;
     testRetryButton: () => void;
+    mockTrend: (slope?: number | 'cooling' | 'warming') => void;
     showFatalError: (periodKey?: string) => void;
     hideChartElements: (periodKey?: string) => void;
     showChartElements: (periodKey?: string) => void;

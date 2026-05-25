@@ -190,14 +190,23 @@ export function updateSummaryTextElements(
 
 /** Hide the overlay without clearing the stored gradient (used by non-data pages so Today can restore it on return). */
 export function resetTrendBackground(): void {
-  document.documentElement.style.setProperty('--trend-bg-opacity', '0');
+  const root = document.documentElement;
+  root.style.setProperty('--trend-bg-opacity', '0');
+  root.style.removeProperty('--static-bg-base');
 }
 
 /** Hide the overlay AND clear the stored gradient (used on location change so the stale gradient isn't restored). */
 export function clearTrendBackground(): void {
-  document.documentElement.style.setProperty('--trend-bg-opacity', '0');
-  document.documentElement.dataset.gradient = '';
-  document.documentElement.dataset.todayGradient = '';
+  const root = document.documentElement;
+  root.style.setProperty('--trend-bg-opacity', '0');
+  root.style.removeProperty('--static-bg-base');
+  root.dataset.gradient = '';
+  root.dataset.todayGradient = '';
+  root.dataset.trendDirection = '';
+  root.dataset.gradientDirection = '';
+  root.dataset.todayGradientDirection = '';
+  root.dataset.gradientBase = '';
+  root.dataset.todayGradientBase = '';
 }
 
 const BG_TOP:    [number,number,number] = [0x24, 0x24, 0x56];
@@ -226,13 +235,27 @@ export function applyTrendBackground(slopeRaw: number | null, unitGroup: string,
   const root = document.documentElement;
   const slopeCelsius = slopeRaw != null ? (unitGroup === 'fahrenheit' ? slopeRaw * 5 / 9 : slopeRaw) : null;
   const grad = slopeCelsius != null ? trendBackground(slopeCelsius) : null;
+  const directionKey = storeKey + 'Direction'; // e.g. 'gradientDirection' / 'todayGradientDirection'
+  const baseKey = storeKey + 'Base';           // e.g. 'gradientBase' / 'todayGradientBase'
   if (grad) {
+    const direction = slopeCelsius! > 0 ? 'warming' : 'cooling';
     const bg = `linear-gradient(${grad.top}, ${grad.bottom})`;
     root.style.setProperty('--trend-bg-image', bg);
     root.style.setProperty('--trend-bg-opacity', '1');
+    // Set the static background base colour to match grad.bottom so the 1000px background
+    // gradient and the solid fallback both end at the overlay's bottom colour — the mask
+    // fade is then seamless regardless of page height.
+    root.style.setProperty('--static-bg-base', grad.bottom);
     root.dataset[storeKey] = bg;
+    root.dataset[directionKey] = direction;
+    root.dataset[baseKey] = grad.bottom;
+    root.dataset.trendDirection = direction;
   } else {
+    root.style.removeProperty('--static-bg-base');
     root.dataset[storeKey] = '';
+    root.dataset[directionKey] = '';
+    root.dataset[baseKey] = '';
+    root.dataset.trendDirection = '';
     root.style.setProperty('--trend-bg-opacity', '0');
   }
 }
@@ -243,6 +266,9 @@ export function reapplyTrendBackground(): void {
   if (stored) {
     root.style.setProperty('--trend-bg-image', stored);
     root.style.setProperty('--trend-bg-opacity', '1');
+    root.dataset.trendDirection = root.dataset.todayGradientDirection ?? '';
+    const base = root.dataset.todayGradientBase;
+    if (base) root.style.setProperty('--static-bg-base', base);
   }
 }
 

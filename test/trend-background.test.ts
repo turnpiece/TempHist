@@ -5,12 +5,20 @@ import { trendBackground, resetTrendBackground, clearTrendBackground, applyTrend
 const root = () => document.documentElement
 const bgOpacity = () => root().style.getPropertyValue('--trend-bg-opacity')
 const bgImage = () => root().style.getPropertyValue('--trend-bg-image')
+const bgBase = () => root().style.getPropertyValue('--static-bg-base')
+const trendDir = () => root().dataset.trendDirection
 
 function resetRoot() {
   root().style.removeProperty('--trend-bg-image')
   root().style.removeProperty('--trend-bg-opacity')
+  root().style.removeProperty('--static-bg-base')
   delete root().dataset.gradient
   delete root().dataset.todayGradient
+  delete root().dataset.trendDirection
+  delete root().dataset.gradientDirection
+  delete root().dataset.todayGradientDirection
+  delete root().dataset.gradientBase
+  delete root().dataset.todayGradientBase
 }
 
 describe('trendBackground', () => {
@@ -73,6 +81,12 @@ describe('resetTrendBackground', () => {
     expect(root().dataset.gradient).toBe(stored)
   })
 
+  it('clears --static-bg-base so the background reverts on non-data pages', () => {
+    applyTrendBackground(0.3, 'metric')
+    resetTrendBackground()
+    expect(bgBase()).toBe('')
+  })
+
   it('does not throw', () => {
     expect(() => resetTrendBackground()).not.toThrow()
   })
@@ -81,13 +95,19 @@ describe('resetTrendBackground', () => {
 describe('clearTrendBackground', () => {
   beforeEach(resetRoot)
 
-  it('sets --trend-bg-opacity to 0 and clears both gradient store keys', () => {
+  it('sets --trend-bg-opacity to 0 and clears gradient, direction and base store keys', () => {
     applyTrendBackground(0.3, 'metric')
     applyTrendBackground(0.3, 'metric', 'todayGradient')
     clearTrendBackground()
     expect(bgOpacity()).toBe('0')
+    expect(bgBase()).toBe('')
     expect(root().dataset.gradient).toBe('')
     expect(root().dataset.todayGradient).toBe('')
+    expect(root().dataset.trendDirection).toBe('')
+    expect(root().dataset.gradientDirection).toBe('')
+    expect(root().dataset.todayGradientDirection).toBe('')
+    expect(root().dataset.gradientBase).toBe('')
+    expect(root().dataset.todayGradientBase).toBe('')
   })
 
   it('does not throw', () => {
@@ -102,6 +122,22 @@ describe('applyTrendBackground', () => {
     applyTrendBackground(0.3, 'metric')
     expect(bgOpacity()).toBe('1')
     expect(bgImage()).toContain('linear-gradient')
+  })
+
+  it('sets --static-bg-base to grad.bottom so the static background merges with the overlay', () => {
+    applyTrendBackground(0.3, 'metric')
+    expect(bgBase()).toMatch(/^rgb\(/)
+  })
+
+  it('clears --static-bg-base for a flat slope', () => {
+    applyTrendBackground(0.3, 'metric')
+    applyTrendBackground(0.03, 'metric')
+    expect(bgBase()).toBe('')
+  })
+
+  it('stores base colour per storeKey so reapply can restore it', () => {
+    applyTrendBackground(-0.3, 'metric', 'todayGradient')
+    expect(root().dataset.todayGradientBase).toMatch(/^rgb\(/)
   })
 
   it('sets --trend-bg-opacity to 0 for a flat slope (dead zone)', () => {
@@ -123,6 +159,27 @@ describe('applyTrendBackground', () => {
     const bgFahrenheit = bgImage()
     expect(bgFahrenheit).toBe(bgCelsius)
   })
+
+  it('sets data-trend-direction to "warming" for positive slope', () => {
+    applyTrendBackground(0.3, 'metric')
+    expect(trendDir()).toBe('warming')
+  })
+
+  it('sets data-trend-direction to "cooling" for negative slope', () => {
+    applyTrendBackground(-0.3, 'metric')
+    expect(trendDir()).toBe('cooling')
+  })
+
+  it('clears data-trend-direction for a flat slope', () => {
+    applyTrendBackground(0.3, 'metric')
+    applyTrendBackground(0.03, 'metric')
+    expect(trendDir()).toBe('')
+  })
+
+  it('stores direction per storeKey so reapply can restore it', () => {
+    applyTrendBackground(-0.3, 'metric', 'todayGradient')
+    expect(root().dataset.todayGradientDirection).toBe('cooling')
+  })
 })
 
 describe('reapplyTrendBackground', () => {
@@ -134,6 +191,20 @@ describe('reapplyTrendBackground', () => {
     reapplyTrendBackground()
     expect(bgOpacity()).toBe('1')
     expect(bgImage()).toContain('linear-gradient')
+  })
+
+  it('restores data-trend-direction from todayGradientDirection on reapply', () => {
+    applyTrendBackground(-0.3, 'metric', 'todayGradient')
+    resetTrendBackground()
+    reapplyTrendBackground()
+    expect(trendDir()).toBe('cooling')
+  })
+
+  it('restores --static-bg-base from todayGradientBase on reapply', () => {
+    applyTrendBackground(-0.3, 'metric', 'todayGradient')
+    resetTrendBackground()
+    reapplyTrendBackground()
+    expect(bgBase()).toMatch(/^rgb\(/)
   })
 
   it('does not restore a period-page gradient (different store key)', () => {

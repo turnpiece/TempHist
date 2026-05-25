@@ -28,7 +28,9 @@ import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analy
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
 import { showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice, reapplyTrendBackground } from './utils/uiHelpers';
 import { isSharePagePath, initSharePage } from './share';
-import { installDevTestHooks } from './dev/testHooks';
+// installDevTestHooks is loaded dynamically inside the DEBUGGING guard below so it is
+// excluded from production bundles entirely. To re-enable, ensure DEBUGGING is true (i.e.
+// run the dev server) — no code change needed.
 
 
 // Initialise location carousel when DOM is ready
@@ -130,7 +132,9 @@ window.debugTime = debugTime;
 window.debugTimeEnd = debugTimeEnd;
 
 if (DEBUGGING) {
-  installDevTestHooks(debugLog);
+  // Dynamic import keeps testHooks out of the production bundle — Rollup eliminates this
+  // branch entirely when DEBUGGING (= import.meta.env.DEV) is false at build time.
+  import('./dev/testHooks').then(({ installDevTestHooks }) => installDevTestHooks(debugLog));
 }
 
 

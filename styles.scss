@@ -47,10 +47,14 @@ $max-chart-height: 1800px;
 $sidebar-w: 240px; // Must match --sidebar-w CSS custom property
 
 html {
-  background-color: $colour-bg-bottom; // solid fallback shown below the gradient on long pages
-  background-image: linear-gradient($colour-bg, $colour-bg-bottom);
+  // --static-bg-base is set by JS to grad.bottom when a trend is active, so the solid
+  // background-color and the bottom of the 1000px gradient both end at the same colour as the
+  // trend overlay — giving a seamless merge at the mask boundary regardless of page height.
+  background-color: var(--static-bg-base, #{$colour-bg-bottom});
+  background-image: linear-gradient(#{$colour-bg}, var(--static-bg-base, #{$colour-bg-bottom}));
   background-repeat: no-repeat;
   background-size: 100% 1000px; // fixed gradient height — consistent across all page lengths
+  transition: background-color 1s ease; // fade in sync with the overlay opacity transition
   min-height: 100vh;
   overflow-x: clip; // Prevent horizontal page scroll without creating a scroll container (avoids iOS Safari promoting overflow:hidden+overflow:auto into a 2-axis scroll container)
   overflow-y: auto; // Allow vertical scrolling
@@ -61,8 +65,10 @@ html {
   box-sizing: border-box;
 
   // Tinted trend gradient overlay: page-anchored, full viewport width, limited to 1000px.
-  // Positioned relative to html (not body) so it escapes body's max-width constraint.
-  // Fades to transparent at the bottom so it merges cleanly with background-color below.
+  // Positioned on html (not body) so it escapes body's max-width constraint.
+  // The static background's --static-bg-base is set by JS to grad.bottom, so the solid
+  // background-color and gradient endpoint both match the overlay's bottom colour — the mask
+  // fade and the static bg meet at exactly the same colour for a seamless merge.
   &::before {
     content: '';
     position: absolute;
@@ -109,6 +115,7 @@ body {
     margin-left: auto;
     margin-right: auto;
   }
+
 }
 
 a {
