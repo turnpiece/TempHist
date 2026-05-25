@@ -534,7 +534,8 @@ async function renderShareChart(
           borderColor: CHART_COLORS.TREND,
           fill: false,
           pointRadius: 0,
-          borderWidth: 2
+          borderWidth: 2,
+          clip: false
         },
         {
           label: `Temperature in ${cityName} for ${periodLabel}`,
@@ -632,8 +633,8 @@ async function renderShareChart(
   // Add trend line
   const trendResult = calculateTrendLine(
     chartData.map(d => ({ x: d.y, y: d.x })),
-    minYear - 0.5,
-    maxYear + 0.5
+    minYear - 1.5,
+    maxYear + 1.5
   );
   chart.data.datasets[0].data = trendResult.points.map((p: ChartDataPoint) => ({ x: p.y, y: p.x }));
   chart.update();
