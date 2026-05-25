@@ -1,6 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { trendBackground, resetTrendBackground, clearTrendBackground, applyTrendBackground, reapplyTrendBackground, updateSummaryTextElements } from '../src/utils/uiHelpers'
 
+// Helpers for reading CSS custom properties and dataset set on documentElement
+const root = () => document.documentElement
+const bgOpacity = () => root().style.getPropertyValue('--trend-bg-opacity')
+const bgImage = () => root().style.getPropertyValue('--trend-bg-image')
+
+function resetRoot() {
+  root().style.removeProperty('--trend-bg-image')
+  root().style.removeProperty('--trend-bg-opacity')
+  delete root().dataset.gradient
+  delete root().dataset.todayGradient
+}
+
 describe('trendBackground', () => {
   it('returns null for slopes in the dead zone (< 0.05°C/decade)', () => {
     expect(trendBackground(0)).toBeNull()
@@ -46,115 +58,101 @@ describe('trendBackground', () => {
 })
 
 describe('resetTrendBackground', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '<div id="trend-bg" style="opacity: 1;"></div>'
-  })
+  beforeEach(resetRoot)
 
-  it('sets opacity to 0 on #trend-bg', () => {
-    const el = document.getElementById('trend-bg') as HTMLDivElement
-    el.style.opacity = '1'
+  it('sets --trend-bg-opacity to 0', () => {
+    root().style.setProperty('--trend-bg-opacity', '1')
     resetTrendBackground()
-    expect(el.style.opacity).toBe('0')
+    expect(bgOpacity()).toBe('0')
   })
 
   it('keeps dataset.gradient intact so reapply still works after About navigation', () => {
     applyTrendBackground(0.3, 'metric')
-    const stored = document.getElementById('trend-bg')!.dataset.gradient
+    const stored = root().dataset.gradient
     resetTrendBackground()
-    expect(document.getElementById('trend-bg')!.dataset.gradient).toBe(stored)
+    expect(root().dataset.gradient).toBe(stored)
   })
 
-  it('does not throw when #trend-bg is absent', () => {
-    document.body.innerHTML = ''
+  it('does not throw', () => {
     expect(() => resetTrendBackground()).not.toThrow()
   })
 })
 
 describe('clearTrendBackground', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '<div id="trend-bg"></div>'
-  })
+  beforeEach(resetRoot)
 
-  it('sets opacity to 0 and clears both gradient store keys', () => {
+  it('sets --trend-bg-opacity to 0 and clears both gradient store keys', () => {
     applyTrendBackground(0.3, 'metric')
     applyTrendBackground(0.3, 'metric', 'todayGradient')
     clearTrendBackground()
-    const el = document.getElementById('trend-bg')!
-    expect(el.style.opacity).toBe('0')
-    expect(el.dataset.gradient).toBe('')
-    expect(el.dataset.todayGradient).toBe('')
+    expect(bgOpacity()).toBe('0')
+    expect(root().dataset.gradient).toBe('')
+    expect(root().dataset.todayGradient).toBe('')
   })
 
-  it('does not throw when #trend-bg is absent', () => {
-    document.body.innerHTML = ''
+  it('does not throw', () => {
     expect(() => clearTrendBackground()).not.toThrow()
   })
 })
 
 describe('applyTrendBackground', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '<div id="trend-bg"></div>'
-  })
+  beforeEach(resetRoot)
 
-  it('sets gradient and opacity 1 for a significant warming slope', () => {
+  it('sets --trend-bg-image and --trend-bg-opacity 1 for a significant warming slope', () => {
     applyTrendBackground(0.3, 'metric')
-    const el = document.getElementById('trend-bg')!
-    expect(el.style.opacity).toBe('1')
-    expect(el.style.backgroundImage).toContain('linear-gradient')
+    expect(bgOpacity()).toBe('1')
+    expect(bgImage()).toContain('linear-gradient')
   })
 
-  it('sets opacity 0 for a flat slope (dead zone)', () => {
+  it('sets --trend-bg-opacity to 0 for a flat slope (dead zone)', () => {
     applyTrendBackground(0.03, 'metric')
-    expect(document.getElementById('trend-bg')!.style.opacity).toBe('0')
+    expect(bgOpacity()).toBe('0')
   })
 
-  it('sets opacity 0 when slope is null', () => {
+  it('sets --trend-bg-opacity to 0 when slope is null', () => {
     applyTrendBackground(null, 'metric')
-    expect(document.getElementById('trend-bg')!.style.opacity).toBe('0')
+    expect(bgOpacity()).toBe('0')
   })
 
   it('applies the same gradient for a Fahrenheit slope as for its Celsius equivalent', () => {
     const slopeC = 0.3
     const slopeF = slopeC * 9 / 5
     applyTrendBackground(slopeC, 'metric')
-    const bgCelsius = document.getElementById('trend-bg')!.style.backgroundImage
+    const bgCelsius = bgImage()
     applyTrendBackground(slopeF, 'fahrenheit')
-    const bgFahrenheit = document.getElementById('trend-bg')!.style.backgroundImage
+    const bgFahrenheit = bgImage()
     expect(bgFahrenheit).toBe(bgCelsius)
   })
 })
 
 describe('reapplyTrendBackground', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '<div id="trend-bg"></div>'
-  })
+  beforeEach(resetRoot)
 
   it('restores Today gradient after resetTrendBackground (About navigation)', () => {
     applyTrendBackground(0.3, 'metric', 'todayGradient')
     resetTrendBackground()
     reapplyTrendBackground()
-    const el = document.getElementById('trend-bg')!
-    expect(el.style.opacity).toBe('1')
-    expect(el.style.backgroundImage).toContain('linear-gradient')
+    expect(bgOpacity()).toBe('1')
+    expect(bgImage()).toContain('linear-gradient')
   })
 
   it('does not restore a period-page gradient (different store key)', () => {
     applyTrendBackground(0.3, 'metric') // default key — period page
     resetTrendBackground()
     reapplyTrendBackground()
-    expect(document.getElementById('trend-bg')!.style.opacity).toBe('0')
+    expect(bgOpacity()).toBe('0')
   })
 
   it('does not restore after clearTrendBackground (location change)', () => {
     applyTrendBackground(0.3, 'metric', 'todayGradient')
     clearTrendBackground()
     reapplyTrendBackground()
-    expect(document.getElementById('trend-bg')!.style.opacity).toBe('0')
+    expect(bgOpacity()).toBe('0')
   })
 
-  it('hides the overlay when no Today gradient is stored', () => {
+  it('does nothing when no gradient was previously stored', () => {
     reapplyTrendBackground()
-    expect(document.getElementById('trend-bg')!.style.opacity).toBe('0')
+    expect(bgOpacity()).toBe('')
   })
 })
 

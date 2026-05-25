@@ -46,17 +46,6 @@ $max-content-width: 600px;
 $max-chart-height: 1800px;
 $sidebar-w: 240px; // Must match --sidebar-w CSS custom property
 
-#trend-bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 1s ease;
-  background-repeat: no-repeat;
-  background-size: 100% 1000px;
-}
-
 html {
   background-color: $colour-bg-bottom; // solid fallback shown below the gradient on long pages
   background-image: linear-gradient($colour-bg, $colour-bg-bottom);
@@ -70,6 +59,24 @@ html {
   max-width: 100%; // Prevent overflow
   position: relative;
   box-sizing: border-box;
+
+  // Tinted trend gradient overlay: page-anchored, full viewport width, limited to 1000px.
+  // Positioned relative to html (not body) so it escapes body's max-width constraint.
+  // Fades to transparent at the bottom so it merges cleanly with background-color below.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1000px;
+    background-image: var(--trend-bg-image, none);
+    opacity: var(--trend-bg-opacity, 0);
+    transition: opacity 1s ease;
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  }
 
   // Only reserve scrollbar gutter on devices with classic (non-overlay) scrollbars.
   // iOS/Android use overlay scrollbars, so the rule does nothing useful there and can
@@ -297,8 +304,7 @@ a {
       margin-top: -60px; // Negative margin to move up and use header space - content will overflow upward
       padding-top: 0; // Start at top - no space needed for header since it's in sidebar area
       min-height: calc(100vh + 60px); // Add 60px to account for negative margin so content isn't cut off
-      overflow-y: auto; // Allow vertical scrolling
-      overflow-x: clip; // Prevent horizontal scrolling without iOS scroll-container promotion
+      overflow: visible; // Let html handle scrolling and clipping — overflow-y: auto (and overflow-x: clip) created an invisible scroll container in Safari that clipped content below ~100vh
       position: relative; // Establish positioning context
     }
 
@@ -485,7 +491,7 @@ a {
 
   // On desktop, allow overflow upward for negative margin
   @media (min-width: 901px) {
-    overflow-y: auto; // Allow vertical scrolling
+    overflow-y: visible; // Let html handle page scrolling — overflow-y: auto created an invisible scroll container in Safari that clipped content below ~100vh
     overflow-x: clip; // Prevent horizontal scrolling without iOS scroll-container promotion
   }
 }
@@ -611,7 +617,8 @@ body.privacy-page {
   display: flex;
   flex-direction: column;
   gap: 0.25em;
-  background: rgba(#607090, 0.35);
+  background: rgba(#607090, 0.6);
+  border: 1px solid rgba(#607090, 0.5);
   border-radius: 10px;
   padding: 0.5em 0.85em;
   margin-top: 0.4em;
