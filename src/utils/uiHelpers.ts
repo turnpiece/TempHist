@@ -190,17 +190,14 @@ export function updateSummaryTextElements(
 
 /** Hide the overlay without clearing the stored gradient (used by non-data pages so Today can restore it on return). */
 export function resetTrendBackground(): void {
-  const el = document.getElementById('trend-bg') as HTMLDivElement | null;
-  if (el) el.style.opacity = '0';
+  document.documentElement.style.setProperty('--trend-bg-opacity', '0');
 }
 
 /** Hide the overlay AND clear the stored gradient (used on location change so the stale gradient isn't restored). */
 export function clearTrendBackground(): void {
-  const el = document.getElementById('trend-bg') as HTMLDivElement | null;
-  if (!el) return;
-  el.style.opacity = '0';
-  el.dataset.gradient = '';
-  el.dataset.todayGradient = '';
+  document.documentElement.style.setProperty('--trend-bg-opacity', '0');
+  document.documentElement.dataset.gradient = '';
+  document.documentElement.dataset.todayGradient = '';
 }
 
 const BG_TOP:    [number,number,number] = [0x24, 0x24, 0x56];
@@ -226,28 +223,26 @@ export function trendBackground(slopeCelsius: number): { top: string; bottom: st
 }
 
 export function applyTrendBackground(slopeRaw: number | null, unitGroup: string, storeKey: string = 'gradient'): void {
-  const el = document.getElementById('trend-bg') as HTMLDivElement | null;
-  if (!el) return;
+  const root = document.documentElement;
   const slopeCelsius = slopeRaw != null ? (unitGroup === 'fahrenheit' ? slopeRaw * 5 / 9 : slopeRaw) : null;
   const grad = slopeCelsius != null ? trendBackground(slopeCelsius) : null;
   if (grad) {
     const bg = `linear-gradient(${grad.top}, ${grad.bottom})`;
-    el.style.backgroundImage = bg;
-    el.dataset[storeKey] = bg;
-    el.style.opacity = '1';
+    root.style.setProperty('--trend-bg-image', bg);
+    root.style.setProperty('--trend-bg-opacity', '1');
+    root.dataset[storeKey] = bg;
   } else {
-    el.dataset[storeKey] = '';
-    el.style.opacity = '0';
+    root.dataset[storeKey] = '';
+    root.style.setProperty('--trend-bg-opacity', '0');
   }
 }
 
 export function reapplyTrendBackground(): void {
-  const el = document.getElementById('trend-bg') as HTMLDivElement | null;
-  if (!el) return;
-  const stored = el.dataset.todayGradient;
+  const root = document.documentElement;
+  const stored = root.dataset.todayGradient;
   if (stored) {
-    el.style.backgroundImage = stored;
-    el.style.opacity = '1';
+    root.style.setProperty('--trend-bg-image', stored);
+    root.style.setProperty('--trend-bg-opacity', '1');
   }
 }
 
