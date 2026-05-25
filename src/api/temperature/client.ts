@@ -158,7 +158,8 @@ export async function checkApiHealth(): Promise<boolean> {
 export async function createAsyncJob(
   period: 'daily' | 'week' | 'month' | 'year',
   location: string,
-  identifier: string
+  identifier: string,
+  localToday?: string
 ): Promise<string> {
   validateLocation(location);
   validateIdentifier(identifier);
@@ -166,7 +167,8 @@ export async function createAsyncJob(
   const apiPeriod =
     period === 'week' ? 'weekly' : period === 'month' ? 'monthly' : period === 'year' ? 'yearly' : 'daily';
 
-  const jobUrl = getApiUrl(`/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}/async`);
+  const basePath = `/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}/async`;
+  const jobUrl = getApiUrl(localToday ? `${basePath}?local_today=${localToday}` : basePath);
 
   try {
     const response = await apiFetch(jobUrl, {
@@ -241,7 +243,8 @@ export async function pollJobStatus(
 async function fetchTemperatureDataSync(
   period: 'daily' | 'week' | 'month' | 'year',
   location: string,
-  identifier: string
+  identifier: string,
+  localToday?: string
 ): Promise<JobResultResponse> {
   validateLocation(location);
   validateIdentifier(identifier);
@@ -249,7 +252,8 @@ async function fetchTemperatureDataSync(
   const apiPeriod =
     period === 'week' ? 'weekly' : period === 'month' ? 'monthly' : period === 'year' ? 'yearly' : 'daily';
 
-  const syncUrl = getApiUrl(`/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}`);
+  const basePath = `/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}`;
+  const syncUrl = getApiUrl(localToday ? `${basePath}?local_today=${localToday}` : basePath);
 
   try {
     debugLog(`Falling back to synchronous API for ${period} data...`);
@@ -281,7 +285,8 @@ export async function fetchTemperatureDataAsync(
   period: 'daily' | 'week' | 'month' | 'year',
   location: string,
   identifier: string,
-  onProgress?: (status: AsyncJobResponse) => void
+  onProgress?: (status: AsyncJobResponse) => void,
+  localToday?: string
 ): Promise<JobResultResponse> {
   validateLocation(location);
   validateIdentifier(identifier);
@@ -289,7 +294,7 @@ export async function fetchTemperatureDataAsync(
   try {
     debugLog(`Attempting async fetch for ${period} data...`);
 
-    const jobId = await createAsyncJob(period, location, identifier);
+    const jobId = await createAsyncJob(period, location, identifier, localToday);
     const result = await pollJobStatus(jobId, onProgress);
 
     debugLog(`Async fetch successful for ${period} data`);
@@ -305,7 +310,7 @@ export async function fetchTemperatureDataAsync(
       debugLog(`Async job failed (${errorMessage}), falling back to synchronous API...`);
 
       try {
-        const fallbackResult = await fetchTemperatureDataSync(period, location, identifier);
+        const fallbackResult = await fetchTemperatureDataSync(period, location, identifier, localToday);
         debugLog(`Synchronous fallback successful for ${period} data`);
         return fallbackResult;
       } catch (fallbackError) {

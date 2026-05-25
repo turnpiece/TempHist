@@ -13,7 +13,7 @@ import { createTemperatureChart, updateChartTrendLine } from '../chart/chart';
 import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, createSpinner, applyTrendBackground, resetTrendBackground } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from './today';
 import { setupShareButton } from '../share';
-import { getEffectiveDateForLocation } from '../utils/dateUtils';
+import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../utils/dateUtils';
 
 declare const debugLog: (...args: any[]) => void;
 
@@ -231,14 +231,19 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   try {
     // Use same caching system as Today page (DataCache)
     const identifier = `${monthStr}-${dayStr}`;
-    
+
+    const localToday = window.tempLocationTimezone ? localTodayIn(window.tempLocationTimezone) : undefined;
+    const ttl = window.tempLocationTimezone
+      ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(window.tempLocationTimezone))
+      : 10 * 60 * 1000;
+
     // Check cache first (if feature flag is enabled)
     let weatherData: any;
     if (FeatureFlags.isEnabled('data_caching')) {
-      const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier);
+      const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier, localToday);
       debugLog(`${periodKey}: Checking cache with key:`, cacheKey);
       weatherData = DataCache.get(cacheKey);
-      
+
       if (weatherData) {
         debugLog(`${periodKey}: Using cached data`);
       } else {
@@ -247,7 +252,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
     } else {
       debugLog(`${periodKey}: Data caching disabled by feature flag`);
     }
-    
+
     if (!weatherData) {
       // Progress callback for async job
       const onProgress = (status: AsyncJobResponse) => {
@@ -255,12 +260,12 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       };
 
       debugLog(`Starting ${periodKey} data fetch...`);
-      weatherData = await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress);
-      
+      weatherData = await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress, localToday);
+
       // Cache the result (if feature flag is enabled)
       if (FeatureFlags.isEnabled('data_caching')) {
-        const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier);
-        DataCache.set(cacheKey, weatherData, 10 * 60 * 1000); // 10 minutes TTL
+        const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier, localToday);
+        DataCache.set(cacheKey, weatherData, ttl);
         debugLog(`${periodKey}: Data cached for future use`);
       }
     }

@@ -83,6 +83,7 @@ export interface TemperatureDataResponse {
     gradient_factor?: number;
   };
   summary: string;
+  timezone?: string;
   metadata?: TemperatureDataMetadata;
 }
 

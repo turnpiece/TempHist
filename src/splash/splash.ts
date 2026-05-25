@@ -4,7 +4,7 @@
 
 import { setLocationCookie, getLocationCookie } from '../utils/location';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from '../services/locationDetection';
-import { getEffectiveDateForLocation } from '../utils/dateUtils';
+import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../utils/dateUtils';
 import { resetCarouselState } from '../services/locationCarousel';
 import { apiFetch, getApiUrl } from '../api/temperature';
 import { getCountryCodeForLocation, getDisplayCity } from '../utils/location';
@@ -553,24 +553,28 @@ export function startPeriodDataPrefetch(): void {
   const { day, month } = getEffectiveDateForLocation(window.tempLocationTimezone);
   const identifier = `${month}-${day}`;
   const location = window.tempLocation!;
-  
+
+  const localToday = window.tempLocationTimezone ? localTodayIn(window.tempLocationTimezone) : undefined;
+  const ttl = window.tempLocationTimezone
+    ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(window.tempLocationTimezone))
+    : 10 * 60 * 1000;
+
   // Prefetch period data using DataCache (same system as period pages)
   const periods: ('week' | 'month' | 'year')[] = ['week', 'month', 'year'];
-  
+
   periods.forEach(periodKey => {
     // Check if already cached
-    const cacheKey = DataCache.generateTemperatureKey(periodKey, location, identifier);
+    const cacheKey = DataCache.generateTemperatureKey(periodKey, location, identifier, localToday);
     if (DataCache.get(cacheKey)) {
       debugLog(`Prefetch: ${periodKey} data already cached, skipping`);
       return;
     }
-    
+
     // Start background fetch
     debugLog(`Prefetch: Starting background fetch for ${periodKey} data`);
-    fetchTemperatureDataAsync(periodKey, location, identifier)
+    fetchTemperatureDataAsync(periodKey, location, identifier, undefined, localToday)
       .then(data => {
-        // Cache the result
-        DataCache.set(cacheKey, data, 10 * 60 * 1000); // 10 minutes TTL
+        DataCache.set(cacheKey, data, ttl);
         debugLog(`Prefetch: ${periodKey} data cached successfully`);
       })
       .catch(error => {
