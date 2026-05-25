@@ -175,9 +175,11 @@ class DataCache {
   static generateTemperatureKey(
     period: 'daily' | 'week' | 'month' | 'year',
     location: string,
-    identifier: string
+    identifier: string,
+    localToday?: string
   ): string {
-    return `temp-${period}-${location}-${identifier}`;
+    const base = `temp-${period}-${location}-${identifier}`;
+    return localToday ? `${base}-${localToday}` : base;
   }
 
   /**
@@ -193,9 +195,11 @@ class DataCache {
   static generateChartKey(
     period: 'daily' | 'week' | 'month' | 'year',
     location: string,
-    identifier: string
+    identifier: string,
+    localToday?: string
   ): string {
-    return `chart-${period}-${location}-${identifier}`;
+    const base = `chart-${period}-${location}-${identifier}`;
+    return localToday ? `${base}-${localToday}` : base;
   }
 }
 

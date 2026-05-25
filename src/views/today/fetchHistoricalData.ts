@@ -1,7 +1,7 @@
 import type { AsyncJobResponse } from '../../types/index';
 import { API_CONFIG, DATE_RANGE_CONFIG } from '../../constants/index';
 import { getOrdinal } from '../../utils/location';
-import { getEffectiveDateForLocation } from '../../utils/dateUtils';
+import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../../utils/dateUtils';
 import { DataCache } from '../../utils/DataCache';
 import { FeatureFlags } from '../../utils/FeatureFlags';
 import { PerformanceMonitor } from '../../utils/PerformanceMonitor';
@@ -81,9 +81,14 @@ export async function fetchHistoricalData(): Promise<void> {
     const identifier = `${month}-${day}`;
     debugLog('About to fetch data - tempLocation:', window.tempLocation, 'identifier:', identifier);
 
+    const localToday = window.tempLocationTimezone ? localTodayIn(window.tempLocationTimezone) : undefined;
+    const ttl = window.tempLocationTimezone
+      ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(window.tempLocationTimezone))
+      : 10 * 60 * 1000;
+
     let jobResult;
     if (FeatureFlags.isEnabled('data_caching')) {
-      const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier);
+      const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier, localToday);
       debugLog('Checking cache for key:', cacheKey);
       jobResult = DataCache.get(cacheKey);
 
@@ -101,11 +106,11 @@ export async function fetchHistoricalData(): Promise<void> {
       };
 
       debugLog('Starting async daily data fetch...');
-      jobResult = await fetchTemperatureDataAsync('daily', window.tempLocation!, identifier, onProgress);
+      jobResult = await fetchTemperatureDataAsync('daily', window.tempLocation!, identifier, onProgress, localToday);
 
       if (FeatureFlags.isEnabled('data_caching')) {
-        const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier);
-        DataCache.set(cacheKey, jobResult, 10 * 60 * 1000);
+        const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier, localToday);
+        DataCache.set(cacheKey, jobResult, ttl);
         debugLog('Daily: Data cached for future use');
       }
     }

@@ -1,3 +1,23 @@
+export function localTodayIn(tz: string): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: tz });
+}
+
+export function msUntilNextLocalMidnight(tz: string): number {
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz });
+  const [y, m, d] = todayStr.split('-').map(Number);
+  const tomorrow = new Date(Date.UTC(y, m - 1, d + 1, 0, 0, 0));
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const parts = Object.fromEntries(dtf.formatToParts(tomorrow).map(p => [p.type, p.value]));
+  const asLocal = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute);
+  const offsetMs = asLocal - tomorrow.getTime();
+  const nextMidnightUtc = tomorrow.getTime() - offsetMs;
+  return Math.max(0, nextMidnightUtc - now.getTime());
+}
+
 export function getEffectiveDateForLocation(timezone?: string | null): {
   day: string;
   month: string;
