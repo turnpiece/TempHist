@@ -221,9 +221,9 @@ function lerpBg(a: [number,number,number], b: [number,number,number], t: number)
   return `rgb(${r},${g},${bl})`;
 }
 
-export function trendBackground(slopeCelsius: number): { top: string; bottom: string } | null {
+export function trendBackground(slopeCelsius: number, factor?: number | null): { top: string; bottom: string } | null {
   if (Math.abs(slopeCelsius) < 0.05) return null;
-  const t = Math.sqrt(Math.min(Math.abs(slopeCelsius) / 0.65, 1.0));
+  const t = factor != null ? Math.min(Math.max(factor, 0), 1) : Math.sqrt(Math.min(Math.abs(slopeCelsius) / 0.65, 1.0));
   if (slopeCelsius > 0) {
     return { top: lerpBg(BG_TOP, DARK_WARM, t), bottom: lerpBg(BG_BOTTOM, DARK_COOL, t) };
   } else {
@@ -231,10 +231,10 @@ export function trendBackground(slopeCelsius: number): { top: string; bottom: st
   }
 }
 
-export function applyTrendBackground(slopeRaw: number | null, unitGroup: string, storeKey: string = 'gradient'): void {
+export function applyTrendBackground(slopeRaw: number | null, unitGroup: string, storeKey: string = 'gradient', gradientFactor?: number | null): void {
   const root = document.documentElement;
   const slopeCelsius = slopeRaw != null ? (unitGroup === 'fahrenheit' ? slopeRaw * 5 / 9 : slopeRaw) : null;
-  const grad = slopeCelsius != null ? trendBackground(slopeCelsius) : null;
+  const grad = slopeCelsius != null ? trendBackground(slopeCelsius, gradientFactor) : null;
   const directionKey = storeKey + 'Direction'; // e.g. 'gradientDirection' / 'todayGradientDirection'
   const baseKey = storeKey + 'Base';           // e.g. 'gradientBase' / 'todayGradientBase'
   if (grad) {
