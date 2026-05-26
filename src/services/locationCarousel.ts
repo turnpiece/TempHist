@@ -1,6 +1,6 @@
 // src/services/locationCarousel.ts
 import type { PreapprovedLocation } from '../types/index';
-import { getApiUrl, apiFetch } from '../api/temperature';
+import { getApiUrl, apiFetch, checkApiHealth } from '../api/temperature';
 
 /**
  * Wait for Firebase authentication to be ready
@@ -140,6 +140,10 @@ function showCarouselError(carousel: HTMLElement, track: HTMLElement): void {
     card.style.animationName = 'none';
   });
 
+  // Dim the heading to ~10% to match the ghost cards
+  const heading = document.getElementById('location-picker-heading');
+  if (heading) heading.style.opacity = '0.1';
+
   const errorEl = document.createElement('div');
   errorEl.className = 'location-carousel__error';
   errorEl.id = 'location-carousel-error';
@@ -154,8 +158,9 @@ function showCarouselError(carousel: HTMLElement, track: HTMLElement): void {
   retryBtn.textContent = 'Retry';
   retryBtn.addEventListener('click', () => { initLocationCarousel(); });
 
-  errorEl.appendChild(msg);
+  // Button must precede the text span in the DOM so float:right sits on the same line
   errorEl.appendChild(retryBtn);
+  errorEl.appendChild(msg);
 
   const arrows = carousel.querySelector('.location-carousel__arrows');
   if (arrows) {
@@ -163,6 +168,18 @@ function showCarouselError(carousel: HTMLElement, track: HTMLElement): void {
   } else {
     carousel.appendChild(errorEl);
   }
+
+  // Fire a background health check — add context if the API itself is the problem
+  checkApiHealth().then(result => {
+    if (result !== 'healthy' && document.getElementById('location-carousel-error') === errorEl) {
+      const healthMsg = document.createElement('p');
+      healthMsg.className = 'location-carousel__health-message';
+      healthMsg.textContent = result === 'unhealthy'
+        ? "The temperature data server is currently experiencing issues."
+        : "Unable to reach the temperature data server — your connection may be down or the service may be unavailable.";
+      errorEl.appendChild(healthMsg);
+    }
+  });
 }
 
 /**
@@ -542,8 +559,11 @@ export async function initLocationCarousel(): Promise<void> {
   const existingError = document.getElementById('location-carousel-error');
   if (existingError) existingError.remove();
 
-  // Show skeleton cards immediately so users see something while the API loads
+  // Restore heading opacity in case it was dimmed by a previous error
   const heading = document.getElementById('location-picker-heading');
+  if (heading) heading.style.opacity = '';
+
+  // Show skeleton cards immediately so users see something while the API loads
   showSkeletonCards(track, heading);
 
   try {

@@ -36,20 +36,41 @@ describe('API Functions', () => {
   })
 
   describe('API Health Check', () => {
-    it('should return true for healthy API', async () => {
+    it('should return healthy for a healthy API response', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true
+        ok: true,
+        json: vi.fn().mockResolvedValue({ status: 'healthy', timestamp: '2026-05-26T12:56:20.568721' })
       } as unknown as Response)
 
       const result = await checkApiHealth()
-      expect(result).toBe(true)
+      expect(result).toBe('healthy')
     })
 
-    it('should return false for unhealthy API', async () => {
+    it('should return unhealthy when the API responds but reports an unhealthy status', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ status: 'unhealthy', timestamp: '2026-05-26T12:56:20.568721' })
+      } as unknown as Response)
+
+      const result = await checkApiHealth()
+      expect(result).toBe('unhealthy')
+    })
+
+    it('should return unreachable when the API cannot be reached', async () => {
       vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'))
 
       const result = await checkApiHealth()
-      expect(result).toBe(false)
+      expect(result).toBe('unreachable')
+    })
+
+    it('should return unreachable when the API returns a non-ok HTTP status', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 503
+      } as unknown as Response)
+
+      const result = await checkApiHealth()
+      expect(result).toBe('unreachable')
     })
   })
 

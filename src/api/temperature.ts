@@ -5,6 +5,7 @@ export {
   validateTemperatureDataResponse,
 } from './temperature/validation';
 
+export type { ApiHealthResult } from './temperature/client';
 export {
   getApiUrl,
   apiFetch,

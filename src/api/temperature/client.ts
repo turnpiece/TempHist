@@ -140,7 +140,9 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
   throw lastError || new Error('Request failed after retries');
 }
 
-export async function checkApiHealth(): Promise<boolean> {
+export type ApiHealthResult = 'healthy' | 'unhealthy' | 'unreachable';
+
+export async function checkApiHealth(): Promise<ApiHealthResult> {
   try {
     const healthUrl = getApiUrl('/health');
     const response = await fetch(healthUrl, {
@@ -149,9 +151,15 @@ export async function checkApiHealth(): Promise<boolean> {
         Accept: 'application/json',
       },
     });
-    return response.ok;
+    if (!response.ok) return 'unreachable';
+    try {
+      const data = await response.json();
+      return data?.status === 'healthy' ? 'healthy' : 'unhealthy';
+    } catch {
+      return 'unhealthy';
+    }
   } catch {
-    return false;
+    return 'unreachable';
   }
 }
 

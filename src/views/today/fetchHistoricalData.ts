@@ -63,18 +63,18 @@ export async function fetchHistoricalData(): Promise<void> {
   hideError();
 
   try {
-    const isApiHealthy = await Promise.race([
+    const apiHealth = await Promise.race([
       checkApiHealth(),
-      new Promise<boolean>((_, reject) =>
+      new Promise<'healthy'>((_, reject) =>
         setTimeout(() => reject(new Error('Health check timeout')), API_CONFIG.HEALTH_CHECK_TIMEOUT)
       ),
     ]).catch(() => {
       console.warn('Health check failed or timed out, proceeding anyway...');
-      return true;
+      return 'healthy' as const;
     });
 
-    if (!isApiHealthy) {
-      console.warn('API health check failed, but proceeding with data fetch...');
+    if (apiHealth !== 'healthy') {
+      console.warn(`API health check returned '${apiHealth}', but proceeding with data fetch...`);
     }
 
     const { day, month, year: rawYear } = getEffectiveDateForLocation(window.tempLocationTimezone);

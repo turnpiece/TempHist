@@ -1572,20 +1572,22 @@ h2 {
 
 /* Error state shown below skeleton cards when loading fails */
 .location-carousel__error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 0.5rem 1rem 0.25rem;
-  flex-wrap: wrap;
+  display: flow-root; // Establishes a formatting context so the floated Retry button is contained
+  max-width: 500px; // Matches .splash-content max-width
+  margin: 0.5rem auto 0;
+  padding: 0.25rem 2.625rem; // Matches .splash-content lateral padding so text aligns with page content
+  text-align: left;
+  box-sizing: border-box;
 }
 
 .location-carousel__error-text {
   color: var(--warning);
   font-size: 0.9rem;
+  line-height: 2; // Vertically centre alongside the button
 }
 
 .location-carousel__error-retry {
+  float: right;
   background: transparent;
   color: var(--warning);
   border: 1px solid var(--warning);
@@ -1599,6 +1601,14 @@ h2 {
   &:hover {
     background: rgba(255, 140, 0, 0.15);
   }
+}
+
+.location-carousel__health-message {
+  font-size: 0.8rem;
+  color: var(--warning);
+  opacity: 0.75;
+  margin: 0.25rem 0 0;
+  padding: 0;
 }
 
 /* Arrow buttons container */
@@ -1715,11 +1725,17 @@ h2 {
   .location-carousel__track {
     padding-left: 1.5rem; // Lateral padding to prevent cards touching viewport edges on mobile
     padding-right: 1.5rem; // Lateral padding to prevent cards touching viewport edges on mobile
-    
+
     /* Update pseudo-element width to match mobile padding */
     &::after {
       width: 1.5rem; // Match mobile padding-right
     }
+  }
+
+  // Match the reduced splash-content padding on mobile (carousel breaks out by 1.5rem, splash pads 1rem)
+  .location-carousel__error {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
   
   .splash-header {
