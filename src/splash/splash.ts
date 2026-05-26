@@ -330,6 +330,11 @@ export function showManualLocationSelection(permissionDenied: boolean = false): 
       useLocationBtn.style.display = 'none';
       debugLog('Hiding "Use my location" button (permission denied)');
     }
+    const permissionMsg = document.getElementById('locationPermissionMsg');
+    if (permissionMsg) {
+      permissionMsg.removeAttribute('hidden');
+      debugLog('Showing location permission denied message');
+    }
     if (heading) {
       heading.textContent = 'Choose a location:';
       debugLog('Updated heading text to "Choose a location:"');
@@ -504,9 +509,11 @@ export function clearAllCachedData(): void {
     el.classList.remove('visible');
   });
   
-  const errorContainers = document.querySelectorAll('.error-container');
-  errorContainers.forEach(el => {
-    (el as HTMLElement).style.display = 'none';
+  // Clear any error/warning notices from previous data fetch
+  const noticeEls = document.querySelectorAll<HTMLElement>('.notice');
+  noticeEls.forEach(el => {
+    while (el.firstChild) el.removeChild(el.firstChild);
+    el.className = 'notice';
   });
   
   // Clear any incomplete data warnings from previous location

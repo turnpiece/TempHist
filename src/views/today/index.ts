@@ -126,14 +126,6 @@ export function mainAppLogic(): void {
     window.tempLocationIsDetected = false;
   }
 
-  const reloadButton = document.getElementById('reloadButton');
-  if (reloadButton) {
-    reloadButton.addEventListener('click', () => {
-      hideError();
-      fetchHistoricalData();
-    });
-  }
-
   if (window.tempLocation) {
     displayLocationAndFetchData();
   }

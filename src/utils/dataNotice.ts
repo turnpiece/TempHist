@@ -56,7 +56,15 @@ export function updateDataNotice(message: string | null, options: DataNoticeOpti
     if (title) {
       const titleEl = document.createElement('p');
       titleEl.className = `notice-title${options.largeTitle ? ' large' : ''}`;
-      titleEl.textContent = title;
+      if (options.icon) {
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'notice-icon';
+        iconSpan.textContent = options.icon;
+        titleEl.appendChild(iconSpan);
+        titleEl.appendChild(document.createTextNode(' ' + title));
+      } else {
+        titleEl.textContent = title;
+      }
       contentEl.appendChild(titleEl);
     }
     

@@ -204,6 +204,7 @@ export interface PlatformInfo {
 // Data notice options
 export interface DataNoticeOptions {
   type?: 'success' | 'error' | 'warning' | 'neutral' | 'info';
+  icon?: string;
   title?: string;
   subtitle?: string;
   useStructuredHtml?: boolean;

@@ -449,8 +449,15 @@ a {
 
 .location-error {
   font-size: 0.75em;
-  color: var(--error);
+  color: var(--warning);
   margin-left: 8px;
+  font-style: italic;
+}
+
+.location-permission-denied {
+  font-size: 0.85em;
+  color: var(--warning);
+  margin: 0.5em 0 0;
   font-style: italic;
 }
 
@@ -655,7 +662,7 @@ body.privacy-page {
 
 // Status and notification colours
 .status-error {
-  color: var(--accent);
+  color: var(--warning);
 }
 
 .status-success {
@@ -689,9 +696,9 @@ body.privacy-page {
     }
     
     &.error {
-      color: var(--error);
-      background: var(--error-bg);
-      border-color: var(--error);
+      color: var(--warning);
+      background: rgba(255, 140, 0, 0.1);
+      border-color: rgba(255, 140, 0, 0.3);
       padding: 20px;
       border-radius: 8px;
       border-width: 2px;
@@ -710,12 +717,18 @@ body.privacy-page {
   .notice-title {
     margin: 0;
     font-weight: 500;
-    
+
     &.large {
       margin: 0 0 15px 0;
       font-weight: 600;
       font-size: 16px;
     }
+  }
+
+  .notice-icon {
+    font-size: 1.35em;
+    line-height: 1;
+    vertical-align: middle;
   }
   
   .notice-subtitle {
@@ -724,7 +737,7 @@ body.privacy-page {
     
     &.secondary {
       margin: 0 0 15px 0;
-      color: #666;
+      color: rgba($colour-text, 0.65);
     }
   }
 }
@@ -765,8 +778,8 @@ body.privacy-page {
   }
 }
 
-// Retry button in the incomplete data notice
-.notice-retry-btn {
+// Shared retry/ghost-warning button — used by notices and carousel error
+.btn-retry {
   background: rgba($colour-warning, 0.08);
   color: var(--warning);
   border: 1px solid var(--warning);
@@ -775,7 +788,7 @@ body.privacy-page {
   font-weight: 600;
   cursor: pointer;
   float: right;
-  padding: 2px 10px;
+  padding: 3px 12px;
   margin: 0;
   transition: background 0.15s ease;
 
@@ -784,43 +797,11 @@ body.privacy-page {
   }
 }
 
-// Permission instruction boxes
-.permission-box {
-  text-align: center;
-  padding: 20px;
-  border-radius: 8px;
-  border: 2px solid;
-  
-  &.denied {
-    color: var(--warning);
-    background: rgba(255, 140, 0, 0.1);
-    border-color: rgba(255, 140, 0, 0.3);
-  }
-  
-  &.prompt {
-    color: var(--avg);
-    background: rgba($colour-avg, 0.1);
-    border-color: rgba($colour-avg, 0.3);
-  }
-  
-  .permission-title {
-    margin: 0 0 15px 0;
-    font-weight: 600;
-    font-size: 16px;
-  }
-  
-  .permission-text {
-    margin: 0 0 15px 0;
-    color: #666;
-    font-size: 14px;
-  }
-  
-  .permission-hint {
-    margin: 0;
-    font-size: 12px;
-    color: #888;
-  }
+// Alias kept for backwards compatibility with dynamically-created DOM
+.notice-retry-btn {
+  @extend .btn-retry;
 }
+
 
 // Platform-specific instructions
 .platform-instructions {
@@ -1076,12 +1057,12 @@ h2 {
     padding: 15px 30px;
     border-radius: 6px;
     border: 1px solid;
-    color: var(--error);
-    background: var(--error-bg);
-    border-color: var(--error);
-    
+    color: var(--warning);
+    background: rgba(255, 140, 0, 0.1);
+    border-color: rgba(255, 140, 0, 0.3);
+
     .error-message {
-      color: var(--error);
+      color: var(--warning);
       font-size: 1.1em;
       margin-bottom: 10px;
       
@@ -1587,20 +1568,7 @@ h2 {
 }
 
 .location-carousel__error-retry {
-  float: right;
-  background: transparent;
-  color: var(--warning);
-  border: 1px solid var(--warning);
-  border-radius: 999px;
-  font-size: 0.82em;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 3px 14px;
-  transition: background 0.15s ease;
-
-  &:hover {
-    background: rgba(255, 140, 0, 0.15);
-  }
+  @extend .btn-retry;
 }
 
 .location-carousel__health-message {

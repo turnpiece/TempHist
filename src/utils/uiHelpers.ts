@@ -341,7 +341,8 @@ export function showFatalError(periodKey?: string): void {
   const errorMessage = 'Unable to load temperature data. The server may be temporarily unavailable — please wait a moment and try again.';
   updateDataNotice(errorMessage, {
     type: 'error',
-    title: '❌ No Data Available',
+    icon: '✕',
+    title: 'No Data Available',
     subtitle: errorMessage
   });
 }
@@ -444,7 +445,11 @@ function buildIncompleteNoticeContent(metadata: TemperatureDataMetadata): HTMLDi
 
   const titleEl = document.createElement('p');
   titleEl.className = 'notice-title large';
-  titleEl.textContent = '⚠ Failed to load some chart data.';
+  const warnIcon = document.createElement('span');
+  warnIcon.className = 'notice-icon';
+  warnIcon.textContent = '⚠';
+  titleEl.appendChild(warnIcon);
+  titleEl.appendChild(document.createTextNode(' Failed to load some chart data.'));
   contentEl.appendChild(titleEl);
 
   if (missingYearsText) {

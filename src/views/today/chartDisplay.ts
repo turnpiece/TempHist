@@ -41,15 +41,8 @@ export function showInitialLoadingState(): void {
 }
 
 export function showError(message: string): void {
-  const errorContainer = document.getElementById('errorContainer');
-  const errorMessage = document.getElementById('errorMessage');
   const loadingEl = document.getElementById('loading');
   const canvasEl = document.getElementById('tempChart');
-
-  if (!errorContainer || !errorMessage) {
-    console.warn('Error UI elements not found in DOM when showError called');
-    return;
-  }
 
   LoadingManager.stopGlobalLoading();
 
@@ -63,19 +56,43 @@ export function showError(message: string): void {
     canvasEl.classList.add('hidden');
   }
 
-  errorMessage.textContent = message;
-  errorContainer.style.display = 'block';
+  const dataNotice = document.getElementById('dataNotice');
+  if (dataNotice) {
+    const contentEl = document.createElement('div');
+    contentEl.className = 'notice-content error';
+
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn-retry';
+    retryBtn.type = 'button';
+    retryBtn.textContent = 'Retry';
+    retryBtn.addEventListener('click', () => {
+      hideError();
+      window.retryDataFetch?.();
+    });
+
+    const titleEl = document.createElement('p');
+    titleEl.className = 'notice-title large';
+    const icon = document.createElement('span');
+    icon.className = 'notice-icon';
+    icon.textContent = '✕';
+    titleEl.appendChild(icon);
+    titleEl.appendChild(document.createTextNode(' Unable to load data'));
+
+    const subtitleEl = document.createElement('p');
+    subtitleEl.className = 'notice-subtitle secondary';
+    subtitleEl.textContent = message;
+
+    contentEl.appendChild(retryBtn);
+    contentEl.appendChild(titleEl);
+    contentEl.appendChild(subtitleEl);
+
+    while (dataNotice.firstChild) dataNotice.removeChild(dataNotice.firstChild);
+    dataNotice.appendChild(contentEl);
+  }
 }
 
 export function hideError(): void {
-  const errorContainer = document.getElementById('errorContainer');
-  if (errorContainer) {
-    errorContainer.style.display = 'none';
-    const errorMessage = document.getElementById('errorMessage');
-    if (errorMessage) {
-      errorMessage.textContent = '';
-    }
-  }
+  updateDataNotice(null);
 }
 
 export function showChart(): void {

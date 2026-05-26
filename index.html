@@ -79,6 +79,9 @@
           <button id="useLocationBtn" class="btn btn-primary">
             📍 Use my location
           </button>
+          <p id="locationPermissionMsg" class="location-permission-denied" hidden>
+            Location access was denied. You can enable it in your browser settings.
+          </p>
           <h2 id="location-picker-heading" class="location-picker__heading">
             Or choose one:
           </h2>
@@ -134,13 +137,6 @@
               <div id="loading" class="loading">
                 <div class="spinner"></div>
                 <p id="loadingText" class="loading-text">Loading temperature data…</p>
-              </div>
-              
-              <div id="errorContainer" class="error-container" style="display: none;">
-                <div class="error-content">
-                  <div id="errorMessage" class="error-message"></div>
-                  <button id="reloadButton" class="reload-button">Reload</button>
-                </div>
               </div>
               
               <canvas id="tempChart" class="data-field"></canvas>

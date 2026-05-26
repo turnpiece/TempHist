@@ -97,28 +97,6 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
 
   chartContainer.appendChild(loadingDiv);
 
-  const errorContainer = document.createElement('div');
-  errorContainer.id = `${periodKey}ErrorContainer`;
-  errorContainer.className = 'error-container';
-  errorContainer.style.display = 'none';
-
-  const errorContent = document.createElement('div');
-  errorContent.className = 'error-content';
-
-  const errorMessage = document.createElement('div');
-  errorMessage.id = `${periodKey}ErrorMessage`;
-  errorMessage.className = 'error-message';
-  errorContent.appendChild(errorMessage);
-
-  const reloadButton = document.createElement('button');
-  reloadButton.id = `${periodKey}ReloadButton`;
-  reloadButton.className = 'reload-button';
-  reloadButton.textContent = 'Reload';
-  errorContent.appendChild(reloadButton);
-
-  errorContainer.appendChild(errorContent);
-  chartContainer.appendChild(errorContainer);
-
   const canvasEl = document.createElement('canvas');
   canvasEl.id = `${periodKey}Chart`;
   chartContainer.appendChild(canvasEl);
@@ -467,24 +445,37 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
     // Clear the loading message interval
     LoadingManager.stopPeriodLoading(periodLoadingInterval);
     
-    const errorContainer = document.getElementById(`${periodKey}ErrorContainer`);
-    const errorMessageElement = document.getElementById(`${periodKey}ErrorMessage`);
-    
-    if (errorContainer && errorMessageElement) {
-      errorContainer.style.display = 'block';
-      
-      // Generate context-specific error message
+    const dataNoticeEl = document.getElementById(`${periodKey}DataNotice`);
+    if (dataNoticeEl) {
       const errorMessage = generateErrorMessage(error);
-      errorMessageElement.textContent = errorMessage;
-      
-      // Add reload button functionality
-      const reloadButton = document.getElementById(`${periodKey}ReloadButton`);
-      if (reloadButton) {
-        reloadButton.addEventListener('click', () => {
-          // Re-trigger the render function
-          window.TempHistViews[periodKey]?.render?.();
-        });
-      }
+
+      const contentEl = document.createElement('div');
+      contentEl.className = 'notice-content error';
+
+      const retryBtn = document.createElement('button');
+      retryBtn.className = 'btn-retry';
+      retryBtn.type = 'button';
+      retryBtn.textContent = 'Retry';
+      retryBtn.addEventListener('click', () => { window.TempHistViews[periodKey]?.render?.(); });
+
+      const titleEl = document.createElement('p');
+      titleEl.className = 'notice-title large';
+      const icon = document.createElement('span');
+      icon.className = 'notice-icon';
+      icon.textContent = '✕';
+      titleEl.appendChild(icon);
+      titleEl.appendChild(document.createTextNode(' Unable to load data'));
+
+      const subtitleEl = document.createElement('p');
+      subtitleEl.className = 'notice-subtitle secondary';
+      subtitleEl.textContent = errorMessage;
+
+      contentEl.appendChild(retryBtn);
+      contentEl.appendChild(titleEl);
+      contentEl.appendChild(subtitleEl);
+
+      while (dataNoticeEl.firstChild) dataNoticeEl.removeChild(dataNoticeEl.firstChild);
+      dataNoticeEl.appendChild(contentEl);
     }
   }
 }
