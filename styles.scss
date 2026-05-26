@@ -1544,6 +1544,63 @@ h2 {
   color: #fff; // Explicit white colour to prevent browser link colour inheritance
 }
 
+/* Skeleton loading cards */
+.location-card--skeleton {
+  pointer-events: none;
+  cursor: default;
+  animation: carousel-pulse 1.8s ease-in-out infinite;
+  opacity: 0.3;
+
+  .location-card__image-wrapper {
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.location-card__name-skeleton {
+  height: 0.9em;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  margin: 0.55rem 0.75rem 0.75rem;
+  width: 65%;
+  display: block;
+}
+
+@keyframes carousel-pulse {
+  0%, 100% { opacity: 0.25; }
+  50%       { opacity: 0.45; }
+}
+
+/* Error state shown below skeleton cards when loading fails */
+.location-carousel__error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem 0.25rem;
+  flex-wrap: wrap;
+}
+
+.location-carousel__error-text {
+  color: var(--warning);
+  font-size: 0.9rem;
+}
+
+.location-carousel__error-retry {
+  background: transparent;
+  color: var(--warning);
+  border: 1px solid var(--warning);
+  border-radius: 999px;
+  font-size: 0.82em;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 3px 14px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 140, 0, 0.15);
+  }
+}
+
 /* Arrow buttons container */
 .location-carousel__arrows {
   display: none; // Hidden by default, shown after locations load

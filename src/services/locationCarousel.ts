@@ -106,6 +106,65 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
   }
 }
 
+const SKELETON_COUNT = 6;
+
+function createSkeletonCard(): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.className = 'location-card location-card--skeleton';
+  button.type = 'button';
+  button.disabled = true;
+  button.setAttribute('aria-hidden', 'true');
+
+  const imageWrapper = document.createElement('div');
+  imageWrapper.className = 'location-card__image-wrapper';
+  button.appendChild(imageWrapper);
+
+  const nameBar = document.createElement('span');
+  nameBar.className = 'location-card__name-skeleton';
+  button.appendChild(nameBar);
+
+  return button;
+}
+
+function showSkeletonCards(track: HTMLElement, heading: HTMLElement | null): void {
+  for (let i = 0; i < SKELETON_COUNT; i++) {
+    track.appendChild(createSkeletonCard());
+  }
+  if (heading) heading.classList.add('visible');
+}
+
+function showCarouselError(carousel: HTMLElement, track: HTMLElement): void {
+  // Stop skeleton pulse and dim cards to ~10%
+  track.querySelectorAll<HTMLElement>('.location-card--skeleton').forEach(card => {
+    card.style.opacity = '0.1';
+    card.style.animationName = 'none';
+  });
+
+  const errorEl = document.createElement('div');
+  errorEl.className = 'location-carousel__error';
+  errorEl.id = 'location-carousel-error';
+
+  const msg = document.createElement('span');
+  msg.className = 'location-carousel__error-text';
+  msg.textContent = 'Failed to load locations';
+
+  const retryBtn = document.createElement('button');
+  retryBtn.className = 'location-carousel__error-retry';
+  retryBtn.type = 'button';
+  retryBtn.textContent = 'Retry';
+  retryBtn.addEventListener('click', () => { initLocationCarousel(); });
+
+  errorEl.appendChild(msg);
+  errorEl.appendChild(retryBtn);
+
+  const arrows = carousel.querySelector('.location-carousel__arrows');
+  if (arrows) {
+    carousel.insertBefore(errorEl, arrows);
+  } else {
+    carousel.appendChild(errorEl);
+  }
+}
+
 /**
  * Create a location card element with image support
  * @param location - The location data
@@ -478,14 +537,22 @@ export async function initLocationCarousel(): Promise<void> {
     return;
   }
 
+  // Clear any previous state (skeleton cards + error message) before (re-)initialising
+  while (track.firstChild) track.removeChild(track.firstChild);
+  const existingError = document.getElementById('location-carousel-error');
+  if (existingError) existingError.remove();
+
+  // Show skeleton cards immediately so users see something while the API loads
+  const heading = document.getElementById('location-picker-heading');
+  showSkeletonCards(track, heading);
+
   try {
     // Load locations from API
     const locations = await loadPreapprovedLocations();
     
     if (locations.length === 0) {
-      // Hide the entire location selection section if no locations are available
-      console.warn('No locations available, hiding location selection section');
-      hideLocationSelectionSection();
+      console.warn('No locations available from API');
+      showCarouselError(carousel as HTMLElement, track);
       return;
     }
 
@@ -540,7 +607,6 @@ export async function initLocationCarousel(): Promise<void> {
     carouselUpdateArrowVisibility = updateArrowVisibility;
     
     // Show the heading and arrows now that locations are loaded
-    const heading = document.getElementById('location-picker-heading');
     const arrows = carousel.querySelector('.location-carousel__arrows');
     if (heading) {
       heading.classList.add('visible');
@@ -578,8 +644,7 @@ export async function initLocationCarousel(): Promise<void> {
     });
   } catch (error) {
     console.error('Error initialising location carousel:', error);
-    // Hide the entire location selection section on error
-    hideLocationSelectionSection();
+    showCarouselError(carousel as HTMLElement, track);
   }
 }
 
