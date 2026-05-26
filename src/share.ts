@@ -248,6 +248,9 @@ function hideAppChrome(): void {
         (link as HTMLAnchorElement).href = '/about';
       } else if (route === '/privacy') {
         (link as HTMLAnchorElement).href = '/privacy';
+      } else if (route === '/feed') {
+        // Rewrite feed link to absolute path so it works from /s/:id
+        (link as HTMLAnchorElement).href = '/#/feed';
       } else {
         const li = link.closest('li');
         if (li) (li as HTMLElement).style.display = 'none';
