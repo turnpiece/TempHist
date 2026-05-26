@@ -75,6 +75,7 @@ export default defineConfig(({ mode }) => {
           YEAR_LINK: isIndex ? '#/year' : '/#/year',
           ABOUT_LINK: isIndex ? '#/about' : '/about',
           PRIVACY_LINK: isIndex ? '#/privacy' : '/privacy',
+          FEED_LINK: isIndex ? '#/feed' : '/#/feed',
           ABOUT_ACTIVE: isAbout ? ' class="active"' : '',
           PRIVACY_ACTIVE: (isPrivacy || isPrivacyApp) ? ' class="active"' : '',
           // Hide app nav links (Today/week/month/year) on static pages where the

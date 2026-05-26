@@ -23,6 +23,7 @@ import { initLocationCarousel } from './services/locationCarousel';
 import { mainAppLogic } from './views/today';
 import { renderPeriod } from './views/period';
 import { renderAboutPage, renderPrivacyPage } from './views/about';
+import { renderFeedPage } from './views/feed';
 import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
@@ -273,6 +274,7 @@ window.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 
 window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
 window.TempHistViews.about = { render: () => renderAboutPage() };
 window.TempHistViews.privacy = { render: () => renderPrivacyPage() };
+window.TempHistViews.feed = { render: () => renderFeedPage() };
 
 // Note: The old mainAppLogic function body has been extracted to:
 // - views/today.ts (Today view logic)
@@ -292,6 +294,7 @@ if (!isSharePagePath()) {
     window.TempHistRouter.registerView('year', window.TempHistViews.year);
     window.TempHistRouter.registerView('about', window.TempHistViews.about);
     window.TempHistRouter.registerView('privacy', window.TempHistViews.privacy);
+    window.TempHistRouter.registerView('feed', window.TempHistViews.feed);
   }
 }
 

@@ -1781,3 +1781,244 @@ html.is-share-page #splashScreen {
     }
   }
 }
+
+// ── Public Feed page ─────────────────────────────────────────────────────────
+
+.feed-page {
+  padding-bottom: 3rem;
+}
+
+.feed-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.feed-desc {
+  color: rgba($colour-text, 0.75);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+  max-width: 680px;
+  line-height: 1.5;
+}
+
+// CSS-only tooltip on the ℹ icon
+.feed-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba($colour-text, 0.15);
+    color: rgba($colour-text, 0.7);
+    font-size: 0.75rem;
+    font-style: normal;
+    user-select: none;
+    transition: background 0.15s;
+
+    &:hover,
+    .feed-tooltip:focus-within & {
+      background: rgba($colour-text, 0.3);
+    }
+  }
+
+  &__bubble {
+    display: none;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(100% + 8px);
+    width: 280px;
+    background: rgba(20, 20, 60, 0.97);
+    border: 1px solid rgba($colour-text, 0.2);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: rgba($colour-text, 0.9);
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  &:hover &__bubble,
+  &:focus-within &__bubble {
+    display: block;
+  }
+}
+
+// Filter bar
+.feed-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+
+  &__btn {
+    padding: 0.35rem 0.9rem;
+    border: 1px solid rgba($colour-text, 0.25);
+    border-radius: 999px;
+    background: transparent;
+    color: rgba($colour-text, 0.7);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+    &:hover:not(:disabled) {
+      background: rgba($colour-text, 0.1);
+      color: $colour-text;
+      border-color: rgba($colour-text, 0.4);
+    }
+
+    &.active {
+      background: rgba($colour-text, 0.15);
+      color: $colour-text;
+      border-color: rgba($colour-text, 0.5);
+      font-weight: 600;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// Card grid
+.feed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+// Cards
+.feed-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba($colour-text, 0.1);
+  text-decoration: none;
+  color: $colour-text;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    border-color: rgba($colour-text, 0.25);
+    color: $colour-text;
+    text-decoration: none;
+  }
+
+  &__img-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1200 / 630;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+
+    &--loading {
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.04) 75%
+      );
+      background-size: 200% 100%;
+      animation: feed-shimmer 1.4s infinite linear;
+    }
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &__body {
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  &__city {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  &__meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: rgba($colour-text, 0.6);
+  }
+
+  &__period {
+    // intentionally inherits meta colour
+  }
+
+  &__time {
+    // intentionally inherits meta colour
+  }
+}
+
+@keyframes feed-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// Empty / error states
+.feed-empty,
+.feed-error {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem 1rem;
+  opacity: 0.7;
+}
+
+.feed-error {
+  color: var(--warning);
+
+  &::before {
+    content: '⚠️ ';
+  }
+}
+
+// Load more button
+.feed-load-more {
+  display: block;
+  margin: 0 auto;
+  padding: 0.6rem 2rem;
+  border: 1px solid rgba($colour-text, 0.25);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba($colour-text, 0.8);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: rgba($colour-text, 0.1);
+    color: $colour-text;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

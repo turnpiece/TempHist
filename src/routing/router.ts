@@ -83,6 +83,10 @@ export class TempHistRouter {
         viewElement = document.getElementById('privacyView');
         viewKey = 'privacy';
         break;
+      case '/feed':
+        viewElement = document.getElementById('feedView');
+        viewKey = 'feed';
+        break;
       default:
         debugLog('Unknown route, defaulting to today');
         viewElement = document.getElementById('todayView');
