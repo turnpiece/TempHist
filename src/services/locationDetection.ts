@@ -95,7 +95,7 @@ async function getCityFromCoords(lat: number, lon: number): Promise<string> {
 /**
  * Detect user location using browser geolocation API
  */
-export function detectUserLocationWithGeolocation(): Promise<string> {
+export function detectUserLocationWithGeolocation(): Promise<{ location: string; latitude: number; longitude: number }> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocation not supported'));
@@ -110,7 +110,7 @@ export function detectUserLocationWithGeolocation(): Promise<string> {
         try {
           const { latitude, longitude } = position.coords;
           const location = await getCityFromCoords(latitude, longitude);
-          resolve(location);
+          resolve({ location, latitude, longitude });
         } catch (error) {
           reject(error);
         }
@@ -130,7 +130,7 @@ export function detectUserLocationWithGeolocation(): Promise<string> {
 /**
  * Get location from IP address using ipapi.co
  */
-export async function getLocationFromIP(): Promise<{ location: string; timezone: string | null } | null> {
+export async function getLocationFromIP(): Promise<{ location: string; timezone: string | null; latitude: number | null; longitude: number | null } | null> {
   try {
     const response = await fetch('https://ipapi.co/json/');
     if (!response.ok) throw new Error('IP lookup failed');
@@ -140,6 +140,8 @@ export async function getLocationFromIP(): Promise<{ location: string; timezone:
       return {
         location: `${data.city}, ${data.country_name}`,
         timezone: data.timezone ?? null,
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
       };
     }
     return null;

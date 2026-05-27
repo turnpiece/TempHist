@@ -275,14 +275,14 @@ async function handleUseLocation(): Promise<void> {
 
   try {
     // Try geolocation first
-    const location = await detectUserLocationWithGeolocation();
-    if (location) {
-      await proceedWithLocation(location, true, 'detected'); // Mark as detected location
+    const geoResult = await detectUserLocationWithGeolocation();
+    if (geoResult) {
+      await proceedWithLocation(geoResult.location, true, 'detected', null, geoResult.latitude, geoResult.longitude);
       return;
     }
   } catch (error: any) {
     console.warn('Geolocation failed:', error);
-    
+
     // If user denied permission (error.code === 1), don't try IP fallback
     // Go directly to manual selection instead
     if (error?.code === 1) {
@@ -297,7 +297,7 @@ async function handleUseLocation(): Promise<void> {
     const ipResult = await getLocationFromIP();
     if (ipResult) {
       // Auto-select the IP-based location and proceed
-      await proceedWithLocation(ipResult.location, true, 'detected', ipResult.timezone); // Mark as detected location
+      await proceedWithLocation(ipResult.location, true, 'detected', ipResult.timezone, ipResult.latitude, ipResult.longitude);
       return;
     }
   } catch (error) {
@@ -442,9 +442,14 @@ function populateLocationDropdown(locations: PreapprovedLocation[]): void {
 /**
  * Handle manual location selection
  */
-export async function handleManualLocationSelection(selectedLocation: string, timezone: string | null = null): Promise<void> {
+export async function handleManualLocationSelection(
+  selectedLocation: string,
+  timezone: string | null = null,
+  latitude: number | null = null,
+  longitude: number | null = null
+): Promise<void> {
   debugLog('Manual location selected:', selectedLocation);
-  await proceedWithLocation(selectedLocation, false, 'manual', timezone); // Mark as manual selection
+  await proceedWithLocation(selectedLocation, false, 'manual', timezone, latitude, longitude);
 }
 
 /**
@@ -599,7 +604,9 @@ export async function proceedWithLocation(
   location: string,
   isDetectedLocation: boolean = false,
   locationSource: string = 'unknown',
-  timezone: string | null = null
+  timezone: string | null = null,
+  latitude: number | null = null,
+  longitude: number | null = null
 ): Promise<void> {
   debugLog('Proceeding with location:', location, 'isDetectedLocation:', isDetectedLocation, 'source:', locationSource);
 
@@ -608,7 +615,9 @@ export async function proceedWithLocation(
   window.tempLocationTimezone = timezone;
   window.tempLocationIsDetected = isDetectedLocation; // Track if this was actually detected
   window.tempLocationSource = locationSource; // Track the source: 'detected', 'manual', 'default'
-  debugLog('Set window.tempLocation to:', window.tempLocation, 'timezone:', timezone);
+  window.tempLatitude = latitude;
+  window.tempLongitude = longitude;
+  debugLog('Set window.tempLocation to:', window.tempLocation, 'timezone:', timezone, 'coords:', latitude, longitude);
 
   // Store in cookie for future visits
   setLocationCookie(location, locationSource, timezone);

@@ -166,6 +166,8 @@ export interface IPLocationResponse {
   city: string;
   country_name: string;
   timezone?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Analytics types
@@ -221,6 +223,8 @@ declare global {
     tempLocationTimezone: string | null;
     tempLocationSource: string | null;
     tempLocationIsDetected: boolean | null;
+    tempLatitude: number | null;
+    tempLongitude: number | null;
     currentUser: FirebaseUser | null;
     TempHist: {
       cache: {
@@ -261,7 +265,7 @@ declare global {
     getDisplayCity: (fullLocation: string) => string;
     getOrdinal: (n: number) => string;
     mainAppLogic: () => void;
-    handleManualLocationSelection: (selectedLocation: string, timezone?: string | null) => Promise<void>;
+    handleManualLocationSelection: (selectedLocation: string, timezone?: string | null, latitude?: number | null, longitude?: number | null) => Promise<void>;
     calculateTrendLine: (points: ChartDataPoint[], startX: number, endX: number) => {
       points: ChartDataPoint[];
       slope: number;

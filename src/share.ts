@@ -76,6 +76,8 @@ export async function createShare(params: ShareParams): Promise<string> {
       identifier: params.identifier,
       ref_year: params.ref_year,
       unit: 'celsius',
+      latitude: window.tempLatitude ?? null,
+      longitude: window.tempLongitude ?? null,
     }),
   });
   if (!response.ok) {
