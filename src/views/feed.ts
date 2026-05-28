@@ -8,6 +8,7 @@ import {
   renderShareChart,
   loadShareLocations,
   showShareError,
+  openShareModal,
 } from '../share';
 
 const LIMIT = 20;
@@ -98,71 +99,6 @@ function formatTimeAgo(isoString: string): string {
   return `${Math.floor(months / 12)}y ago`;
 }
 
-// ── Share modal ───────────────────────────────────────────────────────────────
-
-let activeModal: { el: HTMLElement; chart: any | null } | null = null;
-
-function closeModal(): void {
-  if (!activeModal) return;
-  if (activeModal.chart) {
-    activeModal.chart.destroy();
-  }
-  activeModal.el.remove();
-  activeModal = null;
-  document.body.style.overflow = '';
-  document.removeEventListener('keydown', handleModalKey);
-}
-
-function handleModalKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape') closeModal();
-}
-
-function openShareModal(shareId: string): void {
-  if (activeModal) closeModal();
-
-  const backdrop = document.createElement('div');
-  backdrop.className = 'share-modal-backdrop';
-  backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) closeModal();
-  });
-
-  const panel = document.createElement('div');
-  panel.className = 'share-modal-panel';
-  panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-modal', 'true');
-
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'share-modal-close';
-  closeBtn.setAttribute('aria-label', 'Close');
-  closeBtn.textContent = '×';
-  closeBtn.addEventListener('click', closeModal);
-  panel.appendChild(closeBtn);
-
-  backdrop.appendChild(panel);
-  document.body.appendChild(backdrop);
-  document.body.style.overflow = 'hidden';
-  document.addEventListener('keydown', handleModalKey);
-
-  activeModal = { el: backdrop, chart: null };
-
-  const refs = buildShareUI(panel);
-  panel.querySelector<HTMLElement>('.share-page-cta')?.style.setProperty('display', 'none');
-
-  (async () => {
-    try {
-      const [meta, locations] = await Promise.all([
-        fetchShareMetadata(shareId),
-        loadShareLocations(),
-      ]);
-      const result = await fetchShareTemperatureData(meta);
-      const chart = await renderShareChart(refs, meta, result, locations, false);
-      if (activeModal) activeModal.chart = chart;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Something went wrong.';
-      showShareError(refs, message);
-    }
-  })();
-}
 
 function buildCard(share: ShareItem): HTMLElement {
   const city = share.location.split(',')[0].trim();

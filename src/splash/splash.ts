@@ -15,6 +15,7 @@ import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
 import { renderAboutPage, renderPrivacyPage } from '../views/about';
 import { renderFeedPage } from '../views/feed';
+import { openShareModal } from '../share';
 import { buildLocationDisplay } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from '../views/today';
 
@@ -800,6 +801,96 @@ function setupSplashScreenListeners(): void {
   }
 }
 
+async function initSnapshotsCarousel(): Promise<void> {
+  const section = document.getElementById('snapshotsSection');
+  if (!section) return;
+
+  const base = getApiUrl('/v1/shares');
+  const url = new URL(base, window.location.origin);
+  url.searchParams.set('limit', '5');
+
+  let shares: any[];
+  try {
+    const res = await fetch(url.toString());
+    if (!res.ok) return;
+    const data = await res.json();
+    shares = data.shares ?? [];
+  } catch {
+    return;
+  }
+
+  if (!shares.length) return;
+
+  // Clear any previous content (e.g. on location change)
+  while (section.firstChild) section.removeChild(section.firstChild);
+
+  const heading = document.createElement('h3');
+  heading.className = 'splash-snapshots__heading';
+  const headingLink = document.createElement('a');
+  headingLink.href = '/feed';
+  headingLink.textContent = 'Snapshots';
+  heading.appendChild(headingLink);
+
+  const sub = document.createElement('p');
+  sub.className = 'splash-snapshots__sub';
+  sub.textContent = 'See what other users are discovering around the world.';
+
+  const carouselWrap = document.createElement('div');
+  carouselWrap.className = 'snapshot-carousel';
+
+  const track = document.createElement('div');
+  track.className = 'snapshot-carousel__track';
+
+  shares.forEach((share: any) => {
+    const city = share.location.split(',')[0].trim();
+    const imgSrc = getApiUrl(share.og_image_url);
+    const shareIdMatch = (share.share_url ?? '').match(/\/s\/([^/?#]+)/);
+    const shareId = shareIdMatch ? shareIdMatch[1] : null;
+
+    const card = document.createElement('a');
+    card.className = 'snapshot-card';
+    card.href = share.share_url;
+    card.title = city;
+
+    if (shareId) {
+      card.addEventListener('click', (e) => {
+        e.preventDefault();
+        openShareModal(shareId);
+      });
+    }
+
+    const imgWrap = document.createElement('div');
+    imgWrap.className = 'snapshot-card__img-wrap';
+    const img = document.createElement('img');
+    img.src = imgSrc;
+    img.alt = `${city} temperature chart`;
+    img.loading = 'lazy';
+    imgWrap.appendChild(img);
+
+    const label = document.createElement('div');
+    label.className = 'snapshot-card__label';
+    label.textContent = city;
+
+    card.appendChild(imgWrap);
+    card.appendChild(label);
+    track.appendChild(card);
+  });
+
+  carouselWrap.appendChild(track);
+
+  const cta = document.createElement('p');
+  cta.className = 'splash-snapshots__cta';
+  const ctaLink = document.createElement('a');
+  ctaLink.href = '/feed';
+  ctaLink.textContent = 'View All Snapshots →';
+  cta.appendChild(ctaLink);
+
+  section.appendChild(heading);
+  section.appendChild(sub);
+  section.appendChild(carouselWrap);
+  section.appendChild(cta);
+}
+
 /**
  * Initialize splash screen functionality
  */
@@ -889,9 +980,12 @@ export function initializeSplashScreen(): void {
 
   // Set up splash screen event listeners
   setupSplashScreenListeners();
-  
+
   // Set up mobile navigation
   setupMobileNavigation();
+
+  // Fire and forget — load recent snapshots in background
+  initSnapshotsCarousel();
 }
 
 /**

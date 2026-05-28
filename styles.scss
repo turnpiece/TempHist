@@ -1351,6 +1351,142 @@ h2 {
   }
 }
 
+// ── Splash snapshots section ─────────────────────────────────────────────────
+
+.splash-snapshots {
+  margin-top: 2.5rem;
+
+  &__heading {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.35rem;
+
+    a {
+      color: $colour-text;
+      text-decoration: none;
+      &:hover { text-decoration: underline; }
+    }
+  }
+
+  &__sub {
+    font-size: 0.85rem;
+    color: rgba($colour-text, 0.6);
+    margin: 0 0 1rem;
+  }
+
+  &__cta {
+    text-align: center;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+
+    a {
+      color: rgba($colour-text, 0.7);
+      text-decoration: none;
+      &:hover { color: $colour-text; }
+    }
+  }
+}
+
+.snapshot-carousel {
+  position: relative;
+  width: calc(100% + 5.25rem);
+  margin-left: -2.625rem;
+  margin-right: -2.625rem;
+
+  @media (min-width: 768px) {
+    width: calc(100vw - 2rem);
+    max-width: 100vw;
+    margin-left: calc(-50vw + 50% + 1rem);
+    margin-right: calc(-50vw + 50% + 1rem);
+  }
+
+  @media (min-width: 1200px) {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+  }
+
+  &__track {
+    display: flex;
+    justify-content: safe center;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding: 0.5rem 1rem 1rem;
+    scroll-behavior: smooth;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    touch-action: pan-x;
+
+    &::-webkit-scrollbar { display: none; }
+  }
+}
+
+.snapshot-card {
+  flex: 0 0 220px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba($colour-text, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  text-decoration: none;
+  color: $colour-text;
+  transition: transform 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    border-color: rgba($colour-text, 0.25);
+    color: $colour-text;
+    text-decoration: none;
+  }
+
+  &__img-wrap {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  &__label {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// ── Splash footer ─────────────────────────────────────────────────────────────
+
+.splash-footer {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba($colour-text, 0.12);
+  text-align: center;
+
+  p {
+    font-size: 0.78rem;
+    color: rgba($colour-text, 0.4);
+    margin: 0;
+  }
+
+  a {
+    color: rgba($colour-text, 0.4);
+    text-decoration: none;
+    &:hover { color: rgba($colour-text, 0.8); }
+  }
+}
+
 .location-carousel__track {
   display: flex;
   gap: 0.75rem; // Base gap (mobile)
@@ -2029,7 +2165,7 @@ html.is-share-page #splashScreen {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.7);
-  z-index: 1000;
+  z-index: 10000; // Above splash screen (z-index: 9999)
   display: flex;
   align-items: flex-start;
   justify-content: center;
