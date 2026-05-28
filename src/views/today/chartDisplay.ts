@@ -133,9 +133,9 @@ function actuallyShowChart(): void {
     dataPoints: 0,
   });
 
-  const incompleteDataWarning = document.getElementById('incompleteDataWarning');
+  const incompleteDataNotice = document.getElementById('incompleteDataNotice');
 
-  if (!incompleteDataWarning) {
+  if (!incompleteDataNotice || incompleteDataNotice.style.display === 'none') {
     updateDataNotice('', {
       debugOnly: true,
       useStructuredHtml: true,
@@ -144,7 +144,7 @@ function actuallyShowChart(): void {
       subtitle: `Showing data for ${getDisplayCity(window.tempLocation!)}`,
     });
   } else {
-    debugLog('Skipping success message because incomplete data warning is present');
+    debugLog('Skipping success message because incomplete data notice is present');
   }
 
   if (canvasEl) {

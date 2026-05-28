@@ -521,11 +521,13 @@ export function clearAllCachedData(): void {
     el.className = 'notice';
   });
   
-  // Clear any incomplete data warnings from previous location
-  const incompleteDataWarning = document.getElementById('incompleteDataWarning');
-  if (incompleteDataWarning) {
-    incompleteDataWarning.remove();
-    debugLog('Removed incomplete data warning from previous location');
+  // Clear any incomplete data notices from previous location
+  const incompleteDataNotice = document.getElementById('incompleteDataNotice');
+  if (incompleteDataNotice) {
+    incompleteDataNotice.style.display = 'none';
+    while (incompleteDataNotice.firstChild) incompleteDataNotice.removeChild(incompleteDataNotice.firstChild);
+    incompleteDataNotice.className = 'notice';
+    debugLog('Cleared incomplete data notice from previous location');
   }
   
   // Clear loading intervals and reset loading state

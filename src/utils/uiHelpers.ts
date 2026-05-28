@@ -469,14 +469,15 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?:
   const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
 
   if (isTodayView) {
-    const dataNotice = document.getElementById('dataNotice');
-    if (!dataNotice) return;
+    const noticeEl = document.getElementById('incompleteDataNotice');
+    if (!noticeEl) return;
 
-    while (dataNotice.firstChild) dataNotice.removeChild(dataNotice.firstChild);
-    dataNotice.className = 'notice status-warning';
-    dataNotice.appendChild(buildIncompleteNoticeContent(metadata));
+    while (noticeEl.firstChild) noticeEl.removeChild(noticeEl.firstChild);
+    noticeEl.appendChild(buildIncompleteNoticeContent(metadata));
+    noticeEl.style.display = 'block';
+    noticeEl.className = 'notice status-warning';
 
-    debugLog('Incomplete data warning displayed for Today view');
+    debugLog('Incomplete data warning displayed for Today view (incompleteDataNotice)');
     return;
   }
 
@@ -503,8 +504,12 @@ export function hideIncompleteDataNotice(periodKey?: string): void {
   const isTodayView = !periodKey || periodKey === 'today' || periodKey === 'daily';
   
   if (isTodayView) {
-    // For Today view, clear the dataNotice
-    updateDataNotice(null);
+    const noticeEl = document.getElementById('incompleteDataNotice');
+    if (noticeEl) {
+      noticeEl.style.display = 'none';
+      while (noticeEl.firstChild) noticeEl.removeChild(noticeEl.firstChild);
+      noticeEl.className = 'notice';
+    }
   } else {
     // For period-specific views, hide the period-specific notice element
     const noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
