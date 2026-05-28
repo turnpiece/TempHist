@@ -176,7 +176,7 @@ export function renderFeedPage(): void {
   header.className = 'feed-header';
 
   const h2 = document.createElement('h2');
-  h2.textContent = 'Public feed';
+  h2.textContent = 'Snapshots';
 
   const tooltipWrap = document.createElement('span');
   tooltipWrap.className = 'feed-tooltip';

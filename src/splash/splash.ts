@@ -14,6 +14,7 @@ import { LazyLoader } from '../utils/LazyLoader';
 import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
 import { renderAboutPage, renderPrivacyPage } from '../views/about';
+import { renderFeedPage } from '../views/feed';
 import { buildLocationDisplay } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from '../views/today';
 
@@ -810,17 +811,19 @@ export function initializeSplashScreen(): void {
     
     // Handle standalone pages by populating their content
     const currentPath = window.location.pathname;
-    if (currentPath === '/privacy' || currentPath === '/about') {
+    if (currentPath === '/privacy' || currentPath === '/about' || currentPath === '/feed') {
       debugLog('Populating content for standalone page:', currentPath);
-      
+
       // Set up mobile navigation for standalone pages
       setupMobileNavigation();
-      
+
       // Populate content based on the page
       if (currentPath === '/privacy') {
         renderPrivacyPage();
       } else if (currentPath === '/about') {
         renderAboutPage();
+      } else if (currentPath === '/feed') {
+        renderFeedPage();
       }
     }
     return;

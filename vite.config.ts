@@ -32,7 +32,8 @@ export default defineConfig(({ mode }) => {
         main: resolve(__dirname, 'index.html'),
         about: resolve(__dirname, 'about.html'),
         privacy: resolve(__dirname, 'privacy.html'),
-        privacyApp: resolve(__dirname, 'privacy-app.html')
+        privacyApp: resolve(__dirname, 'privacy-app.html'),
+        feed: resolve(__dirname, 'feed.html')
       }
     }
   },
@@ -50,6 +51,7 @@ export default defineConfig(({ mode }) => {
           if (url === '/about') req.url = '/about.html';
           else if (url === '/privacy') req.url = '/privacy.html';
           else if (url === '/privacy/app') req.url = '/privacy-app.html';
+          else if (url === '/feed') req.url = '/feed.html';
           next();
         });
       }
@@ -65,6 +67,7 @@ export default defineConfig(({ mode }) => {
         const isAbout = pageName.includes('about.html')
         const isPrivacyApp = pageName.includes('privacy-app.html')
         const isPrivacy = pageName.includes('privacy.html') && !isPrivacyApp
+        const isFeed = pageName.includes('feed.html')
         
         // Define variables for template substitution
         const vars = {
@@ -75,12 +78,13 @@ export default defineConfig(({ mode }) => {
           YEAR_LINK: isIndex ? '#/year' : '/#/year',
           ABOUT_LINK: isIndex ? '#/about' : '/about',
           PRIVACY_LINK: isIndex ? '#/privacy' : '/privacy',
-          FEED_LINK: isIndex ? '#/feed' : '/#/feed',
+          FEED_LINK: isIndex ? '#/feed' : '/feed',
           ABOUT_ACTIVE: isAbout ? ' class="active"' : '',
           PRIVACY_ACTIVE: (isPrivacy || isPrivacyApp) ? ' class="active"' : '',
+          FEED_ACTIVE: isFeed ? ' class="active"' : '',
           // Hide app nav links (Today/week/month/year) on static pages where the
           // SPA router is not active — visitors should enter the app via the home page
-          APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp) ? 'hidden' : ''
+          APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp || isFeed) ? 'hidden' : ''
         }
         
         // Helper function to load and substitute template

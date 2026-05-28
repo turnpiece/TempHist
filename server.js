@@ -253,6 +253,9 @@ app.use((req, res, next) => {
   if (requestedPath === '/privacy/app') {
     return sendDistHtml(req, res, 'privacy-app.html');
   }
+  if (requestedPath === '/feed') {
+    return sendDistHtml(req, res, 'feed.html');
+  }
   
   // Default to index.html for all other routes (SPA behavior)
   return sendDistHtml(req, res, 'index.html');
