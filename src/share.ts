@@ -35,7 +35,7 @@ interface ShareMetadata {
   created_at: string;
 }
 
-interface ShareUIRefs {
+export interface ShareUIRefs {
   section: HTMLElement;
   contentEl: HTMLElement;
   belowChartEl: HTMLElement;
@@ -275,7 +275,7 @@ function hideAppChrome(): void {
   }
 }
 
-async function loadShareLocations(): Promise<PreapprovedLocation[]> {
+export async function loadShareLocations(): Promise<PreapprovedLocation[]> {
   try {
     const res = await apiFetch(getApiUrl('/v1/locations/preapproved'));
     if (!res.ok) return [];
@@ -291,7 +291,7 @@ async function loadShareLocations(): Promise<PreapprovedLocation[]> {
   }
 }
 
-function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
+export function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   const section = document.createElement('section');
   section.className = 'share-page';
 
@@ -407,7 +407,7 @@ function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
   };
 }
 
-async function fetchShareMetadata(shareId: string): Promise<ShareMetadata> {
+export async function fetchShareMetadata(shareId: string): Promise<ShareMetadata> {
   const url = getApiUrl(`/v1/shares/${encodeURIComponent(shareId)}`);
   // apiFetch attaches the Firebase anonymous auth token — the API requires this
   // even though the share endpoint is conceptually public
@@ -421,7 +421,7 @@ async function fetchShareMetadata(shareId: string): Promise<ShareMetadata> {
   return res.json();
 }
 
-async function fetchShareTemperatureData(meta: ShareMetadata): Promise<JobResultResponse> {
+export async function fetchShareTemperatureData(meta: ShareMetadata): Promise<JobResultResponse> {
   const identifierSegment = meta.identifier ? `/${meta.identifier}` : '';
   const params = new URLSearchParams();
   if (meta.unit === 'fahrenheit') {
@@ -457,12 +457,13 @@ async function waitForChartJs(timeoutMs = 10000): Promise<void> {
   }
 }
 
-async function renderShareChart(
+export async function renderShareChart(
   refs: ShareUIRefs,
   meta: ShareMetadata,
   result: JobResultResponse,
-  locations: PreapprovedLocation[] = []
-): Promise<void> {
+  locations: PreapprovedLocation[] = [],
+  applyBg = true
+): Promise<any> {
   await waitForChartJs();
 
   const data = result.data;
@@ -509,7 +510,9 @@ async function renderShareChart(
   // Show generation datetime
   refs.generatedAtEl.textContent = formatGeneratedAt(meta.created_at);
 
-  applyTrendBackground(data.trend.slope ?? null, isFahrenheit ? 'fahrenheit' : '', undefined, data.trend.gradient_factor ?? null);
+  if (applyBg) {
+    applyTrendBackground(data.trend.slope ?? null, isFahrenheit ? 'fahrenheit' : '', undefined, data.trend.gradient_factor ?? null);
+  }
 
   // Hide spinner, show canvas, reveal all text content
   refs.loadingEl.classList.remove('visible');
@@ -642,6 +645,8 @@ async function renderShareChart(
   );
   chart.data.datasets[0].data = trendResult.points.map((p: ChartDataPoint) => ({ x: p.y, y: p.x }));
   chart.update();
+
+  return chart;
 }
 
 /**
@@ -735,7 +740,7 @@ function setMetaTag(attrName: 'property' | 'name', attrValue: string, content: s
   el.setAttribute('content', content);
 }
 
-function showShareError(refs: ShareUIRefs, message: string): void {
+export function showShareError(refs: ShareUIRefs, message: string): void {
   refs.loadingEl.classList.remove('visible');
   refs.loadingEl.classList.add('hidden');
   refs.titleEl.textContent = 'Share not found';

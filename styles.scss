@@ -2022,3 +2022,44 @@ html.is-share-page #splashScreen {
     cursor: not-allowed;
   }
 }
+
+// ── Share modal ───────────────────────────────────────────────────────────────
+
+.share-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
+}
+
+.share-modal-panel {
+  background: $colour-bg;
+  border: 1px solid rgba($colour-text, 0.15);
+  border-radius: 12px;
+  width: min(640px, 100%);
+  position: relative;
+  padding: 2rem 1.5rem 1.5rem;
+  flex-shrink: 0;
+  margin: auto;
+}
+
+.share-modal-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: $colour-text;
+  font-size: 1.5rem;
+  cursor: pointer;
+  opacity: 0.5;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+
+  &:hover { opacity: 1; }
+}
