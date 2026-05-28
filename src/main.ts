@@ -282,10 +282,10 @@ window.TempHistViews.feed = { render: () => renderFeedPage() };
 // - views/about.ts (About/Privacy pages)
 // All remaining initialization code is below.
 
-// Initialize router and register views (not needed on share pages — the router's
-// constructor fires handleRoute() via setTimeout and would fight with the share
-// page's own DOM setup)
-if (!isSharePagePath()) {
+// Initialize router and register views (not needed on share pages or standalone
+// static pages — the router hides all [data-view] elements and would blank the content)
+const isStandaloneStaticPage = ['/about', '/privacy', '/privacy/app', '/feed'].includes(window.location.pathname);
+if (!isSharePagePath() && !isStandaloneStaticPage) {
   window.TempHistRouter = new TempHistRouter();
   if (window.TempHistRouter && typeof window.TempHistRouter.registerView === 'function') {
     window.TempHistRouter.registerView('today', window.TempHistViews.today);
