@@ -800,7 +800,7 @@ function setupSplashScreenListeners(): void {
   }
 }
 
-async function initSnapshotsCarousel(): Promise<void> {
+export async function initSnapshotsCarousel(): Promise<void> {
   const section = document.getElementById('snapshotsSection');
   if (!section) return;
 

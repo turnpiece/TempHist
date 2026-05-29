@@ -71,7 +71,7 @@ const TOOLTIP_TEXT =
   'Because users are often more interested in exploring areas experiencing extreme weather ' +
   'or notable warming, this feed reflects human interest and is not a balanced scientific sample.';
 
-async function fetchShares(period: Period | '' = '', offset = 0): Promise<SharesResponse> {
+export async function fetchShares(period: Period | '' = '', offset = 0): Promise<SharesResponse> {
   const base = getApiUrl('/v1/shares');
   const url = new URL(base, window.location.origin);
   if (period) url.searchParams.set('period', period);
