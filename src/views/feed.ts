@@ -13,9 +13,9 @@ import {
 
 const LIMIT = 20;
 
-type Period = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type Period = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
-interface ShareItem {
+export interface ShareItem {
   id: string;
   location: string;
   period: Period;
@@ -100,7 +100,7 @@ function formatTimeAgo(isoString: string): string {
 }
 
 
-function buildCard(share: ShareItem): HTMLElement {
+export function buildCard(share: ShareItem): HTMLElement {
   const city = share.location.split(',')[0].trim();
   const periodLabel = formatPeriodSubheading(share);
   const timeAgo = formatTimeAgo(share.created_at);

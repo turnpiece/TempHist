@@ -1422,47 +1422,13 @@ h2 {
   }
 }
 
-.snapshot-card {
+// Feed cards inside the snapshot carousel need fixed flex sizing
+.snapshot-carousel__track .feed-card {
   flex: 0 0 220px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid rgba($colour-text, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  text-decoration: none;
-  color: $colour-text;
-  transition: transform 0.15s, box-shadow 0.15s;
-  display: flex;
-  flex-direction: column;
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-    border-color: rgba($colour-text, 0.25);
-    color: $colour-text;
-    text-decoration: none;
-  }
-
-  &__img-wrap {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.05);
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-  }
-
-  &__label {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  // Hide the timestamp — period label is enough in the compact carousel context
+  .feed-card__time {
+    display: none;
   }
 }
 
@@ -1496,46 +1462,28 @@ h2 {
   padding-block: 0.5rem;
   padding-bottom: 1rem; // Reduced since arrows are below
   padding-left: 1rem; // Lateral padding to prevent cards touching viewport edges
-  padding-right: 1rem; // Lateral padding to prevent cards touching viewport edges
+  padding-right: 1rem; // Matches padding-left; trailing padding is honoured by all current browsers
   scroll-behavior: smooth;
   width: 100%;
   position: relative;
   box-sizing: border-box; // Ensure padding is included in width calculation
-  
+
   // Larger gap and padding on medium screens
   @media (min-width: 768px) {
     gap: 1rem;
     padding-left: 1.5rem;
     padding-right: 1.5rem;
-    
-    // Update pseudo-element width to match padding
-    &::after {
-      width: 1.5rem;
-    }
   }
-  
+
   // Even larger gap and padding on large screens
   @media (min-width: 1200px) {
     gap: 1.25rem;
     padding-left: 2rem;
     padding-right: 2rem;
-    
-    // Update pseudo-element width to match padding
-    &::after {
-      width: 2rem;
-    }
   }
-  
+
   /* Ensure we can scroll to position 0 */
   scroll-snap-stop: normal;
-  
-  /* Add pseudo-element at the end to ensure padding is visible when scrolled to end */
-  &::after {
-    content: '';
-    flex-shrink: 0;
-    width: 1rem; // Match padding-right
-    height: 1px;
-  }
   
   /* Prevent page scroll when scrolling carousel */
   touch-action: pan-x; // Only allow horizontal scrolling, block vertical page scroll
@@ -1827,13 +1775,20 @@ h2 {
   
   // Ensure carousel track has lateral padding on mobile
   .location-carousel__track {
-    padding-left: 1.5rem; // Lateral padding to prevent cards touching viewport edges on mobile
-    padding-right: 1.5rem; // Lateral padding to prevent cards touching viewport edges on mobile
+    padding-left: 1.5rem;
+    padding-right: 1.5rem; // Matches padding-left
+  }
 
-    /* Update pseudo-element width to match mobile padding */
-    &::after {
-      width: 1.5rem; // Match mobile padding-right
-    }
+  // Snapshot carousel — same break-out adjustment as location carousel on mobile
+  .snapshot-carousel {
+    width: calc(100% + 2rem);
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
+
+  .snapshot-carousel__track {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
   // Match the reduced splash-content padding on mobile (carousel breaks out by 1.5rem, splash pads 1rem)

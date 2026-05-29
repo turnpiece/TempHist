@@ -14,8 +14,7 @@ import { LazyLoader } from '../utils/LazyLoader';
 import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
 import { renderAboutPage, renderPrivacyPage } from '../views/about';
-import { renderFeedPage } from '../views/feed';
-import { openShareModal } from '../share';
+import { renderFeedPage, buildCard, ShareItem } from '../views/feed';
 import { buildLocationDisplay } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from '../views/today';
 
@@ -842,38 +841,7 @@ async function initSnapshotsCarousel(): Promise<void> {
   track.className = 'snapshot-carousel__track';
 
   shares.forEach((share: any) => {
-    const city = share.location.split(',')[0].trim();
-    const imgSrc = getApiUrl(share.og_image_url);
-    const shareIdMatch = (share.share_url ?? '').match(/\/s\/([^/?#]+)/);
-    const shareId = shareIdMatch ? shareIdMatch[1] : null;
-
-    const card = document.createElement('a');
-    card.className = 'snapshot-card';
-    card.href = share.share_url;
-    card.title = city;
-
-    if (shareId) {
-      card.addEventListener('click', (e) => {
-        e.preventDefault();
-        openShareModal(shareId);
-      });
-    }
-
-    const imgWrap = document.createElement('div');
-    imgWrap.className = 'snapshot-card__img-wrap';
-    const img = document.createElement('img');
-    img.src = imgSrc;
-    img.alt = `${city} temperature chart`;
-    img.loading = 'lazy';
-    imgWrap.appendChild(img);
-
-    const label = document.createElement('div');
-    label.className = 'snapshot-card__label';
-    label.textContent = city;
-
-    card.appendChild(imgWrap);
-    card.appendChild(label);
-    track.appendChild(card);
+    track.appendChild(buildCard(share as ShareItem));
   });
 
   carouselWrap.appendChild(track);
