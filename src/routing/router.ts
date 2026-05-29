@@ -3,6 +3,7 @@
  */
 
 import { clearAllLoadingIntervals } from '../utils/uiHelpers';
+import { handleLocationChangeInternal } from '../splash/splash';
 
 declare const debugLog: (...args: any[]) => void;
 
@@ -87,6 +88,9 @@ export class TempHistRouter {
         viewElement = document.getElementById('feedView');
         viewKey = 'feed';
         break;
+      case '/splash':
+        handleLocationChangeInternal();
+        return;
       default:
         debugLog('Unknown route, defaulting to today');
         viewElement = document.getElementById('todayView');

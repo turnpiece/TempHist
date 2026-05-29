@@ -71,7 +71,7 @@ export default defineConfig(({ mode }) => {
         
         // Define variables for template substitution
         const vars = {
-          HOME_LINK: isIndex ? '#/today' : '/',
+          HOME_LINK: isIndex ? '#/splash' : '/',
           TODAY_LINK: isIndex ? '#/today' : '/#/today',
           WEEK_LINK: isIndex ? '#/week' : '/#/week',
           MONTH_LINK: isIndex ? '#/month' : '/#/month',
