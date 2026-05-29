@@ -887,7 +887,7 @@ h2 {
   #sidebar {
     position: fixed;
     inset: 0 auto 0 0;
-    width: max(160px, min(30vw, 200px)); // Ensure enough room for sidebar brand
+    width: max(180px, min(30vw, 200px)); // Ensure enough room for sidebar brand
     transform: translateX(-100%);
     background: $colour-bg; 
     z-index: 1000; 
@@ -902,7 +902,7 @@ h2 {
     }
     
     a:not(.sidebar-brand) {
-      padding: 8px 10px;
+      padding: 8px 14px;
       font-size: 1rem; // Ensure consistent font size
       line-height: 1.4; // Better line height for larger text
       white-space: nowrap; // Prevent text wrapping
@@ -920,7 +920,7 @@ h2 {
     left: 0;
     right: 0;
     height: 80px; // Occupies the sidebar's padding-top space
-    padding: 16px 16px 0 27px; // top:16px for visual alignment; left:27px aligns logo with nav item edges
+    padding: 16px 16px 0 16px; // equal lateral padding; shifts content slightly left
     box-sizing: border-box;
     text-decoration: none;
     color: var(--accent); // Match the colour of nav links
@@ -1824,18 +1824,6 @@ h2 {
     padding-bottom: 6rem; // Increased padding on mobile
   }
   
-  // Responsive sidebar width based on screen size
-  #sidebar {
-    // For very small screens (phones in portrait)
-    @media (max-width: 480px) {
-      width: min(35vw, 180px); // Slightly wider on very small screens
-    }
-    
-    // For small screens (phones in landscape, small tablets)
-    @media (min-width: 481px) and (max-width: 768px) {
-      width: min(30vw, 200px); // Standard mobile width
-    }
-  }
 }
 
 // Share page
