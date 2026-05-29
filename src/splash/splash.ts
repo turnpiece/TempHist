@@ -851,7 +851,7 @@ export async function initSnapshotsCarousel(): Promise<void> {
   cta.className = 'splash-snapshots__cta';
   const ctaLink = document.createElement('a');
   ctaLink.href = '/feed';
-  ctaLink.textContent = 'View All Snapshots →';
+  ctaLink.textContent = 'View more snapshots →';
   cta.appendChild(ctaLink);
 
   section.appendChild(heading);
