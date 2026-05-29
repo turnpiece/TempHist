@@ -16,15 +16,21 @@ vi.mock('firebase/app-check', () => ({
   ReCaptchaV3Provider: vi.fn(),
 }))
 
-vi.mock('../src/share', () => ({
-  buildShareUI: vi.fn(),
-  fetchShareMetadata: vi.fn(),
-  fetchShareTemperatureData: vi.fn(),
-  renderShareChart: vi.fn(),
-  loadShareLocations: vi.fn(),
-  showShareError: vi.fn(),
-  openShareModal: vi.fn(),
-}))
+// Use importOriginal so pure helpers like formatPeriodHeading keep their real
+// implementations; only stub the async/DOM-touching functions.
+vi.mock('../src/share', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/share')>();
+  return {
+    ...actual,
+    buildShareUI: vi.fn(),
+    fetchShareMetadata: vi.fn(),
+    fetchShareTemperatureData: vi.fn(),
+    renderShareChart: vi.fn(),
+    loadShareLocations: vi.fn(),
+    showShareError: vi.fn(),
+    openShareModal: vi.fn(),
+  };
+})
 
 vi.mock('../src/utils/uiHelpers', () => ({
   resetTrendBackground: vi.fn(),
@@ -208,10 +214,12 @@ describe('buildCard', () => {
     expect(img.alt).toContain('Tokyo')
   })
 
-  it('attaches a click handler that calls openShareModal', async () => {
+  it('attaches a click handler that calls openShareModal with id and prefill', async () => {
     const { openShareModal } = await import('../src/share')
-    const card = buildCard(makeShare({ share_url: '/s/abc123' }))
+    const share = makeShare({ share_url: '/s/abc123' })
+    const card = buildCard(share)
     card.click()
-    expect(openShareModal).toHaveBeenCalledWith('abc123')
+    // Called with the share ID and the share object as prefill
+    expect(openShareModal).toHaveBeenCalledWith('abc123', share)
   })
 })

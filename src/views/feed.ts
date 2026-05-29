@@ -1,6 +1,5 @@
 import { getApiUrl } from '../api/temperature';
 import { resetTrendBackground } from '../utils/uiHelpers';
-import { getOrdinal } from '../utils/location';
 import {
   buildShareUI,
   fetchShareMetadata,
@@ -9,7 +8,9 @@ import {
   loadShareLocations,
   showShareError,
   openShareModal,
+  formatPeriodHeading,
 } from '../share';
+import type { SharePrefill } from '../share';
 
 const LIMIT = 20;
 
@@ -33,30 +34,6 @@ interface SharesResponse {
   offset: number;
 }
 
-/**
- * Format the period subheading to match the pattern used on share pages:
- * daily → "27th March", weekly → "Week ending 27th March", etc.
- */
-function formatPeriodSubheading(share: ShareItem): string {
-  const { period, identifier, ref_year } = share;
-
-  if (identifier && identifier.includes('-')) {
-    const [monthStr, dayStr] = identifier.split('-');
-    const month = parseInt(monthStr, 10);
-    const day = parseInt(dayStr, 10);
-    const monthName = new Date(ref_year, month - 1, 1).toLocaleString('en-GB', { month: 'long' });
-    const friendlyDate = `${getOrdinal(day)} ${monthName}`;
-
-    switch (period) {
-      case 'daily':   return friendlyDate;
-      case 'weekly':  return `Week ending ${friendlyDate}`;
-      case 'monthly': return `Month ending ${friendlyDate}`;
-      case 'yearly':  return `Year ending ${friendlyDate}`;
-    }
-  }
-
-  return period;
-}
 
 const FILTER_OPTIONS: Array<{ label: string; period: Period | '' }> = [
   { label: 'All', period: '' },
@@ -102,7 +79,7 @@ function formatTimeAgo(isoString: string): string {
 
 export function buildCard(share: ShareItem): HTMLElement {
   const city = share.location.split(',')[0].trim();
-  const periodLabel = formatPeriodSubheading(share);
+  const periodLabel = formatPeriodHeading(share);
   const timeAgo = formatTimeAgo(share.created_at);
   const imgSrc = getApiUrl(share.og_image_url);
 
@@ -118,7 +95,7 @@ export function buildCard(share: ShareItem): HTMLElement {
   if (shareId) {
     a.addEventListener('click', (e) => {
       e.preventDefault();
-      openShareModal(shareId);
+      openShareModal(shareId, share as SharePrefill);
     });
   }
 

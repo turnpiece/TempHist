@@ -13,7 +13,7 @@ import {
   INITIAL_LOADING_TEXT
 } from './constants/index';
 import type { ChartDataPoint, JobResultResponse } from './types/index';
-import { getOrdinal, countryCodeToFlag } from './utils/location';
+import { getOrdinal, countryCodeToFlag, getCountryCodeForLocation } from './utils/location';
 import type { PreapprovedLocation } from './types/index';
 import {
   calculateTrendLine,
@@ -33,6 +33,15 @@ interface ShareMetadata {
   ref_year: number;
   unit: 'celsius' | 'fahrenheit';
   created_at: string;
+}
+
+/** Subset of ShareMetadata available before the full API response — used to
+ *  prefill the modal heading and period while the chart data is still loading. */
+export interface SharePrefill {
+  location: string;
+  period: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  identifier: string;
+  ref_year: number;
 }
 
 export interface ShareUIRefs {
@@ -291,25 +300,48 @@ export async function loadShareLocations(): Promise<PreapprovedLocation[]> {
   }
 }
 
-export function buildShareUI(viewOutlet: HTMLElement): ShareUIRefs {
+export function buildShareUI(viewOutlet: HTMLElement, prefill?: SharePrefill): ShareUIRefs {
   const section = document.createElement('section');
   section.className = 'share-page';
 
   const container = document.createElement('div');
   container.className = 'container';
 
-  // Wrap all text content in a pending div so nothing is visible until data loads
+  const locationEl = document.createElement('h2');
+  locationEl.className = 'location-heading';
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'period-subheading';
+
+  if (prefill) {
+    // We already know the location and period — show them immediately in a
+    // separate wrapper that is not hidden by .share-page-pending.
+    // (opacity:0 on a parent cannot be overridden by children, so the elements
+    // must live outside the pending wrapper to be visible while loading.)
+    const preHeaderEl = document.createElement('div');
+    preHeaderEl.className = 'share-page-preheader';
+    const prefillCity = prefill.location.split(',')[0].trim();
+    const prefillCode = getCountryCodeForLocation(prefill.location);
+    const prefillFlag = prefillCode ? countryCodeToFlag(prefillCode) : null;
+    locationEl.textContent = prefillFlag ? `${prefillFlag} ${prefillCity}` : prefillCity;
+    titleEl.textContent = formatPeriodHeading(prefill);
+    preHeaderEl.appendChild(locationEl);
+    preHeaderEl.appendChild(titleEl);
+    container.appendChild(preHeaderEl);
+  }
+
+  // Wrap summary text in a pending div so it stays hidden until data loads
   const contentEl = document.createElement('div');
   contentEl.className = 'share-page-pending';
   container.appendChild(contentEl);
 
-  const locationEl = document.createElement('h2');
-  locationEl.className = 'location-heading';
-  contentEl.appendChild(locationEl);
-
-  const titleEl = document.createElement('div');
-  titleEl.className = 'period-subheading';
-  contentEl.appendChild(titleEl);
+  if (!prefill) {
+    // Without prefill the headings stay inside the pending wrapper and fade in
+    // together with the summary once data has loaded (existing behaviour for the
+    // standalone /s/:id share page).
+    contentEl.appendChild(locationEl);
+    contentEl.appendChild(titleEl);
+  }
 
   const summaryTextEl = document.createElement('div');
   summaryTextEl.className = 'summary-text';
@@ -653,7 +685,7 @@ export async function renderShareChart(
  * Format the date portion of the identifier (MM-dd) as "27th March" (no year).
  * Used for daily, weekly, and monthly periods which all use MM-dd identifiers.
  */
-function formatFriendlyDate(meta: ShareMetadata): string {
+function formatFriendlyDate(meta: SharePrefill): string {
   const { period, identifier, ref_year } = meta;
 
   if (period === 'daily' || period === 'weekly' || period === 'monthly') {
@@ -680,8 +712,10 @@ function formatFriendlyDate(meta: ShareMetadata): string {
  * Format the period heading to match the website's existing pattern:
  * daily → "27th March", weekly → "Week ending 27th March",
  * monthly → "Month ending 27th March", yearly → "Year ending 27th March"
+ *
+ * Exported so feed.ts can use it for card labels without duplicating the logic.
  */
-function formatPeriodHeading(meta: ShareMetadata): string {
+export function formatPeriodHeading(meta: SharePrefill): string {
   const friendlyDate = formatFriendlyDate(meta);
 
   switch (meta.period) {
@@ -742,12 +776,30 @@ function setMetaTag(attrName: 'property' | 'name', attrValue: string, content: s
 
 // ── Share modal ───────────────────────────────────────────────────────────────
 
-let activeModal: { el: HTMLElement; chart: any | null } | null = null;
+interface SavedBackground {
+  image: string;
+  opacity: string;
+  base: string;
+}
+
+let activeModal: { el: HTMLElement; chart: any | null; savedBg: SavedBackground } | null = null;
 
 function closeModal(): void {
   if (!activeModal) return;
   if (activeModal.chart) activeModal.chart.destroy();
   activeModal.el.remove();
+  // Restore the background that was showing before the modal opened
+  const root = document.documentElement;
+  const { image, opacity, base } = activeModal.savedBg;
+  if (opacity === '1' && image) {
+    root.style.setProperty('--trend-bg-image', image);
+    root.style.setProperty('--trend-bg-opacity', '1');
+    if (base) root.style.setProperty('--static-bg-base', base);
+    else root.style.removeProperty('--static-bg-base');
+  } else {
+    root.style.setProperty('--trend-bg-opacity', '0');
+    root.style.removeProperty('--static-bg-base');
+  }
   activeModal = null;
   document.body.style.overflow = '';
   document.removeEventListener('keydown', handleModalKey);
@@ -757,7 +809,7 @@ function handleModalKey(e: KeyboardEvent): void {
   if (e.key === 'Escape') closeModal();
 }
 
-export function openShareModal(shareId: string): void {
+export function openShareModal(shareId: string, prefill?: SharePrefill): void {
   if (activeModal) closeModal();
 
   const backdrop = document.createElement('div');
@@ -783,9 +835,17 @@ export function openShareModal(shareId: string): void {
   document.body.style.overflow = 'hidden';
   document.addEventListener('keydown', handleModalKey);
 
-  activeModal = { el: backdrop, chart: null };
+  // Snapshot the current background so we can restore it when the modal closes
+  const root = document.documentElement;
+  const savedBg: SavedBackground = {
+    image:   root.style.getPropertyValue('--trend-bg-image'),
+    opacity: root.style.getPropertyValue('--trend-bg-opacity'),
+    base:    root.style.getPropertyValue('--static-bg-base'),
+  };
 
-  const refs = buildShareUI(panel);
+  activeModal = { el: backdrop, chart: null, savedBg };
+
+  const refs = buildShareUI(panel, prefill);
   panel.querySelector<HTMLElement>('.share-page-cta')?.style.setProperty('display', 'none');
 
   (async () => {
@@ -795,7 +855,8 @@ export function openShareModal(shareId: string): void {
         loadShareLocations(),
       ]);
       const result = await fetchShareTemperatureData(meta);
-      const chart = await renderShareChart(refs, meta, result, locations, false);
+      // applyBg defaults to true — the modal gets the trend gradient like any other view
+      const chart = await renderShareChart(refs, meta, result, locations);
       if (activeModal) activeModal.chart = chart;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong.';
