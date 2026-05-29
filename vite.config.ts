@@ -84,7 +84,9 @@ export default defineConfig(({ mode }) => {
           FEED_ACTIVE: isFeed ? ' class="active"' : '',
           // Hide app nav links (Today/week/month/year) on static pages where the
           // SPA router is not active — visitors should enter the app via the home page
-          APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp || isFeed) ? 'hidden' : ''
+          APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp || isFeed) ? 'hidden' : '',
+          // Hide Snapshots nav link when VITE_ENABLE_SNAPSHOTS=false
+          SNAPSHOTS_NAV_HIDDEN: env.VITE_ENABLE_SNAPSHOTS === 'false' ? 'hidden' : ''
         }
         
         // Helper function to load and substitute template

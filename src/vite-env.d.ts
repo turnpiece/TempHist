@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE?: string
+  readonly VITE_ENABLE_SNAPSHOTS?: string
   readonly DEV: boolean
   readonly PROD: boolean
   readonly SSR: boolean

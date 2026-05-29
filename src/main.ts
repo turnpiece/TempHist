@@ -23,6 +23,7 @@ import { initLocationCarousel } from './services/locationCarousel';
 import { mainAppLogic } from './views/today';
 import { renderPeriod } from './views/period';
 import { renderAboutPage, renderPrivacyPage } from './views/about';
+import { SNAPSHOTS_ENABLED } from './constants';
 import { renderFeedPage } from './views/feed';
 import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analytics/analytics';
@@ -274,7 +275,9 @@ window.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 
 window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
 window.TempHistViews.about = { render: () => renderAboutPage() };
 window.TempHistViews.privacy = { render: () => renderPrivacyPage() };
-window.TempHistViews.feed = { render: () => renderFeedPage() };
+if (SNAPSHOTS_ENABLED) {
+  window.TempHistViews.feed = { render: () => renderFeedPage() };
+}
 
 // Note: The old mainAppLogic function body has been extracted to:
 // - views/today.ts (Today view logic)
@@ -284,7 +287,8 @@ window.TempHistViews.feed = { render: () => renderFeedPage() };
 
 // Initialize router and register views (not needed on share pages or standalone
 // static pages — the router hides all [data-view] elements and would blank the content)
-const isStandaloneStaticPage = ['/about', '/privacy', '/privacy/app', '/feed'].includes(window.location.pathname);
+const standalonePages = ['/about', '/privacy', '/privacy/app', ...(SNAPSHOTS_ENABLED ? ['/feed'] : [])];
+const isStandaloneStaticPage = standalonePages.includes(window.location.pathname);
 if (!isSharePagePath() && !isStandaloneStaticPage) {
   window.TempHistRouter = new TempHistRouter();
   if (window.TempHistRouter && typeof window.TempHistRouter.registerView === 'function') {
@@ -294,7 +298,9 @@ if (!isSharePagePath() && !isStandaloneStaticPage) {
     window.TempHistRouter.registerView('year', window.TempHistViews.year);
     window.TempHistRouter.registerView('about', window.TempHistViews.about);
     window.TempHistRouter.registerView('privacy', window.TempHistViews.privacy);
-    window.TempHistRouter.registerView('feed', window.TempHistViews.feed);
+    if (SNAPSHOTS_ENABLED) {
+      window.TempHistRouter.registerView('feed', window.TempHistViews.feed);
+    }
   }
 }
 

@@ -7,6 +7,7 @@ import { detectUserLocationWithGeolocation, getLocationFromIP } from '../service
 import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../utils/dateUtils';
 import { resetCarouselState } from '../services/locationCarousel';
 import { apiFetch, getApiUrl } from '../api/temperature';
+import { SNAPSHOTS_ENABLED } from '../constants';
 import { getCountryCodeForLocation, getDisplayCity } from '../utils/location';
 import { DataCache } from '../utils/DataCache';
 import { LoadingManager } from '../utils/LoadingManager';
@@ -870,7 +871,9 @@ export function initializeSplashScreen(): void {
     
     // Handle standalone pages by populating their content
     const currentPath = window.location.pathname;
-    if (currentPath === '/privacy' || currentPath === '/about' || currentPath === '/feed') {
+    const isKnownStandalone = currentPath === '/privacy' || currentPath === '/about' ||
+      (SNAPSHOTS_ENABLED && currentPath === '/feed');
+    if (isKnownStandalone) {
       debugLog('Populating content for standalone page:', currentPath);
 
       // Set up mobile navigation for standalone pages
@@ -881,7 +884,7 @@ export function initializeSplashScreen(): void {
         renderPrivacyPage();
       } else if (currentPath === '/about') {
         renderAboutPage();
-      } else if (currentPath === '/feed') {
+      } else if (SNAPSHOTS_ENABLED && currentPath === '/feed') {
         renderFeedPage();
       }
     }
@@ -953,7 +956,7 @@ export function initializeSplashScreen(): void {
   setupMobileNavigation();
 
   // Fire and forget — load recent snapshots in background
-  initSnapshotsCarousel();
+  if (SNAPSHOTS_ENABLED) initSnapshotsCarousel();
 }
 
 /**

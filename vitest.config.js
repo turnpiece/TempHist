@@ -8,7 +8,8 @@ export default defineConfig({
     globals: true, // Enable global test functions (describe, it, expect)
     setupFiles: ['./test/setup.ts'], // Test setup file
     env: {
-      VITE_API_BASE: 'http://localhost:3000/api'
+      VITE_API_BASE: 'http://localhost:3000/api',
+      VITE_ENABLE_SNAPSHOTS: 'true'
     },
     coverage: {
       provider: 'v8',

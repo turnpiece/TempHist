@@ -2,6 +2,11 @@
  * Shared constants for the TempHist application
  */
 
+// ── Feature flags ─────────────────────────────────────────────────────────────
+// Set VITE_ENABLE_SNAPSHOTS=false in your .env to disable the Snapshots feed and
+// the splash-screen carousel.  Defaults to true when the variable is absent.
+export const SNAPSHOTS_ENABLED = import.meta.env.VITE_ENABLE_SNAPSHOTS !== 'false';
+
 // Default location constant
 export const DEFAULT_LOCATION = 'London, England, United Kingdom';
 
