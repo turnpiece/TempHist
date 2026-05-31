@@ -268,17 +268,19 @@ export async function prefetchApprovedLocations(): Promise<void> {
 async function handleUseLocation(): Promise<void> {
   const locationLoading = document.getElementById('locationLoading');
   const splashActions = document.querySelector('.splash-actions');
-  const manualLocationSection = document.getElementById('manualLocationSection');
 
   // Show loading state
   if (splashActions) (splashActions as HTMLElement).style.display = 'none';
-  if (manualLocationSection) manualLocationSection.style.display = 'none';
   if (locationLoading) locationLoading.style.display = 'flex';
 
   try {
     // Try geolocation first
     const geoResult = await detectUserLocationWithGeolocation();
     if (geoResult) {
+      apiFetch(getApiUrl('/v1/locations/selections'), {
+        method: 'POST',
+        body: JSON.stringify({ location_name: geoResult.location }),
+      }).catch(() => {});
       await proceedWithLocation(geoResult.location, true, 'detected', null, geoResult.latitude, geoResult.longitude);
       return;
     }
@@ -298,6 +300,10 @@ async function handleUseLocation(): Promise<void> {
   try {
     const ipResult = await getLocationFromIP();
     if (ipResult) {
+      apiFetch(getApiUrl('/v1/locations/selections'), {
+        method: 'POST',
+        body: JSON.stringify({ location_name: ipResult.location }),
+      }).catch(() => {});
       // Auto-select the IP-based location and proceed
       await proceedWithLocation(ipResult.location, true, 'detected', ipResult.timezone, ipResult.latitude, ipResult.longitude);
       return;
@@ -369,76 +375,6 @@ export function showManualLocationSelection(permissionDenied: boolean = false): 
       debugLog('Location carousel will use locations when they become available');
     }
   }
-}
-
-/**
- * Hide manual location selection
- * Since the UI uses a location carousel (not a separate manual section),
- * this just shows the splash actions which contain the carousel
- */
-export function hideManualLocationSelection(): void {
-  const splashActions = document.querySelector('.splash-actions');
-
-  if (splashActions) (splashActions as HTMLElement).style.display = 'flex';
-}
-
-/**
- * Populate location dropdown
- */
-function populateLocationDropdown(locations: PreapprovedLocation[]): void {
-  const locationSelect = document.getElementById('locationSelect') as HTMLSelectElement;
-  if (!locationSelect) {
-    debugLog('Location select element not found');
-    return;
-  }
-
-  debugLog('Populating location dropdown with', locations.length, 'locations');
-
-  // Clear existing options (Trusted Types safe)
-  while (locationSelect.firstChild) {
-    locationSelect.removeChild(locationSelect.firstChild);
-  }
-
-  // Add default option
-  const defaultOption = document.createElement('option');
-  defaultOption.value = '';
-  defaultOption.textContent = 'Select a location...';
-  locationSelect.appendChild(defaultOption);
-
-  // Add location options
-  locations.forEach(location => {
-    const option = document.createElement('option');
-
-    const valueParts = [location.name];
-    if (location.admin1 && location.admin1.trim()) {
-      valueParts.push(location.admin1.trim());
-    }
-    valueParts.push(location.country_name);
-
-    option.value = valueParts.join(', ');
-    option.textContent = location.name;
-
-    option.dataset.locationId = location.id;
-    option.dataset.locationSlug = location.slug;
-    option.dataset.countryCode = location.country_code;
-    if (location.timezone) {
-      option.dataset.timezone = location.timezone;
-    }
-    if (location.tier) {
-      option.dataset.tier = location.tier;
-    }
-
-    locationSelect.appendChild(option);
-  });
-  
-  // Re-enable the dropdown and confirm button
-  locationSelect.disabled = false;
-  const confirmBtn = document.getElementById('confirmLocationBtn') as HTMLButtonElement;
-  if (confirmBtn) {
-    confirmBtn.disabled = false;
-  }
-  
-  debugLog('Location dropdown populated with', locationSelect.options.length, 'options');
 }
 
 /**
@@ -749,54 +685,11 @@ export async function proceedWithLocation(
  */
 function setupSplashScreenListeners(): void {
   const useLocationBtn = document.getElementById('useLocationBtn');
-  const chooseLocationBtn = document.getElementById('chooseLocationBtn');
-  const locationSelect = document.getElementById('locationSelect');
-  const confirmLocationBtn = document.getElementById('confirmLocationBtn');
-  const backToSplashBtn = document.getElementById('backToSplashBtn');
 
   // Use my location button handler
   if (useLocationBtn) {
     useLocationBtn.addEventListener('click', async () => {
       await handleUseLocation();
-    });
-  }
-
-  // Choose location manually button handler
-  if (chooseLocationBtn) {
-    chooseLocationBtn.addEventListener('click', () => {
-      debugLog('Choose location manually button clicked');
-      showManualLocationSelection();
-    });
-  }
-
-  // Back to splash button handler
-  if (backToSplashBtn) {
-    backToSplashBtn.addEventListener('click', () => {
-      hideManualLocationSelection();
-    });
-  }
-
-  // Location select change handler
-  if (locationSelect) {
-    locationSelect.addEventListener('change', (e) => {
-      const target = e.target as HTMLSelectElement;
-      const confirmBtn = document.getElementById('confirmLocationBtn') as HTMLButtonElement;
-      if (confirmBtn) {
-        confirmBtn.disabled = !target.value;
-      }
-    });
-  }
-
-  // Confirm location button handler
-  if (confirmLocationBtn) {
-    confirmLocationBtn.addEventListener('click', async () => {
-      const select = locationSelect as HTMLSelectElement;
-      const selectedLocation = select.value;
-      if (selectedLocation) {
-        const selectedOption = select.options[select.selectedIndex];
-        const timezone = selectedOption?.dataset?.timezone ?? null;
-        await handleManualLocationSelection(selectedLocation, timezone);
-      }
     });
   }
 }
@@ -999,13 +892,11 @@ export function handleLocationChangeInternal(): void {
   // Reset splash screen to initial state
   const locationLoading = document.getElementById('locationLoading');
   const splashActions = document.querySelector('.splash-actions');
-  const manualLocationSection = document.getElementById('manualLocationSection');
   const useLocationBtn = document.getElementById('useLocationBtn');
   const heading = document.getElementById('location-picker-heading');
-  
+
   if (locationLoading) locationLoading.style.display = 'none';
   if (splashActions) (splashActions as HTMLElement).style.display = 'flex';
-  if (manualLocationSection) manualLocationSection.style.display = 'none';
   
   // Reset "Use my location" button and heading text to initial state
   if (useLocationBtn) {

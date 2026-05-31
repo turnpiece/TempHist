@@ -283,7 +283,13 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
     }
     valueParts.push(location.country_name);
     const fullLocationString = valueParts.join(', ');
-    
+
+    // Submit selection signal (fire-and-forget — must not block navigation)
+    apiFetch(getApiUrl('/v1/locations/selections'), {
+      method: 'POST',
+      body: JSON.stringify({ location_id: location.id }),
+    }).catch(() => {});
+
     // Call handleManualLocationSelection from main.ts (available globally)
     if (typeof window.handleManualLocationSelection === 'function') {
       await window.handleManualLocationSelection(
