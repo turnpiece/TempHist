@@ -59,6 +59,7 @@ export async function sendAnalytics(): Promise<void> {
       return;
     }
 
+    const meta = window.TempHist.analytics.lastRequestMetadata;
     const payload = {
       session_duration: analyticsData.sessionDuration,
       api_calls: analyticsData.apiCalls,
@@ -69,7 +70,15 @@ export async function sendAnalytics(): Promise<void> {
       error_type: analyticsData.errorType,
       recent_errors: analyticsData.recentErrors,
       app_version: __APP_VERSION__,
-      platform: "web"
+      platform: "web",
+      user_agent: navigator.userAgent,
+      ...(meta && {
+        response_time_ms: meta.response_time_ms,
+        ...(meta.cache_hit !== null && { cache_hit: meta.cache_hit }),
+        canonical_location: meta.canonical_location,
+        requested_location: meta.requested_location,
+        ...(meta.selection_method && { selection_method: meta.selection_method }),
+      }),
     };
 
     // Debug: Log the payload being sent

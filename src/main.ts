@@ -69,7 +69,8 @@ window.TempHist.analytics = window.TempHist.analytics || {
   apiFailures: 0,
   retryAttempts: 0,
   locationFailures: 0,
-  startTime: Date.now()
+  startTime: Date.now(),
+  lastRequestMetadata: null,
 };
 
 // Global debug configuration - only enabled in development

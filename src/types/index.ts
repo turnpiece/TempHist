@@ -171,6 +171,16 @@ export interface IPLocationResponse {
 }
 
 // Analytics types
+export type SelectionMethod = 'own_location' | 'carousel' | 'recent' | 'popular' | 'search';
+
+export interface LastRequestMetadata {
+  response_time_ms: number;
+  cache_hit: boolean | null; // null when X-Cache header absent
+  canonical_location: string;
+  requested_location: string;
+  selection_method: SelectionMethod | null;
+}
+
 export interface AnalyticsData {
   sessionDuration: number;
   apiCalls: number;
@@ -245,6 +255,7 @@ declare global {
         retryAttempts: number;
         locationFailures: number;
         startTime: number;
+        lastRequestMetadata: LastRequestMetadata | null;
       };
     };
     TempHistViews: Record<string, {

@@ -16,6 +16,9 @@ import {
 
 declare const debugLog: (...args: any[]) => void;
 
+let _lastXCache: string | null = null;
+export function getLastXCache(): string | null { return _lastXCache; }
+
 export function getApiUrl(path: string): string {
   const apiBase = import.meta.env.VITE_API_BASE;
 
@@ -101,6 +104,7 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
         continue;
       }
 
+      if (window.TempHist?.analytics) window.TempHist.analytics.apiFailures++;
       if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('CORS')) {
         console.error('Network/CORS error (may be caused by Cloudflare 524 timeout):', {
           url,
@@ -130,10 +134,12 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
         });
         throw new Error(`API timeout (524): The request exceeded Cloudflare's timeout limit`);
       }
+      if (window.TempHist?.analytics) window.TempHist.analytics.apiFailures++;
       console.error('API Error:', { status: response.status, statusText: response.statusText, url, body: errorText });
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    if (window.TempHist?.analytics) window.TempHist.analytics.apiCalls++;
     return response;
   }
 
@@ -218,6 +224,7 @@ export async function pollJobStatus(
       const status: AsyncJobResponse = await response.json();
 
       if (status.status === 'ready' && status.result) {
+        _lastXCache = response.headers.get('X-Cache');
         return status.result;
       } else if (status.status === 'error') {
         const errorMsg = status.error || 'Unknown job error';
@@ -276,6 +283,7 @@ async function fetchTemperatureDataSync(
       throw new Error(`Synchronous API failed: HTTP ${response.status}`);
     }
 
+    _lastXCache = response.headers.get('X-Cache');
     const data: TemperatureDataResponse = await response.json();
 
     return {
@@ -298,6 +306,7 @@ export async function fetchTemperatureDataAsync(
 ): Promise<JobResultResponse> {
   validateLocation(location);
   validateIdentifier(identifier);
+  _lastXCache = null;
 
   try {
     debugLog(`Attempting async fetch for ${period} data...`);

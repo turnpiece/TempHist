@@ -303,7 +303,7 @@ async function handleUseLocation(): Promise<void> {
     if (geoResult) {
       apiFetch(getApiUrl('/v1/locations/selections'), {
         method: 'POST',
-        body: JSON.stringify({ location_name: geoResult.location }),
+        body: JSON.stringify({ name: geoResult.location }),
       }).catch(() => {});
       await proceedWithLocation(geoResult.location, true, 'detected', null, geoResult.latitude, geoResult.longitude);
       return;
@@ -326,7 +326,7 @@ async function handleUseLocation(): Promise<void> {
     if (ipResult) {
       apiFetch(getApiUrl('/v1/locations/selections'), {
         method: 'POST',
-        body: JSON.stringify({ location_name: ipResult.location }),
+        body: JSON.stringify({ name: ipResult.location }),
       }).catch(() => {});
       // Auto-select the IP-based location and proceed
       await proceedWithLocation(ipResult.location, true, 'detected', ipResult.timezone, ipResult.latitude, ipResult.longitude);

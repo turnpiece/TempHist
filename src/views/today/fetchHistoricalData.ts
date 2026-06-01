@@ -13,6 +13,8 @@ import {
   calculateTemperatureRange,
   validateTemperatureDataResponse,
 } from '../../api/temperature';
+import { getLastXCache } from '../../api/temperature/client';
+import type { SelectionMethod } from '../../types/index';
 import { createTemperatureChart, updateChartTrendLine } from '../../chart/chart';
 import {
   updateSummaryTextElements,
@@ -38,6 +40,15 @@ declare const Chart: any;
 declare const debugLog: (...args: any[]) => void;
 declare const debugTime: (label: string) => void;
 declare const debugTimeEnd: (label: string) => void;
+
+function toSelectionMethod(source: string | null): SelectionMethod | null {
+  switch (source) {
+    case 'detected': return 'own_location';
+    case 'manual':   return 'carousel';
+    case 'default':  return 'popular';
+    default:         return null;
+  }
+}
 
 export async function fetchHistoricalData(): Promise<void> {
   Logger.startPerformance('fetchHistoricalData');
@@ -99,6 +110,7 @@ export async function fetchHistoricalData(): Promise<void> {
       }
     }
 
+    let responseTimeMs: number | null = null;
     if (!jobResult) {
       debugLog('About to call fetchTemperatureDataAsync - no cached data');
       const onProgress = (status: AsyncJobResponse) => {
@@ -106,7 +118,9 @@ export async function fetchHistoricalData(): Promise<void> {
       };
 
       debugLog('Starting async daily data fetch...');
+      const t0 = Date.now();
       jobResult = await fetchTemperatureDataAsync('daily', window.tempLocation!, identifier, onProgress, localToday);
+      responseTimeMs = Date.now() - t0;
 
       if (FeatureFlags.isEnabled('data_caching')) {
         const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier, localToday);
@@ -277,6 +291,16 @@ export async function fetchHistoricalData(): Promise<void> {
     setupShareButton('', { period: 'daily', identifier, ref_year: currentYear });
 
     if (window.currentUser) {
+      if (responseTimeMs !== null) {
+        const xCache = getLastXCache();
+        window.TempHist.analytics.lastRequestMetadata = {
+          response_time_ms: responseTimeMs,
+          cache_hit: xCache !== null ? xCache.toUpperCase() === 'HIT' : null,
+          canonical_location: jobResultData.data.location,
+          requested_location: window.tempLocation!,
+          selection_method: toSelectionMethod(window.tempLocationSource),
+        };
+      }
       sendAnalytics();
     }
 
