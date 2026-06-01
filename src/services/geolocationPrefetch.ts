@@ -15,15 +15,22 @@ export interface GeoPrefetchResult {
 }
 
 let prefetchPromise: Promise<GeoPrefetchResult | null> | null = null;
+let locationKnownPromise: Promise<GeoPrefetchResult | null> | null = null;
 
 export function getGeoPrefetchPromise(): Promise<GeoPrefetchResult | null> | null {
   return prefetchPromise;
 }
 
+export function getLocationKnownPromise(): Promise<GeoPrefetchResult | null> | null {
+  return locationKnownPromise;
+}
+
 export function startGeolocationPrefetch(): void {
   const cookieData = getLocationCookie();
   if (cookieData.location) return; // Return visitor — don't trigger permission dialog
-  prefetchPromise = runPrefetch();
+  let onLocationKnown!: (result: GeoPrefetchResult | null) => void;
+  locationKnownPromise = new Promise(resolve => { onLocationKnown = resolve; });
+  prefetchPromise = runPrefetch(onLocationKnown);
 }
 
 function waitForCurrentUser(timeoutMs = 5000): Promise<void> {
@@ -42,9 +49,12 @@ function waitForCurrentUser(timeoutMs = 5000): Promise<void> {
   });
 }
 
-async function runPrefetch(): Promise<GeoPrefetchResult | null> {
+async function runPrefetch(onLocationKnown: (result: GeoPrefetchResult | null) => void): Promise<GeoPrefetchResult | null> {
   try {
     const { location, latitude, longitude } = await detectUserLocationWithGeolocation();
+
+    // Signal immediately that location is known — callers can update UI before data arrives
+    onLocationKnown({ location, latitude, longitude });
 
     try {
       localStorage.setItem(LS_LAST_GEO_LOCATION, JSON.stringify({ location, latitude, longitude, storedAt: Date.now() }));
@@ -63,11 +73,12 @@ async function runPrefetch(): Promise<GeoPrefetchResult | null> {
     }
 
     try {
-      sessionStorage.setItem(SS_GEO_PREFETCH, JSON.stringify({ location, latitude, longitude, identifier, data, fetchedAt: Date.now() }));
+      sessionStorage.setItem(SS_GEO_PREFETCH, JSON.stringify({ location, latitude, longitude, identifier, fetchedAt: Date.now() }));
     } catch { /* quota exceeded */ }
 
     return { location, latitude, longitude };
   } catch {
+    onLocationKnown(null);
     return null;
   }
 }

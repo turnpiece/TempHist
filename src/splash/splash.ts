@@ -3,7 +3,7 @@
  */
 
 import { setLocationCookie, getLocationCookie } from '../utils/location';
-import { getGeoPrefetchPromise } from '../services/geolocationPrefetch';
+import { getGeoPrefetchPromise, getLocationKnownPromise } from '../services/geolocationPrefetch';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from '../services/locationDetection';
 import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../utils/dateUtils';
 import { resetCarouselState } from '../services/locationCarousel';
@@ -280,6 +280,17 @@ async function handleUseLocation(): Promise<void> {
 
     const prefetchPromise = getGeoPrefetchPromise();
     if (prefetchPromise) {
+      // As soon as location is known (before data arrives), update the spinner text
+      const locationKnown = getLocationKnownPromise();
+      if (locationKnown) {
+        locationKnown.then(result => {
+          if (result) {
+            const loadingText = document.querySelector<HTMLElement>('#locationLoading .loading-text');
+            if (loadingText) loadingText.textContent = 'Loading your location data…';
+          }
+        });
+      }
+
       const prefetch = await prefetchPromise;
       if (prefetch) geoResult = prefetch;
     }
