@@ -3,6 +3,7 @@
  */
 
 import { setLocationCookie, getLocationCookie } from '../utils/location';
+import { getGeoPrefetchPromise } from '../services/geolocationPrefetch';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from '../services/locationDetection';
 import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../utils/dateUtils';
 import { resetCarouselState } from '../services/locationCarousel';
@@ -274,8 +275,20 @@ async function handleUseLocation(): Promise<void> {
   if (locationLoading) locationLoading.style.display = 'flex';
 
   try {
-    // Try geolocation first
-    const geoResult = await detectUserLocationWithGeolocation();
+    // Use prefetch result if available (may already be resolved or still in flight)
+    let geoResult: { location: string; latitude: number; longitude: number } | null = null;
+
+    const prefetchPromise = getGeoPrefetchPromise();
+    if (prefetchPromise) {
+      const prefetch = await prefetchPromise;
+      if (prefetch) geoResult = prefetch;
+    }
+
+    // Fallback: run geolocation directly if prefetch wasn't started or returned null
+    if (!geoResult) {
+      geoResult = await detectUserLocationWithGeolocation();
+    }
+
     if (geoResult) {
       apiFetch(getApiUrl('/v1/locations/selections'), {
         method: 'POST',

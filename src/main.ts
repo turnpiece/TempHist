@@ -20,6 +20,7 @@ import { ErrorBoundary } from './utils/ErrorBoundary';
 import { Logger, LogLevel } from './utils/Logger';
 import { getApiUrl } from './api/temperature';
 import { initLocationCarousel } from './services/locationCarousel';
+import { startGeolocationPrefetch } from './services/geolocationPrefetch';
 import { mainAppLogic } from './views/today';
 import { renderPeriod } from './views/period';
 import { renderAboutPage, renderPrivacyPage } from './views/about';
@@ -37,8 +38,8 @@ import { isSharePagePath, initSharePage } from './share';
 
 // Initialise location carousel when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
-  // ...your existing code...
   await initLocationCarousel();
+  startGeolocationPrefetch();
 });
 
 
