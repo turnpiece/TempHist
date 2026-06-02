@@ -217,12 +217,14 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
 
     // Check cache first (if feature flag is enabled)
     let weatherData: any;
+    let fromCache = false;
     if (FeatureFlags.isEnabled('data_caching')) {
       const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier, localToday);
       debugLog(`${periodKey}: Checking cache with key:`, cacheKey);
       weatherData = DataCache.get(cacheKey);
 
       if (weatherData) {
+        fromCache = true;
         debugLog(`${periodKey}: Using cached data`);
       } else {
         debugLog(`${periodKey}: No cached data found`);
@@ -364,9 +366,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       periodKey === 'year' ? 'yearly' : 'daily';
 
     // Skip minimum loading time if using cached data for instant display
-    const isUsingCachedData = weatherData && FeatureFlags.isEnabled('data_caching');
-    
-    if (isUsingCachedData) {
+    if (fromCache) {
       // Show chart immediately for cached data
       actuallyShowPeriodChart();
     } else {
@@ -424,7 +424,6 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
 
       applyTrendBackground(trendData?.slope ?? null, unitGroup, undefined, trendData?.gradientFactor ?? null);
 
-      // Reveal share button now that data is ready
       setupShareButton(periodKey, { period: apiPeriod, identifier, ref_year: actualCurrentYear });
     }
 
