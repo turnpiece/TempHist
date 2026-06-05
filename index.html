@@ -101,22 +101,8 @@
           <!-- Location carousel -->
           <div class="hero-cities">
             <div class="location-carousel" id="location-carousel">
-              <div class="location-carousel__arrows">
-                <button
-                  class="location-carousel__arrow location-carousel__arrow--left"
-                  type="button"
-                  aria-label="Scroll locations left"
-                  data-direction="left"
-                >◀</button>
-                <div class="location-carousel__track" id="location-carousel-track" role="listbox" aria-label="Popular locations">
-                  <!-- Cards injected here -->
-                </div>
-                <button
-                  class="location-carousel__arrow location-carousel__arrow--right"
-                  type="button"
-                  aria-label="Scroll locations right"
-                  data-direction="right"
-                >▶</button>
+              <div class="location-carousel__track" id="location-carousel-track" role="listbox" aria-label="Popular locations">
+                <!-- Cards injected here -->
               </div>
               <div class="carousel-progress" id="carousel-progress">
                 <div class="carousel-progress-bar" id="carousel-progress-bar"></div>
@@ -194,6 +180,19 @@
           <a href="/privacy">Privacy Policy</a>
         </p>
       </footer>
+
+      <!-- Locations page view (shown when #/locations hash is active) -->
+      <div id="locationsView" class="locations-view" hidden>
+        <div class="locations-inner">
+          <div class="locations-header">
+            <button type="button" class="locations-back" onclick="window.__hideLocationsView?.()">← Back</button>
+            <h1 class="section-title">All locations</h1>
+          </div>
+          <div class="locations-grid">
+            <!-- Populated by locations.ts -->
+          </div>
+        </div>
+      </div>
 
     </div>
 

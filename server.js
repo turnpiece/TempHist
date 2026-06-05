@@ -62,9 +62,16 @@ function applySiteOriginToHtml(html, req) {
   return html.replace(/https:\/\/temphist\.com/g, getPublicOrigin(req));
 }
 
+function injectCountryCode(html, req) {
+  const raw = (req.headers['cf-ipcountry'] || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(raw)) return html;
+  return html.replace('</head>', `<script>window.__TH_COUNTRY="${raw}"</script></head>`);
+}
+
 function sendDistHtml(req, res, filename) {
   const filePath = path.join(__dirname, 'dist', filename);
-  const html = applySiteOriginToHtml(fs.readFileSync(filePath, 'utf-8'), req);
+  let html = applySiteOriginToHtml(fs.readFileSync(filePath, 'utf-8'), req);
+  html = injectCountryCode(html, req);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
   res.send(html);

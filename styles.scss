@@ -1557,62 +1557,48 @@ h2 {
 }
 
 .location-carousel__track {
+  // Mobile: horizontal scroll-snap row
   display: flex;
-  gap: 0.75rem; // Base gap (mobile)
+  gap: 0.75rem;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: none; // Disable snap to allow free scrolling to all positions
-  padding-block: 0.5rem;
-  padding-bottom: 1rem; // Reduced since arrows are below
-  padding-left: 1rem; // Lateral padding to prevent cards touching viewport edges
-  padding-right: 1rem; // Matches padding-left; trailing padding is honoured by all current browsers
-  scroll-behavior: smooth;
-  flex: 1;
-  min-width: 0; // Allow shrinking inside flex container
-  box-sizing: border-box;
-
-  // Larger gap and padding on medium screens
-  @media (min-width: 768px) {
-    gap: 1rem;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-
-  // Even larger gap and padding on large screens
-  @media (min-width: 1200px) {
-    gap: 1.25rem;
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-
-  /* Ensure we can scroll to position 0 */
-  scroll-snap-stop: normal;
-  
-  /* Prevent page scroll when scrolling carousel */
-  touch-action: pan-x; // Only allow horizontal scrolling, block vertical page scroll
-  overscroll-behavior-x: contain; // Prevent scroll chaining to parent
-  overscroll-behavior-y: contain; // Also prevent vertical scroll chaining
-  
-  /* Hide scrollbar but keep functionality */
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-  
-  &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-  }
-  
-  /* Smooth scrolling on iOS */
+  scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  
-  /* Ensure we can scroll to all positions */
-  scroll-padding: 0;
-  scroll-margin: 0;
+  padding-block: 0.5rem;
+  padding-bottom: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  scroll-behavior: smooth;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+
+  // Desktop: static grid — no scrolling needed
+  @media (min-width: 768px) {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    overflow-x: visible;
+    overflow-y: visible;
+    scroll-snap-type: none;
+    padding-left: 0;
+    padding-right: 0;
+    gap: 0.875rem;
+  }
 }
 
 .location-card {
-  flex: 0 0 200px; // card width - don't shrink or grow
-  min-width: 200px; // Ensure minimum width
+  flex: 0 0 42%; // ~2.3 cards visible on mobile
+  min-width: 0;
+  scroll-snap-align: start;
   border-radius: 0.75rem;
+
+  @media (min-width: 768px) {
+    flex: none; // grid controls sizing on desktop
+    scroll-snap-align: none;
+  }
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.35);
   padding: 0;
@@ -1766,88 +1752,30 @@ h2 {
   padding: 0;
 }
 
-/* Arrow buttons container — also wraps the scrollable track */
-.location-carousel__arrows {
-  display: none; // Hidden until locations load
-  align-items: center;
-  gap: 0.625rem;
+// Arrow button styles removed — carousel now uses scroll-snap (mobile) / grid (desktop)
 
-  &.visible {
-    display: flex; // Show as flex row: [arrow] [track] [arrow]
-  }
+// Hide progress bar on desktop (all cards visible in grid)
+@media (min-width: 768px) {
+  .carousel-progress { display: none; }
 }
 
-/* Arrow buttons */
-.location-carousel__arrow {
-  position: static; // Not absolutely positioned
-  z-index: 10;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 999px;
-  border: none;
-  cursor: pointer;
+// "More locations" link below carousel
+.see-all-link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  transition: opacity 0.2s ease, background 0.2s ease, transform 0.15s ease;
-  pointer-events: auto;
-  font-size: 1rem;
-  
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.4;
-    pointer-events: none;
-  }
-  
-  &:hover:not(:disabled) {
-    background: rgba(0, 0, 0, 0.9);
-    transform: scale(1.05);
-  }
-  
-  &:active:not(:disabled) {
-    background: rgba(0, 0, 0, 1);
-    transform: scale(0.95);
-  }
+  gap: 0.375rem;
+  color: var(--blue-bar, #6b8ed4);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  margin-top: 0.875rem;
+  transition: color 0.15s;
+
+  &:hover { color: $colour-text; }
 }
 
-// Arrow buttons use default positioning (below the track)
-
-/* Small screens: adjust arrows and padding for mobile */
 @media (max-width: 480px) {
-  .location-carousel__arrow {
-    width: 2.25rem;
-    height: 2.25rem;
-    font-size: 0.9rem;
-    background: rgba(0, 0, 0, 0.8);
-    display: inline-flex;
-  }
-
-  .location-carousel__arrows {
-    gap: 0.75rem;
-    padding: 0.25rem 0;
-  }
-
-  .location-carousel__track {
-    -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
-    padding-left: 1.5rem; // More lateral padding on mobile for better spacing
-    padding-right: 1.5rem; // More lateral padding on mobile for better spacing
-    
-    /* Update pseudo-element width to match mobile padding */
-    &::after {
-      width: 1.5rem; // Match mobile padding-right
-    }
-  }
-
-  .location-card {
-    flex: 0 0 115px; // Smaller card width on small screens
-    min-width: 115px; // Ensure minimum width on small screens
-
-    &__name {
-      font-size: 0.8rem;
-    }
-  }
+  .location-card__name { font-size: 0.85rem; }
 }
 
 // Responsive Design
@@ -1881,6 +1809,100 @@ h2 {
 
 @media (max-width: 420px) {
   .snap-grid { grid-template-columns: 1fr; }
+}
+
+// ── Locations page view ───────────────────────────────────────────────────────
+
+.locations-view {
+  padding: 3rem 2rem 5rem;
+  min-height: 60vh;
+
+  @media (max-width: 640px) { padding: 2rem 1rem 4rem; }
+}
+
+.locations-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.locations-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.locations-back {
+  background: none;
+  border: 1px solid rgba($colour-text, 0.25);
+  border-radius: 999px;
+  color: rgba($colour-text, 0.7);
+  font-size: 0.875rem;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+
+  &:hover { color: $colour-text; border-color: rgba($colour-text, 0.5); }
+}
+
+.locations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+
+  @media (min-width: 768px) { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}
+
+.location-item {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--r, 12px);
+  padding: 1rem 0.875rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+  }
+}
+
+.location-item__flag {
+  font-size: 1.4rem;
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+
+.location-item__name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: $colour-text;
+}
+
+.location-item__country {
+  font-size: 0.78rem;
+  color: rgba($colour-text, 0.55);
+}
+
+.locations-status {
+  grid-column: 1 / -1;
+  color: rgba($colour-text, 0.6);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+
+  &--error { color: var(--warning); }
 }
 
 // Share page

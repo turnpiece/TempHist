@@ -879,6 +879,19 @@ export function initializeSplashScreen(): void {
     return;
   }
 
+  // If the user navigated directly to #/locations, show that view
+  if (window.location.hash === '#/locations') {
+    if (splashScreen) splashScreen.style.display = 'block';
+    if (appShell) appShell.classList.add('hidden');
+    setupSplashScreenListeners();
+    setupMobileNavigation();
+    if (typeof (window as any).__showLocationsView === 'function') {
+      (window as any).__showLocationsView();
+    }
+    if (SNAPSHOTS_ENABLED) initSnapshotsCarousel();
+    return;
+  }
+
   // Show splash screen initially
   if (splashScreen) {
     splashScreen.style.display = 'block';

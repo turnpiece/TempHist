@@ -91,6 +91,11 @@ export class TempHistRouter {
       case '/splash':
         handleLocationChangeInternal();
         return;
+      case '/locations':
+        if (typeof (window as any).__showLocationsView === 'function') {
+          (window as any).__showLocationsView();
+        }
+        return;
       default:
         debugLog('Unknown route, defaulting to today');
         viewElement = document.getElementById('todayView');
