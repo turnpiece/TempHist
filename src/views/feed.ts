@@ -1,4 +1,4 @@
-import { getApiUrl } from '../api/temperature';
+import { getApiUrl, apiFetch } from '../api/temperature';
 import { resetTrendBackground } from '../utils/uiHelpers';
 import {
   buildShareUI,
@@ -51,7 +51,7 @@ export async function fetchShares(period: Period | '' = '', offset = 0): Promise
   url.searchParams.set('limit', String(LIMIT));
   if (offset > 0) url.searchParams.set('offset', String(offset));
 
-  const res = await fetch(url.toString());
+  const res = await apiFetch(url.toString());
   if (!res.ok) throw new Error(`Failed to load feed (${res.status}).`);
   return res.json();
 }

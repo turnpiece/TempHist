@@ -729,7 +729,7 @@ export async function initSnapshotsCarousel(): Promise<void> {
 
   let shares: any[];
   try {
-    const res = await fetch(url.toString());
+    const res = await apiFetch(url.toString());
     if (!res.ok) return;
     const data = await res.json();
     shares = data.shares ?? [];
@@ -1005,6 +1005,9 @@ export function handleLocationChangeInternal(): void {
   
   // Prefetch approved locations for selection
   prefetchApprovedLocations();
+
+  // Load recent snapshots in background
+  if (SNAPSHOTS_ENABLED) initSnapshotsCarousel();
 }
 
 // Expose handleManualLocationSelection globally for use by location carousel
