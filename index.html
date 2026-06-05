@@ -63,11 +63,11 @@
 
       <!-- Masthead: logo + wordmark -->
       <div class="masthead">
-        <div class="masthead-inner">
+        <a href="/" class="masthead-inner" onclick="if(document.getElementById('locationsView') && !document.getElementById('locationsView').hidden){ event.preventDefault(); window.__hideLocationsView?.(); }">
           <img src="/assets/logo.svg" alt="TempHist logo" width="50" height="50"
                onerror="this.onerror=null; this.src='/assets/logo.png'" />
           <span class="masthead-name">TempHist</span>
-        </div>
+        </a>
       </div>
 
       <!-- Hero -->
@@ -159,7 +159,7 @@
                   <polyline points="5,21 10,14 15,10 20,5" stroke="#f0d060" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
-              <h3>Spot long-term warming trends</h3>
+              <h3>Spot long-term trends</h3>
               <p>A trend line across five decades shows whether there's a warming or a cooling trend, or no real trend at all. In the stats below each chart you can see how certain the trend is.</p>
               <div class="feat-chart"><svg viewBox="0 0 300 120" xmlns="http://www.w3.org/2000/svg"><line x1="98.0" y1="6" x2="98.0" y2="114" stroke="rgba(255,255,255,.05)" stroke-width=".5"/><line x1="164.0" y1="6" x2="164.0" y2="114" stroke="rgba(255,255,255,.05)" stroke-width=".5"/><line x1="230.0" y1="6" x2="230.0" y2="114" stroke="rgba(255,255,255,.05)" stroke-width=".5"/><rect x="32" y="6.3" width="73.5" height="2.6" rx="1" fill="rgba(107,142,212,0.5)"/><rect x="32" y="9.2" width="107.5" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><text x="29.0" y="11.5" text-anchor="end" fill="rgba(255,255,255,.38)" font-size="5.5" font-family="Inter,sans-serif">2026</text><rect x="32" y="13.1" width="79.7" height="2.6" rx="1" fill="rgba(107,142,212,0.5)"/><rect x="32" y="16.0" width="105.5" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><text x="29.0" y="18.3" text-anchor="end" fill="rgba(255,255,255,.38)" font-size="5.5" font-family="Inter,sans-serif">2025</text><rect x="32" y="19.8" width="92.4" height="2.6" rx="1" fill="rgba(107,142,212,0.5)"/><rect x="32" y="22.7" width="94.7" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="26.6" width="70.8" height="2.6" rx="1" fill="rgba(107,142,212,0.5)"/><rect x="32" y="29.5" width="94.7" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="33.3" width="139.9" height="2.6" rx="1" fill="rgba(148,168,208,0.21)"/><rect x="32" y="36.2" width="115.7" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="40.1" width="122.8" height="2.6" rx="1" fill="rgba(148,168,208,0.21)"/><rect x="32" y="43.0" width="100.5" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="46.8" width="96.6" height="2.6" rx="1" fill="rgba(107,142,212,0.5)"/><rect x="32" y="49.7" width="108.9" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><text x="29.0" y="52.0" text-anchor="end" fill="rgba(255,255,255,.38)" font-size="5.5" font-family="Inter,sans-serif">2020</text><rect x="32" y="53.6" width="101.2" height="2.6" rx="1" fill="rgba(148,168,208,0.21)"/><rect x="32" y="56.5" width="94.9" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="60.3" width="156.5" height="2.6" rx="1" fill="rgba(224,80,48,0.5)"/><rect x="32" y="63.2" width="106.9" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="67.1" width="123.0" height="2.6" rx="1" fill="rgba(148,168,208,0.21)"/><rect x="32" y="70.0" width="92.8" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="73.8" width="162.3" height="2.6" rx="1" fill="rgba(224,80,48,0.5)"/><rect x="32" y="76.7" width="100.6" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="80.6" width="163.3" height="2.6" rx="1" fill="rgba(224,80,48,0.5)"/><rect x="32" y="83.5" width="91.4" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><text x="29.0" y="85.8" text-anchor="end" fill="rgba(255,255,255,.38)" font-size="5.5" font-family="Inter,sans-serif">2015</text><rect x="32" y="87.3" width="139.3" height="2.6" rx="1" fill="rgba(148,168,208,0.21)"/><rect x="32" y="90.2" width="118.9" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="94.1" width="97.4" height="2.6" rx="1" fill="rgba(148,168,208,0.21)"/><rect x="32" y="97.0" width="93.2" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="100.8" width="153.2" height="2.6" rx="1" fill="rgba(224,80,48,0.5)"/><rect x="32" y="103.7" width="110.2" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><rect x="32" y="107.6" width="146.4" height="2.6" rx="1" fill="rgba(148,168,208,0.21)"/><rect x="32" y="110.5" width="96.5" height="1.8" rx="1" fill="rgba(148,168,208,.22)"/><path d="M135.4,9.0 L137.3,15.8 L139.2,22.5 L141.1,29.3 L143.0,36.0 L144.9,42.8 L146.8,49.5 L148.8,56.3 L150.7,63.0 L152.6,69.8 L154.5,76.5 L156.4,83.3 L158.3,90.0 L160.2,96.8 L162.1,103.5 L164.1,110.3" fill="none" stroke="#f0d060" stroke-width="1.8" opacity="1"/></svg></div>
             </div>
@@ -184,13 +184,11 @@
       <!-- Locations page view (shown when #/locations hash is active) -->
       <div id="locationsView" class="locations-view" hidden>
         <div class="locations-inner">
-          <div class="locations-header">
-            <button type="button" class="locations-back" onclick="window.__hideLocationsView?.()">← Back</button>
-            <h1 class="section-title">All locations</h1>
-          </div>
-          <div class="locations-grid">
+          <h1 class="locations-title">Locations</h1>
+          <div class="locations-content">
             <!-- Populated by locations.ts -->
           </div>
+          <button type="button" class="locations-back" onclick="window.__hideLocationsView?.()">← Back</button>
         </div>
       </div>
 

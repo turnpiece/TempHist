@@ -1,7 +1,7 @@
 // src/services/locationCarousel.ts
 import type { PreapprovedLocation } from '../types/index';
 import { getApiUrl, apiFetch, checkApiHealth } from '../api/temperature';
-import { countryCodeToFlag } from '../locations/locations';
+import { flagImg } from '../locations/locations';
 
 const REGION_MAP: Record<string, string> = {
   AU: 'oceania', NZ: 'oceania',
@@ -278,8 +278,11 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
 
   const nameSpan = document.createElement('span');
   nameSpan.className = 'location-card__name';
-  const flag = countryCodeToFlag(location.country_code);
-  nameSpan.textContent = flag ? `${flag} ${location.name}` : (location.name || 'Unknown');
+  nameSpan.appendChild(flagImg(location.country_code, 20));
+  const nameText = document.createElement('span');
+  nameText.className = 'location-card__name-text';
+  nameText.textContent = location.name || 'Unknown';
+  nameSpan.appendChild(nameText);
   button.appendChild(nameSpan);
 
   // Add error handler for images after they're in the DOM

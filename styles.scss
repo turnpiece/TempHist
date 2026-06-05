@@ -1,6 +1,9 @@
 /* TempHist styles */
 @use "sass:color";
 
+// Ensure the HTML `hidden` attribute always wins over explicit `display` rules
+[hidden] { display: none !important; }
+
 :root {
   // Homepage redesign variables
   --bg-dark:  #22256a;
@@ -1162,6 +1165,7 @@ h2 {
   display: flex;
   align-items: center;
   gap: 0.875rem;
+  text-decoration: none;
 
   img { display: block; flex-shrink: 0; }
 }
@@ -1600,13 +1604,13 @@ h2 {
     scroll-snap-align: none;
   }
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06); // subtle placeholder while image loads
   padding: 0;
   text-align: left;
   cursor: pointer;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  aspect-ratio: 4 / 3;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 
   &:focus-visible {
@@ -1616,31 +1620,26 @@ h2 {
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-    background: rgba(255, 255, 255, 0.75);
-    
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+
     .location-card__name {
-      color: #000;
+      background: rgba(0, 0, 0, 0.7);
     }
   }
 
   &:active {
-    background: rgba(255, 255, 255, 0.85);
-    
     .location-card__name {
-      color: #000;
+      background: rgba(0, 0, 0, 0.75);
     }
   }
 }
 
 .location-card__image-wrapper {
-  aspect-ratio: 4 / 3;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  position: relative;
-  width: 100%;
-  flex-shrink: 0;
-  
+  background: rgba(255, 255, 255, 0.06);
+
   &.image-error::after {
     content: '📍';
     font-size: 2rem;
@@ -1656,11 +1655,11 @@ h2 {
 .location-card__image-placeholder {
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &::after {
     content: '📍';
     font-size: 2rem;
@@ -1687,15 +1686,32 @@ h2 {
 }
 
 .location-card__name {
-  padding: 0.5rem 0.75rem 0.7rem;
-  font-size: 1rem;
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.5rem 0.75rem 0.6rem;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  transition: background 0.15s ease;
+
+  .flag-img {
+    flex-shrink: 0;
+    border-radius: 2px;
+    margin-bottom: 0; // override the global .flag-img margin
+  }
+}
+
+.location-card__name-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #fff; // Explicit white colour to prevent browser link colour inheritance
+  min-width: 0;
 }
 
 /* Skeleton loading cards */
@@ -1711,12 +1727,15 @@ h2 {
 }
 
 .location-card__name-skeleton {
-  height: 0.9em;
+  position: absolute;
+  bottom: 0.65rem;
+  left: 0.75rem;
+  height: 0.8em;
   background: rgba(255, 255, 255, 0.25);
   border-radius: 4px;
-  margin: 0.55rem 0.75rem 0.75rem;
-  width: 65%;
+  width: 55%;
   display: block;
+  z-index: 1;
 }
 
 @keyframes carousel-pulse {
@@ -1825,14 +1844,28 @@ h2 {
   margin: 0 auto;
 }
 
-.locations-header {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+.locations-title {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 2rem;
+}
+
+.locations-section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba($colour-text, 0.4);
+  margin: 2.25rem 0 0.75rem;
+
+  &:first-child { margin-top: 0; }
 }
 
 .locations-back {
+  display: inline-block;
+  margin-top: 3rem;
   background: none;
   border: 1px solid rgba($colour-text, 0.25);
   border-radius: 999px;
@@ -1842,18 +1875,25 @@ h2 {
   cursor: pointer;
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s;
-  flex-shrink: 0;
 
   &:hover { color: $colour-text; border-color: rgba($colour-text, 0.5); }
 }
 
 .locations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 0.75rem;
 
-  @media (min-width: 768px) { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  @media (min-width: 768px) { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+
+  &--featured {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+
+    @media (min-width: 768px) { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  }
 }
+
+// ── Location items (text cards) ───────────────────────────────────────────────
 
 .location-item {
   background: rgba(255, 255, 255, 0.06);
@@ -1863,7 +1903,7 @@ h2 {
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
   text-align: left;
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
 
@@ -1877,12 +1917,65 @@ h2 {
     outline: 2px solid rgba(255, 255, 255, 0.5);
     outline-offset: 2px;
   }
+
+  // Featured card (image + overlay)
+  &--featured {
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 4 / 3;
+
+    .location-item__image-wrapper {
+      position: absolute;
+      inset: 0;
+
+      picture { display: block; width: 100%; height: 100%; }
+      img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+      &.image-error { background: rgba(255, 255, 255, 0.06); }
+    }
+
+    .location-item__image-placeholder {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .location-item__overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0.625rem 0.6rem;
+      background: rgba(0, 0, 0, 0.55);
+      overflow: hidden;
+      transition: background 0.15s ease;
+
+      .flag-img { border-radius: 2px; flex-shrink: 0; }
+    }
+
+    &:hover .location-item__overlay { background: rgba(0, 0, 0, 0.7); }
+
+    .location-item__name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+  }
 }
 
-.location-item__flag {
-  font-size: 1.4rem;
-  line-height: 1;
-  margin-bottom: 0.3rem;
+.flag-img {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 2px;
+  margin-bottom: 0.35rem;
 }
 
 .location-item__name {
