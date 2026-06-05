@@ -17,6 +17,7 @@ import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
 import { renderAboutPage, renderPrivacyPage } from '../views/about';
 import { renderFeedPage, buildCard, ShareItem } from '../views/feed';
+import { formatPeriodHeading } from '../share';
 import { buildLocationDisplay } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from '../views/today';
 
@@ -724,7 +725,7 @@ export async function initSnapshotsCarousel(): Promise<void> {
 
   const base = getApiUrl('/v1/shares');
   const url = new URL(base, window.location.origin);
-  url.searchParams.set('limit', '5');
+  url.searchParams.set('limit', '4');
 
   let shares: any[];
   try {
@@ -738,43 +739,84 @@ export async function initSnapshotsCarousel(): Promise<void> {
 
   if (!shares.length) return;
 
-  // Clear any previous content (e.g. on location change)
+  // Clear any previous content
   while (section.firstChild) section.removeChild(section.firstChild);
 
-  const heading = document.createElement('h3');
-  heading.className = 'splash-snapshots__heading';
-  const headingLink = document.createElement('a');
-  headingLink.href = '/feed';
-  headingLink.textContent = 'Snapshots';
-  heading.appendChild(headingLink);
+  // 2-column layout: text/CTA left, card grid right
+  const inner = document.createElement('div');
+  inner.className = 'snapshots-inner';
 
-  const sub = document.createElement('p');
-  sub.className = 'splash-snapshots__sub';
-  sub.textContent = 'See what other users are discovering around the world.';
+  // ── Left column ──────────────────────────────────────────────────
+  const left = document.createElement('div');
+  left.className = 'snap-left';
 
-  const carouselWrap = document.createElement('div');
-  carouselWrap.className = 'snapshot-carousel';
+  const eyebrow = document.createElement('p');
+  eyebrow.className = 'eyebrow';
+  eyebrow.textContent = 'Shared by users';
 
-  const track = document.createElement('div');
-  track.className = 'snapshot-carousel__track';
+  const heading = document.createElement('h2');
+  heading.className = 'section-title';
+  heading.textContent = 'Snapshots';
 
-  shares.forEach((share: any) => {
-    track.appendChild(buildCard(share as ShareItem));
-  });
+  const desc = document.createElement('p');
+  desc.className = 'snap-desc';
+  desc.textContent = 'Real TempHist views shared by people around the world. Each one shows the temperature history for a specific place and time period. Click any card to open it.';
 
-  carouselWrap.appendChild(track);
-
-  const cta = document.createElement('p');
-  cta.className = 'splash-snapshots__cta';
   const ctaLink = document.createElement('a');
   ctaLink.href = '/feed';
-  ctaLink.textContent = 'View more snapshots →';
-  cta.appendChild(ctaLink);
+  ctaLink.className = 'snap-link';
+  ctaLink.innerHTML = 'See all snapshots <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-  section.appendChild(heading);
-  section.appendChild(sub);
-  section.appendChild(carouselWrap);
-  section.appendChild(cta);
+  left.appendChild(eyebrow);
+  left.appendChild(heading);
+  left.appendChild(desc);
+  left.appendChild(ctaLink);
+
+  // ── Right column: 2×2 grid ────────────────────────────────────────
+  const grid = document.createElement('div');
+  grid.className = 'snap-grid';
+
+  shares.slice(0, 4).forEach((share: any) => {
+    const city = (share.location ?? '').split(',')[0].trim();
+    const periodLabel = formatPeriodHeading(share);
+    const imgSrc = getApiUrl(share.og_image_url);
+    const shareUrl = share.share_url;
+
+    const card = document.createElement('a');
+    card.className = 'snap-card';
+    card.href = shareUrl;
+    card.title = `${city} · ${periodLabel}`;
+
+    const chartDiv = document.createElement('div');
+    chartDiv.className = 'snap-chart';
+    const img = document.createElement('img');
+    img.src = imgSrc;
+    img.alt = `${city} temperature history — ${periodLabel}`;
+    img.loading = 'lazy';
+    chartDiv.appendChild(img);
+
+    const foot = document.createElement('div');
+    foot.className = 'snap-foot';
+
+    const locEl = document.createElement('span');
+    locEl.className = 'snap-loc';
+    locEl.textContent = city;
+
+    const periodEl = document.createElement('span');
+    periodEl.className = 'snap-period';
+    periodEl.textContent = periodLabel;
+
+    foot.appendChild(locEl);
+    foot.appendChild(periodEl);
+
+    card.appendChild(chartDiv);
+    card.appendChild(foot);
+    grid.appendChild(card);
+  });
+
+  inner.appendChild(left);
+  inner.appendChild(grid);
+  section.appendChild(inner);
 }
 
 /**
@@ -839,7 +881,7 @@ export function initializeSplashScreen(): void {
 
   // Show splash screen initially
   if (splashScreen) {
-    splashScreen.style.display = 'flex';
+    splashScreen.style.display = 'block';
     // Prevent body scroll when splash screen is visible (especially important for iOS Safari)
     const scrollY = window.scrollY;
     document.body.style.position = 'fixed';
@@ -890,7 +932,7 @@ export function handleLocationChangeInternal(): void {
   const appShell = document.getElementById('appShell');
   
   if (splashScreen) {
-    splashScreen.style.display = 'flex';
+    splashScreen.style.display = 'block';
     // Prevent body scroll when splash screen is visible (especially important for iOS Safari)
     const scrollY = window.scrollY;
     document.body.style.position = 'fixed';

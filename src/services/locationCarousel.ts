@@ -438,39 +438,37 @@ function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => v
     });
   });
   
-  // Update arrow visibility based on scroll position
+  const progressBar = document.getElementById('carousel-progress-bar') as HTMLElement | null;
+
+  // Update arrow visibility and progress indicator based on scroll position
   const updateArrowVisibility = () => {
+    // Skip if layout hasn't been calculated yet
+    if (track.clientWidth === 0) return;
+
     const leftArrow = carousel.querySelector('.location-carousel__arrow--left') as HTMLButtonElement;
     const rightArrow = carousel.querySelector('.location-carousel__arrow--right') as HTMLButtonElement;
-    
-    // Account for padding when checking scroll position
-    const scrollThreshold = 5; // Threshold to handle rounding and padding
-    
+
+    const scrollThreshold = 5;
     const currentScroll = track.scrollLeft;
     const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
-    
+
     if (leftArrow) {
-      // Allow scrolling left if we're not at position 0 (accounting for padding threshold)
-      const canScrollLeft = currentScroll > scrollThreshold;
-      // Don't disable completely, just dim it - still allow clicks to ensure we reach 0
-      leftArrow.style.opacity = canScrollLeft ? '1' : '0.6';
-      leftArrow.disabled = currentScroll <= 0; // Only disable at exactly 0
-      leftArrow.style.pointerEvents = currentScroll <= 0 ? 'none' : 'auto';
-      leftArrow.setAttribute('aria-disabled', String(currentScroll <= 0));
+      const atStart = currentScroll <= scrollThreshold;
+      leftArrow.style.display = atStart ? 'none' : '';
+      leftArrow.disabled = atStart;
     }
-    
+
     if (rightArrow) {
-      // Check if we're at or near the end (accounting for rounding)
-      const atEnd = currentScroll >= (maxScroll - scrollThreshold);
-      const canScrollRight = !atEnd && currentScroll < maxScroll;
-      
-      rightArrow.style.opacity = canScrollRight ? '1' : '0.4';
+      const atEnd = maxScroll > 0 && currentScroll >= (maxScroll - scrollThreshold);
+      rightArrow.style.display = (maxScroll === 0 || atEnd) ? 'none' : '';
       rightArrow.disabled = atEnd;
-      rightArrow.style.pointerEvents = atEnd ? 'none' : 'auto';
-      rightArrow.setAttribute('aria-disabled', String(atEnd));
+    }
+
+    if (progressBar) {
+      progressBar.style.width = maxScroll > 0 ? `${(currentScroll / maxScroll) * 100}%` : '0%';
     }
   };
-  
+
   // Update on scroll
   track.addEventListener('scroll', updateArrowVisibility);
   
