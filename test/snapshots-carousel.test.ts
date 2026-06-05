@@ -100,6 +100,7 @@ vi.mock('../src/share', () => ({
   loadShareLocations: vi.fn(),
   showShareError: vi.fn(),
   openShareModal: vi.fn(),
+  formatPeriodHeading: vi.fn((share: any) => share.period ?? 'Today'),
 }))
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
@@ -143,33 +144,33 @@ describe('initSnapshotsCarousel', () => {
     initSnapshotsCarousel = mod.initSnapshotsCarousel
   })
 
-  it('populates the section with heading, sub, carousel, and CTA when shares are returned', async () => {
+  it('populates the section with 2-column layout, heading, description, CTA and card grid when shares are returned', async () => {
     mockFetchShares([makeShare('s1', 'London'), makeShare('s2', 'Paris'), makeShare('s3', 'Tokyo')])
 
     await initSnapshotsCarousel()
 
     const section = document.getElementById('snapshotsSection')!
-    expect(section.querySelector('.splash-snapshots__heading')).not.toBeNull()
-    expect(section.querySelector('.splash-snapshots__sub')).not.toBeNull()
-    expect(section.querySelector('.snapshot-carousel')).not.toBeNull()
-    expect(section.querySelector('.splash-snapshots__cta')).not.toBeNull()
+    expect(section.querySelector('.snapshots-inner')).not.toBeNull()
+    expect(section.querySelector('.snap-left')).not.toBeNull()
+    expect(section.querySelector('.snap-grid')).not.toBeNull()
+    expect(section.querySelector('.snap-link')).not.toBeNull()
   })
 
-  it('heading links to /feed', async () => {
+  it('section title reads "Snapshots"', async () => {
     mockFetchShares([makeShare('s1')])
 
     await initSnapshotsCarousel()
 
-    const link = document.querySelector('.splash-snapshots__heading a') as HTMLAnchorElement
-    expect(link?.getAttribute('href')).toBe('/feed')
+    const heading = document.querySelector('.snap-left .section-title') as HTMLElement
+    expect(heading?.textContent).toBe('Snapshots')
   })
 
-  it('CTA links to /feed', async () => {
+  it('CTA snap-link links to /feed', async () => {
     mockFetchShares([makeShare('s1')])
 
     await initSnapshotsCarousel()
 
-    const link = document.querySelector('.splash-snapshots__cta a') as HTMLAnchorElement
+    const link = document.querySelector('a.snap-link') as HTMLAnchorElement
     expect(link?.getAttribute('href')).toBe('/feed')
   })
 
@@ -178,18 +179,18 @@ describe('initSnapshotsCarousel', () => {
 
     await initSnapshotsCarousel()
 
-    const cards = document.querySelectorAll('.feed-card')
+    const cards = document.querySelectorAll('.snap-card')
     expect(cards).toHaveLength(3)
   })
 
-  it('fetches from the /v1/shares endpoint with limit=5', async () => {
+  it('fetches from the /v1/shares endpoint with limit=4', async () => {
     mockFetchShares([makeShare('s1')])
 
     await initSnapshotsCarousel()
 
     const calledUrl = vi.mocked(fetch).mock.calls[0][0] as string
     expect(calledUrl).toContain('/v1/shares')
-    expect(calledUrl).toContain('limit=5')
+    expect(calledUrl).toContain('limit=4')
   })
 
   it('does nothing when the section element is not in the DOM', async () => {
@@ -231,13 +232,13 @@ describe('initSnapshotsCarousel', () => {
     // First call
     mockFetchShares([makeShare('s1')])
     await initSnapshotsCarousel()
-    expect(document.querySelectorAll('.feed-card')).toHaveLength(1)
+    expect(document.querySelectorAll('.snap-card')).toHaveLength(1)
 
     // Second call with different shares
     mockFetchShares([makeShare('s2', 'Paris'), makeShare('s3', 'Tokyo')])
     await initSnapshotsCarousel()
 
     // Should show only the new cards, not the old ones
-    expect(document.querySelectorAll('.feed-card')).toHaveLength(2)
+    expect(document.querySelectorAll('.snap-card')).toHaveLength(2)
   })
 })
