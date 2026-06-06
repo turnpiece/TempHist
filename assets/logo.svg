@@ -1,4 +1,4 @@
-<svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
 
   <!-- Bars with climate-stripes colouring: blue=cool, red=warm, grey=near-average -->
   <rect x="0" y="10" width="15" height="3" fill="#3B82F6" />
