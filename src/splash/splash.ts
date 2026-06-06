@@ -17,7 +17,8 @@ import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
 import { renderAboutPage, renderPrivacyPage } from '../views/about';
 import { renderFeedPage, buildCard, ShareItem } from '../views/feed';
-import { formatPeriodHeading } from '../share';
+import { flagImg } from '../locations/locations';
+import { formatPeriodHeading, openShareModal } from '../share';
 import { buildLocationDisplay } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from '../views/today';
 
@@ -205,6 +206,18 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
 }
 
 /**
+ * After prefetchedLocations loads, add flags to any snap cards already rendered without them
+ */
+function refreshSnapFlags(): void {
+  document.querySelectorAll<HTMLElement>('.snap-loc[data-city]').forEach(el => {
+    if (el.querySelector('.flag-img')) return;
+    const cc = getCountryCodeForLocation(el.dataset.city!);
+    if (!cc) return;
+    el.prepend(flagImg(cc, 20));
+  });
+}
+
+/**
  * After prefetchedLocations loads, re-render any visible location heading with the correct flag
  */
 function refreshLocationFlag(): void {
@@ -256,6 +269,8 @@ export async function prefetchApprovedLocations(): Promise<void> {
     // If a location heading is already visible (cookie fast-path rendered before prefetch),
     // re-render it now with the correct country flag
     refreshLocationFlag();
+    // Fill flags on any snap cards already rendered
+    refreshSnapFlags();
   } catch (error) {
     debugLog('Failed to prefetch approved locations:', error);
     // Store empty array if prefetch fails
@@ -787,6 +802,15 @@ export async function initSnapshotsCarousel(): Promise<void> {
     card.href = shareUrl;
     card.title = `${city} · ${periodLabel}`;
 
+    const shareIdMatch = shareUrl.match(/\/s\/([^/?#]+)/);
+    const shareId = shareIdMatch ? shareIdMatch[1] : null;
+    if (shareId) {
+      card.addEventListener('click', (e) => {
+        e.preventDefault();
+        openShareModal(shareId, share);
+      });
+    }
+
     const chartDiv = document.createElement('div');
     chartDiv.className = 'snap-chart';
     const img = document.createElement('img');
@@ -800,7 +824,10 @@ export async function initSnapshotsCarousel(): Promise<void> {
 
     const locEl = document.createElement('span');
     locEl.className = 'snap-loc';
-    locEl.textContent = city;
+    locEl.dataset.city = city;
+    const countryCode = getCountryCodeForLocation(city);
+    if (countryCode) locEl.appendChild(flagImg(countryCode, 20));
+    locEl.appendChild(document.createTextNode(city));
 
     const periodEl = document.createElement('span');
     periodEl.className = 'snap-period';
