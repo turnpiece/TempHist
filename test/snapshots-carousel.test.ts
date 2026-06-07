@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 // ── Module mocks ─────────────────────────────────────────────────────────────
 // splash.ts has many dependencies; mock them all so we can test just
@@ -139,9 +139,19 @@ describe('initSnapshotsCarousel', () => {
     vi.resetAllMocks()
     global.fetch = vi.fn()
     setupDOM()
+    // apiFetch() requires window.currentUser to be set, otherwise it throws
+    // before ever reaching the mocked global fetch above
+    ;(window as any).currentUser = {
+      uid: 'test-uid',
+      getIdToken: vi.fn().mockResolvedValue('mock-id-token'),
+    }
     // Import after mocks are set up
     const mod = await import('../src/splash/splash')
     initSnapshotsCarousel = mod.initSnapshotsCarousel
+  })
+
+  afterEach(() => {
+    delete (window as any).currentUser
   })
 
   it('populates the section with 2-column layout, heading, description, CTA and card grid when shares are returned', async () => {

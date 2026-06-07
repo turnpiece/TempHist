@@ -499,10 +499,10 @@ a {
   font-weight: 600;
 }
 
-#viewOutlet { 
+#viewOutlet {
   padding-top: 0;
-  padding-left: 16px; // Explicit left padding for symmetry
-  padding-right: 16px; // Explicit right padding for symmetry
+  padding-left: 15px; // Explicit left padding for symmetry — matches splash screen lateral padding
+  padding-right: 15px; // Explicit right padding for symmetry — matches splash screen lateral padding
   padding-bottom: 4rem; // Extra bottom padding for mobile browser bar
   position: relative;
   overflow-y: auto;
@@ -1831,10 +1831,12 @@ h2 {
 }
 
 @media (max-width: 640px) {
-  .masthead       { padding: 1.75rem 10px 0; }
-  .hero-section   { padding: 2rem 10px 0; }
-  .explainer      { padding: 3rem 1rem; }
-  .snapshots      { padding: 3rem 1rem; }
+  // Lateral padding matches #viewOutlet/.locations-view (15px) so the splash
+  // screen and SPA pages line up consistently — see also .locations-view below.
+  .masthead       { padding: 1.75rem 15px 0; }
+  .hero-section   { padding: 2rem 15px 0; }
+  .explainer      { padding: 3rem 15px; }
+  .snapshots      { padding: 3rem 15px; }
   .feature-grid   { grid-template-columns: 1fr; }
   .btn-loc        { width: 100%; justify-content: center; }
 }
@@ -1850,7 +1852,7 @@ h2 {
   padding: 3rem 2rem 5rem;
   min-height: 60vh;
 
-  @media (max-width: 640px) { padding: 2rem 1rem 4rem; }
+  @media (max-width: 640px) { padding: 2rem 15px 4rem; }
 }
 
 .locations-inner {

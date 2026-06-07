@@ -51,8 +51,9 @@ export async function fetchShares(period: Period | '' = '', offset = 0): Promise
   url.searchParams.set('limit', String(LIMIT));
   if (offset > 0) url.searchParams.set('offset', String(offset));
 
+  // apiFetch throws on non-ok responses (after retrying 5xx), so it never
+  // returns one here — no need to check res.ok.
   const res = await apiFetch(url.toString());
-  if (!res.ok) throw new Error(`Failed to load feed (${res.status}).`);
   return res.json();
 }
 

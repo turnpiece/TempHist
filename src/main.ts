@@ -292,6 +292,15 @@ if (!isSharePagePath() && !isStandaloneStaticPage) {
     window.TempHistRouter.registerView('month', window.TempHistViews.month);
     window.TempHistRouter.registerView('year', window.TempHistViews.year);
   }
+
+  // About/Privacy/Snapshots always navigate away from the SPA — they belong in
+  // the footer (now shown on every page), not the in-app sidebar nav.
+  document.querySelectorAll<HTMLElement>(
+    'nav a[data-route="/about"], nav a[data-route="/privacy"], nav a[data-route="/feed"]'
+  ).forEach(link => {
+    const li = link.closest('li');
+    if (li) (li as HTMLElement).hidden = true;
+  });
 }
 
 // Make analytics functions globally available

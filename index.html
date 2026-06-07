@@ -173,9 +173,6 @@
         <div id="snapshotsSection"></div>
       </section>
 
-      <!-- Footer -->
-      <!-- INCLUDE:footer -->
-
       <!-- Locations page view (shown when #/locations hash is active) -->
       <div id="locationsView" class="locations-view" hidden>
         <div class="locations-inner">
@@ -186,6 +183,9 @@
           <button type="button" class="locations-back" onclick="window.__hideLocationsView?.()">← Back</button>
         </div>
       </div>
+
+      <!-- Footer — stays visible across the hero/explainer/snapshots and locations views -->
+      <!-- INCLUDE:footer -->
 
     </div>
 
@@ -224,6 +224,8 @@
         <section id="monthView" data-view="month" hidden></section>
         <section id="yearView" data-view="year" hidden></section>
       </main>
+
+      <!-- INCLUDE:footer -->
     </div>
 
 

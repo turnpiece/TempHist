@@ -251,7 +251,7 @@ export function showLocationsView(): void {
     splashScreen.style.display = 'block';
   }
 
-  document.querySelectorAll<HTMLElement>('.hero-section, .explainer, .snapshots, .site-footer')
+  document.querySelectorAll<HTMLElement>('.hero-section, .explainer, .snapshots')
     .forEach(el => { el.hidden = true; });
   locationsView.hidden = false;
 
@@ -268,7 +268,7 @@ export function hideLocationsView(): void {
   const locationsView = document.getElementById('locationsView');
   if (locationsView) locationsView.hidden = true;
 
-  document.querySelectorAll<HTMLElement>('.hero-section, .explainer, .snapshots, .site-footer')
+  document.querySelectorAll<HTMLElement>('.hero-section, .explainer, .snapshots')
     .forEach(el => { el.hidden = false; });
 
   const splashScreen = document.getElementById('splashScreen');

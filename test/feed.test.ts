@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { fetchShares, buildCard } from '../src/views/feed'
 import type { ShareItem } from '../src/views/feed'
 
@@ -62,7 +62,12 @@ function mockOkResponse(body: unknown): Response {
 }
 
 function mockErrorResponse(status: number): Response {
-  return { ok: false, status } as unknown as Response
+  return {
+    ok: false,
+    status,
+    statusText: '',
+    text: vi.fn().mockResolvedValue(''),
+  } as unknown as Response
 }
 
 // ── fetchShares ───────────────────────────────────────────────────────────────
@@ -71,6 +76,16 @@ describe('fetchShares', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     global.fetch = vi.fn()
+    // apiFetch() requires window.currentUser to be set, otherwise it throws
+    // before ever reaching the mocked global fetch above
+    ;(window as any).currentUser = {
+      uid: 'test-uid',
+      getIdToken: vi.fn().mockResolvedValue('mock-id-token'),
+    }
+  })
+
+  afterEach(() => {
+    delete (window as any).currentUser
   })
 
   it('fetches shares with default params', async () => {
@@ -118,15 +133,34 @@ describe('fetchShares', () => {
   })
 
   it('throws when the API returns a non-ok status', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(mockErrorResponse(500))
+    // apiFetch retries 5xx responses up to 3 times before giving up, throwing
+    // its own `HTTP error! status: …` — fetchShares's `Failed to load feed`
+    // wrapper is never reached for apiFetch-originated errors. Mock every
+    // attempt and fast-forward through the retry backoff with fake timers.
+    vi.useFakeTimers()
+    try {
+      vi.mocked(fetch).mockResolvedValue(mockErrorResponse(500))
 
-    await expect(fetchShares()).rejects.toThrow('Failed to load feed (500).')
+      const result = expect(fetchShares()).rejects.toThrow('HTTP error! status: 500')
+      await vi.runAllTimersAsync()
+      await result
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('propagates network errors', async () => {
-    vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'))
+    // Same retry behaviour as above applies to network errors.
+    vi.useFakeTimers()
+    try {
+      vi.mocked(fetch).mockRejectedValue(new Error('Network error'))
 
-    await expect(fetchShares()).rejects.toThrow('Network error')
+      const result = expect(fetchShares()).rejects.toThrow('Network error')
+      await vi.runAllTimersAsync()
+      await result
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('returns all share fields correctly', async () => {
