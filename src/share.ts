@@ -247,21 +247,13 @@ function hideAppChrome(): void {
   const appShell = document.getElementById('appShell');
   if (appShell) appShell.classList.remove('hidden');
 
-  // Hide period navigation links but keep About and Privacy visible.
-  // Rewrite About and Privacy hrefs to absolute paths — on the share page
-  // the template has baked these as hash-only fragments (#/about, #/privacy),
-  // which would append to /s/:id rather than navigating to the root SPA.
+  // Hide period navigation links — About, Privacy and Snapshots are always
+  // absolute paths now, so they work as-is on the share page.
   const nav = document.querySelector('nav');
   if (nav) {
     nav.querySelectorAll('a[data-route]').forEach(link => {
       const route = (link as HTMLAnchorElement).getAttribute('data-route');
-      if (route === '/about') {
-        (link as HTMLAnchorElement).href = '/about';
-      } else if (route === '/privacy') {
-        (link as HTMLAnchorElement).href = '/privacy';
-      } else if (route === '/feed') {
-        (link as HTMLAnchorElement).href = '/feed';
-      } else {
+      if (route !== '/about' && route !== '/privacy' && route !== '/feed') {
         const li = link.closest('li');
         if (li) (li as HTMLElement).style.display = 'none';
       }

@@ -76,9 +76,9 @@ export default defineConfig(({ mode }) => {
           WEEK_LINK: isIndex ? '#/week' : '/#/week',
           MONTH_LINK: isIndex ? '#/month' : '/#/month',
           YEAR_LINK: isIndex ? '#/year' : '/#/year',
-          ABOUT_LINK: isIndex ? '#/about' : '/about',
-          PRIVACY_LINK: isIndex ? '#/privacy' : '/privacy',
-          FEED_LINK: isIndex ? '#/feed' : '/feed',
+          ABOUT_LINK: '/about',
+          PRIVACY_LINK: '/privacy',
+          FEED_LINK: '/feed',
           ABOUT_ACTIVE: isAbout ? ' class="active"' : '',
           PRIVACY_ACTIVE: (isPrivacy || isPrivacyApp) ? ' class="active"' : '',
           FEED_ACTIVE: isFeed ? ' class="active"' : '',
@@ -111,6 +111,7 @@ export default defineConfig(({ mode }) => {
         html = html.replace(/<!-- INCLUDE:head-common -->/g, loadTemplate('head-common'))
         html = html.replace(/<!-- INCLUDE:header -->/g, loadTemplate('header'))
         html = html.replace(/<!-- INCLUDE:nav -->/g, loadTemplate('nav'))
+        html = html.replace(/<!-- INCLUDE:footer -->/g, loadTemplate('footer'))
         
         // Handle WebApplication JSON injection
         // For index.html, we need to merge with additional properties

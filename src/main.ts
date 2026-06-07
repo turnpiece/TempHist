@@ -23,9 +23,6 @@ import { initLocationCarousel } from './services/locationCarousel';
 import { startGeolocationPrefetch } from './services/geolocationPrefetch';
 import { mainAppLogic } from './views/today';
 import { renderPeriod } from './views/period';
-import { renderAboutPage, renderPrivacyPage } from './views/about';
-import { SNAPSHOTS_ENABLED } from './constants';
-import { renderFeedPage } from './views/feed';
 import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
@@ -276,22 +273,17 @@ window.TempHistViews.today = { render: () => reapplyTrendBackground() };
 window.TempHistViews.week = { render: () => renderPeriod('weekView', 'week', 'Week') };
 window.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 'Month') };
 window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
-window.TempHistViews.about = { render: () => renderAboutPage() };
-window.TempHistViews.privacy = { render: () => renderPrivacyPage() };
-if (SNAPSHOTS_ENABLED) {
-  window.TempHistViews.feed = { render: () => renderFeedPage() };
-}
 
 // Note: The old mainAppLogic function body has been extracted to:
 // - views/today.ts (Today view logic)
 // - views/period.ts (Period views logic)
-// - views/about.ts (About/Privacy pages)
+// - views/about.ts (About/Privacy pages — now standalone-only, see splash.ts)
 // All remaining initialization code is below.
 
 // Initialize router and register views (not needed on share pages or standalone
-// static pages — the router hides all [data-view] elements and would blank the content)
-const standalonePages = ['/about', '/privacy', '/privacy/app', ...(SNAPSHOTS_ENABLED ? ['/feed'] : [])];
-const isStandaloneStaticPage = standalonePages.includes(window.location.pathname);
+// static pages — the router hides all [data-view] elements on the page and would
+// blank the standalone page's own content, which has no matching route to restore it)
+const isStandaloneStaticPage = !document.querySelector('#todayView');
 if (!isSharePagePath() && !isStandaloneStaticPage) {
   window.TempHistRouter = new TempHistRouter();
   if (window.TempHistRouter && typeof window.TempHistRouter.registerView === 'function') {
@@ -299,11 +291,6 @@ if (!isSharePagePath() && !isStandaloneStaticPage) {
     window.TempHistRouter.registerView('week', window.TempHistViews.week);
     window.TempHistRouter.registerView('month', window.TempHistViews.month);
     window.TempHistRouter.registerView('year', window.TempHistViews.year);
-    window.TempHistRouter.registerView('about', window.TempHistViews.about);
-    window.TempHistRouter.registerView('privacy', window.TempHistViews.privacy);
-    if (SNAPSHOTS_ENABLED) {
-      window.TempHistRouter.registerView('feed', window.TempHistViews.feed);
-    }
   }
 }
 

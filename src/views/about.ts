@@ -115,7 +115,7 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   appendSection(
     container,
     'Third-party services',
-    'TempHist uses Firebase (Google) for anonymous authentication. Firebase may use cookies from Google services (identitytoolkit.googleapis.com and securetoken.googleapis.com) for authentication purposes only. Historical weather data is sourced via the TempHist API from Visual Crossing. Neither service is used for advertising or cross-site tracking.'
+    'TempHist uses Firebase (Google) for anonymous authentication. Firebase may use cookies from Google services (identitytoolkit.googleapis.com and securetoken.googleapis.com) for authentication purposes only. Historical weather data is sourced via the TempHist API from Open-Meteo. Neither service is used for advertising or cross-site tracking.'
   );
 
   // Contact
@@ -210,11 +210,9 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
 
 /**
  * Build the About page content into the given container element.
- * Used by both the SPA view (#aboutView) and the standalone /about page.
- * @param isSpa - true when rendered inside the main SPA (uses hash links like #/today);
- *                false for the standalone /about page (uses root-relative links like /#/today)
+ * Used by the standalone /about page.
  */
-export function buildAboutContent(container: HTMLElement, isSpa: boolean = false): void {
+export function buildAboutContent(container: HTMLElement): void {
   appendHeading(container, 'About TempHist', 'h2');
 
   appendParagraph(
@@ -240,14 +238,10 @@ export function buildAboutContent(container: HTMLElement, isSpa: boolean = false
   const ul = document.createElement('ul');
   periodItems.forEach(({ label, route, description }) => {
     const li = document.createElement('li');
-    if (isSpa) {
-      const a = document.createElement('a');
-      a.href = `#${route}`;
-      a.textContent = label;
-      li.appendChild(a);
-    } else {
-      li.appendChild(document.createTextNode(label));
-    }
+    const a = document.createElement('a');
+    a.href = `/#${route}`;
+    a.textContent = label;
+    li.appendChild(a);
     li.appendChild(document.createTextNode(description));
     ul.appendChild(li);
   });
@@ -262,11 +256,16 @@ export function buildAboutContent(container: HTMLElement, isSpa: boolean = false
   appendHeading(container, 'Data sources');
   const dataSourcesPara = document.createElement('p');
   dataSourcesPara.textContent = 'Historical weather data is sourced from ';
-  const vcLink = document.createElement('a');
-  vcLink.href = 'https://www.visualcrossing.com';
-  vcLink.textContent = 'Visual Crossing';
-  vcLink.rel = 'noopener noreferrer';
-  dataSourcesPara.appendChild(vcLink);
+  /*
+  const sourceLink = document.createElement('a');
+  sourceLink.href = 'https://www.visualcrossing.com';
+  sourceLink.textContent = 'Visual Crossing';
+  */
+  const sourceLink = document.createElement('a');
+  sourceLink.href = 'https://open-meteo.com';
+  sourceLink.textContent = 'Open-Meteo';
+  sourceLink.rel = 'noopener noreferrer';
+  dataSourcesPara.appendChild(sourceLink);
   dataSourcesPara.appendChild(document.createTextNode(' via the TempHist API.'));
   container.appendChild(dataSourcesPara);
 
@@ -294,7 +293,7 @@ export function renderAboutPage(): void {
   const container = document.createElement('div');
   container.className = 'container';
 
-  buildAboutContent(container, true);
+  buildAboutContent(container);
 
   renderImageAttributions(container).catch(error => {
     console.warn('Failed to render image attributions:', error);

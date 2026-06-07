@@ -880,13 +880,20 @@ export function initializeSplashScreen(): void {
   const splashScreen = document.getElementById('splashScreen');
   const appShell = document.getElementById('appShell');
 
-  // Reset to Today page when splash screen is shown (in case user was on another page)
-  debugLog('Splash screen shown, resetting to Today page');
-  if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
-    window.TempHistRouter.navigate('/today');
-  } else {
-    // Fallback: update URL
-    window.location.hash = '#/today';
+  // Reset to Today page when splash screen is shown (in case user was on another
+  // page) — but only when there's no valid deep link in the hash already. Full-page
+  // loads to e.g. /#/week (from the About page's period links, or a bookmark) should
+  // land on that view rather than being clobbered back to Today.
+  const initialRoute = window.location.hash ? window.location.hash.substring(1) : '/today';
+  const validInitialRoutes = ['/today', '/week', '/month', '/year', '/locations'];
+  if (!validInitialRoutes.includes(initialRoute)) {
+    debugLog('Splash screen shown, resetting to Today page');
+    if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
+      window.TempHistRouter.navigate('/today');
+    } else {
+      // Fallback: update URL
+      window.location.hash = '#/today';
+    }
   }
 
   // Always prefetch approved locations in background for potential manual selection

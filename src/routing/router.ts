@@ -76,18 +76,6 @@ export class TempHistRouter {
         viewElement = document.getElementById('yearView');
         viewKey = 'year';
         break;
-      case '/about':
-        viewElement = document.getElementById('aboutView');
-        viewKey = 'about';
-        break;
-      case '/privacy':
-        viewElement = document.getElementById('privacyView');
-        viewKey = 'privacy';
-        break;
-      case '/feed':
-        viewElement = document.getElementById('feedView');
-        viewKey = 'feed';
-        break;
       case '/splash':
         handleLocationChangeInternal();
         return;

@@ -37,7 +37,7 @@ A web application that shows how today's temperature (or this week's, month's, o
 - **Authentication**: Firebase Anonymous Auth
 - **Testing**: Vitest with JSDOM
 - **Backend**: Node.js / Express (proxy, OG tag injection, development mock data)
-- **Data**: Historical weather data via the TempHist API (Visual Crossing source)
+- **Data**: Historical weather data via the TempHist API (Open-Meteo and Visual Crossing source)
 - **Hosting**: Static site — any Apache/Nginx host
 
 ## Setup
