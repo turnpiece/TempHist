@@ -1573,6 +1573,20 @@ h2 {
   }
 }
 
+// On standalone pages, content is populated by JS after the page loads — keep
+// the footer hidden until then so it doesn't briefly sit directly under the
+// header (in an empty #viewOutlet) before jumping down once content arrives.
+// `content-ready` is added to <body> by initializeSplashScreen() once the
+// page's content has been populated (see splash.ts).
+body.about-page,
+body.privacy-page,
+body.feed-page,
+body.locations-page {
+  .site-footer { visibility: hidden; }
+
+  &.content-ready .site-footer { visibility: visible; }
+}
+
 .location-carousel__track {
   // Mobile: horizontal scroll-snap row
   display: flex;

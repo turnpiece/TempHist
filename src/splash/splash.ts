@@ -879,6 +879,11 @@ export function initializeSplashScreen(): void {
         renderFeedPage();
       }
     }
+
+    // Reveal the footer now that content has been populated (or attempted) —
+    // it starts hidden via CSS to avoid a flash of the footer sitting directly
+    // under the header while the view section is still empty.
+    document.body.classList.add('content-ready');
     return;
   }
 
