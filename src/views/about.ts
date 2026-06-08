@@ -319,3 +319,21 @@ export function renderPrivacyPage(): void {
 
   privacyView.appendChild(container);
 }
+
+/**
+ * Render the mobile app privacy policy into the standalone /privacy/app page's #content element.
+ */
+export function renderPrivacyAppPage(): void {
+  resetTrendBackground();
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  content.textContent = '';
+
+  const container = document.createElement('div');
+  container.className = 'container';
+
+  buildPrivacyAppContent(container);
+
+  content.appendChild(container);
+}

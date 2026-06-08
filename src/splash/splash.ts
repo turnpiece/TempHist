@@ -15,7 +15,7 @@ import { LoadingManager } from '../utils/LoadingManager';
 import { LazyLoader } from '../utils/LazyLoader';
 import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
-import { renderAboutPage, renderPrivacyPage } from '../views/about';
+import { renderAboutPage, renderPrivacyPage, renderPrivacyAppPage } from '../views/about';
 import { renderFeedPage, buildCard, ShareItem } from '../views/feed';
 import { flagImg } from '../locations/locations';
 import { formatPeriodHeading, openShareModal } from '../share';
@@ -857,8 +857,8 @@ export function initializeSplashScreen(): void {
     
     // Handle standalone pages by populating their content
     const currentPath = window.location.pathname;
-    const isKnownStandalone = currentPath === '/privacy' || currentPath === '/about' ||
-      (SNAPSHOTS_ENABLED && currentPath === '/feed');
+    const isKnownStandalone = currentPath === '/privacy' || currentPath === '/privacy/app' ||
+      currentPath === '/about' || (SNAPSHOTS_ENABLED && currentPath === '/feed');
     if (isKnownStandalone) {
       debugLog('Populating content for standalone page:', currentPath);
 
@@ -868,6 +868,8 @@ export function initializeSplashScreen(): void {
       // Populate content based on the page
       if (currentPath === '/privacy') {
         renderPrivacyPage();
+      } else if (currentPath === '/privacy/app') {
+        renderPrivacyAppPage();
       } else if (currentPath === '/about') {
         renderAboutPage();
       } else if (SNAPSHOTS_ENABLED && currentPath === '/feed') {

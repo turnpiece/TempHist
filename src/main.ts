@@ -34,8 +34,12 @@ import './locations/locations'; // registers window.__showLocationsView / __hide
 // run the dev server) — no code change needed.
 
 
-// Initialise location carousel when DOM is ready
+// Initialise location carousel and geolocation prefetch when DOM is ready —
+// but only on the splash screen (index.html, where #todayView exists). Standalone
+// pages (about/privacy/feed/share) have no use for the user's location and
+// shouldn't trigger the browser's permission prompt.
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!document.querySelector('#todayView')) return;
   await initLocationCarousel();
   startGeolocationPrefetch();
 });
