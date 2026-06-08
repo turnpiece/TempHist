@@ -99,7 +99,7 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   appendSection(
     container,
     'Share feature',
-    'If you use the Share button, your current location and chart data are sent to api.temphist.com/v1/shares to generate a shareable link. No additional personal data is included.'
+    'If you use the Share button, your current location and chart data are sent to the TempHist API to generate a shareable link. No additional personal data is included.'
   );
 
   // What is not collected
@@ -227,21 +227,21 @@ export function buildAboutContent(container: HTMLElement): void {
     'Each view shows a bar chart with one bar per year. The current year\'s bar is highlighted in green.'
   );
 
-  // Period list with links
-  const periodItems: Array<{ label: string; route: string; description: string }> = [
-    { label: 'Today',      route: '/today', description: ' — the temperature recorded on today\'s date, in each of the past 50 years' },
-    { label: 'Past week',  route: '/week',  description: ' — the average temperature for the 7 days ending today, in each of the past 50 years' },
-    { label: 'Past month', route: '/month', description: ' — the average temperature for the 30 days ending today, in each of the past 50 years' },
-    { label: 'Past year',  route: '/year',  description: ' — the average temperature for the 12 months ending today, in each of the past 50 years' },
+  // Period list (plain text — these describe in-app views, not standalone
+  // pages, so they shouldn't link out from this page)
+  const periodItems: Array<{ label: string; description: string }> = [
+    { label: 'Today',      description: ' — the temperature recorded on today\'s date, in each of the past 50 years' },
+    { label: 'Past week',  description: ' — the average temperature for the 7 days ending today, in each of the past 50 years' },
+    { label: 'Past month', description: ' — the average temperature for the 30 days ending today, in each of the past 50 years' },
+    { label: 'Past year',  description: ' — the average temperature for the 12 months ending today, in each of the past 50 years' },
   ];
 
   const ul = document.createElement('ul');
-  periodItems.forEach(({ label, route, description }) => {
+  periodItems.forEach(({ label, description }) => {
     const li = document.createElement('li');
-    const a = document.createElement('a');
-    a.href = `/#${route}`;
-    a.textContent = label;
-    li.appendChild(a);
+    const strong = document.createElement('strong');
+    strong.textContent = label;
+    li.appendChild(strong);
     li.appendChild(document.createTextNode(description));
     ul.appendChild(li);
   });
