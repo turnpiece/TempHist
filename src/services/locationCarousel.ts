@@ -478,7 +478,7 @@ export async function initLocationCarousel(): Promise<void> {
     const heroCities = carousel.closest('.hero-cities') as HTMLElement | null;
     if (heroCities && !heroCities.querySelector('.see-all-link')) {
       const moreLink = document.createElement('a');
-      moreLink.href = '#/locations';
+      moreLink.href = '/locations';
       moreLink.className = 'see-all-link';
       moreLink.textContent = 'More locations →';
       heroCities.appendChild(moreLink);

@@ -1,4 +1,5 @@
 import { apiFetch, getApiUrl } from '../api/temperature';
+import { resetTrendBackground } from '../utils/uiHelpers';
 import type { PreapprovedLocation } from '../types/index';
 
 interface PopularLocation {
@@ -170,18 +171,31 @@ function parseLocArr(result: PromiseSettledResult<any>): any[] {
   return arr.filter((x: any) => x?.id && x?.name && x?.country_code);
 }
 
-let _loaded = false;
-
-async function initLocationsPage(): Promise<void> {
-  if (_loaded) return;
+/**
+ * Render the Locations page content into the standalone /locations page's
+ * #locationsView section.
+ */
+export async function renderLocationsPage(): Promise<void> {
+  resetTrendBackground();
 
   const view = document.getElementById('locationsView');
   if (!view) return;
 
-  const content = view.querySelector<HTMLElement>('.locations-content');
-  if (!content) return;
+  view.textContent = '';
 
-  while (content.firstChild) content.removeChild(content.firstChild);
+  const container = document.createElement('div');
+  container.className = 'container';
+
+  const heading = document.createElement('h2');
+  heading.textContent = 'Locations';
+  container.appendChild(heading);
+
+  const content = document.createElement('div');
+  content.className = 'locations-content';
+  container.appendChild(content);
+
+  view.appendChild(container);
+
   const loadingEl = document.createElement('p');
   loadingEl.className = 'locations-status';
   loadingEl.textContent = 'Loading locations…';
@@ -231,8 +245,6 @@ async function initLocationsPage(): Promise<void> {
       extras.forEach(loc => grid.appendChild(buildTextItem(loc)));
       content.appendChild(grid);
     }
-
-    _loaded = true;
   } catch {
     while (content.firstChild) content.removeChild(content.firstChild);
     const err = document.createElement('p');
@@ -242,41 +254,3 @@ async function initLocationsPage(): Promise<void> {
   }
 }
 
-export function showLocationsView(): void {
-  const splashScreen = document.getElementById('splashScreen');
-  const locationsView = document.getElementById('locationsView');
-  if (!splashScreen || !locationsView) return;
-
-  if (splashScreen.style.display === 'none') {
-    splashScreen.style.display = 'block';
-  }
-
-  document.querySelectorAll<HTMLElement>('.hero-section, .explainer, .snapshots')
-    .forEach(el => { el.hidden = true; });
-  locationsView.hidden = false;
-
-  splashScreen.scrollTop = 0;
-
-  if (window.location.hash !== '#/locations') {
-    window.location.hash = '#/locations';
-  }
-
-  initLocationsPage();
-}
-
-export function hideLocationsView(): void {
-  const locationsView = document.getElementById('locationsView');
-  if (locationsView) locationsView.hidden = true;
-
-  document.querySelectorAll<HTMLElement>('.hero-section, .explainer, .snapshots')
-    .forEach(el => { el.hidden = false; });
-
-  const splashScreen = document.getElementById('splashScreen');
-  if (splashScreen) splashScreen.scrollTop = 0;
-
-  history.replaceState(null, '', window.location.pathname);
-}
-
-// Expose globally for router and inline handlers
-(window as any).__showLocationsView = showLocationsView;
-(window as any).__hideLocationsView = hideLocationsView;

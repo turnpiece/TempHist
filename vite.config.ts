@@ -33,7 +33,8 @@ export default defineConfig(({ mode }) => {
         about: resolve(__dirname, 'about.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         privacyApp: resolve(__dirname, 'privacy-app.html'),
-        feed: resolve(__dirname, 'feed.html')
+        feed: resolve(__dirname, 'feed.html'),
+        locations: resolve(__dirname, 'locations.html')
       }
     }
   },
@@ -52,6 +53,7 @@ export default defineConfig(({ mode }) => {
           else if (url === '/privacy') req.url = '/privacy.html';
           else if (url === '/privacy/app') req.url = '/privacy-app.html';
           else if (url === '/feed') req.url = '/feed.html';
+          else if (url === '/locations') req.url = '/locations.html';
           next();
         });
       }
@@ -68,11 +70,12 @@ export default defineConfig(({ mode }) => {
         const isPrivacyApp = pageName.includes('privacy-app.html')
         const isPrivacy = pageName.includes('privacy.html') && !isPrivacyApp
         const isFeed = pageName.includes('feed.html')
-        
+        const isLocations = pageName.includes('locations.html')
+
         // Define variables for template substitution
         const vars = {
           HOME_LINK: isIndex ? '#/splash' : '/',
-          LOCATIONS_LINK: isIndex ? '#/locations' : '/#/locations',
+          LOCATIONS_LINK: '/locations',
           TODAY_LINK: isIndex ? '#/today' : '/#/today',
           WEEK_LINK: isIndex ? '#/week' : '/#/week',
           MONTH_LINK: isIndex ? '#/month' : '/#/month',
@@ -80,15 +83,13 @@ export default defineConfig(({ mode }) => {
           ABOUT_LINK: '/about',
           PRIVACY_LINK: '/privacy',
           FEED_LINK: '/feed',
+          LOCATIONS_ACTIVE: isLocations ? ' class="active"' : '',
           ABOUT_ACTIVE: isAbout ? ' class="active"' : '',
           PRIVACY_ACTIVE: (isPrivacy || isPrivacyApp) ? ' class="active"' : '',
           FEED_ACTIVE: isFeed ? ' class="active"' : '',
           // Hide app nav links (Today/week/month/year) on static pages where the
           // SPA router is not active — visitors should enter the app via the home page
-          APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp || isFeed) ? 'hidden' : '',
-          // Locations link is only shown in the standalone-page nav — within the
-          // SPA, locations are reached via the splash screen's own location picker
-          LOCATIONS_NAV_HIDDEN: isIndex ? 'hidden' : '',
+          APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp || isFeed || isLocations) ? 'hidden' : '',
           // Hide Snapshots nav link when VITE_ENABLE_SNAPSHOTS=false
           SNAPSHOTS_NAV_HIDDEN: env.VITE_ENABLE_SNAPSHOTS === 'false' ? 'hidden' : ''
         }

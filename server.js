@@ -263,6 +263,9 @@ app.use((req, res, next) => {
   if (requestedPath === '/feed') {
     return sendDistHtml(req, res, 'feed.html');
   }
+  if (requestedPath === '/locations') {
+    return sendDistHtml(req, res, 'locations.html');
+  }
   
   // Default to index.html for all other routes (SPA behavior)
   return sendDistHtml(req, res, 'index.html');

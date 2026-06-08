@@ -17,7 +17,7 @@ import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
 import { renderAboutPage, renderPrivacyPage, renderPrivacyAppPage } from '../views/about';
 import { renderFeedPage, buildCard, ShareItem } from '../views/feed';
-import { flagImg } from '../locations/locations';
+import { flagImg, renderLocationsPage } from '../locations/locations';
 import { formatPeriodHeading, openShareModal } from '../share';
 import { buildLocationDisplay } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from '../views/today';
@@ -858,7 +858,8 @@ export function initializeSplashScreen(): void {
     // Handle standalone pages by populating their content
     const currentPath = window.location.pathname;
     const isKnownStandalone = currentPath === '/privacy' || currentPath === '/privacy/app' ||
-      currentPath === '/about' || (SNAPSHOTS_ENABLED && currentPath === '/feed');
+      currentPath === '/about' || currentPath === '/locations' ||
+      (SNAPSHOTS_ENABLED && currentPath === '/feed');
     if (isKnownStandalone) {
       debugLog('Populating content for standalone page:', currentPath);
 
@@ -872,6 +873,8 @@ export function initializeSplashScreen(): void {
         renderPrivacyAppPage();
       } else if (currentPath === '/about') {
         renderAboutPage();
+      } else if (currentPath === '/locations') {
+        renderLocationsPage();
       } else if (SNAPSHOTS_ENABLED && currentPath === '/feed') {
         renderFeedPage();
       }
@@ -887,7 +890,7 @@ export function initializeSplashScreen(): void {
   // loads to e.g. /#/week (from the About page's period links, or a bookmark) should
   // land on that view rather than being clobbered back to Today.
   const initialRoute = window.location.hash ? window.location.hash.substring(1) : '/today';
-  const validInitialRoutes = ['/today', '/week', '/month', '/year', '/locations'];
+  const validInitialRoutes = ['/today', '/week', '/month', '/year'];
   if (!validInitialRoutes.includes(initialRoute)) {
     debugLog('Splash screen shown, resetting to Today page');
     if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
@@ -912,19 +915,6 @@ export function initializeSplashScreen(): void {
     
     // Proceed immediately - Firebase should be ready since we're in the auth callback
     proceedWithLocation(cookieData.location, source === 'detected', source, cookieData.timezone);
-    return;
-  }
-
-  // If the user navigated directly to #/locations, show that view
-  if (window.location.hash === '#/locations') {
-    if (splashScreen) splashScreen.style.display = 'block';
-    if (appShell) appShell.classList.add('hidden');
-    setupSplashScreenListeners();
-    setupMobileNavigation();
-    if (typeof (window as any).__showLocationsView === 'function') {
-      (window as any).__showLocationsView();
-    }
-    if (SNAPSHOTS_ENABLED) initSnapshotsCarousel();
     return;
   }
 

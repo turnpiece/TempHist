@@ -1831,8 +1831,8 @@ h2 {
 }
 
 @media (max-width: 640px) {
-  // Lateral padding matches #viewOutlet/.locations-view (15px) so the splash
-  // screen and SPA pages line up consistently — see also .locations-view below.
+  // Lateral padding matches #viewOutlet (15px) so the splash screen and
+  // SPA pages line up consistently.
   .masthead       { padding: 1.75rem 15px 0; }
   .hero-section   { padding: 2rem 15px 0; }
   .explainer      { padding: 3rem 15px; }
@@ -1848,26 +1848,6 @@ h2 {
 
 // ── Locations page view ───────────────────────────────────────────────────────
 
-.locations-view {
-  padding: 3rem 2rem 5rem;
-  min-height: 60vh;
-
-  @media (max-width: 640px) { padding: 2rem 15px 4rem; }
-}
-
-.locations-inner {
-  max-width: 1180px;
-  margin: 0 auto;
-}
-
-.locations-title {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: clamp(1.75rem, 3vw, 2.5rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin: 0 0 2rem;
-}
-
 .locations-section-label {
   font-size: 0.7rem;
   font-weight: 600;
@@ -1877,22 +1857,6 @@ h2 {
   margin: 2.25rem 0 0.75rem;
 
   &:first-child { margin-top: 0; }
-}
-
-.locations-back {
-  display: inline-block;
-  margin-top: 3rem;
-  background: none;
-  border: 1px solid rgba($colour-text, 0.25);
-  border-radius: 999px;
-  color: rgba($colour-text, 0.7);
-  font-size: 0.875rem;
-  padding: 0.35rem 0.9rem;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s;
-
-  &:hover { color: $colour-text; border-color: rgba($colour-text, 0.5); }
 }
 
 .locations-grid {

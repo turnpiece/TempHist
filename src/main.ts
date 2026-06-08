@@ -28,7 +28,6 @@ import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analy
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
 import { showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice, reapplyTrendBackground } from './utils/uiHelpers';
 import { isSharePagePath, initSharePage } from './share';
-import './locations/locations'; // registers window.__showLocationsView / __hideLocationsView
 // installDevTestHooks is loaded dynamically inside the DEBUGGING guard below so it is
 // excluded from production bundles entirely. To re-enable, ensure DEBUGGING is true (i.e.
 // run the dev server) — no code change needed.

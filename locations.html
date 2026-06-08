@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- INCLUDE:head-common -->
+    <meta name="description" content="Browse featured and popular locations available in TempHist." />
+    <meta property="og:title" content="Locations | TempHist" />
+    <meta property="og:description" content="Browse featured and popular locations available in TempHist." />
+    <meta property="og:url" content="https://temphist.com/locations" />
+    <meta name="twitter:title" content="Locations | TempHist" />
+    <meta name="twitter:description" content="Browse featured and popular locations available in TempHist." />
+    <title>TempHist • Locations</title>
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": "TempHist Locations",
+      "description": "Browse featured and popular locations available in TempHist.",
+      "url": "https://temphist.com/locations",
+      "breadcrumb": {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://temphist.com"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Locations",
+            "item": "https://temphist.com/locations"
+          }
+        ]
+      }
+    }
+    </script>
+    </head>
+  <body class="locations-page">
+    <!-- INCLUDE:header -->
+
+    <div id="appShell">
+      <!-- INCLUDE:nav -->
+
+      <main id="viewOutlet" role="main">
+        <section id="locationsView" data-view="locations">
+        </section>
+
+        <!-- INCLUDE:footer -->
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts" defer></script>
+  </body>
+</html>

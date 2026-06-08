@@ -63,7 +63,7 @@
 
       <!-- Masthead: logo + wordmark -->
       <div class="masthead">
-        <a href="/" class="masthead-inner" onclick="if(document.getElementById('locationsView') && !document.getElementById('locationsView').hidden){ event.preventDefault(); window.__hideLocationsView?.(); }">
+        <a href="/" class="masthead-inner">
           <img src="/assets/logo.svg" alt="TempHist logo" width="50" height="50"
                onerror="this.onerror=null; this.src='/assets/logo.png'" />
           <span class="masthead-name">TempHist</span>
@@ -173,18 +173,7 @@
         <div id="snapshotsSection"></div>
       </section>
 
-      <!-- Locations page view (shown when #/locations hash is active) -->
-      <div id="locationsView" class="locations-view" hidden>
-        <div class="locations-inner">
-          <h1 class="locations-title">Locations</h1>
-          <div class="locations-content">
-            <!-- Populated by locations.ts -->
-          </div>
-          <button type="button" class="locations-back" onclick="window.__hideLocationsView?.()">← Back</button>
-        </div>
-      </div>
-
-      <!-- Footer — stays visible across the hero/explainer/snapshots and locations views -->
+      <!-- Footer -->
       <!-- INCLUDE:footer -->
 
     </div>
