@@ -85,7 +85,7 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   appendHeading(container, 'Location data');
   appendParagraph(
     container,
-    'When you use TempHist, your city-level location is included in every request sent to the TempHist API (api.temphist.com). Only the city name is transmitted — no precise GPS coordinates are stored or shared. Your location is also stored in a browser cookie for up to one hour so the app remembers your preference between visits. Location data in transit is linked to your anonymous session identifier (see below).'
+    'When you use TempHist, your city-level location is included in every request sent to the TempHist API (api.temphist.com). For temperature lookups, only the city name is transmitted — no GPS coordinates are sent. (The Share feature is the one exception — see below.) Your location is also stored in a browser cookie for up to one hour so the app remembers your preference between visits. Location data in transit is linked to your anonymous session identifier (see below).'
   );
 
   // Anonymous authentication
@@ -99,13 +99,12 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   appendSection(
     container,
     'Share feature',
-    'If you use the Share button, your current location and chart data are sent to the TempHist API to generate a shareable link. No additional personal data is included.'
+    'If you use the Share button, your current location (including its GPS coordinates), chart data, and the city name are sent to the TempHist API to generate a shareable link. No additional personal data is included.'
   );
 
   // What is not collected
   appendHeading(container, 'What is not collected');
   appendBulletList(container, [
-    'Precise GPS coordinates',
     'Personal identifiers such as name, email, or phone number',
     'Analytics or advertising data',
     'Cross-site tracking',
@@ -149,7 +148,7 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   appendHeading(container, 'Location data');
   appendParagraph(
     container,
-    'When you use TempHist, your city-level location is included in every request sent to the TempHist API (api.temphist.com). The city name is obtained by reverse-geocoding your device location — only the city name is transmitted to the API, not your GPS coordinates. Location is linked to your anonymous session identifier in each request. To support location history and reduce repeated lookups, the app stores on your device the detected city name and up to 10 recent GPS locations in app storage (SharedPreferences). This data is cleared only when the app is uninstalled.'
+    'When you use TempHist, your city-level location is included in every request sent to the TempHist API (api.temphist.com). The city name is obtained by reverse-geocoding your device location — for temperature lookups, only the city name is transmitted to the API, not your GPS coordinates. (The Share feature is the one exception — see below.) Location is linked to your anonymous session identifier in each request. To support location history and reduce repeated lookups, the app stores on your device the detected city name and up to 10 recent GPS locations in app storage (SharedPreferences). This data is cleared only when the app is uninstalled.'
   );
 
   // Anonymous authentication
@@ -174,13 +173,12 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   appendSection(
     container,
     'Share feature',
-    'If you use the Share button, your current location and chart data are posted to api.temphist.com/v1/shares to generate a shareable link. No additional personal data is included.'
+    'If you use the Share button, your current location (including its GPS coordinates), chart data, and the city name are posted to api.temphist.com/v1/shares to generate a shareable link. No additional personal data is included.'
   );
 
   // What is not collected
   appendHeading(container, 'What is not collected');
   appendBulletList(container, [
-    'GPS coordinates transmitted to any server — only the city name is sent to the API',
     'Personal identifiers such as name, email, or phone number',
     'Analytics or advertising data',
     'Cross-site tracking',
