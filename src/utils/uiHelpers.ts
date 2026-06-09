@@ -27,13 +27,14 @@ export function createSpinner(): HTMLElement {
 
 /**
  * Build location display with icon, optional country flag, and edit button.
- * Flag is shown for pre-approved locations; fallback icons for detected/manual.
+ * Detected locations are shown in green; manually selected locations in white.
  */
 export function buildLocationDisplay(
   container: HTMLElement,
   displayText: string,
   periodKey: string = '',
-  countryCode?: string | null
+  countryCode?: string | null,
+  isDetected: boolean = false
 ): void {
   const buttonId = periodKey ? `changeLocationBtn-${periodKey}` : 'changeLocationBtn';
 
@@ -42,10 +43,10 @@ export function buildLocationDisplay(
     container.removeChild(container.firstChild);
   }
 
-  // Choose prefix: flag for known location, 📍 for any other case
+  // Flag for known location; no prefix for detected without a country code; 📍 only for manual unknown
   const prefix = countryCode
     ? `${countryCodeToFlag(countryCode)} `
-    : '📍 ';
+    : isDetected ? '' : '📍 ';
 
   // Single button wrapping flag + name + pencil — whole heading is the tap target
   const button = document.createElement('button');

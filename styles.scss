@@ -428,10 +428,10 @@ a {
   font-weight: normal;
 
   &.location-detected { color: var(--success); }
-  &.location-manual   { color: var(--thisYear); }
+  &.location-manual   { color: $colour-text; }
   &.location-default  { color: var(--trend); }
-  &.location-unknown  { color: var(--text); }
-  &.location-cookie   { color: var(--thisYear); }
+  &.location-unknown  { color: $colour-text; }
+  &.location-cookie   { color: $colour-text; }
 }
 
 // Period sub-heading — shown below the location name, with share button inline
@@ -1944,11 +1944,11 @@ body.locations-page {
       align-items: center;
       gap: 0.4rem;
       padding: 0.5rem 0.625rem 0.6rem;
-      background: rgba(0, 0, 0, 0.55);
+      background: rgba(0, 0, 0, 0.3);
       overflow: hidden;
       transition: background 0.15s ease;
 
-      .flag-img { border-radius: 2px; flex-shrink: 0; }
+      .flag-img { border-radius: 2px; flex-shrink: 0; margin-bottom: 0; }
     }
 
     &:hover .location-item__overlay { background: rgba(0, 0, 0, 0.7); }

@@ -223,14 +223,15 @@ function refreshSnapFlags(): void {
 function refreshLocationFlag(): void {
   if (!window.tempLocation) return;
   const countryCode = getCountryCodeForLocation(window.tempLocation);
-  if (!countryCode) return;
+  const isDetected = !!window.tempLocationIsDetected;
+  if (!countryCode && !isDetected) return;
   const displayCity = getDisplayCity(window.tempLocation);
   // Update all visible location headings (today + active period views)
   const headings = document.querySelectorAll<HTMLElement>('.location-heading');
   headings.forEach(el => {
     if (el.offsetParent !== null) { // only update visible elements
       const periodKey = el.id === 'locationText' ? '' : el.id.replace('LocationText', '');
-      buildLocationDisplay(el, displayCity, periodKey, countryCode);
+      buildLocationDisplay(el, displayCity, periodKey, countryCode, isDetected);
       setupChangeLocationButton(periodKey);
     }
   });
@@ -292,7 +293,7 @@ async function handleUseLocation(): Promise<void> {
 
   try {
     // Use prefetch result if available (may already be resolved or still in flight)
-    let geoResult: { location: string; latitude: number; longitude: number } | null = null;
+    let geoResult: { location: string; countryCode: string | null; latitude: number; longitude: number } | null = null;
 
     const prefetchPromise = getGeoPrefetchPromise();
     if (prefetchPromise) {
@@ -321,7 +322,7 @@ async function handleUseLocation(): Promise<void> {
         method: 'POST',
         body: JSON.stringify({ name: geoResult.location }),
       }).catch(() => {});
-      await proceedWithLocation(geoResult.location, true, 'detected', null, geoResult.latitude, geoResult.longitude);
+      await proceedWithLocation(geoResult.location, true, 'detected', null, geoResult.latitude, geoResult.longitude, geoResult.countryCode);
       return;
     }
   } catch (error: any) {
@@ -345,7 +346,7 @@ async function handleUseLocation(): Promise<void> {
         body: JSON.stringify({ name: ipResult.location }),
       }).catch(() => {});
       // Auto-select the IP-based location and proceed
-      await proceedWithLocation(ipResult.location, true, 'detected', ipResult.timezone, ipResult.latitude, ipResult.longitude);
+      await proceedWithLocation(ipResult.location, true, 'detected', ipResult.timezone, ipResult.latitude, ipResult.longitude, ipResult.countryCode);
       return;
     }
   } catch (error) {
@@ -586,7 +587,8 @@ export async function proceedWithLocation(
   locationSource: string = 'unknown',
   timezone: string | null = null,
   latitude: number | null = null,
-  longitude: number | null = null
+  longitude: number | null = null,
+  countryCode: string | null = null
 ): Promise<void> {
   debugLog('Proceeding with location:', location, 'isDetectedLocation:', isDetectedLocation, 'source:', locationSource);
 
@@ -594,6 +596,7 @@ export async function proceedWithLocation(
   window.tempLocation = location;
   window.tempLocationTimezone = timezone;
   window.tempLocationIsDetected = isDetectedLocation; // Track if this was actually detected
+  window.tempLocationCountryCode = countryCode;
   window.tempLocationSource = locationSource; // Track the source: 'detected', 'manual', 'default'
   window.tempLatitude = latitude;
   window.tempLongitude = longitude;

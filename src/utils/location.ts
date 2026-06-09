@@ -114,12 +114,15 @@ export function countryCodeToFlag(code: string): string {
  */
 export function getCountryCodeForLocation(locationSlug: string): string | null {
   const locations = window.TempHist?.prefetchedLocations;
-  if (!locations) return null;
-  const decoded = decodeURIComponent(locationSlug);
-  const city = decoded.split(',')[0].trim().toLowerCase();
-  const match = locations.find(l =>
-    l.slug === locationSlug ||
-    l.name.toLowerCase() === city
-  );
-  return match?.country_code ?? null;
+  if (locations) {
+    const decoded = decodeURIComponent(locationSlug);
+    const city = decoded.split(',')[0].trim().toLowerCase();
+    const match = locations.find(l =>
+      l.slug === locationSlug ||
+      l.name.toLowerCase() === city
+    );
+    if (match) return match.country_code;
+  }
+  // Fall back to the country code stored from geolocation/IP detection
+  return window.tempLocationCountryCode ?? null;
 }

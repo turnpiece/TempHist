@@ -50,7 +50,7 @@ export function displayLocationAndFetchData(): void {
   if (locationTextElement) {
     locationTextElement.className = `location-heading location-${window.tempLocationSource || 'unknown'}`;
     const countryCode = getCountryCodeForLocation(window.tempLocation!);
-    buildLocationDisplay(locationTextElement, locationDisplay, '', countryCode);
+    buildLocationDisplay(locationTextElement, locationDisplay, '', countryCode, !!window.tempLocationIsDetected);
     setupChangeLocationButton();
   }
 

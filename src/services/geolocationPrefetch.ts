@@ -10,6 +10,7 @@ const SS_GEO_PREFETCH = 'temphist_geo_prefetch';
 
 export interface GeoPrefetchResult {
   location: string;
+  countryCode: string | null;
   latitude: number;
   longitude: number;
 }
@@ -51,13 +52,13 @@ function waitForCurrentUser(timeoutMs = 5000): Promise<void> {
 
 async function runPrefetch(onLocationKnown: (result: GeoPrefetchResult | null) => void): Promise<GeoPrefetchResult | null> {
   try {
-    const { location, latitude, longitude } = await detectUserLocationWithGeolocation();
+    const { location, countryCode, latitude, longitude } = await detectUserLocationWithGeolocation();
 
     // Signal immediately that location is known — callers can update UI before data arrives
-    onLocationKnown({ location, latitude, longitude });
+    onLocationKnown({ location, countryCode, latitude, longitude });
 
     try {
-      localStorage.setItem(LS_LAST_GEO_LOCATION, JSON.stringify({ location, latitude, longitude, storedAt: Date.now() }));
+      localStorage.setItem(LS_LAST_GEO_LOCATION, JSON.stringify({ location, countryCode, latitude, longitude, storedAt: Date.now() }));
     } catch { /* quota exceeded */ }
 
     await waitForCurrentUser();
@@ -73,10 +74,10 @@ async function runPrefetch(onLocationKnown: (result: GeoPrefetchResult | null) =
     }
 
     try {
-      sessionStorage.setItem(SS_GEO_PREFETCH, JSON.stringify({ location, latitude, longitude, identifier, fetchedAt: Date.now() }));
+      sessionStorage.setItem(SS_GEO_PREFETCH, JSON.stringify({ location, countryCode, latitude, longitude, identifier, fetchedAt: Date.now() }));
     } catch { /* quota exceeded */ }
 
-    return { location, latitude, longitude };
+    return { location, countryCode, latitude, longitude };
   } catch {
     onLocationKnown(null);
     return null;

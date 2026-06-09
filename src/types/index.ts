@@ -165,6 +165,7 @@ export interface NominatimResponse {
 export interface IPLocationResponse {
   city: string;
   country_name: string;
+  country_code?: string;
   timezone?: string;
   latitude?: number;
   longitude?: number;
@@ -233,6 +234,7 @@ declare global {
     tempLocationTimezone: string | null;
     tempLocationSource: string | null;
     tempLocationIsDetected: boolean | null;
+    tempLocationCountryCode: string | null;
     tempLatitude: number | null;
     tempLongitude: number | null;
     currentUser: FirebaseUser | null;

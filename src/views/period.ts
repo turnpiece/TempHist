@@ -185,7 +185,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
 
     // Show location with edit icon without using innerHTML
     const countryCode = getCountryCodeForLocation(window.tempLocation!);
-    buildLocationDisplay(locationTextElement, displayLocation, periodKey, countryCode);
+    buildLocationDisplay(locationTextElement, displayLocation, periodKey, countryCode, !!window.tempLocationIsDetected);
 
     // Setup change location button click handler
     setupChangeLocationButton(periodKey);

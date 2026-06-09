@@ -90,6 +90,8 @@ export default defineConfig(({ mode }) => {
           // Hide app nav links (Today/week/month/year) on static pages where the
           // SPA router is not active — visitors should enter the app via the home page
           APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp || isFeed || isLocations) ? 'hidden' : '',
+          // Hide standalone-page-only links (e.g. Locations) inside the SPA
+          STANDALONE_NAV_HIDDEN: isIndex ? 'hidden' : '',
           // Hide Snapshots nav link when VITE_ENABLE_SNAPSHOTS=false
           SNAPSHOTS_NAV_HIDDEN: env.VITE_ENABLE_SNAPSHOTS === 'false' ? 'hidden' : ''
         }
