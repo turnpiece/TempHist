@@ -105,7 +105,7 @@ body {
   background-color: transparent; // html canvas gradient shows through
   color: $colour-text;
   margin: 0; // Reset browser default 8px margin — combined with `width: 100%` it pushes the body 16px past the viewport on iOS Safari and is the root cause of the lateral wobble.
-  padding: 10px;
+  padding: 10px 0;
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.4;
   min-height: 100vh;
@@ -204,7 +204,7 @@ a {
 }
 
 #header {
-  padding: 8px 16px 12px 6px; // Reduced left padding by 10px to align logo with content
+  padding: 8px 16px 12px 16px;
   color: $colour-text;
   display: flex; 
   align-items: center; 
