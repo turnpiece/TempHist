@@ -913,19 +913,6 @@ export function initializeSplashScreen(): void {
   // This ensures locations are available even if user has a cookie but wants to change location
   prefetchApprovedLocations();
 
-  // Check if we already have a location (e.g., from cookie or previous session)
-  const cookieData = getLocationCookie();
-  if (cookieData.location) {
-    debugLog('Found existing location from cookie:', cookieData.location, 'with source:', cookieData.source);
-    // Skip splash screen and go directly to app
-    // Use the stored source if available, otherwise default to 'cookie'
-    const source = cookieData.source || 'cookie';
-    
-    // Proceed immediately - Firebase should be ready since we're in the auth callback
-    proceedWithLocation(cookieData.location, source === 'detected', source, cookieData.timezone);
-    return;
-  }
-
   // Show splash screen initially
   if (splashScreen) {
     splashScreen.style.display = 'block';
