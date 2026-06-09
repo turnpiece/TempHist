@@ -1241,6 +1241,9 @@ h2 {
 
 .hero-cities {
   padding-bottom: 3.5rem;
+  transition: opacity 0.8s ease;
+
+  &.is-detecting { opacity: 0; pointer-events: none; }
 }
 
 .carousel-progress {
@@ -1264,8 +1267,10 @@ h2 {
   font-weight: 600;
   color: rgba($colour-text, 0.75);
   margin: 0;
+  transition: opacity 0.8s ease;
 
   &.visible { display: block; }
+  &.is-detecting { opacity: 0; pointer-events: none; }
 }
 
 // ── How It Works ───────────────────────────────────────────────────────────────
@@ -1523,10 +1528,9 @@ h2 {
 // Location Loading State
 .location-loading {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-top: 2rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
 
   .loading-text {
     color: $colour-loading-text;

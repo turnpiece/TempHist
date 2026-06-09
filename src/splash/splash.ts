@@ -285,11 +285,15 @@ export async function prefetchApprovedLocations(): Promise<void> {
  */
 async function handleUseLocation(): Promise<void> {
   const locationLoading = document.getElementById('locationLoading');
-  const splashActions = document.querySelector('.splash-actions');
+  const useLocationBtn = document.getElementById('useLocationBtn');
+  const locationPickerHeading = document.getElementById('location-picker-heading');
+  const heroCities = document.querySelector<HTMLElement>('.hero-cities');
 
-  // Show loading state
-  if (splashActions) (splashActions as HTMLElement).style.display = 'none';
-  if (locationLoading) locationLoading.style.display = 'flex';
+  // Replace the button with the loading spinner in-place; fade out the carousel
+  if (useLocationBtn) useLocationBtn.hidden = true;
+  if (locationLoading) locationLoading.hidden = false;
+  if (locationPickerHeading) locationPickerHeading.classList.add('is-detecting');
+  if (heroCities) heroCities.classList.add('is-detecting');
 
   try {
     // Use prefetch result if available (may already be resolved or still in flight)
@@ -365,18 +369,20 @@ async function handleUseLocation(): Promise<void> {
  */
 export function showManualLocationSelection(permissionDenied: boolean = false): void {
   debugLog('showManualLocationSelection called', { permissionDenied });
-  const splashActions = document.querySelector('.splash-actions');
   const locationLoading = document.getElementById('locationLoading');
   const useLocationBtn = document.getElementById('useLocationBtn');
   const heading = document.getElementById('location-picker-heading');
+  const heroCities = document.querySelector<HTMLElement>('.hero-cities');
 
-  // Hide loading indicator
-  if (locationLoading) locationLoading.style.display = 'none';
+  // Hide loading indicator and restore carousel
+  if (locationLoading) locationLoading.hidden = true;
+  if (heroCities) heroCities.classList.remove('is-detecting');
+  if (heading) heading.classList.remove('is-detecting');
 
   // If permission was denied, hide the "Use my location" button and update heading
   if (permissionDenied) {
     if (useLocationBtn) {
-      useLocationBtn.style.display = 'none';
+      useLocationBtn.hidden = true;
       debugLog('Hiding "Use my location" button (permission denied)');
     }
     const permissionMsg = document.getElementById('locationPermissionMsg');
@@ -391,17 +397,11 @@ export function showManualLocationSelection(permissionDenied: boolean = false): 
   } else {
     // Make sure button is visible if permission wasn't denied (e.g., other failure)
     if (useLocationBtn) {
-      useLocationBtn.style.display = '';
+      useLocationBtn.hidden = false;
     }
     if (heading) {
       heading.textContent = 'Or choose one:';
     }
-  }
-
-  // Show splash actions (which includes the location carousel)
-  if (splashActions) {
-    (splashActions as HTMLElement).style.display = 'flex';
-    debugLog('Showing splash actions with location carousel');
   }
 
   // Ensure the location carousel is initialized if it hasn't been yet
@@ -1004,18 +1004,15 @@ export function handleLocationChangeInternal(): void {
   
   // Reset splash screen to initial state
   const locationLoading = document.getElementById('locationLoading');
-  const splashActions = document.querySelector('.splash-actions');
   const useLocationBtn = document.getElementById('useLocationBtn');
   const heading = document.getElementById('location-picker-heading');
+  const heroCities = document.querySelector<HTMLElement>('.hero-cities');
 
-  if (locationLoading) locationLoading.style.display = 'none';
-  if (splashActions) (splashActions as HTMLElement).style.display = 'flex';
-  
-  // Reset "Use my location" button and heading text to initial state
-  if (useLocationBtn) {
-    useLocationBtn.style.display = '';
-  }
+  if (locationLoading) locationLoading.hidden = true;
+  if (useLocationBtn) useLocationBtn.hidden = false;
+  if (heroCities) heroCities.classList.remove('is-detecting');
   if (heading) {
+    heading.classList.remove('is-detecting');
     heading.textContent = 'Or choose one:';
   }
   

@@ -85,17 +85,15 @@
                 </svg>
                 Use my location
               </button>
+              <div id="locationLoading" class="location-loading" hidden>
+                <div class="spinner"></div>
+                <p class="loading-text">Detecting your location...</p>
+              </div>
               <p id="locationPermissionMsg" class="location-permission-denied" hidden>
                 Location access was denied. You can enable it in your browser settings.
               </p>
               <p id="location-picker-heading" class="choose-label location-picker__heading">Or choose a location:</p>
             </div>
-          </div>
-
-          <!-- Loading state for location detection -->
-          <div id="locationLoading" class="location-loading" style="display: none;">
-            <div class="spinner"></div>
-            <p class="loading-text">Detecting your location...</p>
           </div>
 
           <!-- Location carousel -->
