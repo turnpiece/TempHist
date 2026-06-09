@@ -1175,7 +1175,7 @@ h2 {
 
 .masthead-name {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 700;
   letter-spacing: -0.035em;
   color: rgba(255, 255, 255, 0.72);
@@ -1881,7 +1881,7 @@ body.locations-page {
   @media (min-width: 768px) { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
 
   &--featured {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 
     @media (min-width: 768px) { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
   }
