@@ -2284,6 +2284,8 @@ html.is-share-page #splashScreen {
   justify-content: center;
   padding: 1.5rem 1rem;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 
 .share-modal-panel {
@@ -2296,6 +2298,7 @@ html.is-share-page #splashScreen {
   flex-shrink: 0;
   margin: auto;
   overflow: hidden; // clip ::before to border-radius
+  touch-action: pan-y; // prevent lateral drag on iOS
 
   // Trend gradient overlay — mirrors html::before but scoped to the panel.
   // Uses the same CSS custom properties so it reacts to applyTrendBackground
