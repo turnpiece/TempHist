@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
 
 const firebaseConfig = {
@@ -19,7 +19,13 @@ if (import.meta.env.DEV) {
 }
 
 export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+// Use initializeAuth without popupRedirectResolver — we only use anonymous auth,
+// so we don't need the redirect iframe. The default getAuth() registers
+// browserPopupRedirectResolver which injects a dynamic script that violates
+// the require-trusted-types-for CSP directive and crashes auth initialization.
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+});
 
 // App Check: proves requests originate from this website (reCAPTCHA v3, invisible to users).
 export const appCheck: AppCheck | null = import.meta.env.VITE_RECAPTCHA_SITE_KEY
