@@ -60,6 +60,9 @@ function buildFeaturedItem(loc: PreapprovedLocation): HTMLButtonElement {
       img.src = loc.imageUrl.jpeg;
       img.alt = loc.imageAlt || loc.name;
       img.loading = 'lazy';
+      // Intrinsic served size — CSS (object-fit: cover in a 4/3 wrapper) controls display
+      img.width = 320;
+      img.height = 200;
       picture.appendChild(img);
       imageWrapper.appendChild(picture);
     } else if (typeof loc.imageUrl === 'string') {
@@ -68,6 +71,8 @@ function buildFeaturedItem(loc: PreapprovedLocation): HTMLButtonElement {
       img.src = loc.imageUrl;
       img.alt = loc.imageAlt || loc.name;
       img.loading = 'lazy';
+      img.width = 320;
+      img.height = 200;
       imageWrapper.appendChild(img);
     }
   } else {

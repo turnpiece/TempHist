@@ -238,6 +238,9 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
       img.className = 'location-card__image';
       img.src = location.imageUrl.jpeg;
       img.alt = location.imageAlt || location.name;
+      // Intrinsic served size — CSS (object-fit: cover in a 4/3 wrapper) controls display
+      img.width = 320;
+      img.height = 200;
       // First few visible images should load eagerly with high priority for better LCP
       if (isPriorityImage) {
         img.loading = 'eager';
@@ -255,6 +258,8 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
       img.className = 'location-card__image';
       img.src = location.imageUrl;
       img.alt = location.imageAlt || location.name;
+      img.width = 320;
+      img.height = 200;
       // First few visible images should load eagerly with high priority for better LCP
       if (isPriorityImage) {
         img.loading = 'eager';
