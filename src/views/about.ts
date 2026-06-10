@@ -222,7 +222,7 @@ export function buildAboutContent(container: HTMLElement): void {
   appendHeading(container, 'How it works');
   appendParagraph(
     container,
-    'Each view shows a bar chart with one bar per year. The current year\'s bar is highlighted in green.'
+    'Each view shows a bar chart with one bar per year. Warmer years are red, cooler years are blue.'
   );
 
   // Period list (plain text — these describe in-app views, not standalone
