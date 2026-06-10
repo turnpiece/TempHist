@@ -2001,6 +2001,38 @@ html.is-share-page #splashScreen {
   display: none;
 }
 
+// Suppress splash + reveal app shell when resuming from a /locations selection.
+// Mirror the splash-carousel flow: show the header, location, date, and loading
+// spinner immediately, but suppress data-driven elements until JS stages them
+// in their proper `opacity: 0` initial state. Otherwise their initial paint
+// (opacity 1, default) would transition to opacity 0 when JS adds
+// `.summary-text` / `.stats-bubble`, producing a visible "flash and fade".
+html.is-pending-location #splashScreen {
+  display: none;
+}
+html.is-pending-location #appShell {
+  display: grid;
+}
+// Start these elements at opacity 0 BEFORE first paint so that when JS later
+// adds `.summary-text` / `.stats-bubble` / `.visible` (all of which also use
+// opacity:0 as the resting state), there's no value change to trigger an
+// initial opacity 1→0 transition — which would otherwise show the empty green
+// summary box for ~400ms before fading out.
+html.is-pending-location #summaryText,
+html.is-pending-location #todayStatsBubble,
+html.is-pending-location #tempChart {
+  opacity: 0;
+}
+// Reserve vertical space for the heading and date so they don't shift down
+// once JS populates them. Heights are derived from each element's font-size
+// and natural line-height; close enough that the swap is unnoticeable.
+html.is-pending-location #locationText {
+  min-height: 1.4em; // matches h2 line-height (44.8px at 32px font-size)
+}
+html.is-pending-location #dateText {
+  min-height: 1.4em; // content-box min-height; .period-subheading adds the padding + border to reach final 33.6px
+}
+
 .share-page-pending {
   opacity: 0;
 }

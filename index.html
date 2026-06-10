@@ -51,6 +51,8 @@
     </script>
     <!-- Suppress splash screen on share pages before first paint -->
     <script>if (/^\/s\/[^/]+/.test(location.pathname)) document.documentElement.classList.add('is-share-page');</script>
+    <!-- Suppress splash when arriving with a pending location selection from /locations -->
+    <script>try { if (sessionStorage.getItem('temphist_pending_location')) document.documentElement.classList.add('is-pending-location'); } catch (e) {}</script>
     <!-- Inter font for redesigned homepage -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

@@ -425,10 +425,11 @@ export async function handleManualLocationSelection(
   selectedLocation: string,
   timezone: string | null = null,
   latitude: number | null = null,
-  longitude: number | null = null
+  longitude: number | null = null,
+  countryCode: string | null = null
 ): Promise<void> {
   debugLog('Manual location selected:', selectedLocation);
-  await proceedWithLocation(selectedLocation, false, 'manual', timezone, latitude, longitude);
+  await proceedWithLocation(selectedLocation, false, 'manual', timezone, latitude, longitude, countryCode);
 }
 
 /**
@@ -604,6 +605,20 @@ export async function proceedWithLocation(
 
   // Store in cookie for future visits
   setLocationCookie(location, locationSource, timezone);
+
+  // If we're on a sub-page (e.g. /locations), the SPA DOM elements
+  // (splashScreen/appShell/views) don't exist here — stash the selection in
+  // sessionStorage and hard-navigate to the SPA root, where the bootstrap
+  // resumes proceedWithLocation with the full payload.
+  if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+    try {
+      sessionStorage.setItem('temphist_pending_location', JSON.stringify({
+        location, isDetectedLocation, locationSource, timezone, latitude, longitude, countryCode,
+      }));
+    } catch { /* ignore quota */ }
+    window.location.href = '/';
+    return;
+  }
 
   // Clear any cached data from previous location/date to prevent showing stale data
   clearAllCachedData();
@@ -889,6 +904,43 @@ export function initializeSplashScreen(): void {
     document.body.classList.add('content-ready');
     return;
   }
+
+  // If a sub-page (e.g. /locations) stashed a location selection and redirected
+  // us here, resume proceedWithLocation with that payload instead of showing
+  // the splash screen.
+  try {
+    const pending = sessionStorage.getItem('temphist_pending_location');
+    if (pending) {
+      sessionStorage.removeItem('temphist_pending_location');
+      const p = JSON.parse(pending);
+      if (p && typeof p.location === 'string') {
+        // Hide splash screen immediately to avoid a visible flash before
+        // proceedWithLocation's fade-out kicks in.
+        const splashEl = document.getElementById('splashScreen');
+        const appShellEl = document.getElementById('appShell');
+        if (splashEl) splashEl.style.display = 'none';
+        if (appShellEl) {
+          appShellEl.classList.remove('hidden');
+          appShellEl.style.display = 'grid';
+        }
+        proceedWithLocation(
+          p.location,
+          !!p.isDetectedLocation,
+          p.locationSource ?? 'manual',
+          p.timezone ?? null,
+          p.latitude ?? null,
+          p.longitude ?? null,
+          p.countryCode ?? null
+        );
+        // proceedWithLocation → mainAppLogic ran synchronously and staged the
+        // data-driven elements at their proper opacity:0 starting state. Safe
+        // to remove the pre-paint suppression now — subsequent `.visible`
+        // additions will transition them in cleanly.
+        document.documentElement.classList.remove('is-pending-location');
+        return;
+      }
+    }
+  } catch { /* ignore parse errors */ }
 
   const splashScreen = document.getElementById('splashScreen');
   const appShell = document.getElementById('appShell');

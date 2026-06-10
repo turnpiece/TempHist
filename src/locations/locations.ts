@@ -108,7 +108,8 @@ function buildFeaturedItem(loc: PreapprovedLocation): HTMLButtonElement {
         valueParts.join(', '),
         loc.timezone ?? null,
         loc.latitude ?? null,
-        loc.longitude ?? null
+        loc.longitude ?? null,
+        loc.country_code ?? null
       );
     }
   });
@@ -151,7 +152,8 @@ function buildTextItem(loc: PopularLocation): HTMLButtonElement {
         valueParts.join(', '),
         loc.timezone ?? null,
         loc.latitude ?? null,
-        loc.longitude ?? null
+        loc.longitude ?? null,
+        loc.country_code ?? null
       );
     }
   });
