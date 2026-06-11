@@ -504,7 +504,7 @@ export async function renderShareChart(
 
   const isFahrenheit = meta.unit === 'fahrenheit';
   const unitLabel = isFahrenheit ? '\u00b0F' : '\u00b0C';
-  const tempDecimals = isFahrenheit ? 1 : 2;
+  const tempDecimals = isFahrenheit || meta.period === 'daily' ? 1 : 2;
   const cityName = meta.location.split(',')[0].trim();
 
   // Look up flag from preapproved locations by city name

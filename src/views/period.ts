@@ -408,7 +408,8 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
         minTemp,
         maxTemp,
         minYear,
-        actualCurrentYear
+        actualCurrentYear,
+        `${periodKey}ly` as 'weekly' | 'monthly' | 'yearly'
       );
 
       // Update trend line if enabled

@@ -267,7 +267,8 @@ export async function fetchHistoricalData(): Promise<void> {
       tempRange.min,
       tempRange.max,
       startYear,
-      currentYear
+      currentYear,
+      'daily'
     );
 
     window.TempHist = window.TempHist || {};

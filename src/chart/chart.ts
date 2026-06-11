@@ -259,12 +259,14 @@ export function createTemperatureChart(
   minTemp: number,
   maxTemp: number,
   startYear: number,
-  currentYear: number
+  currentYear: number,
+  period: 'daily' | 'weekly' | 'monthly' | 'yearly'
 ): any {
   if (!ctx || !ctx.canvas) {
     throw new Error('Invalid canvas context provided to createTemperatureChart');
   }
 
+  const tempDecimals = period === 'daily' ? 1 : 2;
   const barColors = computeBarColors(chartData, averageData.temp, averageData.stdDev);
   const trendColour = CHART_COLORS.TREND;
   const avgColour = CHART_COLORS.AVERAGE;
@@ -349,7 +351,7 @@ export function createTemperatureChart(
         },
         tooltip: {
           enabled: false,
-          external: buildExternalTooltipHandler(averageData.temp, barColors as string[], 2)
+          external: buildExternalTooltipHandler(averageData.temp, barColors as string[], tempDecimals)
         }
       },
       scales: {
