@@ -739,17 +739,23 @@ export async function proceedWithLocation(
 }
 
 /**
- * Set up splash screen event listeners
+ * Set up splash screen event listeners. Idempotent: callers (e.g.
+ * handleLocationChangeInternal) may invoke this on every return to splash, but
+ * the click listener must only be attached once — otherwise each visit stacks
+ * another handler on #useLocationBtn and a single click fans out into multiple
+ * proceedWithLocation runs.
  */
+let splashListenersAttached = false;
 function setupSplashScreenListeners(): void {
-  const useLocationBtn = document.getElementById('useLocationBtn');
+  if (splashListenersAttached) return;
 
-  // Use my location button handler
-  if (useLocationBtn) {
-    useLocationBtn.addEventListener('click', async () => {
-      await handleUseLocation();
-    });
-  }
+  const useLocationBtn = document.getElementById('useLocationBtn');
+  if (!useLocationBtn) return;
+
+  useLocationBtn.addEventListener('click', async () => {
+    await handleUseLocation();
+  });
+  splashListenersAttached = true;
 }
 
 export async function initSnapshotsCarousel(): Promise<void> {
