@@ -21,10 +21,13 @@
         });
       }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"
+      integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG"
+      crossorigin="anonymous" defer></script>
     <script
       src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"
-      defer
+      integrity="sha384-WVRZ5bDoBpBp9eKFxji3f7JiiY/SCi2kWJpzG+AgHnafhqQOzp4mmqsPBZgiCxlu"
+      crossorigin="anonymous" defer
     ></script>
 
     <!-- Structured Data -->
@@ -185,7 +188,7 @@
         <!-- Default view (Today) keeps your existing chart DOM -->
         <section id="todayView" data-view="today">
           <div class="container">
-            <h2 id="locationText" class="location-heading"></h2>
+            <h2 id="locationText" class="location-heading" aria-live="polite"></h2>
             <div id="dateText" class="period-subheading"></div>
             <div id="dataNotice" class="notice"></div>
             <div id="summaryText" class="standard-text data-field"></div>
