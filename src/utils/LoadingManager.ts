@@ -115,7 +115,7 @@ export class LoadingManager {
     const isMonthPage = currentHash === '#month' || currentHash === '#/month';
     const isYearPage = currentHash === '#year' || currentHash === '#/year';
     
-    const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
+    const displayCity = globalThis.tempLocation ? getDisplayCity(globalThis.tempLocation) : 'your location';
     
     if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.CONNECTING) {
       loadingText.textContent = 'Connecting to the temperature data server...';
@@ -178,7 +178,7 @@ export class LoadingManager {
 
     const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
     
-    const displayCity = window.tempLocation ? getDisplayCity(window.tempLocation) : 'your location';
+    const displayCity = globalThis.tempLocation ? getDisplayCity(globalThis.tempLocation) : 'your location';
     
     if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.CONNECTING) {
       loadingText.textContent = 'Connecting to the temperature data server...';

@@ -27,27 +27,27 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   resetTrendBackground();
 
   // Check if the app is properly initialised
-  if (!window.tempLocation) {
+  if (!globalThis.tempLocation) {
     // Wait a bit for the app to initialise
     await new Promise(resolve => setTimeout(resolve, 100));
-    if (!window.tempLocation) {
+    if (!globalThis.tempLocation) {
       debugLog('renderPeriod: No location found, using default');
-      window.tempLocation = DEFAULT_LOCATION;
-      window.tempLocationSource = 'default';
-      window.tempLocationIsDetected = false;
+      globalThis.tempLocation = DEFAULT_LOCATION;
+      globalThis.tempLocationSource = 'default';
+      globalThis.tempLocationIsDetected = false;
     }
   } else {
-    debugLog('renderPeriod: Using existing location:', window.tempLocation);
+    debugLog('renderPeriod: Using existing location:', globalThis.tempLocation);
   }
 
   // Check if Firebase auth is ready
-  if (!window.currentUser) {
+  if (!globalThis.currentUser) {
     // Wait for Firebase auth to be ready
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 
   // Get current date for display — use location's timezone (matches Today page)
-  const { day: dayStr, month: monthStr, year: yearNum } = getEffectiveDateForLocation(window.tempLocationTimezone);
+  const { day: dayStr, month: monthStr, year: yearNum } = getEffectiveDateForLocation(globalThis.tempLocationTimezone);
   const day = Number(dayStr);
   const monthName = new Date(yearNum, Number(monthStr) - 1, 1).toLocaleString('en-GB', { month: 'long' });
   const friendlyDate = `${getOrdinal(day)} ${monthName}`;
@@ -176,16 +176,16 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   }
   
   // Set location text immediately (like Today page)
-  const currentLocation = window.tempLocation!;
+  const currentLocation = globalThis.tempLocation!;
   const displayLocation = getDisplayCity(currentLocation);
   const locationTextElement = document.getElementById(`${periodKey}LocationText`);
   if (locationTextElement) {
     // Add classes based on location source
-    locationTextElement.className = `location-heading location-${window.tempLocationSource || 'unknown'}`;
+    locationTextElement.className = `location-heading location-${globalThis.tempLocationSource || 'unknown'}`;
 
     // Show location with edit icon without using innerHTML
-    const countryCode = getCountryCodeForLocation(window.tempLocation!);
-    buildLocationDisplay(locationTextElement, displayLocation, periodKey, countryCode, !!window.tempLocationIsDetected);
+    const countryCode = getCountryCodeForLocation(globalThis.tempLocation!);
+    buildLocationDisplay(locationTextElement, displayLocation, periodKey, countryCode, !!globalThis.tempLocationIsDetected);
 
     // Setup change location button click handler
     setupChangeLocationButton(periodKey);
@@ -210,16 +210,16 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
     // Use same caching system as Today page (DataCache)
     const identifier = `${monthStr}-${dayStr}`;
 
-    const localToday = window.tempLocationTimezone ? localTodayIn(window.tempLocationTimezone) : undefined;
-    const ttl = window.tempLocationTimezone
-      ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(window.tempLocationTimezone))
+    const localToday = globalThis.tempLocationTimezone ? localTodayIn(globalThis.tempLocationTimezone) : undefined;
+    const ttl = globalThis.tempLocationTimezone
+      ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(globalThis.tempLocationTimezone))
       : 10 * 60 * 1000;
 
     // Check cache first (if feature flag is enabled)
     let weatherData: any;
     let fromCache = false;
     if (FeatureFlags.isEnabled('data_caching')) {
-      const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier, localToday);
+      const cacheKey = DataCache.generateTemperatureKey(periodKey, globalThis.tempLocation!, identifier, localToday);
       debugLog(`${periodKey}: Checking cache with key:`, cacheKey);
       weatherData = DataCache.get(cacheKey);
 
@@ -240,11 +240,11 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       };
 
       debugLog(`Starting ${periodKey} data fetch...`);
-      weatherData = await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress, localToday);
+      weatherData = await fetchTemperatureDataAsync(periodKey, globalThis.tempLocation!, identifier, onProgress, localToday);
 
       // Cache the result (if feature flag is enabled)
       if (FeatureFlags.isEnabled('data_caching')) {
-        const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier, localToday);
+        const cacheKey = DataCache.generateTemperatureKey(periodKey, globalThis.tempLocation!, identifier, localToday);
         DataCache.set(cacheKey, weatherData, ttl);
         debugLog(`${periodKey}: Data cached for future use`);
       }
@@ -456,7 +456,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       retryBtn.className = 'btn-retry';
       retryBtn.type = 'button';
       retryBtn.textContent = 'Retry';
-      retryBtn.addEventListener('click', () => { window.TempHistViews[periodKey]?.render?.(); });
+      retryBtn.addEventListener('click', () => { globalThis.TempHistViews[periodKey]?.render?.(); });
 
       const titleEl = document.createElement('p');
       titleEl.className = 'notice-title large';

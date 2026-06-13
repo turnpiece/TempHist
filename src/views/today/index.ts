@@ -31,7 +31,7 @@ export function mainAppLogic(): void {
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
 
-  debugLog('mainAppLogic called with window.tempLocation:', window.tempLocation);
+  debugLog('mainAppLogic called with globalThis.tempLocation:', globalThis.tempLocation);
 
   checkAndHandleDateChange();
 
@@ -46,7 +46,7 @@ export function mainAppLogic(): void {
 
   debugLog('Constants initialized');
 
-  const { day, month, year: currentYear } = getEffectiveDateForLocation(window.tempLocationTimezone);
+  const { day, month, year: currentYear } = getEffectiveDateForLocation(globalThis.tempLocationTimezone);
 
   debugLog('Date components prepared:', { day, month, currentYear });
 
@@ -80,8 +80,8 @@ export function mainAppLogic(): void {
     existingChart.destroy();
   }
 
-  window.TempHist = window.TempHist || {};
-  window.TempHist.mainChart = null;
+  globalThis.TempHist = globalThis.TempHist || {};
+  globalThis.TempHist.mainChart = null;
 
   const barColour = '#ff6b6b';
 
@@ -116,16 +116,16 @@ export function mainAppLogic(): void {
 
   debugLog('DOM elements and variables initialized');
 
-  if (!window.tempLocation) {
-    window.tempLocation = DEFAULT_LOCATION;
-    window.tempLocationSource = 'default';
-    window.tempLocationIsDetected = false;
+  if (!globalThis.tempLocation) {
+    globalThis.tempLocation = DEFAULT_LOCATION;
+    globalThis.tempLocationSource = 'default';
+    globalThis.tempLocationIsDetected = false;
   }
 
-  if (window.tempLocation) {
+  if (globalThis.tempLocation) {
     displayLocationAndFetchData();
   }
 }
 
-window.calculateTrendLine = calculateTrendLine;
-window.fetchHistoricalData = fetchHistoricalData;
+globalThis.calculateTrendLine = calculateTrendLine;
+globalThis.fetchHistoricalData = fetchHistoricalData;

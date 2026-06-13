@@ -79,13 +79,13 @@ export async function createShare(params: ShareParams): Promise<string> {
   const response = await apiFetch(url, {
     method: 'POST',
     body: JSON.stringify({
-      location: window.tempLocation,
+      location: globalThis.tempLocation,
       period: params.period,
       identifier: params.identifier,
       ref_year: params.ref_year,
       unit: 'celsius',
-      latitude: window.tempLatitude ?? null,
-      longitude: window.tempLongitude ?? null,
+      latitude: globalThis.tempLatitude ?? null,
+      longitude: globalThis.tempLongitude ?? null,
     }),
   });
   if (!response.ok) {
@@ -100,10 +100,10 @@ export async function createShare(params: ShareParams): Promise<string> {
 }
 
 function formatShareTitle(params: ShareParams): string {
-  const cityName = (window.tempLocation || '').split(',')[0].trim();
+  const cityName = (globalThis.tempLocation || '').split(',')[0].trim();
   // Build a synthetic ShareMetadata so we can reuse the existing formatters
   const synthetic: ShareMetadata = {
-    location: window.tempLocation || '',
+    location: globalThis.tempLocation || '',
     period: params.period,
     identifier: params.identifier,
     ref_year: params.ref_year,

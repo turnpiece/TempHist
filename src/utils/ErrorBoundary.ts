@@ -50,8 +50,8 @@ class ErrorBoundary {
     });
 
     // Report to analytics if available
-    if (window.TempHist?.analytics) {
-      window.TempHist.analytics.errors.push({
+    if (globalThis.TempHist?.analytics) {
+      globalThis.TempHist.analytics.errors.push({
         timestamp: new Date().toISOString(),
         error: normalisedError.message,
         stack: normalisedError.stack,

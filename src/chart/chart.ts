@@ -52,7 +52,7 @@ export function updateChartTrendLine(
     return;
   }
 
-  const calculateTrendLineFn = (window as any).calculateTrendLine;
+  const calculateTrendLineFn = globalThis.calculateTrendLine;
   if (!calculateTrendLineFn) {
     console.warn('calculateTrendLine not available');
     return;
@@ -299,7 +299,7 @@ export function createTemperatureChart(
           hidden: !showTrend
         },
         {
-          label: `Temperature in ${getDisplayCity(window.tempLocation!)} ${periodTitle === 'Today' ? `on ${friendlyDate}` : `for ${periodTitle}`}`,
+          label: `Temperature in ${getDisplayCity(globalThis.tempLocation!)} ${periodTitle === 'Today' ? `on ${friendlyDate}` : `for ${periodTitle}`}`,
           type: 'bar',
           data: chartData,
           backgroundColor: barColors,

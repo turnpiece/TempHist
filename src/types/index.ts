@@ -227,75 +227,73 @@ export interface DataNoticeOptions {
   secondarySubtitle?: boolean;
 }
 
-// Global window extensions
+// Project globals — declared as var so they are accessible via globalThis.X
 declare global {
-  interface Window {
-    tempLocation: string | null;
-    tempLocationTimezone: string | null;
-    tempLocationSource: string | null;
-    tempLocationIsDetected: boolean | null;
-    tempLocationCountryCode: string | null;
-    tempLatitude: number | null;
-    tempLongitude: number | null;
-    currentUser: FirebaseUser | null;
-    TempHist: {
-      cache: {
-        prefetch: {
-          week?: TemperatureDataResponse;
-          month?: TemperatureDataResponse;
-          year?: TemperatureDataResponse;
-        };
-        prefetchPromise?: Promise<any>;
+  var tempLocation: string | null;
+  var tempLocationTimezone: string | null;
+  var tempLocationSource: string | null;
+  var tempLocationIsDetected: boolean | null;
+  var tempLocationCountryCode: string | null;
+  var tempLatitude: number | null;
+  var tempLongitude: number | null;
+  var currentUser: FirebaseUser | null;
+  var TempHist: {
+    cache: {
+      prefetch: {
+        week?: TemperatureDataResponse;
+        month?: TemperatureDataResponse;
+        year?: TemperatureDataResponse;
       };
-      prefetchedLocations?: PreapprovedLocation[];
-      lastIdentifier?: string;
-      mainChart?: any; // Chart.js instance for the main temperature chart
-      analytics: {
-        errors: ErrorLog[];
-        apiCalls: number;
-        apiFailures: number;
-        retryAttempts: number;
-        locationFailures: number;
-        startTime: number;
-        lastRequestMetadata: LastRequestMetadata | null;
-      };
+      prefetchPromise?: Promise<any>;
     };
-    TempHistViews: Record<string, {
-      render: () => void | Promise<void>;
-    }>;
-    TempHistRouter: {
-      navigate: (path: string) => void;
-      handleRoute: () => void;
-      registerView: (key: string, view: { render: () => void | Promise<void> }) => void;
-      updateNavigationHighlight: (route: string) => void;
+    prefetchedLocations?: PreapprovedLocation[];
+    lastIdentifier?: string;
+    mainChart?: any;
+    analytics: {
+      errors: ErrorLog[];
+      apiCalls: number;
+      apiFailures: number;
+      retryAttempts: number;
+      locationFailures: number;
+      startTime: number;
+      lastRequestMetadata: LastRequestMetadata | null;
     };
-    updateDataNotice: (message: string | null, options?: DataNoticeOptions) => void;
-    DEBUGGING: boolean;
-    debugLog: (...args: any[]) => void;
-    debugTime: (label: string) => void;
-    debugTimeEnd: (label: string) => void;
-    getApiUrl: (path: string) => string;
-    getDisplayCity: (fullLocation: string) => string;
-    getOrdinal: (n: number) => string;
-    mainAppLogic: () => void;
-    handleManualLocationSelection: (selectedLocation: string, timezone?: string | null, latitude?: number | null, longitude?: number | null, countryCode?: string | null) => Promise<void>;
-    calculateTrendLine: (points: ChartDataPoint[], startX: number, endX: number) => {
-      points: ChartDataPoint[];
-      slope: number;
-    };
-    TempHistAnalytics: () => any;
-    TempHistSendAnalytics: () => Promise<void>;
-    fetchHistoricalData: () => Promise<void>;
-    retryDataFetch: () => void;
-    testIncompleteData: () => void;
-    testFatalError: () => void;
-    testBasicFunctions: () => void;
-    testRetryButton: () => void;
-    mockTrend: (slope?: number | 'cooling' | 'warming') => void;
-    showFatalError: (periodKey?: string) => void;
-    hideChartElements: (periodKey?: string) => void;
-    showChartElements: (periodKey?: string) => void;
-  }
+  };
+  var TempHistViews: Record<string, {
+    render: () => void | Promise<void>;
+  }>;
+  var TempHistRouter: {
+    navigate: (path: string) => void;
+    handleRoute: () => void;
+    registerView: (key: string, view: { render: () => void | Promise<void> }) => void;
+    updateNavigationHighlight: (route: string) => void;
+  };
+  var updateDataNotice: (message: string | null, options?: DataNoticeOptions) => void;
+  var DEBUGGING: boolean;
+  var debugLog: (...args: any[]) => void;
+  var debugTime: (label: string) => void;
+  var debugTimeEnd: (label: string) => void;
+  var getApiUrl: (path: string) => string;
+  var getDisplayCity: (fullLocation: string) => string;
+  var getOrdinal: (n: number) => string;
+  var mainAppLogic: () => void;
+  var handleManualLocationSelection: (selectedLocation: string, timezone?: string | null, latitude?: number | null, longitude?: number | null, countryCode?: string | null) => Promise<void>;
+  var calculateTrendLine: (points: ChartDataPoint[], startX: number, endX: number) => {
+    points: ChartDataPoint[];
+    slope: number;
+  };
+  var TempHistAnalytics: () => any;
+  var TempHistSendAnalytics: () => Promise<void>;
+  var fetchHistoricalData: () => Promise<void>;
+  var retryDataFetch: () => void;
+  var testIncompleteData: () => void;
+  var testFatalError: () => void;
+  var testBasicFunctions: () => void;
+  var testRetryButton: () => void;
+  var mockTrend: (slope?: number | 'cooling' | 'warming') => void;
+  var showFatalError: (periodKey?: string) => void;
+  var hideChartElements: (periodKey?: string) => void;
+  var showChartElements: (periodKey?: string) => void;
 }
 
 export {};

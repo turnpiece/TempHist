@@ -67,7 +67,7 @@ export function showError(message: string): void {
     retryBtn.textContent = 'Retry';
     retryBtn.addEventListener('click', () => {
       hideError();
-      window.retryDataFetch?.();
+      globalThis.retryDataFetch?.();
     });
 
     const titleEl = document.createElement('p');
@@ -129,7 +129,7 @@ function actuallyShowChart(): void {
   PerformanceMonitor.recordMetric('data_fetch_complete', performance.now());
   Logger.info('Historical data fetch completed', {
     duration,
-    location: window.tempLocation,
+    location: globalThis.tempLocation,
     dataPoints: 0,
   });
 
@@ -141,7 +141,7 @@ function actuallyShowChart(): void {
       useStructuredHtml: true,
       type: 'success',
       title: '✅ Temperature data loaded successfully!',
-      subtitle: `Showing data for ${getDisplayCity(window.tempLocation!)}`,
+      subtitle: `Showing data for ${getDisplayCity(globalThis.tempLocation!)}`,
     });
   } else {
     debugLog('Skipping success message because incomplete data notice is present');
@@ -153,8 +153,8 @@ function actuallyShowChart(): void {
       if (registeredChart) {
         try {
           registeredChart.update();
-          if (window.TempHist) {
-            window.TempHist.mainChart = registeredChart;
+          if (globalThis.TempHist) {
+            globalThis.TempHist.mainChart = registeredChart;
           }
         } catch (error) {
           console.error('Error updating chart:', error);
@@ -163,14 +163,14 @@ function actuallyShowChart(): void {
           } catch (destroyError) {
             console.error('Error destroying chart:', destroyError);
           }
-          if (window.TempHist) {
-            window.TempHist.mainChart = null;
+          if (globalThis.TempHist) {
+            globalThis.TempHist.mainChart = null;
           }
         }
       } else {
         debugLog('No chart instance found on canvas element, skipping update');
-        if (window.TempHist) {
-          window.TempHist.mainChart = null;
+        if (globalThis.TempHist) {
+          globalThis.TempHist.mainChart = null;
         }
       }
     } else {

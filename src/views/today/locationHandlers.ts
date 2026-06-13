@@ -38,25 +38,25 @@ const debouncedLocationChange = Debouncer.debounce(
 );
 
 export function displayLocationAndFetchData(): void {
-  debugLog('displayLocationAndFetchData called with window.tempLocation:', window.tempLocation);
+  debugLog('displayLocationAndFetchData called with globalThis.tempLocation:', globalThis.tempLocation);
 
-  const isDefaultLocation = window.tempLocationSource === 'default';
-  const cityName = getDisplayCity(window.tempLocation!);
+  const isDefaultLocation = globalThis.tempLocationSource === 'default';
+  const cityName = getDisplayCity(globalThis.tempLocation!);
   const locationDisplay = isDefaultLocation
     ? `${cityName} (default location)`
     : cityName;
 
   const locationTextElement = document.getElementById('locationText');
   if (locationTextElement) {
-    locationTextElement.className = `location-heading location-${window.tempLocationSource || 'unknown'}`;
-    const countryCode = getCountryCodeForLocation(window.tempLocation!);
-    buildLocationDisplay(locationTextElement, locationDisplay, '', countryCode, !!window.tempLocationIsDetected);
+    locationTextElement.className = `location-heading location-${globalThis.tempLocationSource || 'unknown'}`;
+    const countryCode = getCountryCodeForLocation(globalThis.tempLocation!);
+    buildLocationDisplay(locationTextElement, locationDisplay, '', countryCode, !!globalThis.tempLocationIsDetected);
     setupChangeLocationButton();
   }
 
   const locationMessage = isDefaultLocation
-    ? `📍 Using default location: <strong>${getDisplayCity(window.tempLocation!)}</strong><br><small>Enable location permissions for your actual location</small>`
-    : `📍 Location detected: <strong>${getDisplayCity(window.tempLocation!)}</strong>`;
+    ? `📍 Using default location: <strong>${getDisplayCity(globalThis.tempLocation!)}</strong><br><small>Enable location permissions for your actual location</small>`
+    : `📍 Location detected: <strong>${getDisplayCity(globalThis.tempLocation!)}</strong>`;
 
   updateDataNotice('', {
     debugOnly: true,
@@ -66,7 +66,7 @@ export function displayLocationAndFetchData(): void {
     subtitle: INITIAL_LOADING_TEXT,
   });
 
-  setLocationCookie(window.tempLocation!, window.tempLocationSource!, window.tempLocationTimezone);
+  setLocationCookie(globalThis.tempLocation!, globalThis.tempLocationSource!, globalThis.tempLocationTimezone);
 
   fetchHistoricalData();
 }

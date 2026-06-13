@@ -88,18 +88,18 @@ export async function fetchHistoricalData(): Promise<void> {
       console.warn(`API health check returned '${apiHealth}', but proceeding with data fetch...`);
     }
 
-    const { day, month, year: rawYear } = getEffectiveDateForLocation(window.tempLocationTimezone);
+    const { day, month, year: rawYear } = getEffectiveDateForLocation(globalThis.tempLocationTimezone);
     const identifier = `${month}-${day}`;
-    debugLog('About to fetch data - tempLocation:', window.tempLocation, 'identifier:', identifier);
+    debugLog('About to fetch data - tempLocation:', globalThis.tempLocation, 'identifier:', identifier);
 
-    const localToday = window.tempLocationTimezone ? localTodayIn(window.tempLocationTimezone) : undefined;
-    const ttl = window.tempLocationTimezone
-      ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(window.tempLocationTimezone))
+    const localToday = globalThis.tempLocationTimezone ? localTodayIn(globalThis.tempLocationTimezone) : undefined;
+    const ttl = globalThis.tempLocationTimezone
+      ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(globalThis.tempLocationTimezone))
       : 10 * 60 * 1000;
 
     let jobResult;
     if (FeatureFlags.isEnabled('data_caching')) {
-      const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier, localToday);
+      const cacheKey = DataCache.generateTemperatureKey('daily', globalThis.tempLocation!, identifier, localToday);
       debugLog('Checking cache for key:', cacheKey);
       jobResult = DataCache.get(cacheKey);
 
@@ -119,11 +119,11 @@ export async function fetchHistoricalData(): Promise<void> {
 
       debugLog('Starting async daily data fetch...');
       const t0 = Date.now();
-      jobResult = await fetchTemperatureDataAsync('daily', window.tempLocation!, identifier, onProgress, localToday);
+      jobResult = await fetchTemperatureDataAsync('daily', globalThis.tempLocation!, identifier, onProgress, localToday);
       responseTimeMs = Date.now() - t0;
 
       if (FeatureFlags.isEnabled('data_caching')) {
-        const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier, localToday);
+        const cacheKey = DataCache.generateTemperatureKey('daily', globalThis.tempLocation!, identifier, localToday);
         DataCache.set(cacheKey, jobResult, ttl);
         debugLog('Daily: Data cached for future use');
       }
@@ -271,8 +271,8 @@ export async function fetchHistoricalData(): Promise<void> {
       'daily'
     );
 
-    window.TempHist = window.TempHist || {};
-    window.TempHist.mainChart = chart;
+    globalThis.TempHist = globalThis.TempHist || {};
+    globalThis.TempHist.mainChart = chart;
 
     showChartElements();
 
@@ -291,15 +291,15 @@ export async function fetchHistoricalData(): Promise<void> {
 
     setupShareButton('', { period: 'daily', identifier, ref_year: currentYear });
 
-    if (window.currentUser) {
+    if (globalThis.currentUser) {
       if (responseTimeMs !== null) {
         const xCache = getLastXCache();
-        window.TempHist.analytics.lastRequestMetadata = {
+        globalThis.TempHist.analytics.lastRequestMetadata = {
           response_time_ms: responseTimeMs,
           cache_hit: xCache !== null ? xCache.toUpperCase() === 'HIT' : null,
           canonical_location: jobResultData.data.location,
-          requested_location: window.tempLocation!,
-          selection_method: toSelectionMethod(window.tempLocationSource),
+          requested_location: globalThis.tempLocation!,
+          selection_method: toSelectionMethod(globalThis.tempLocationSource),
         };
       }
       sendAnalytics();

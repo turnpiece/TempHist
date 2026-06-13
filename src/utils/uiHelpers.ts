@@ -438,8 +438,8 @@ function buildIncompleteNoticeContent(metadata: TemperatureDataMetadata): HTMLDi
   retryButton.className = 'notice-retry-btn';
   retryButton.textContent = 'Retry';
   retryButton.onclick = () => {
-    if (window.retryDataFetch && typeof window.retryDataFetch === 'function') {
-      window.retryDataFetch();
+    if (globalThis.retryDataFetch && typeof globalThis.retryDataFetch === 'function') {
+      globalThis.retryDataFetch();
     }
   };
   contentEl.appendChild(retryButton);

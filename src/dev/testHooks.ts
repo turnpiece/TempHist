@@ -10,7 +10,7 @@ import {
  * Dev-only window helpers for manual QA in the browser console.
  */
 export function installDevTestHooks(debugLog: (...args: unknown[]) => void): void {
-  window.testIncompleteData = function () {
+  globalThis.testIncompleteData = function () {
     debugLog('Testing incomplete data scenario...');
     const testMetadata = {
       total_years: 50,
@@ -29,7 +29,7 @@ export function installDevTestHooks(debugLog: (...args: unknown[]) => void): voi
     checkDataCompleteness(testMetadata, 'today');
   };
 
-  window.testFatalError = function () {
+  globalThis.testFatalError = function () {
     debugLog('Testing fatal error scenario...');
     const testMetadata = {
       total_years: 51,
@@ -46,7 +46,7 @@ export function installDevTestHooks(debugLog: (...args: unknown[]) => void): voi
     showFatalError('today');
   };
 
-  window.testBasicFunctions = function () {
+  globalThis.testBasicFunctions = function () {
     debugLog('Testing basic functions...');
     showFatalError();
     hideChartElements();
@@ -55,12 +55,12 @@ export function installDevTestHooks(debugLog: (...args: unknown[]) => void): voi
     debugLog('Basic function tests complete');
   };
 
-  window.testRetryButton = function () {
+  globalThis.testRetryButton = function () {
     debugLog('Testing retry button functionality...');
     showFatalError();
     setTimeout(() => {
       debugLog('Simulating retry button click...');
-      window.retryDataFetch?.();
+      globalThis.retryDataFetch?.();
     }, 2000);
     debugLog('Retry button test complete');
   };
@@ -68,7 +68,7 @@ export function installDevTestHooks(debugLog: (...args: unknown[]) => void): voi
   // mockTrend(slope) — apply a trend background without real data.
   // slope is °C/decade; use a negative value for cooling, positive for warming.
   // Presets: mockTrend('cooling') → -0.5, mockTrend('warming') → 0.5
-  window.mockTrend = function (slope: number | 'cooling' | 'warming' = 'cooling') {
+  globalThis.mockTrend = function (slope: number | 'cooling' | 'warming' = 'cooling') {
     const s = slope === 'cooling' ? -0.5 : slope === 'warming' ? 0.5 : slope;
     applyTrendBackground(s, 'metric');
     debugLog(`mockTrend: applied slope ${s}°C/decade (direction: ${s < 0 ? 'cooling' : 'warming'})`);
@@ -80,7 +80,7 @@ export function installDevTestHooks(debugLog: (...args: unknown[]) => void): voi
     const parsed = parseFloat(mockParam);
     const slope = !isNaN(parsed) ? parsed : (mockParam as 'cooling' | 'warming');
     // Defer so the page has had a chance to hide the overlay via its own load logic.
-    setTimeout(() => window.mockTrend!(slope), 500);
+    setTimeout(() => globalThis.mockTrend!(slope), 500);
     debugLog(`mockTrend: auto-applying from URL param "${mockParam}"`);
   }
 

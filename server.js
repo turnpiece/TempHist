@@ -65,7 +65,7 @@ function applySiteOriginToHtml(html, req) {
 function injectCountryCode(html, req) {
   const raw = (req.headers['cf-ipcountry'] || '').trim().toUpperCase();
   if (!/^[A-Z]{2}$/.test(raw)) return html;
-  return html.replace('</head>', `<script>window.__TH_COUNTRY="${raw}"</script></head>`);
+  return html.replace('</head>', `<script>globalThis.__TH_COUNTRY="${raw}"</script></head>`);
 }
 
 function sendDistHtml(req, res, filename) {

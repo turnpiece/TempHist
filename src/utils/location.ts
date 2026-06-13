@@ -113,7 +113,7 @@ export function countryCodeToFlag(code: string): string {
  * not in the approved list).
  */
 export function getCountryCodeForLocation(locationSlug: string): string | null {
-  const locations = window.TempHist?.prefetchedLocations;
+  const locations = globalThis.TempHist?.prefetchedLocations;
   if (locations) {
     const decoded = decodeURIComponent(locationSlug);
     const city = decoded.split(',')[0].trim().toLowerCase();
@@ -124,5 +124,5 @@ export function getCountryCodeForLocation(locationSlug: string): string | null {
     if (match) return match.country_code;
   }
   // Fall back to the country code stored from geolocation/IP detection
-  return window.tempLocationCountryCode ?? null;
+  return globalThis.tempLocationCountryCode ?? null;
 }

@@ -219,11 +219,11 @@ function refreshSnapFlags(): void {
  * After prefetchedLocations loads, re-render any visible location heading with the correct flag
  */
 function refreshLocationFlag(): void {
-  if (!window.tempLocation) return;
-  const countryCode = getCountryCodeForLocation(window.tempLocation);
-  const isDetected = !!window.tempLocationIsDetected;
+  if (!globalThis.tempLocation) return;
+  const countryCode = getCountryCodeForLocation(globalThis.tempLocation);
+  const isDetected = !!globalThis.tempLocationIsDetected;
   if (!countryCode && !isDetected) return;
-  const displayCity = getDisplayCity(window.tempLocation);
+  const displayCity = getDisplayCity(globalThis.tempLocation);
   // Update all visible location headings (today + active period views)
   const headings = document.querySelectorAll<HTMLElement>('.location-heading');
   headings.forEach(el => {
@@ -245,15 +245,15 @@ export async function prefetchApprovedLocations(): Promise<void> {
   let attempts = 0;
   const maxAttempts = 50; // 5 seconds max wait
   
-  while (!window.currentUser && attempts < maxAttempts) {
+  while (!globalThis.currentUser && attempts < maxAttempts) {
     await new Promise(resolve => setTimeout(resolve, 100));
     attempts++;
   }
   
-  if (!window.currentUser) {
+  if (!globalThis.currentUser) {
     debugLog('No currentUser available after waiting, skipping location prefetch');
-    window.TempHist = window.TempHist || {};
-    window.TempHist.prefetchedLocations = [];
+    globalThis.TempHist = globalThis.TempHist || {};
+    globalThis.TempHist.prefetchedLocations = [];
     return;
   }
   
@@ -262,8 +262,8 @@ export async function prefetchApprovedLocations(): Promise<void> {
     debugLog('Approved locations prefetched:', locations.length, 'locations');
     
     // Store in a global cache for immediate use
-    window.TempHist = window.TempHist || {};
-    window.TempHist.prefetchedLocations = locations;
+    globalThis.TempHist = globalThis.TempHist || {};
+    globalThis.TempHist.prefetchedLocations = locations;
 
     // If a location heading is already visible (cookie fast-path rendered before prefetch),
     // re-render it now with the correct country flag
@@ -273,8 +273,8 @@ export async function prefetchApprovedLocations(): Promise<void> {
   } catch (error) {
     debugLog('Failed to prefetch approved locations:', error);
     // Store empty array if prefetch fails
-    window.TempHist = window.TempHist || {};
-    window.TempHist.prefetchedLocations = [];
+    globalThis.TempHist = globalThis.TempHist || {};
+    globalThis.TempHist.prefetchedLocations = [];
   }
 }
 
@@ -407,7 +407,7 @@ export function showManualLocationSelection(permissionDenied: boolean = false): 
   const carousel = document.getElementById('location-carousel');
   if (carousel) {
     // The carousel initialization happens elsewhere, but we can check if locations are ready
-    const locations = window.TempHist?.prefetchedLocations;
+    const locations = globalThis.TempHist?.prefetchedLocations;
     if (locations) {
       debugLog('Location carousel available with', locations.length, 'prefetched locations');
     } else {
@@ -437,9 +437,9 @@ export function clearAllCachedData(): void {
   debugLog('Clearing all cached data due to location/date change');
   
   // Clear prefetched period data
-  if (window.TempHist && window.TempHist.cache) {
-    window.TempHist.cache.prefetch = {};
-    window.TempHist.cache.prefetchPromise = undefined;
+  if (globalThis.TempHist && globalThis.TempHist.cache) {
+    globalThis.TempHist.cache.prefetch = {};
+    globalThis.TempHist.cache.prefetchPromise = undefined;
   }
   
   // Clear lazy loader cache
@@ -467,8 +467,8 @@ export function clearAllCachedData(): void {
   });
   
   // Reset the global chart variable to ensure clean state
-  window.TempHist = window.TempHist || {};
-  window.TempHist.mainChart = null;
+  globalThis.TempHist = globalThis.TempHist || {};
+  globalThis.TempHist.mainChart = null;
   
   // Clear text content of summary, average, and trend elements
   const textElements = [
@@ -518,21 +518,21 @@ export function clearAllCachedData(): void {
  * Check if we need to clear data due to date change
  */
 export function checkAndHandleDateChange(): boolean {
-  const { day, month } = getEffectiveDateForLocation(window.tempLocationTimezone);
+  const { day, month } = getEffectiveDateForLocation(globalThis.tempLocationTimezone);
   const currentIdentifier = `${month}-${day}`;
   
   // Check if we have a stored identifier and if it's different from current
-  const lastIdentifier = (window.TempHist as any)?.lastIdentifier;
+  const lastIdentifier = (globalThis.TempHist as any)?.lastIdentifier;
   if (lastIdentifier && lastIdentifier !== currentIdentifier) {
     debugLog('Date change detected:', lastIdentifier, '->', currentIdentifier);
     clearAllCachedData();
-    (window.TempHist as any).lastIdentifier = currentIdentifier;
+    (globalThis.TempHist as any).lastIdentifier = currentIdentifier;
     return true;
   }
   
   // Store current identifier
-  window.TempHist = window.TempHist || {};
-  (window.TempHist as any).lastIdentifier = currentIdentifier;
+  globalThis.TempHist = globalThis.TempHist || {};
+  (globalThis.TempHist as any).lastIdentifier = currentIdentifier;
   return false;
 }
 
@@ -542,13 +542,13 @@ export function checkAndHandleDateChange(): boolean {
 export function startPeriodDataPrefetch(): void {
   debugLog('Starting background prefetch for period data...');
         
-  const { day, month } = getEffectiveDateForLocation(window.tempLocationTimezone);
+  const { day, month } = getEffectiveDateForLocation(globalThis.tempLocationTimezone);
   const identifier = `${month}-${day}`;
-  const location = window.tempLocation!;
+  const location = globalThis.tempLocation!;
 
-  const localToday = window.tempLocationTimezone ? localTodayIn(window.tempLocationTimezone) : undefined;
-  const ttl = window.tempLocationTimezone
-    ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(window.tempLocationTimezone))
+  const localToday = globalThis.tempLocationTimezone ? localTodayIn(globalThis.tempLocationTimezone) : undefined;
+  const ttl = globalThis.tempLocationTimezone
+    ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(globalThis.tempLocationTimezone))
     : 10 * 60 * 1000;
 
   // Prefetch period data using DataCache (same system as period pages)
@@ -592,14 +592,14 @@ export async function proceedWithLocation(
   debugLog('Proceeding with location:', location, 'isDetectedLocation:', isDetectedLocation, 'source:', locationSource);
 
   // Set the global location FIRST - this is critical for router
-  window.tempLocation = location;
-  window.tempLocationTimezone = timezone;
-  window.tempLocationIsDetected = isDetectedLocation; // Track if this was actually detected
-  window.tempLocationCountryCode = countryCode;
-  window.tempLocationSource = locationSource; // Track the source: 'detected', 'manual', 'default'
-  window.tempLatitude = latitude;
-  window.tempLongitude = longitude;
-  debugLog('Set window.tempLocation to:', window.tempLocation, 'timezone:', timezone, 'coords:', latitude, longitude);
+  globalThis.tempLocation = location;
+  globalThis.tempLocationTimezone = timezone;
+  globalThis.tempLocationIsDetected = isDetectedLocation; // Track if this was actually detected
+  globalThis.tempLocationCountryCode = countryCode;
+  globalThis.tempLocationSource = locationSource; // Track the source: 'detected', 'manual', 'default'
+  globalThis.tempLatitude = latitude;
+  globalThis.tempLongitude = longitude;
+  debugLog('Set globalThis.tempLocation to:', globalThis.tempLocation, 'timezone:', timezone, 'coords:', latitude, longitude);
 
   // Store in cookie for future visits
   setLocationCookie(location, locationSource, timezone);
@@ -711,18 +711,18 @@ export async function proceedWithLocation(
   // This will call displayLocationAndFetchData() which calls fetchHistoricalData()
   // which calls showInitialLoadingState() - and now appShell is visible so loading will show
   debugLog('Calling mainAppLogic after location change');
-  window.mainAppLogic();
+  globalThis.mainAppLogic();
 
-  // THEN navigate to Today page (router will now see window.tempLocation is set)
+  // THEN navigate to Today page (router will now see globalThis.tempLocation is set)
   debugLog('Navigating to Today page after location selection');
   
   // Activate the router now that everything is initialised
-  if (window.TempHistRouter && typeof window.TempHistRouter.handleRoute === 'function') {
-    window.TempHistRouter.handleRoute();
+  if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.handleRoute === 'function') {
+    globalThis.TempHistRouter.handleRoute();
   }
   
-  if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
-    window.TempHistRouter.navigate('/today');
+  if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.navigate === 'function') {
+    globalThis.TempHistRouter.navigate('/today');
   } else {
     // Fallback: update URL and trigger route handling
     window.location.hash = '#/today';
@@ -730,8 +730,8 @@ export async function proceedWithLocation(
   
   // Force navigation highlighting update after a short delay
   setTimeout(() => {
-    if (window.TempHistRouter && typeof window.TempHistRouter.updateNavigationHighlight === 'function') {
-      window.TempHistRouter.updateNavigationHighlight('/today');
+    if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.updateNavigationHighlight === 'function') {
+      globalThis.TempHistRouter.updateNavigationHighlight('/today');
     }
   }, 200);
 }
@@ -957,8 +957,8 @@ export function initializeSplashScreen(): void {
   const validInitialRoutes = ['/today', '/week', '/month', '/year'];
   if (!validInitialRoutes.includes(initialRoute)) {
     debugLog('Splash screen shown, resetting to Today page');
-    if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
-      window.TempHistRouter.navigate('/today');
+    if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.navigate === 'function') {
+      globalThis.TempHistRouter.navigate('/today');
     } else {
       // Fallback: update URL
       window.location.hash = '#/today';
@@ -1060,8 +1060,8 @@ export function handleLocationChangeInternal(): void {
   }
   
   // Navigate to today page
-  if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
-    window.TempHistRouter.navigate('/today');
+  if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.navigate === 'function') {
+    globalThis.TempHistRouter.navigate('/today');
   } else {
     window.location.hash = '#/today';
   }
