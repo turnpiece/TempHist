@@ -103,7 +103,7 @@ export function getOrdinal(n: number): string {
  */
 export function countryCodeToFlag(code: string): string {
   return [...code.toUpperCase()].map(c =>
-    String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
+    String.fromCodePoint(0x1F1E6 + c.codePointAt(0)! - 65)
   ).join('');
 }
 

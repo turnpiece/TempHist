@@ -206,12 +206,12 @@ class Logger {
     const durations = completedEntries.map(e => e.duration!);
     const averageDuration = durations.reduce((sum, duration) => sum + duration, 0) / durations.length;
     
-    const slowestEntry = completedEntries.reduce((slowest, current) => 
-      current.duration! > slowest.duration! ? current : slowest
+    const slowestEntry = completedEntries.reduce((slowest, current) =>
+      current.duration! > slowest.duration! ? current : slowest, completedEntries[0]
     );
-    
-    const fastestEntry = completedEntries.reduce((fastest, current) => 
-      current.duration! < fastest.duration! ? current : fastest
+
+    const fastestEntry = completedEntries.reduce((fastest, current) =>
+      current.duration! < fastest.duration! ? current : fastest, completedEntries[0]
     );
 
     return {
@@ -296,7 +296,7 @@ class Logger {
    * Generate a unique session ID
    */
   private static generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
 }
 

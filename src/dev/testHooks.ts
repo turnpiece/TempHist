@@ -77,8 +77,8 @@ export function installDevTestHooks(debugLog: (...args: unknown[]) => void): voi
   // Auto-apply if ?mockTrend=cooling|warming|<number> is in the URL.
   const mockParam = new URLSearchParams(window.location.search).get('mockTrend');
   if (mockParam !== null) {
-    const parsed = parseFloat(mockParam);
-    const slope = !isNaN(parsed) ? parsed : (mockParam as 'cooling' | 'warming');
+    const parsed = Number.parseFloat(mockParam);
+    const slope = !Number.isNaN(parsed) ? parsed : (mockParam as 'cooling' | 'warming');
     // Defer so the page has had a chance to hide the overlay via its own load logic.
     setTimeout(() => globalThis.mockTrend!(slope), 500);
     debugLog(`mockTrend: auto-applying from URL param "${mockParam}"`);

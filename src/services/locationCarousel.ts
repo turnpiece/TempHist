@@ -187,7 +187,7 @@ function showCarouselError(carousel: HTMLElement, track: HTMLElement): void {
 
   const arrows = carousel.querySelector('.location-carousel__arrows');
   if (arrows) {
-    carousel.insertBefore(errorEl, arrows);
+    arrows.before(errorEl);
   } else {
     carousel.appendChild(errorEl);
   }

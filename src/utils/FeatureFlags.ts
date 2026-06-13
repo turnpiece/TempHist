@@ -255,9 +255,10 @@ class FeatureFlags {
         return timeValue > conditionValue;
       case 'lessThan':
         return timeValue < conditionValue;
-      case 'between':
+      case 'between': {
         const [start, end] = condition.value;
         return timeValue >= new Date(start).getTime() && timeValue <= new Date(end).getTime();
+      }
       default:
         return false;
     }
@@ -290,7 +291,7 @@ class FeatureFlags {
     
     let hash = 0;
     for (let i = 0; i < hashString.length; i++) {
-      const char = hashString.charCodeAt(i);
+      const char = hashString.codePointAt(i)!;
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash; // Convert to 32-bit integer
     }

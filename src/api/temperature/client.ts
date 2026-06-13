@@ -178,8 +178,8 @@ export async function createAsyncJob(
   validateLocation(location);
   validateIdentifier(identifier);
 
-  const apiPeriod =
-    period === 'week' ? 'weekly' : period === 'month' ? 'monthly' : period === 'year' ? 'yearly' : 'daily';
+  const periodMap: Record<string, string> = { week: 'weekly', month: 'monthly', year: 'yearly' };
+  const apiPeriod = periodMap[period] ?? 'daily';
 
   const basePath = `/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}/async`;
   const jobUrl = getApiUrl(localToday ? `${basePath}?local_today=${localToday}` : basePath);
@@ -264,8 +264,8 @@ async function fetchTemperatureDataSync(
   validateLocation(location);
   validateIdentifier(identifier);
 
-  const apiPeriod =
-    period === 'week' ? 'weekly' : period === 'month' ? 'monthly' : period === 'year' ? 'yearly' : 'daily';
+  const periodMap: Record<string, string> = { week: 'weekly', month: 'monthly', year: 'yearly' };
+  const apiPeriod = periodMap[period] ?? 'daily';
 
   const basePath = `/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}`;
   const syncUrl = getApiUrl(localToday ? `${basePath}?local_today=${localToday}` : basePath);

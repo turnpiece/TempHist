@@ -1,6 +1,6 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
-const path = require('path');
+const path = require('node:path');
 const { getOrdinal } = require('./lib/getOrdinal');
 const app = express();
 
@@ -74,7 +74,7 @@ app.use((req, res, next) => {
 });
 
 // Determine which directory to serve
-const distExists = require('fs').existsSync('./dist');
+const distExists = require('node:fs').existsSync('./dist');
 const staticDir = distExists ? './dist' : './';
 
 if (distExists) {
@@ -88,7 +88,7 @@ if (distExists) {
 let _indexHtmlCache = null;
 function getIndexHtml() {
   if (!_indexHtmlCache) {
-    _indexHtmlCache = require('fs').readFileSync(path.join(__dirname, staticDir, 'index.html'), 'utf-8');
+    _indexHtmlCache = require('node:fs').readFileSync(path.join(__dirname, staticDir, 'index.html'), 'utf-8');
   }
   return _indexHtmlCache;
 }
@@ -101,8 +101,8 @@ function formatSharePeriodHeading(meta) {
     (period === 'yearly' && identifier && identifier.includes('-'))
   ) {
     const [monthStr, dayStr] = identifier.split('-');
-    const month = parseInt(monthStr, 10);
-    const day = parseInt(dayStr, 10);
+    const month = Number.parseInt(monthStr, 10);
+    const day = Number.parseInt(dayStr, 10);
     const monthName = new Date(ref_year, month - 1, 1).toLocaleString('en-GB', { month: 'long' });
     friendlyDate = `${getOrdinal(day)} ${monthName}`;
   }
@@ -116,7 +116,7 @@ function formatSharePeriodHeading(meta) {
 }
 
 function escapeAttr(str) {
-  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return str.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
 app.use(async (req, res, next) => {

@@ -251,7 +251,7 @@ function hideAppChrome(): void {
   const nav = document.querySelector('nav');
   if (nav) {
     nav.querySelectorAll('a[data-route]').forEach(link => {
-      const route = (link as HTMLAnchorElement).getAttribute('data-route');
+      const route = (link as HTMLAnchorElement).dataset.route;
       if (route !== '/about' && route !== '/privacy' && route !== '/feed') {
         const li = link.closest('li');
         if (li) (li as HTMLElement).style.display = 'none';

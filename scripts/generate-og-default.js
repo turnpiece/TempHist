@@ -3,8 +3,8 @@
  * (#242456 → #343499) and centred logo, for consistent link previews (iOS, etc.).
  */
 const sharp = require('sharp');
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const WIDTH = 1200;
 const HEIGHT = 630;

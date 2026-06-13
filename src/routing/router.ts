@@ -211,7 +211,7 @@ export class TempHistRouter {
         const allNavItems = document.querySelectorAll('nav a');
         debugLog('All nav links found:', allNavItems.length);
         allNavItems.forEach((item, index) => {
-          debugLog(`Nav item ${index}:`, item.getAttribute('href'), item.getAttribute('data-route'));
+          debugLog(`Nav item ${index}:`, item.getAttribute('href'), (item as HTMLElement).dataset.route);
         });
       }
     }, 50);

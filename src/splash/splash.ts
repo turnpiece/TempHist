@@ -495,7 +495,7 @@ export function clearAllCachedData(): void {
   // Clear any error/warning notices from previous data fetch
   const noticeEls = document.querySelectorAll<HTMLElement>('.notice');
   noticeEls.forEach(el => {
-    while (el.firstChild) el.removeChild(el.firstChild);
+    el.replaceChildren();
     el.className = 'notice';
   });
   
@@ -503,7 +503,7 @@ export function clearAllCachedData(): void {
   const incompleteDataNotice = document.getElementById('incompleteDataNotice');
   if (incompleteDataNotice) {
     incompleteDataNotice.style.display = 'none';
-    while (incompleteDataNotice.firstChild) incompleteDataNotice.removeChild(incompleteDataNotice.firstChild);
+    incompleteDataNotice.replaceChildren();
     incompleteDataNotice.className = 'notice';
     debugLog('Cleared incomplete data notice from previous location');
   }
@@ -777,7 +777,7 @@ export async function initSnapshotsCarousel(): Promise<void> {
   if (!shares.length) return;
 
   // Clear any previous content
-  while (section.firstChild) section.removeChild(section.firstChild);
+  section.replaceChildren();
 
   // 2-column layout: text/CTA left, card grid right
   const inner = document.createElement('div');

@@ -39,7 +39,7 @@ class LazyLoader {
     // Check if already loaded in global cache
     if (globalThis.TempHist.cache.prefetch[periodKey]) {
       debugLog(`LazyLoader: Data already in global cache for ${periodKey}`);
-      return Promise.resolve(globalThis.TempHist.cache.prefetch[periodKey]);
+      return globalThis.TempHist.cache.prefetch[periodKey];
     }
 
     // Set loading state

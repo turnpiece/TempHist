@@ -86,7 +86,7 @@ function lighterColor(color: string): string {
       case b: h = ((r - g) / d + 4) / 6; break;
     }
   }
-  l = Math.max(l, 0.80);
+  l = Math.max(l, 0.8);
   return `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
 }
 
