@@ -1,12 +1,6 @@
-import { getApiUrl } from '../api/temperature';
+import { getApiUrl, apiFetch } from '../api/temperature';
 import { resetTrendBackground } from '../utils/uiHelpers';
 import {
-  buildShareUI,
-  fetchShareMetadata,
-  fetchShareTemperatureData,
-  renderShareChart,
-  loadShareLocations,
-  showShareError,
   openShareModal,
   formatPeriodHeading,
 } from '../share';
@@ -51,8 +45,9 @@ export async function fetchShares(period: Period | '' = '', offset = 0): Promise
   url.searchParams.set('limit', String(LIMIT));
   if (offset > 0) url.searchParams.set('offset', String(offset));
 
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`Failed to load feed (${res.status}).`);
+  // apiFetch throws on non-ok responses (after retrying 5xx), so it never
+  // returns one here — no need to check res.ok.
+  const res = await apiFetch(url.toString());
   return res.json();
 }
 
@@ -80,7 +75,7 @@ export function buildCard(share: ShareItem): HTMLElement {
   const imgSrc = getApiUrl(share.og_image_url);
 
   const shareUrl = share.share_url;
-  const shareIdMatch = shareUrl.match(/\/s\/([^/?#]+)/);
+  const shareIdMatch = /\/s\/([^/?#]+)/.exec(shareUrl);
   const shareId = shareIdMatch ? shareIdMatch[1] : null;
 
   const a = document.createElement('a');

@@ -20,11 +20,9 @@ import { ErrorBoundary } from './utils/ErrorBoundary';
 import { Logger, LogLevel } from './utils/Logger';
 import { getApiUrl } from './api/temperature';
 import { initLocationCarousel } from './services/locationCarousel';
+import { startGeolocationPrefetch } from './services/geolocationPrefetch';
 import { mainAppLogic } from './views/today';
 import { renderPeriod } from './views/period';
-import { renderAboutPage, renderPrivacyPage } from './views/about';
-import { SNAPSHOTS_ENABLED } from './constants';
-import { renderFeedPage } from './views/feed';
 import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
@@ -35,10 +33,14 @@ import { isSharePagePath, initSharePage } from './share';
 // run the dev server) — no code change needed.
 
 
-// Initialise location carousel when DOM is ready
+// Initialise location carousel and geolocation prefetch when DOM is ready —
+// but only on the splash screen (index.html, where #todayView exists). Standalone
+// pages (about/privacy/feed/share) have no use for the user's location and
+// shouldn't trigger the browser's permission prompt.
 document.addEventListener('DOMContentLoaded', async () => {
-  // ...your existing code...
+  if (!document.querySelector('#todayView')) return;
   await initLocationCarousel();
+  startGeolocationPrefetch();
 });
 
 
@@ -46,15 +48,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 import type { FirebaseUser } from './types/index.js';
 
 // Global namespace and cache
-window.TempHist = window.TempHist || {};
-window.TempHist.cache = window.TempHist.cache || {
+globalThis.TempHist = globalThis.TempHist || {};
+globalThis.TempHist.cache = globalThis.TempHist.cache || {
   prefetch: {
     // example shape expected:
     // week: { location: 'London', startISO: '2025-09-19', endISO: '2025-09-25', series: [...] }
     // month: { ... }, year: { ... }
   }
 };
-window.TempHistViews = window.TempHistViews || {};
+globalThis.TempHistViews = globalThis.TempHistViews || {};
 
 // Global loading interval management - now handled by LoadingManager
 // Legacy functions for backward compatibility (exported from utils/uiHelpers)
@@ -62,13 +64,14 @@ window.TempHistViews = window.TempHistViews || {};
 export { clearAllLoadingIntervals } from './utils/uiHelpers';
 
 // Error monitoring and analytics
-window.TempHist.analytics = window.TempHist.analytics || {
+globalThis.TempHist.analytics = globalThis.TempHist.analytics || {
   errors: [],
   apiCalls: 0,
   apiFailures: 0,
   retryAttempts: 0,
   locationFailures: 0,
-  startTime: Date.now()
+  startTime: Date.now(),
+  lastRequestMetadata: null,
 };
 
 // Global debug configuration - only enabled in development
@@ -92,8 +95,8 @@ ErrorBoundary.onError((error, errorInfo) => {
   console.error('ErrorBoundary: Error caught:', error, errorInfo);
   
   // Report to analytics
-  if (window.TempHist?.analytics) {
-    window.TempHist.analytics.errors.push({
+  if (globalThis.TempHist?.analytics) {
+    globalThis.TempHist.analytics.errors.push({
       timestamp: new Date().toISOString(),
       error: error.message,
       stack: error.stack,
@@ -128,10 +131,10 @@ function debugTimeEnd(label: string): void {
 }
 
 // Make debug functions and configuration globally available
-window.DEBUGGING = DEBUGGING;
-window.debugLog = debugLog;
-window.debugTime = debugTime;
-window.debugTimeEnd = debugTimeEnd;
+globalThis.DEBUGGING = DEBUGGING;
+globalThis.debugLog = debugLog;
+globalThis.debugTime = debugTime;
+globalThis.debugTimeEnd = debugTimeEnd;
 
 if (DEBUGGING) {
   // Dynamic import keeps testHooks out of the production bundle — Rollup eliminates this
@@ -199,8 +202,8 @@ function retryDataFetch(): void {
     showChartElements(currentView);
   }
   // Call the global fetchHistoricalData function if available
-  if (window.fetchHistoricalData && typeof window.fetchHistoricalData === 'function') {
-    window.fetchHistoricalData();
+  if (globalThis.fetchHistoricalData && typeof globalThis.fetchHistoricalData === 'function') {
+    globalThis.fetchHistoricalData();
   } else {
     // Fallback to page reload if function not available
     window.location.reload();
@@ -208,14 +211,14 @@ function retryDataFetch(): void {
 }
 
 // Make utility functions globally available
-window.getApiUrl = getApiUrl;
-window.getOrdinal = getOrdinal;
-window.getDisplayCity = getDisplayCity;
-window.updateDataNotice = updateDataNotice;
-window.retryDataFetch = retryDataFetch;
-window.showFatalError = showFatalError;
-window.hideChartElements = hideChartElements;
-window.showChartElements = showChartElements;
+globalThis.getApiUrl = getApiUrl;
+globalThis.getOrdinal = getOrdinal;
+globalThis.getDisplayCity = getDisplayCity;
+globalThis.updateDataNotice = updateDataNotice;
+globalThis.retryDataFetch = retryDataFetch;
+globalThis.showFatalError = showFatalError;
+globalThis.hideChartElements = hideChartElements;
+globalThis.showChartElements = showChartElements;
 
 // Sign in anonymously
 debugLog('Starting Firebase anonymous sign-in...');
@@ -248,7 +251,7 @@ onAuthStateChanged(auth, (user: FirebaseUser | null) => {
  */
 function startAppWithFirebaseUser(user: FirebaseUser): void {
   // Store the Firebase user for use in apiFetch FIRST
-  window.currentUser = user;
+  globalThis.currentUser = user;
 
   debugLog('Script starting...');
 
@@ -266,47 +269,46 @@ function startAppWithFirebaseUser(user: FirebaseUser): void {
 }
 
 // Make mainAppLogic globally available
-window.mainAppLogic = mainAppLogic;
+globalThis.mainAppLogic = mainAppLogic;
 
 // Register view renderers
-window.TempHistViews.today = { render: () => reapplyTrendBackground() };
-window.TempHistViews.week = { render: () => renderPeriod('weekView', 'week', 'Week') };
-window.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 'Month') };
-window.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
-window.TempHistViews.about = { render: () => renderAboutPage() };
-window.TempHistViews.privacy = { render: () => renderPrivacyPage() };
-if (SNAPSHOTS_ENABLED) {
-  window.TempHistViews.feed = { render: () => renderFeedPage() };
-}
+globalThis.TempHistViews.today = { render: () => reapplyTrendBackground() };
+globalThis.TempHistViews.week = { render: () => renderPeriod('weekView', 'week', 'Week') };
+globalThis.TempHistViews.month = { render: () => renderPeriod('monthView', 'month', 'Month') };
+globalThis.TempHistViews.year = { render: () => renderPeriod('yearView', 'year', 'Year') };
 
 // Note: The old mainAppLogic function body has been extracted to:
 // - views/today.ts (Today view logic)
 // - views/period.ts (Period views logic)
-// - views/about.ts (About/Privacy pages)
+// - views/about.ts (About/Privacy pages — now standalone-only, see splash.ts)
 // All remaining initialization code is below.
 
 // Initialize router and register views (not needed on share pages or standalone
-// static pages — the router hides all [data-view] elements and would blank the content)
-const standalonePages = ['/about', '/privacy', '/privacy/app', ...(SNAPSHOTS_ENABLED ? ['/feed'] : [])];
-const isStandaloneStaticPage = standalonePages.includes(window.location.pathname);
+// static pages — the router hides all [data-view] elements on the page and would
+// blank the standalone page's own content, which has no matching route to restore it)
+const isStandaloneStaticPage = !document.querySelector('#todayView');
 if (!isSharePagePath() && !isStandaloneStaticPage) {
-  window.TempHistRouter = new TempHistRouter();
-  if (window.TempHistRouter && typeof window.TempHistRouter.registerView === 'function') {
-    window.TempHistRouter.registerView('today', window.TempHistViews.today);
-    window.TempHistRouter.registerView('week', window.TempHistViews.week);
-    window.TempHistRouter.registerView('month', window.TempHistViews.month);
-    window.TempHistRouter.registerView('year', window.TempHistViews.year);
-    window.TempHistRouter.registerView('about', window.TempHistViews.about);
-    window.TempHistRouter.registerView('privacy', window.TempHistViews.privacy);
-    if (SNAPSHOTS_ENABLED) {
-      window.TempHistRouter.registerView('feed', window.TempHistViews.feed);
-    }
+  globalThis.TempHistRouter = new TempHistRouter();
+  if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.registerView === 'function') {
+    globalThis.TempHistRouter.registerView('today', globalThis.TempHistViews.today);
+    globalThis.TempHistRouter.registerView('week', globalThis.TempHistViews.week);
+    globalThis.TempHistRouter.registerView('month', globalThis.TempHistViews.month);
+    globalThis.TempHistRouter.registerView('year', globalThis.TempHistViews.year);
   }
+
+  // About/Privacy/Snapshots always navigate away from the SPA — they belong in
+  // the footer (now shown on every page), not the in-app sidebar nav.
+  document.querySelectorAll<HTMLElement>(
+    'nav a[data-route="/about"], nav a[data-route="/privacy"], nav a[data-route="/feed"]'
+  ).forEach(link => {
+    const li = link.closest('li');
+    if (li) (li as HTMLElement).hidden = true;
+  });
 }
 
 // Make analytics functions globally available
-window.TempHistAnalytics = reportAnalytics;
-window.TempHistSendAnalytics = sendAnalytics;
+globalThis.TempHistAnalytics = reportAnalytics;
+globalThis.TempHistSendAnalytics = sendAnalytics;
 
 // Initialise mobile navigation for all pages
 document.addEventListener('DOMContentLoaded', () => {

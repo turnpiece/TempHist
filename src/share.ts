@@ -12,9 +12,8 @@ import {
   CHART_FONT_SIZE_MEDIUM,
   INITIAL_LOADING_TEXT
 } from './constants/index';
-import type { ChartDataPoint, JobResultResponse } from './types/index';
+import type { ChartDataPoint, JobResultResponse, PreapprovedLocation } from './types/index';
 import { getOrdinal, countryCodeToFlag, getCountryCodeForLocation } from './utils/location';
-import type { PreapprovedLocation } from './types/index';
 import {
   calculateTrendLine,
   computeBarColors,
@@ -80,13 +79,13 @@ export async function createShare(params: ShareParams): Promise<string> {
   const response = await apiFetch(url, {
     method: 'POST',
     body: JSON.stringify({
-      location: window.tempLocation,
+      location: globalThis.tempLocation,
       period: params.period,
       identifier: params.identifier,
       ref_year: params.ref_year,
       unit: 'celsius',
-      latitude: window.tempLatitude ?? null,
-      longitude: window.tempLongitude ?? null,
+      latitude: globalThis.tempLatitude ?? null,
+      longitude: globalThis.tempLongitude ?? null,
     }),
   });
   if (!response.ok) {
@@ -101,10 +100,10 @@ export async function createShare(params: ShareParams): Promise<string> {
 }
 
 function formatShareTitle(params: ShareParams): string {
-  const cityName = (window.tempLocation || '').split(',')[0].trim();
+  const cityName = (globalThis.tempLocation || '').split(',')[0].trim();
   // Build a synthetic ShareMetadata so we can reuse the existing formatters
   const synthetic: ShareMetadata = {
-    location: window.tempLocation || '',
+    location: globalThis.tempLocation || '',
     period: params.period,
     identifier: params.identifier,
     ref_year: params.ref_year,
@@ -202,7 +201,7 @@ export function setupShareButton(periodKey: string, params: ShareParams): void {
 }
 
 function extractShareId(): string | null {
-  const match = window.location.pathname.match(/^\/s\/([^/]+)/);
+  const match = /^\/s\/([^/]+)/.exec(window.location.pathname);
   return match ? match[1] : null;
 }
 
@@ -247,21 +246,13 @@ function hideAppChrome(): void {
   const appShell = document.getElementById('appShell');
   if (appShell) appShell.classList.remove('hidden');
 
-  // Hide period navigation links but keep About and Privacy visible.
-  // Rewrite About and Privacy hrefs to absolute paths — on the share page
-  // the template has baked these as hash-only fragments (#/about, #/privacy),
-  // which would append to /s/:id rather than navigating to the root SPA.
+  // Hide period navigation links — About, Privacy and Snapshots are always
+  // absolute paths now, so they work as-is on the share page.
   const nav = document.querySelector('nav');
   if (nav) {
     nav.querySelectorAll('a[data-route]').forEach(link => {
-      const route = (link as HTMLAnchorElement).getAttribute('data-route');
-      if (route === '/about') {
-        (link as HTMLAnchorElement).href = '/about';
-      } else if (route === '/privacy') {
-        (link as HTMLAnchorElement).href = '/privacy';
-      } else if (route === '/feed') {
-        (link as HTMLAnchorElement).href = '/feed';
-      } else {
+      const route = (link as HTMLAnchorElement).dataset.route;
+      if (route !== '/about' && route !== '/privacy' && route !== '/feed') {
         const li = link.closest('li');
         if (li) (li as HTMLElement).style.display = 'none';
       }
@@ -512,7 +503,7 @@ export async function renderShareChart(
 
   const isFahrenheit = meta.unit === 'fahrenheit';
   const unitLabel = isFahrenheit ? '\u00b0F' : '\u00b0C';
-  const tempDecimals = isFahrenheit ? 1 : 2;
+  const tempDecimals = isFahrenheit || meta.period === 'daily' ? 1 : 2;
   const cityName = meta.location.split(',')[0].trim();
 
   // Look up flag from preapproved locations by city name

@@ -18,7 +18,7 @@ interface CacheOptions {
 }
 
 class DataCache {
-  private static cache = new Map<string, CacheEntry<any>>();
+  private static readonly cache = new Map<string, CacheEntry<any>>();
   private static options: CacheOptions = {
     ttl: 5 * 60 * 1000, // 5 minutes default
     maxSize: 100,
@@ -119,8 +119,6 @@ class DataCache {
     newestEntry: number;
   } {
     const entries = Array.from(this.cache.values());
-    const now = Date.now();
-    
     return {
       size: this.cache.size,
       hitRate: entries.reduce((sum, entry) => sum + entry.accessCount, 0) / Math.max(entries.length, 1),

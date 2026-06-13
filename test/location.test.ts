@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import type {} from '../src/types/index'
 
 describe('Location Detection', () => {
   beforeEach(() => {

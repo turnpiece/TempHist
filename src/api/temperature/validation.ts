@@ -58,7 +58,7 @@ export function validateIdentifier(identifier: string): void {
   }
 
   const identifierPattern = /^(\d{1,2})-(\d{1,2})$/;
-  const match = identifier.match(identifierPattern);
+  const match = identifierPattern.exec(identifier);
 
   if (!match) {
     throw new Error(`Identifier format invalid: expected MM-DD format (e.g., "01-15"), got "${identifier}"`);
@@ -92,7 +92,7 @@ function validateTemperatureDataPoint(point: unknown, index: number): void {
 
   const year = tempPoint.year;
   if (typeof year !== 'number' || !Number.isInteger(year)) {
-    throw new Error(`Temperature data point at index ${index} has invalid 'year': expected integer, got ${typeof year}`);
+    throw new TypeError(`Temperature data point at index ${index} has invalid 'year': expected integer, got ${typeof year}`);
   }
 
   const earliestYear = DATE_RANGE_CONFIG.EARLIEST_YEAR;
@@ -103,7 +103,7 @@ function validateTemperatureDataPoint(point: unknown, index: number): void {
 
   const temperature = tempPoint.temperature;
   if (typeof temperature !== 'number' || !isFinite(temperature)) {
-    throw new Error(`Temperature data point at index ${index} has invalid 'temperature': expected finite number, got ${typeof temperature}`);
+    throw new TypeError(`Temperature data point at index ${index} has invalid 'temperature': expected finite number, got ${typeof temperature}`);
   }
 
   const MIN_TEMP = -100;
@@ -146,7 +146,7 @@ function validateAverageData(average: unknown): void {
 
   const mean = avgObj.mean;
   if (typeof mean !== 'number' || !isFinite(mean)) {
-    throw new Error(`Average mean must be a finite number, got ${typeof mean}`);
+    throw new TypeError(`Average mean must be a finite number, got ${typeof mean}`);
   }
 
   const MIN_TEMP = -100;
@@ -169,7 +169,7 @@ function validateTrendData(trend: unknown): void {
 
   const slope = trendObj.slope;
   if (typeof slope !== 'number' || !isFinite(slope)) {
-    throw new Error(`Trend slope must be a finite number, got ${typeof slope}`);
+    throw new TypeError(`Trend slope must be a finite number, got ${typeof slope}`);
   }
 
   if (slope < -10 || slope > 10) {
@@ -178,7 +178,7 @@ function validateTrendData(trend: unknown): void {
 
   if ('unit' in trendObj && trendObj.unit !== undefined) {
     if (typeof trendObj.unit !== 'string') {
-      throw new Error(`Trend unit must be a string, got ${typeof trendObj.unit}`);
+      throw new TypeError(`Trend unit must be a string, got ${typeof trendObj.unit}`);
     }
   }
 }

@@ -15,9 +15,9 @@ interface LazyLoadOptions {
 }
 
 class LazyLoader {
-  private static cache = new Map<string, Promise<any>>();
-  private static loadingStates = new Map<string, boolean>();
-  private static retryCounts = new Map<string, number>();
+  private static readonly cache = new Map<string, Promise<any>>();
+  private static readonly loadingStates = new Map<string, boolean>();
+  private static readonly retryCounts = new Map<string, number>();
 
   /**
    * Load data for a specific period view
@@ -37,9 +37,9 @@ class LazyLoader {
     }
 
     // Check if already loaded in global cache
-    if (window.TempHist.cache.prefetch[periodKey]) {
+    if (globalThis.TempHist.cache.prefetch[periodKey]) {
       debugLog(`LazyLoader: Data already in global cache for ${periodKey}`);
-      return Promise.resolve(window.TempHist.cache.prefetch[periodKey]);
+      return globalThis.TempHist.cache.prefetch[periodKey];
     }
 
     // Set loading state
@@ -137,7 +137,7 @@ class LazyLoader {
       );
 
       // Store in global cache for consistency
-      window.TempHist.cache.prefetch[periodKey] = result.data;
+      globalThis.TempHist.cache.prefetch[periodKey] = result.data;
       
       debugLog(`LazyLoader: Successfully loaded ${periodKey} data`);
       return result;

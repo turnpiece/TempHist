@@ -123,6 +123,7 @@ describe('API Functions', () => {
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
+        headers: { get: vi.fn().mockReturnValue(null) },
         json: vi.fn().mockResolvedValue(mockReadyResponse)
       } as unknown as Response)
 
@@ -157,6 +158,7 @@ describe('API Functions', () => {
       // Mock job polling - return ready immediately
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
+        headers: { get: vi.fn().mockReturnValue(null) },
         json: vi.fn().mockResolvedValue({
           job_id: mockJobId,
           status: 'ready',

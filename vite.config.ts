@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
-import { copyFileSync, readFileSync, existsSync } from 'fs'
-import { resolve, join } from 'path'
+import { copyFileSync, readFileSync, existsSync } from 'node:fs'
+import { resolve, join } from 'node:path'
 import { execSync } from 'child_process'
 
 // Read package.json to get version
@@ -33,7 +33,8 @@ export default defineConfig(({ mode }) => {
         about: resolve(__dirname, 'about.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         privacyApp: resolve(__dirname, 'privacy-app.html'),
-        feed: resolve(__dirname, 'feed.html')
+        feed: resolve(__dirname, 'feed.html'),
+        locations: resolve(__dirname, 'locations.html')
       }
     }
   },
@@ -52,6 +53,7 @@ export default defineConfig(({ mode }) => {
           else if (url === '/privacy') req.url = '/privacy.html';
           else if (url === '/privacy/app') req.url = '/privacy-app.html';
           else if (url === '/feed') req.url = '/feed.html';
+          else if (url === '/locations') req.url = '/locations.html';
           next();
         });
       }
@@ -68,23 +70,28 @@ export default defineConfig(({ mode }) => {
         const isPrivacyApp = pageName.includes('privacy-app.html')
         const isPrivacy = pageName.includes('privacy.html') && !isPrivacyApp
         const isFeed = pageName.includes('feed.html')
-        
+        const isLocations = pageName.includes('locations.html')
+
         // Define variables for template substitution
         const vars = {
           HOME_LINK: isIndex ? '#/splash' : '/',
+          LOCATIONS_LINK: '/locations',
           TODAY_LINK: isIndex ? '#/today' : '/#/today',
           WEEK_LINK: isIndex ? '#/week' : '/#/week',
           MONTH_LINK: isIndex ? '#/month' : '/#/month',
           YEAR_LINK: isIndex ? '#/year' : '/#/year',
-          ABOUT_LINK: isIndex ? '#/about' : '/about',
-          PRIVACY_LINK: isIndex ? '#/privacy' : '/privacy',
-          FEED_LINK: isIndex ? '#/feed' : '/feed',
+          ABOUT_LINK: '/about',
+          PRIVACY_LINK: '/privacy',
+          FEED_LINK: '/feed',
+          LOCATIONS_ACTIVE: isLocations ? ' class="active"' : '',
           ABOUT_ACTIVE: isAbout ? ' class="active"' : '',
           PRIVACY_ACTIVE: (isPrivacy || isPrivacyApp) ? ' class="active"' : '',
           FEED_ACTIVE: isFeed ? ' class="active"' : '',
           // Hide app nav links (Today/week/month/year) on static pages where the
           // SPA router is not active — visitors should enter the app via the home page
-          APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp || isFeed) ? 'hidden' : '',
+          APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp || isFeed || isLocations) ? 'hidden' : '',
+          // Hide standalone-page-only links (e.g. Locations) inside the SPA
+          STANDALONE_NAV_HIDDEN: isIndex ? 'hidden' : '',
           // Hide Snapshots nav link when VITE_ENABLE_SNAPSHOTS=false
           SNAPSHOTS_NAV_HIDDEN: env.VITE_ENABLE_SNAPSHOTS === 'false' ? 'hidden' : ''
         }
@@ -108,9 +115,10 @@ export default defineConfig(({ mode }) => {
         const webAppJson = JSON.parse(loadTemplate('webapplication-json', 'json'))
         
         // Replace template placeholders
-        html = html.replace(/<!-- INCLUDE:head-common -->/g, loadTemplate('head-common'))
-        html = html.replace(/<!-- INCLUDE:header -->/g, loadTemplate('header'))
-        html = html.replace(/<!-- INCLUDE:nav -->/g, loadTemplate('nav'))
+        html = html.replaceAll('<!-- INCLUDE:head-common -->', loadTemplate('head-common'))
+        html = html.replaceAll('<!-- INCLUDE:header -->', loadTemplate('header'))
+        html = html.replaceAll('<!-- INCLUDE:nav -->', loadTemplate('nav'))
+        html = html.replaceAll('<!-- INCLUDE:footer -->', loadTemplate('footer'))
         
         // Handle WebApplication JSON injection
         // For index.html, we need to merge with additional properties
@@ -151,7 +159,7 @@ export default defineConfig(({ mode }) => {
             .split('\n')
             .map((line, i) => i === 0 ? line : '        ' + line)
             .join('\n')
-          html = html.replace(/<!-- INCLUDE:webapplication-json -->/g, webAppJsonStr)
+          html = html.replaceAll('<!-- INCLUDE:webapplication-json -->', webAppJsonStr)
         }
         
         return html
@@ -162,11 +170,11 @@ export default defineConfig(({ mode }) => {
       transformIndexHtml(html) {
         // Replace %VITE_API_BASE% with actual environment variable
         const apiBase = env.VITE_API_BASE || 'https://api.temphist.com'
-        html = html.replace(/%VITE_API_BASE%/g, apiBase)
+        html = html.replaceAll('%VITE_API_BASE%', apiBase)
         // Optional: bake a non-production canonical origin for static-only hosts (no Node HTML rewrite)
         const siteOrigin = env.VITE_SITE_ORIGIN
         if (siteOrigin) {
-          html = html.replace(/https:\/\/temphist\.com/g, siteOrigin.replace(/\/$/, ''))
+          html = html.replaceAll('https://temphist.com', siteOrigin.replace(/\/$/, ''))
         }
         return html
       }

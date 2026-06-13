@@ -6,8 +6,8 @@
 type DebouncedFunction<T extends any[]> = (...args: T) => void;
 
 class Debouncer {
-  private static timers = new Map<string, NodeJS.Timeout>();
-  private static callbacks = new Map<string, DebouncedFunction<any>[]>();
+  private static readonly timers = new Map<string, NodeJS.Timeout>();
+  private static readonly callbacks = new Map<string, DebouncedFunction<any>[]>();
 
   /**
    * Debounce a function call

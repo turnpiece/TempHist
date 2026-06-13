@@ -1,13 +1,36 @@
 // src/services/locationCarousel.ts
 import type { PreapprovedLocation } from '../types/index';
 import { getApiUrl, apiFetch, checkApiHealth } from '../api/temperature';
+import { flagImg } from '../locations/locations';
+
+const REGION_MAP: Record<string, string> = {
+  AU: 'oceania', NZ: 'oceania',
+  US: 'americas', CA: 'americas', MX: 'americas', BR: 'americas', AR: 'americas', CL: 'americas',
+  GB: 'europe', FR: 'europe', DE: 'europe', IT: 'europe', ES: 'europe', NL: 'europe',
+  BE: 'europe', CH: 'europe', AT: 'europe', SE: 'europe', NO: 'europe', DK: 'europe',
+  FI: 'europe', PT: 'europe', IE: 'europe', PL: 'europe', CZ: 'europe',
+  JP: 'asia', CN: 'asia', IN: 'asia', SG: 'asia', HK: 'asia', KR: 'asia',
+  TH: 'asia', VN: 'asia', ID: 'asia', MY: 'asia', PH: 'asia',
+  AE: 'mideast', SA: 'mideast', IL: 'mideast', TR: 'mideast', EG: 'mideast',
+  ZA: 'africa', NG: 'africa', KE: 'africa', GH: 'africa',
+};
+
+function geoSortLocations(locations: PreapprovedLocation[], countryCode: string): PreapprovedLocation[] {
+  if (!countryCode) return locations;
+  const userRegion = REGION_MAP[countryCode] || countryCode;
+  return [...locations].sort((a, b) => {
+    const aMatch = (REGION_MAP[a.country_code] || a.country_code) === userRegion ? 0 : 1;
+    const bMatch = (REGION_MAP[b.country_code] || b.country_code) === userRegion ? 0 : 1;
+    return aMatch - bMatch;
+  });
+}
 
 /**
  * Wait for Firebase authentication to be ready
  */
 async function waitForAuthentication(maxAttempts: number = 50, delayMs: number = 100): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
-    if ((window as any).currentUser) {
+    if (globalThis.currentUser) {
       return true;
     }
     await new Promise(resolve => setTimeout(resolve, delayMs));
@@ -81,15 +104,15 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
     const apiResponse = await apiFetch(getApiUrl('/v1/locations/preapproved'));
     if (apiResponse.ok) {
       const data = await apiResponse.json();
-      if ((window as any).debugLog) {
-        (window as any).debugLog('API response received:', typeof data, Array.isArray(data) ? `Array with ${data.length} items` : 'Not an array', data);
+      if (globalThis.debugLog) {
+        globalThis.debugLog('API response received:', typeof data, Array.isArray(data) ? `Array with ${data.length} items` : 'Not an array', data);
       }
       
       // Parse and validate locations
       const locations = parsePreapprovedLocations(data);
       if (locations) {
-        if ((window as any).debugLog) {
-          (window as any).debugLog('Successfully parsed locations:', locations.length);
+        if (globalThis.debugLog) {
+          globalThis.debugLog('Successfully parsed locations:', locations.length);
         }
         return locations;
       }
@@ -164,7 +187,7 @@ function showCarouselError(carousel: HTMLElement, track: HTMLElement): void {
 
   const arrows = carousel.querySelector('.location-carousel__arrows');
   if (arrows) {
-    carousel.insertBefore(errorEl, arrows);
+    arrows.before(errorEl);
   } else {
     carousel.appendChild(errorEl);
   }
@@ -215,6 +238,9 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
       img.className = 'location-card__image';
       img.src = location.imageUrl.jpeg;
       img.alt = location.imageAlt || location.name;
+      // Intrinsic served size — CSS (object-fit: cover in a 4/3 wrapper) controls display
+      img.width = 320;
+      img.height = 200;
       // First few visible images should load eagerly with high priority for better LCP
       if (isPriorityImage) {
         img.loading = 'eager';
@@ -232,6 +258,8 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
       img.className = 'location-card__image';
       img.src = location.imageUrl;
       img.alt = location.imageAlt || location.name;
+      img.width = 320;
+      img.height = 200;
       // First few visible images should load eagerly with high priority for better LCP
       if (isPriorityImage) {
         img.loading = 'eager';
@@ -255,7 +283,11 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
 
   const nameSpan = document.createElement('span');
   nameSpan.className = 'location-card__name';
-  nameSpan.textContent = location.name || 'Unknown';
+  nameSpan.appendChild(flagImg(location.country_code, 20));
+  const nameText = document.createElement('span');
+  nameText.className = 'location-card__name-text';
+  nameText.textContent = location.name || 'Unknown';
+  nameSpan.appendChild(nameText);
   button.appendChild(nameSpan);
 
   // Add error handler for images after they're in the DOM
@@ -291,8 +323,8 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
     }).catch(() => {});
 
     // Call handleManualLocationSelection from main.ts (available globally)
-    if (typeof window.handleManualLocationSelection === 'function') {
-      await window.handleManualLocationSelection(
+    if (typeof globalThis.handleManualLocationSelection === 'function') {
+      await globalThis.handleManualLocationSelection(
         fullLocationString,
         location.timezone ?? null,
         location.latitude ?? null,
@@ -301,8 +333,8 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
     } else {
       // Fallback: trigger location change directly
       console.warn('handleManualLocationSelection not available, using fallback');
-      window.tempLocation = fullLocationString;
-      window.tempLocationSource = 'manual';
+      globalThis.tempLocation = fullLocationString;
+      globalThis.tempLocationSource = 'manual';
       window.location.hash = '#/today';
     }
   });
@@ -311,172 +343,19 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
 }
 
 /**
- * Initialise carousel scroll functionality
+ * Initialise carousel scroll functionality — progress bar only (arrows removed)
  */
-function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => void) {
-  // Prevent page scroll when touching/swiping the carousel track
-  // Use CSS touch-action for native iOS scrolling, only prevent at boundaries
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let isHorizontalScroll = false;
-  let hasMoved = false;
+function initCarouselScroll(_carousel: HTMLElement, track: HTMLElement): (() => void) {
+  const progressBar = document.getElementById('carousel-progress-bar') as HTMLElement | null;
 
-  track.addEventListener('touchstart', (e) => {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    isHorizontalScroll = false;
-    hasMoved = false;
-  }, { passive: true });
-
-  track.addEventListener('touchmove', (e) => {
-    if (!touchStartX || !touchStartY) return;
-    
-    const touchX = e.touches[0].clientX;
-    const touchY = e.touches[0].clientY;
-    const diffX = touchX - touchStartX;
-    const diffY = touchY - touchStartY;
-    const absDiffX = Math.abs(diffX);
-    const absDiffY = Math.abs(diffY);
-    
-    // Determine scroll direction early
-    if (!hasMoved && (absDiffX > 5 || absDiffY > 5)) {
-      hasMoved = true;
-      isHorizontalScroll = absDiffX > absDiffY;
-    }
-    
-    // Only prevent default if:
-    // 1. This is a horizontal scroll AND
-    // 2. We're at a boundary trying to scroll beyond it (to prevent page scroll)
-    if (hasMoved && isHorizontalScroll && e.cancelable) {
-      const scrollLeft = track.scrollLeft;
-      const scrollWidth = track.scrollWidth;
-      const clientWidth = track.clientWidth;
-      const maxScroll = scrollWidth - clientWidth;
-      
-      // At the start (scrollLeft = 0) and trying to scroll left
-      if (scrollLeft <= 0 && diffX > 0) {
-        e.preventDefault();
-        return;
-      }
-      
-      // At the end (scrollLeft >= maxScroll) and trying to scroll right
-      if (scrollLeft >= maxScroll && diffX < 0) {
-        e.preventDefault();
-        return;
-      }
-      
-      // For middle positions, let native scrolling work
-      // CSS touch-action: pan-x will handle preventing vertical page scroll
-    }
-  }, { passive: false });
-
-  track.addEventListener('touchend', () => {
-    touchStartX = 0;
-    touchStartY = 0;
-    isHorizontalScroll = false;
-    hasMoved = false;
-  }, { passive: true });
-
-  track.addEventListener('touchcancel', () => {
-    touchStartX = 0;
-    touchStartY = 0;
-    isHorizontalScroll = false;
-    hasMoved = false;
-  }, { passive: true });
-
-  // Prevent wheel events from scrolling the page when over the carousel
-  track.addEventListener('wheel', (e) => {
-    // Only prevent vertical scrolling, allow horizontal
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-      // Allow vertical scroll to pass through
-      return;
-    }
-    // Horizontal scroll - prevent page scroll
-    if (track.scrollLeft === 0 && e.deltaX < 0) {
-      // At start, trying to scroll left - allow it
-      return;
-    }
-    const maxScroll = track.scrollWidth - track.clientWidth;
-    if (track.scrollLeft >= maxScroll && e.deltaX > 0) {
-      // At end, trying to scroll right - prevent page scroll
-      if (e.cancelable) {
-        e.stopPropagation();
-      }
-    }
-  }, { passive: true });
-
-  const arrows = carousel.querySelectorAll<HTMLButtonElement>('.location-carousel__arrow');
-
-  arrows.forEach((arrow) => {
-    const direction = arrow.dataset.direction === 'left' ? -1 : 1;
-
-    arrow.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      const amount = carousel.clientWidth * 0.8; // scroll ~80% of visible width
-      let targetScroll = track.scrollLeft + (amount * direction);
-      
-      // Clamp target scroll to valid range
-      const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
-      targetScroll = Math.max(0, Math.min(maxScroll, targetScroll));
-      
-      if (direction === -1) {
-        // Scrolling left
-        if (track.scrollLeft > 0) {
-          // If we're very close to the start, scroll directly to 0
-          if (track.scrollLeft < 50) {
-            track.scrollTo({ left: 0, behavior: 'smooth' });
-          } else {
-            track.scrollTo({ left: targetScroll, behavior: 'smooth' });
-          }
-        }
-      } else if (direction === 1 && track.scrollLeft < maxScroll) {
-        // Scrolling right
-        track.scrollTo({ left: targetScroll, behavior: 'smooth' });
-      }
-    });
-  });
-  
-  // Update arrow visibility based on scroll position
-  const updateArrowVisibility = () => {
-    const leftArrow = carousel.querySelector('.location-carousel__arrow--left') as HTMLButtonElement;
-    const rightArrow = carousel.querySelector('.location-carousel__arrow--right') as HTMLButtonElement;
-    
-    // Account for padding when checking scroll position
-    const scrollThreshold = 5; // Threshold to handle rounding and padding
-    
-    const currentScroll = track.scrollLeft;
+  const updateProgress = () => {
+    if (!progressBar) return;
     const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
-    
-    if (leftArrow) {
-      // Allow scrolling left if we're not at position 0 (accounting for padding threshold)
-      const canScrollLeft = currentScroll > scrollThreshold;
-      // Don't disable completely, just dim it - still allow clicks to ensure we reach 0
-      leftArrow.style.opacity = canScrollLeft ? '1' : '0.6';
-      leftArrow.disabled = currentScroll <= 0; // Only disable at exactly 0
-      leftArrow.style.pointerEvents = currentScroll <= 0 ? 'none' : 'auto';
-      leftArrow.setAttribute('aria-disabled', String(currentScroll <= 0));
-    }
-    
-    if (rightArrow) {
-      // Check if we're at or near the end (accounting for rounding)
-      const atEnd = currentScroll >= (maxScroll - scrollThreshold);
-      const canScrollRight = !atEnd && currentScroll < maxScroll;
-      
-      rightArrow.style.opacity = canScrollRight ? '1' : '0.4';
-      rightArrow.disabled = atEnd;
-      rightArrow.style.pointerEvents = atEnd ? 'none' : 'auto';
-      rightArrow.setAttribute('aria-disabled', String(atEnd));
-    }
+    progressBar.style.width = maxScroll > 0 ? `${(track.scrollLeft / maxScroll) * 100}%` : '0%';
   };
-  
-  // Update on scroll
-  track.addEventListener('scroll', updateArrowVisibility);
-  
-  // Don't update immediately - wait for layout to complete
-  // Initial update will be called from initLocationCarousel after cards are added
-  return updateArrowVisibility; // Return function for external call
+
+  track.addEventListener('scroll', updateProgress, { passive: true });
+  return updateProgress;
 }
 
 /**
@@ -485,70 +364,38 @@ function initCarouselScroll(carousel: HTMLElement, track: HTMLElement): (() => v
 function hideLocationSelectionSection(): void {
   const heading = document.getElementById('location-picker-heading');
   const carousel = document.getElementById('location-carousel');
-  
+
   if (heading) {
     heading.style.display = 'none';
     heading.classList.remove('visible');
   }
-  
+
   if (carousel) {
     carousel.style.display = 'none';
-    const arrows = carousel.querySelector('.location-carousel__arrows');
-    if (arrows) {
-      arrows.classList.remove('visible');
-    }
   }
 }
 
-// Store the updateArrowVisibility function globally so we can call it when splash screen is shown again
-let carouselUpdateArrowVisibility: (() => void) | null = null;
+let carouselUpdateProgress: (() => void) | null = null;
 
 /**
- * Reset carousel scroll position and update arrow visibility
+ * Reset carousel scroll position to start
  * Called when splash screen is shown again after being hidden
  */
 export function resetCarouselState(): void {
   const carousel = document.getElementById('location-carousel');
   const track = document.getElementById('location-carousel-track');
-  
-  if (!carousel || !track) {
-    return;
-  }
 
-  // Check if carousel is visible (splash screen must be shown)
+  if (!carousel || !track) return;
+
   const splashScreen = document.getElementById('splashScreen');
-  if (!splashScreen || splashScreen.style.display === 'none') {
-    // Splash screen not visible, don't reset yet
-    return;
-  }
+  if (!splashScreen || splashScreen.style.display === 'none') return;
 
-  // Reset scroll position to start
   track.scrollLeft = 0;
 
-  // Update arrow visibility after a brief delay to ensure layout is stable
-  // Use multiple delays to account for layout recalculation
   requestAnimationFrame(() => {
     setTimeout(() => {
-      // Reset scroll position again in case it changed
       track.scrollLeft = 0;
-      
-      if (carouselUpdateArrowVisibility) {
-        carouselUpdateArrowVisibility();
-      } else {
-        // If update function isn't available, re-initialise the scroll handler
-        carouselUpdateArrowVisibility = initCarouselScroll(carousel as HTMLElement, track as HTMLElement);
-        if (carouselUpdateArrowVisibility) {
-          carouselUpdateArrowVisibility();
-        }
-      }
-      
-      // Double-check after another delay to ensure layout is fully stable
-      setTimeout(() => {
-        track.scrollLeft = 0;
-        if (carouselUpdateArrowVisibility) {
-          carouselUpdateArrowVisibility();
-        }
-      }, 150);
+      if (carouselUpdateProgress) carouselUpdateProgress();
     }, 100);
   });
 }
@@ -605,8 +452,8 @@ export async function initLocationCarousel(): Promise<void> {
       
       if (preloadLink.href) {
         document.head.appendChild(preloadLink);
-        if ((window as any).debugLog) {
-          (window as any).debugLog('Preloaded first carousel image:', preloadLink.href);
+        if (globalThis.debugLog) {
+          globalThis.debugLog('Preloaded first carousel image:', preloadLink.href);
         }
       }
     }
@@ -616,61 +463,40 @@ export async function initLocationCarousel(): Promise<void> {
       track.removeChild(track.firstChild);
     }
 
-    // Build cards for each location
-    // First 3 cards are priority images (likely visible initially) - load eagerly with high priority
-    const PRIORITY_IMAGE_COUNT = 3;
-    if ((window as any).debugLog) {
-      (window as any).debugLog('Creating cards for', locations.length, 'locations');
+    // Geo-sort: put user's region first, then slice to 10
+    const userCountry = ((window as any).__TH_COUNTRY || '').toUpperCase();
+    const sortedLocations = geoSortLocations(locations, userCountry).slice(0, 10);
+
+    if (globalThis.debugLog) {
+      globalThis.debugLog('Creating cards for', sortedLocations.length, 'locations (country:', userCountry || 'unknown', ')');
     }
-    locations.forEach((location, index) => {
-      const isPriorityImage = index < PRIORITY_IMAGE_COUNT;
-      const card = createLocationCard(location, isPriorityImage);
+
+    sortedLocations.forEach((location, index) => {
+      const card = createLocationCard(location, index < 3);
       track.appendChild(card);
-      if ((window as any).debugLog) {
-        (window as any).debugLog(`Created card ${index + 1}: ${location.name} (${location.id})${isPriorityImage ? ' [priority]' : ''}`);
-      }
     });
 
-    // Initialise scroll functionality first
-    const updateArrowVisibility = initCarouselScroll(carousel as HTMLElement, track as HTMLElement);
-    
-    // Store the update function globally for later use
-    carouselUpdateArrowVisibility = updateArrowVisibility;
-    
-    // Show the heading and arrows now that locations are loaded
-    const arrows = carousel.querySelector('.location-carousel__arrows');
-    if (heading) {
-      heading.classList.add('visible');
+    // Show the heading now that locations are loaded
+    if (heading) heading.classList.add('visible');
+
+    // Inject "More locations" link once (below the carousel, inside .hero-cities)
+    const heroCities = carousel.closest('.hero-cities') as HTMLElement | null;
+    if (heroCities && !heroCities.querySelector('.see-all-link')) {
+      const moreLink = document.createElement('a');
+      moreLink.href = '/locations';
+      moreLink.className = 'see-all-link';
+      moreLink.textContent = 'More locations →';
+      heroCities.appendChild(moreLink);
     }
-    if (arrows) {
-      arrows.classList.add('visible');
-    }
-    
-    // Force a layout recalculation after cards are added
-    // This ensures proper scroll width calculation and arrow states
+
+    // Initialise scroll + progress bar
+    const updateProgress = initCarouselScroll(carousel as HTMLElement, track as HTMLElement);
+    carouselUpdateProgress = updateProgress;
+
     requestAnimationFrame(() => {
-      // Wait for layout to complete, then set scroll position
       setTimeout(() => {
-        // Immediately set to start position (London first)
         track.scrollLeft = 0;
-        
-        // Update arrow visibility now that layout is complete
-        if (updateArrowVisibility) {
-          updateArrowVisibility();
-        }
-        
-        // Double-check and enforce scroll position after layout is stable
-        setTimeout(() => {
-          // Force scroll to 0 if it somehow moved
-          if (track.scrollLeft !== 0) {
-            track.scrollLeft = 0;
-          }
-          
-          // Update arrows again after final scroll position is set
-          if (updateArrowVisibility) {
-            updateArrowVisibility();
-          }
-        }, 150);
+        if (updateProgress) updateProgress();
       }, 100);
     });
   } catch (error) {

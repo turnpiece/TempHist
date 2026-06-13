@@ -52,7 +52,7 @@ export function updateChartTrendLine(
     return;
   }
 
-  const calculateTrendLineFn = (window as any).calculateTrendLine;
+  const calculateTrendLineFn = globalThis.calculateTrendLine;
   if (!calculateTrendLineFn) {
     console.warn('calculateTrendLine not available');
     return;
@@ -70,7 +70,7 @@ export function updateChartTrendLine(
 
 /** Convert an rgb(...) string to a lighter HSL string (lightness clamped to min 0.80). */
 function lighterColor(color: string): string {
-  const match = color.match(/rgb\((\d+),(\d+),(\d+)\)/);
+  const match = /rgb\((\d+),(\d+),(\d+)\)/.exec(color);
   if (!match) return '#ffffff';
   const r = parseInt(match[1]) / 255;
   const g = parseInt(match[2]) / 255;
@@ -86,7 +86,7 @@ function lighterColor(color: string): string {
       case b: h = ((r - g) / d + 4) / 6; break;
     }
   }
-  l = Math.max(l, 0.80);
+  l = Math.max(l, 0.8);
   return `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
 }
 
@@ -259,12 +259,14 @@ export function createTemperatureChart(
   minTemp: number,
   maxTemp: number,
   startYear: number,
-  currentYear: number
+  currentYear: number,
+  period: 'daily' | 'weekly' | 'monthly' | 'yearly'
 ): any {
   if (!ctx || !ctx.canvas) {
     throw new Error('Invalid canvas context provided to createTemperatureChart');
   }
 
+  const tempDecimals = period === 'daily' ? 1 : 2;
   const barColors = computeBarColors(chartData, averageData.temp, averageData.stdDev);
   const trendColour = CHART_COLORS.TREND;
   const avgColour = CHART_COLORS.AVERAGE;
@@ -297,7 +299,7 @@ export function createTemperatureChart(
           hidden: !showTrend
         },
         {
-          label: `Temperature in ${getDisplayCity(window.tempLocation!)} ${periodTitle === 'Today' ? `on ${friendlyDate}` : `for ${periodTitle}`}`,
+          label: `Temperature in ${getDisplayCity(globalThis.tempLocation!)} ${periodTitle === 'Today' ? `on ${friendlyDate}` : `for ${periodTitle}`}`,
           type: 'bar',
           data: chartData,
           backgroundColor: barColors,
@@ -349,7 +351,7 @@ export function createTemperatureChart(
         },
         tooltip: {
           enabled: false,
-          external: buildExternalTooltipHandler(averageData.temp, barColors as string[], 2)
+          external: buildExternalTooltipHandler(averageData.temp, barColors as string[], tempDecimals)
         }
       },
       scales: {

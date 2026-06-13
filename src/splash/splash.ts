@@ -2,20 +2,21 @@
  * Splash screen functionality - location selection and initialization
  */
 
-import { setLocationCookie, getLocationCookie } from '../utils/location';
+import { setLocationCookie, getLocationCookie, getCountryCodeForLocation, getDisplayCity } from '../utils/location';
+import { getGeoPrefetchPromise, getLocationKnownPromise } from '../services/geolocationPrefetch';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from '../services/locationDetection';
 import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../utils/dateUtils';
 import { resetCarouselState } from '../services/locationCarousel';
-import { apiFetch, getApiUrl } from '../api/temperature';
+import { apiFetch, getApiUrl, fetchTemperatureDataAsync } from '../api/temperature';
 import { SNAPSHOTS_ENABLED } from '../constants';
-import { getCountryCodeForLocation, getDisplayCity } from '../utils/location';
 import { DataCache } from '../utils/DataCache';
 import { LoadingManager } from '../utils/LoadingManager';
 import { LazyLoader } from '../utils/LazyLoader';
-import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
-import { renderAboutPage, renderPrivacyPage } from '../views/about';
+import { renderAboutPage, renderPrivacyPage, renderPrivacyAppPage } from '../views/about';
 import { renderFeedPage, buildCard, ShareItem } from '../views/feed';
+import { flagImg, renderLocationsPage } from '../locations/locations';
+import { formatPeriodHeading, openShareModal } from '../share';
 import { buildLocationDisplay } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from '../views/today';
 
@@ -203,19 +204,32 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
 }
 
 /**
+ * After prefetchedLocations loads, add flags to any snap cards already rendered without them
+ */
+function refreshSnapFlags(): void {
+  document.querySelectorAll<HTMLElement>('.snap-loc[data-city]').forEach(el => {
+    if (el.querySelector('.flag-img')) return;
+    const cc = getCountryCodeForLocation(el.dataset.city!);
+    if (!cc) return;
+    el.prepend(flagImg(cc, 20));
+  });
+}
+
+/**
  * After prefetchedLocations loads, re-render any visible location heading with the correct flag
  */
 function refreshLocationFlag(): void {
-  if (!window.tempLocation) return;
-  const countryCode = getCountryCodeForLocation(window.tempLocation);
-  if (!countryCode) return;
-  const displayCity = getDisplayCity(window.tempLocation);
+  if (!globalThis.tempLocation) return;
+  const countryCode = getCountryCodeForLocation(globalThis.tempLocation);
+  const isDetected = !!globalThis.tempLocationIsDetected;
+  if (!countryCode && !isDetected) return;
+  const displayCity = getDisplayCity(globalThis.tempLocation);
   // Update all visible location headings (today + active period views)
   const headings = document.querySelectorAll<HTMLElement>('.location-heading');
   headings.forEach(el => {
     if (el.offsetParent !== null) { // only update visible elements
       const periodKey = el.id === 'locationText' ? '' : el.id.replace('LocationText', '');
-      buildLocationDisplay(el, displayCity, periodKey, countryCode);
+      buildLocationDisplay(el, displayCity, periodKey, countryCode, isDetected);
       setupChangeLocationButton(periodKey);
     }
   });
@@ -231,15 +245,15 @@ export async function prefetchApprovedLocations(): Promise<void> {
   let attempts = 0;
   const maxAttempts = 50; // 5 seconds max wait
   
-  while (!window.currentUser && attempts < maxAttempts) {
+  while (!globalThis.currentUser && attempts < maxAttempts) {
     await new Promise(resolve => setTimeout(resolve, 100));
     attempts++;
   }
   
-  if (!window.currentUser) {
+  if (!globalThis.currentUser) {
     debugLog('No currentUser available after waiting, skipping location prefetch');
-    window.TempHist = window.TempHist || {};
-    window.TempHist.prefetchedLocations = [];
+    globalThis.TempHist = globalThis.TempHist || {};
+    globalThis.TempHist.prefetchedLocations = [];
     return;
   }
   
@@ -248,17 +262,19 @@ export async function prefetchApprovedLocations(): Promise<void> {
     debugLog('Approved locations prefetched:', locations.length, 'locations');
     
     // Store in a global cache for immediate use
-    window.TempHist = window.TempHist || {};
-    window.TempHist.prefetchedLocations = locations;
+    globalThis.TempHist = globalThis.TempHist || {};
+    globalThis.TempHist.prefetchedLocations = locations;
 
     // If a location heading is already visible (cookie fast-path rendered before prefetch),
     // re-render it now with the correct country flag
     refreshLocationFlag();
+    // Fill flags on any snap cards already rendered
+    refreshSnapFlags();
   } catch (error) {
     debugLog('Failed to prefetch approved locations:', error);
     // Store empty array if prefetch fails
-    window.TempHist = window.TempHist || {};
-    window.TempHist.prefetchedLocations = [];
+    globalThis.TempHist = globalThis.TempHist || {};
+    globalThis.TempHist.prefetchedLocations = [];
   }
 }
 
@@ -267,21 +283,48 @@ export async function prefetchApprovedLocations(): Promise<void> {
  */
 async function handleUseLocation(): Promise<void> {
   const locationLoading = document.getElementById('locationLoading');
-  const splashActions = document.querySelector('.splash-actions');
+  const useLocationBtn = document.getElementById('useLocationBtn');
+  const locationPickerHeading = document.getElementById('location-picker-heading');
+  const heroCities = document.querySelector<HTMLElement>('.hero-cities');
 
-  // Show loading state
-  if (splashActions) (splashActions as HTMLElement).style.display = 'none';
-  if (locationLoading) locationLoading.style.display = 'flex';
+  // Replace the button with the loading spinner in-place; fade out the carousel
+  if (useLocationBtn) useLocationBtn.hidden = true;
+  if (locationLoading) locationLoading.hidden = false;
+  if (locationPickerHeading) locationPickerHeading.classList.add('is-detecting');
+  if (heroCities) heroCities.classList.add('is-detecting');
 
   try {
-    // Try geolocation first
-    const geoResult = await detectUserLocationWithGeolocation();
+    // Use prefetch result if available (may already be resolved or still in flight)
+    let geoResult: { location: string; countryCode: string | null; latitude: number; longitude: number } | null = null;
+
+    const prefetchPromise = getGeoPrefetchPromise();
+    if (prefetchPromise) {
+      // As soon as location is known (before data arrives), update the spinner text
+      const locationKnown = getLocationKnownPromise();
+      if (locationKnown) {
+        locationKnown.then(result => {
+          if (result) {
+            const loadingText = document.querySelector<HTMLElement>('#locationLoading .loading-text');
+            if (loadingText) loadingText.textContent = 'Loading your location data…';
+          }
+        });
+      }
+
+      const prefetch = await prefetchPromise;
+      if (prefetch) geoResult = prefetch;
+    }
+
+    // Fallback: run geolocation directly if prefetch wasn't started or returned null
+    if (!geoResult) {
+      geoResult = await detectUserLocationWithGeolocation();
+    }
+
     if (geoResult) {
       apiFetch(getApiUrl('/v1/locations/selections'), {
         method: 'POST',
-        body: JSON.stringify({ location_name: geoResult.location }),
+        body: JSON.stringify({ name: geoResult.location }),
       }).catch(() => {});
-      await proceedWithLocation(geoResult.location, true, 'detected', null, geoResult.latitude, geoResult.longitude);
+      await proceedWithLocation(geoResult.location, true, 'detected', null, geoResult.latitude, geoResult.longitude, geoResult.countryCode);
       return;
     }
   } catch (error: any) {
@@ -302,10 +345,10 @@ async function handleUseLocation(): Promise<void> {
     if (ipResult) {
       apiFetch(getApiUrl('/v1/locations/selections'), {
         method: 'POST',
-        body: JSON.stringify({ location_name: ipResult.location }),
+        body: JSON.stringify({ name: ipResult.location }),
       }).catch(() => {});
       // Auto-select the IP-based location and proceed
-      await proceedWithLocation(ipResult.location, true, 'detected', ipResult.timezone, ipResult.latitude, ipResult.longitude);
+      await proceedWithLocation(ipResult.location, true, 'detected', ipResult.timezone, ipResult.latitude, ipResult.longitude, ipResult.countryCode);
       return;
     }
   } catch (error) {
@@ -324,18 +367,20 @@ async function handleUseLocation(): Promise<void> {
  */
 export function showManualLocationSelection(permissionDenied: boolean = false): void {
   debugLog('showManualLocationSelection called', { permissionDenied });
-  const splashActions = document.querySelector('.splash-actions');
   const locationLoading = document.getElementById('locationLoading');
   const useLocationBtn = document.getElementById('useLocationBtn');
   const heading = document.getElementById('location-picker-heading');
+  const heroCities = document.querySelector<HTMLElement>('.hero-cities');
 
-  // Hide loading indicator
-  if (locationLoading) locationLoading.style.display = 'none';
+  // Hide loading indicator and restore carousel
+  if (locationLoading) locationLoading.hidden = true;
+  if (heroCities) heroCities.classList.remove('is-detecting');
+  if (heading) heading.classList.remove('is-detecting');
 
   // If permission was denied, hide the "Use my location" button and update heading
   if (permissionDenied) {
     if (useLocationBtn) {
-      useLocationBtn.style.display = 'none';
+      useLocationBtn.hidden = true;
       debugLog('Hiding "Use my location" button (permission denied)');
     }
     const permissionMsg = document.getElementById('locationPermissionMsg');
@@ -350,17 +395,11 @@ export function showManualLocationSelection(permissionDenied: boolean = false): 
   } else {
     // Make sure button is visible if permission wasn't denied (e.g., other failure)
     if (useLocationBtn) {
-      useLocationBtn.style.display = '';
+      useLocationBtn.hidden = false;
     }
     if (heading) {
       heading.textContent = 'Or choose one:';
     }
-  }
-
-  // Show splash actions (which includes the location carousel)
-  if (splashActions) {
-    (splashActions as HTMLElement).style.display = 'flex';
-    debugLog('Showing splash actions with location carousel');
   }
 
   // Ensure the location carousel is initialized if it hasn't been yet
@@ -368,7 +407,7 @@ export function showManualLocationSelection(permissionDenied: boolean = false): 
   const carousel = document.getElementById('location-carousel');
   if (carousel) {
     // The carousel initialization happens elsewhere, but we can check if locations are ready
-    const locations = window.TempHist?.prefetchedLocations;
+    const locations = globalThis.TempHist?.prefetchedLocations;
     if (locations) {
       debugLog('Location carousel available with', locations.length, 'prefetched locations');
     } else {
@@ -384,10 +423,11 @@ export async function handleManualLocationSelection(
   selectedLocation: string,
   timezone: string | null = null,
   latitude: number | null = null,
-  longitude: number | null = null
+  longitude: number | null = null,
+  countryCode: string | null = null
 ): Promise<void> {
   debugLog('Manual location selected:', selectedLocation);
-  await proceedWithLocation(selectedLocation, false, 'manual', timezone, latitude, longitude);
+  await proceedWithLocation(selectedLocation, false, 'manual', timezone, latitude, longitude, countryCode);
 }
 
 /**
@@ -397,9 +437,9 @@ export function clearAllCachedData(): void {
   debugLog('Clearing all cached data due to location/date change');
   
   // Clear prefetched period data
-  if (window.TempHist && window.TempHist.cache) {
-    window.TempHist.cache.prefetch = {};
-    window.TempHist.cache.prefetchPromise = undefined;
+  if (globalThis.TempHist && globalThis.TempHist.cache) {
+    globalThis.TempHist.cache.prefetch = {};
+    globalThis.TempHist.cache.prefetchPromise = undefined;
   }
   
   // Clear lazy loader cache
@@ -427,8 +467,8 @@ export function clearAllCachedData(): void {
   });
   
   // Reset the global chart variable to ensure clean state
-  window.TempHist = window.TempHist || {};
-  window.TempHist.mainChart = null;
+  globalThis.TempHist = globalThis.TempHist || {};
+  globalThis.TempHist.mainChart = null;
   
   // Clear text content of summary, average, and trend elements
   const textElements = [
@@ -455,7 +495,7 @@ export function clearAllCachedData(): void {
   // Clear any error/warning notices from previous data fetch
   const noticeEls = document.querySelectorAll<HTMLElement>('.notice');
   noticeEls.forEach(el => {
-    while (el.firstChild) el.removeChild(el.firstChild);
+    el.replaceChildren();
     el.className = 'notice';
   });
   
@@ -463,7 +503,7 @@ export function clearAllCachedData(): void {
   const incompleteDataNotice = document.getElementById('incompleteDataNotice');
   if (incompleteDataNotice) {
     incompleteDataNotice.style.display = 'none';
-    while (incompleteDataNotice.firstChild) incompleteDataNotice.removeChild(incompleteDataNotice.firstChild);
+    incompleteDataNotice.replaceChildren();
     incompleteDataNotice.className = 'notice';
     debugLog('Cleared incomplete data notice from previous location');
   }
@@ -478,21 +518,21 @@ export function clearAllCachedData(): void {
  * Check if we need to clear data due to date change
  */
 export function checkAndHandleDateChange(): boolean {
-  const { day, month } = getEffectiveDateForLocation(window.tempLocationTimezone);
+  const { day, month } = getEffectiveDateForLocation(globalThis.tempLocationTimezone);
   const currentIdentifier = `${month}-${day}`;
   
   // Check if we have a stored identifier and if it's different from current
-  const lastIdentifier = (window.TempHist as any)?.lastIdentifier;
+  const lastIdentifier = (globalThis.TempHist as any)?.lastIdentifier;
   if (lastIdentifier && lastIdentifier !== currentIdentifier) {
     debugLog('Date change detected:', lastIdentifier, '->', currentIdentifier);
     clearAllCachedData();
-    (window.TempHist as any).lastIdentifier = currentIdentifier;
+    (globalThis.TempHist as any).lastIdentifier = currentIdentifier;
     return true;
   }
   
   // Store current identifier
-  window.TempHist = window.TempHist || {};
-  (window.TempHist as any).lastIdentifier = currentIdentifier;
+  globalThis.TempHist = globalThis.TempHist || {};
+  (globalThis.TempHist as any).lastIdentifier = currentIdentifier;
   return false;
 }
 
@@ -502,13 +542,13 @@ export function checkAndHandleDateChange(): boolean {
 export function startPeriodDataPrefetch(): void {
   debugLog('Starting background prefetch for period data...');
         
-  const { day, month } = getEffectiveDateForLocation(window.tempLocationTimezone);
+  const { day, month } = getEffectiveDateForLocation(globalThis.tempLocationTimezone);
   const identifier = `${month}-${day}`;
-  const location = window.tempLocation!;
+  const location = globalThis.tempLocation!;
 
-  const localToday = window.tempLocationTimezone ? localTodayIn(window.tempLocationTimezone) : undefined;
-  const ttl = window.tempLocationTimezone
-    ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(window.tempLocationTimezone))
+  const localToday = globalThis.tempLocationTimezone ? localTodayIn(globalThis.tempLocationTimezone) : undefined;
+  const ttl = globalThis.tempLocationTimezone
+    ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(globalThis.tempLocationTimezone))
     : 10 * 60 * 1000;
 
   // Prefetch period data using DataCache (same system as period pages)
@@ -546,21 +586,37 @@ export async function proceedWithLocation(
   locationSource: string = 'unknown',
   timezone: string | null = null,
   latitude: number | null = null,
-  longitude: number | null = null
+  longitude: number | null = null,
+  countryCode: string | null = null
 ): Promise<void> {
   debugLog('Proceeding with location:', location, 'isDetectedLocation:', isDetectedLocation, 'source:', locationSource);
 
   // Set the global location FIRST - this is critical for router
-  window.tempLocation = location;
-  window.tempLocationTimezone = timezone;
-  window.tempLocationIsDetected = isDetectedLocation; // Track if this was actually detected
-  window.tempLocationSource = locationSource; // Track the source: 'detected', 'manual', 'default'
-  window.tempLatitude = latitude;
-  window.tempLongitude = longitude;
-  debugLog('Set window.tempLocation to:', window.tempLocation, 'timezone:', timezone, 'coords:', latitude, longitude);
+  globalThis.tempLocation = location;
+  globalThis.tempLocationTimezone = timezone;
+  globalThis.tempLocationIsDetected = isDetectedLocation; // Track if this was actually detected
+  globalThis.tempLocationCountryCode = countryCode;
+  globalThis.tempLocationSource = locationSource; // Track the source: 'detected', 'manual', 'default'
+  globalThis.tempLatitude = latitude;
+  globalThis.tempLongitude = longitude;
+  debugLog('Set globalThis.tempLocation to:', globalThis.tempLocation, 'timezone:', timezone, 'coords:', latitude, longitude);
 
   // Store in cookie for future visits
   setLocationCookie(location, locationSource, timezone);
+
+  // If we're on a sub-page (e.g. /locations), the SPA DOM elements
+  // (splashScreen/appShell/views) don't exist here — stash the selection in
+  // sessionStorage and hard-navigate to the SPA root, where the bootstrap
+  // resumes proceedWithLocation with the full payload.
+  if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+    try {
+      sessionStorage.setItem('temphist_pending_location', JSON.stringify({
+        location, isDetectedLocation, locationSource, timezone, latitude, longitude, countryCode,
+      }));
+    } catch { /* ignore quota */ }
+    window.location.href = '/';
+    return;
+  }
 
   // Clear any cached data from previous location/date to prevent showing stale data
   clearAllCachedData();
@@ -655,18 +711,18 @@ export async function proceedWithLocation(
   // This will call displayLocationAndFetchData() which calls fetchHistoricalData()
   // which calls showInitialLoadingState() - and now appShell is visible so loading will show
   debugLog('Calling mainAppLogic after location change');
-  window.mainAppLogic();
+  globalThis.mainAppLogic();
 
-  // THEN navigate to Today page (router will now see window.tempLocation is set)
+  // THEN navigate to Today page (router will now see globalThis.tempLocation is set)
   debugLog('Navigating to Today page after location selection');
   
   // Activate the router now that everything is initialised
-  if (window.TempHistRouter && typeof window.TempHistRouter.handleRoute === 'function') {
-    window.TempHistRouter.handleRoute();
+  if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.handleRoute === 'function') {
+    globalThis.TempHistRouter.handleRoute();
   }
   
-  if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
-    window.TempHistRouter.navigate('/today');
+  if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.navigate === 'function') {
+    globalThis.TempHistRouter.navigate('/today');
   } else {
     // Fallback: update URL and trigger route handling
     window.location.hash = '#/today';
@@ -674,24 +730,30 @@ export async function proceedWithLocation(
   
   // Force navigation highlighting update after a short delay
   setTimeout(() => {
-    if (window.TempHistRouter && typeof window.TempHistRouter.updateNavigationHighlight === 'function') {
-      window.TempHistRouter.updateNavigationHighlight('/today');
+    if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.updateNavigationHighlight === 'function') {
+      globalThis.TempHistRouter.updateNavigationHighlight('/today');
     }
   }, 200);
 }
 
 /**
- * Set up splash screen event listeners
+ * Set up splash screen event listeners. Idempotent: callers (e.g.
+ * handleLocationChangeInternal) may invoke this on every return to splash, but
+ * the click listener must only be attached once — otherwise each visit stacks
+ * another handler on #useLocationBtn and a single click fans out into multiple
+ * proceedWithLocation runs.
  */
+let splashListenersAttached = false;
 function setupSplashScreenListeners(): void {
-  const useLocationBtn = document.getElementById('useLocationBtn');
+  if (splashListenersAttached) return;
 
-  // Use my location button handler
-  if (useLocationBtn) {
-    useLocationBtn.addEventListener('click', async () => {
-      await handleUseLocation();
-    });
-  }
+  const useLocationBtn = document.getElementById('useLocationBtn');
+  if (!useLocationBtn) return;
+
+  useLocationBtn.addEventListener('click', async () => {
+    await handleUseLocation();
+  });
+  splashListenersAttached = true;
 }
 
 export async function initSnapshotsCarousel(): Promise<void> {
@@ -700,11 +762,11 @@ export async function initSnapshotsCarousel(): Promise<void> {
 
   const base = getApiUrl('/v1/shares');
   const url = new URL(base, window.location.origin);
-  url.searchParams.set('limit', '5');
+  url.searchParams.set('limit', '4');
 
   let shares: any[];
   try {
-    const res = await fetch(url.toString());
+    const res = await apiFetch(url.toString());
     if (!res.ok) return;
     const data = await res.json();
     shares = data.shares ?? [];
@@ -714,43 +776,96 @@ export async function initSnapshotsCarousel(): Promise<void> {
 
   if (!shares.length) return;
 
-  // Clear any previous content (e.g. on location change)
-  while (section.firstChild) section.removeChild(section.firstChild);
+  // Clear any previous content
+  section.replaceChildren();
 
-  const heading = document.createElement('h3');
-  heading.className = 'splash-snapshots__heading';
-  const headingLink = document.createElement('a');
-  headingLink.href = '/feed';
-  headingLink.textContent = 'Snapshots';
-  heading.appendChild(headingLink);
+  // 2-column layout: text/CTA left, card grid right
+  const inner = document.createElement('div');
+  inner.className = 'snapshots-inner';
 
-  const sub = document.createElement('p');
-  sub.className = 'splash-snapshots__sub';
-  sub.textContent = 'See what other users are discovering around the world.';
+  // ── Left column ──────────────────────────────────────────────────
+  const left = document.createElement('div');
+  left.className = 'snap-left';
 
-  const carouselWrap = document.createElement('div');
-  carouselWrap.className = 'snapshot-carousel';
+  const eyebrow = document.createElement('p');
+  eyebrow.className = 'eyebrow';
+  eyebrow.textContent = 'Shared by users';
 
-  const track = document.createElement('div');
-  track.className = 'snapshot-carousel__track';
+  const heading = document.createElement('h2');
+  heading.className = 'section-title';
+  heading.textContent = 'Snapshots';
 
-  shares.forEach((share: any) => {
-    track.appendChild(buildCard(share as ShareItem));
-  });
+  const desc = document.createElement('p');
+  desc.className = 'snap-desc';
+  desc.textContent = 'Real TempHist views shared by people around the world. Each one shows the temperature history for a specific place and time period. Click any card to open it.';
 
-  carouselWrap.appendChild(track);
-
-  const cta = document.createElement('p');
-  cta.className = 'splash-snapshots__cta';
   const ctaLink = document.createElement('a');
   ctaLink.href = '/feed';
-  ctaLink.textContent = 'View more snapshots →';
-  cta.appendChild(ctaLink);
+  ctaLink.className = 'snap-link';
+  ctaLink.innerHTML = 'See all snapshots <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-  section.appendChild(heading);
-  section.appendChild(sub);
-  section.appendChild(carouselWrap);
-  section.appendChild(cta);
+  left.appendChild(eyebrow);
+  left.appendChild(heading);
+  left.appendChild(desc);
+  left.appendChild(ctaLink);
+
+  // ── Right column: 2×2 grid ────────────────────────────────────────
+  const grid = document.createElement('div');
+  grid.className = 'snap-grid';
+
+  shares.slice(0, 4).forEach((share: any) => {
+    const city = (share.location ?? '').split(',')[0].trim();
+    const periodLabel = formatPeriodHeading(share);
+    const imgSrc = getApiUrl(share.og_image_url);
+    const shareUrl = share.share_url;
+
+    const card = document.createElement('a');
+    card.className = 'snap-card';
+    card.href = shareUrl;
+    card.title = `${city} · ${periodLabel}`;
+
+    const shareIdMatch = shareUrl.match(/\/s\/([^/?#]+)/);
+    const shareId = shareIdMatch ? shareIdMatch[1] : null;
+    if (shareId) {
+      card.addEventListener('click', (e) => {
+        e.preventDefault();
+        openShareModal(shareId, share);
+      });
+    }
+
+    const chartDiv = document.createElement('div');
+    chartDiv.className = 'snap-chart';
+    const img = document.createElement('img');
+    img.src = imgSrc;
+    img.alt = `${city} temperature history — ${periodLabel}`;
+    img.loading = 'lazy';
+    chartDiv.appendChild(img);
+
+    const foot = document.createElement('div');
+    foot.className = 'snap-foot';
+
+    const locEl = document.createElement('span');
+    locEl.className = 'snap-loc';
+    locEl.dataset.city = city;
+    const countryCode = getCountryCodeForLocation(city);
+    if (countryCode) locEl.appendChild(flagImg(countryCode, 20));
+    locEl.appendChild(document.createTextNode(city));
+
+    const periodEl = document.createElement('span');
+    periodEl.className = 'snap-period';
+    periodEl.textContent = periodLabel;
+
+    foot.appendChild(locEl);
+    foot.appendChild(periodEl);
+
+    card.appendChild(chartDiv);
+    card.appendChild(foot);
+    grid.appendChild(card);
+  });
+
+  inner.appendChild(left);
+  inner.appendChild(grid);
+  section.appendChild(inner);
 }
 
 /**
@@ -764,7 +879,8 @@ export function initializeSplashScreen(): void {
     
     // Handle standalone pages by populating their content
     const currentPath = window.location.pathname;
-    const isKnownStandalone = currentPath === '/privacy' || currentPath === '/about' ||
+    const isKnownStandalone = currentPath === '/privacy' || currentPath === '/privacy/app' ||
+      currentPath === '/about' || currentPath === '/locations' ||
       (SNAPSHOTS_ENABLED && currentPath === '/feed');
     if (isKnownStandalone) {
       debugLog('Populating content for standalone page:', currentPath);
@@ -775,47 +891,87 @@ export function initializeSplashScreen(): void {
       // Populate content based on the page
       if (currentPath === '/privacy') {
         renderPrivacyPage();
+      } else if (currentPath === '/privacy/app') {
+        renderPrivacyAppPage();
       } else if (currentPath === '/about') {
         renderAboutPage();
+      } else if (currentPath === '/locations') {
+        renderLocationsPage();
       } else if (SNAPSHOTS_ENABLED && currentPath === '/feed') {
         renderFeedPage();
       }
     }
+
+    // Reveal the footer now that content has been populated (or attempted) —
+    // it starts hidden via CSS to avoid a flash of the footer sitting directly
+    // under the header while the view section is still empty.
+    document.body.classList.add('content-ready');
     return;
   }
+
+  // If a sub-page (e.g. /locations) stashed a location selection and redirected
+  // us here, resume proceedWithLocation with that payload instead of showing
+  // the splash screen.
+  try {
+    const pending = sessionStorage.getItem('temphist_pending_location');
+    if (pending) {
+      sessionStorage.removeItem('temphist_pending_location');
+      const p = JSON.parse(pending);
+      if (p && typeof p.location === 'string') {
+        // Hide splash screen immediately to avoid a visible flash before
+        // proceedWithLocation's fade-out kicks in.
+        const splashEl = document.getElementById('splashScreen');
+        const appShellEl = document.getElementById('appShell');
+        if (splashEl) splashEl.style.display = 'none';
+        if (appShellEl) {
+          appShellEl.classList.remove('hidden');
+          appShellEl.style.display = 'grid';
+        }
+        proceedWithLocation(
+          p.location,
+          !!p.isDetectedLocation,
+          p.locationSource ?? 'manual',
+          p.timezone ?? null,
+          p.latitude ?? null,
+          p.longitude ?? null,
+          p.countryCode ?? null
+        );
+        // proceedWithLocation → mainAppLogic ran synchronously and staged the
+        // data-driven elements at their proper opacity:0 starting state. Safe
+        // to remove the pre-paint suppression now — subsequent `.visible`
+        // additions will transition them in cleanly.
+        document.documentElement.classList.remove('is-pending-location');
+        return;
+      }
+    }
+  } catch { /* ignore parse errors */ }
 
   const splashScreen = document.getElementById('splashScreen');
   const appShell = document.getElementById('appShell');
 
-  // Reset to Today page when splash screen is shown (in case user was on another page)
-  debugLog('Splash screen shown, resetting to Today page');
-  if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
-    window.TempHistRouter.navigate('/today');
-  } else {
-    // Fallback: update URL
-    window.location.hash = '#/today';
+  // Reset to Today page when splash screen is shown (in case user was on another
+  // page) — but only when there's no valid deep link in the hash already. Full-page
+  // loads to e.g. /#/week (from the About page's period links, or a bookmark) should
+  // land on that view rather than being clobbered back to Today.
+  const initialRoute = window.location.hash ? window.location.hash.substring(1) : '/today';
+  const validInitialRoutes = ['/today', '/week', '/month', '/year'];
+  if (!validInitialRoutes.includes(initialRoute)) {
+    debugLog('Splash screen shown, resetting to Today page');
+    if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.navigate === 'function') {
+      globalThis.TempHistRouter.navigate('/today');
+    } else {
+      // Fallback: update URL
+      window.location.hash = '#/today';
+    }
   }
 
   // Always prefetch approved locations in background for potential manual selection
   // This ensures locations are available even if user has a cookie but wants to change location
   prefetchApprovedLocations();
 
-  // Check if we already have a location (e.g., from cookie or previous session)
-  const cookieData = getLocationCookie();
-  if (cookieData.location) {
-    debugLog('Found existing location from cookie:', cookieData.location, 'with source:', cookieData.source);
-    // Skip splash screen and go directly to app
-    // Use the stored source if available, otherwise default to 'cookie'
-    const source = cookieData.source || 'cookie';
-    
-    // Proceed immediately - Firebase should be ready since we're in the auth callback
-    proceedWithLocation(cookieData.location, source === 'detected', source, cookieData.timezone);
-    return;
-  }
-
   // Show splash screen initially
   if (splashScreen) {
-    splashScreen.style.display = 'flex';
+    splashScreen.style.display = 'block';
     // Prevent body scroll when splash screen is visible (especially important for iOS Safari)
     const scrollY = window.scrollY;
     document.body.style.position = 'fixed';
@@ -866,7 +1022,7 @@ export function handleLocationChangeInternal(): void {
   const appShell = document.getElementById('appShell');
   
   if (splashScreen) {
-    splashScreen.style.display = 'flex';
+    splashScreen.style.display = 'block';
     // Prevent body scroll when splash screen is visible (especially important for iOS Safari)
     const scrollY = window.scrollY;
     document.body.style.position = 'fixed';
@@ -891,24 +1047,21 @@ export function handleLocationChangeInternal(): void {
   
   // Reset splash screen to initial state
   const locationLoading = document.getElementById('locationLoading');
-  const splashActions = document.querySelector('.splash-actions');
   const useLocationBtn = document.getElementById('useLocationBtn');
   const heading = document.getElementById('location-picker-heading');
+  const heroCities = document.querySelector<HTMLElement>('.hero-cities');
 
-  if (locationLoading) locationLoading.style.display = 'none';
-  if (splashActions) (splashActions as HTMLElement).style.display = 'flex';
-  
-  // Reset "Use my location" button and heading text to initial state
-  if (useLocationBtn) {
-    useLocationBtn.style.display = '';
-  }
+  if (locationLoading) locationLoading.hidden = true;
+  if (useLocationBtn) useLocationBtn.hidden = false;
+  if (heroCities) heroCities.classList.remove('is-detecting');
   if (heading) {
+    heading.classList.remove('is-detecting');
     heading.textContent = 'Or choose one:';
   }
   
   // Navigate to today page
-  if (window.TempHistRouter && typeof window.TempHistRouter.navigate === 'function') {
-    window.TempHistRouter.navigate('/today');
+  if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.navigate === 'function') {
+    globalThis.TempHistRouter.navigate('/today');
   } else {
     window.location.hash = '#/today';
   }
@@ -926,6 +1079,9 @@ export function handleLocationChangeInternal(): void {
   
   // Prefetch approved locations for selection
   prefetchApprovedLocations();
+
+  // Load recent snapshots in background
+  if (SNAPSHOTS_ENABLED) initSnapshotsCarousel();
 }
 
 // Expose handleManualLocationSelection globally for use by location carousel

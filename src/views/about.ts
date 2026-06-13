@@ -85,7 +85,7 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   appendHeading(container, 'Location data');
   appendParagraph(
     container,
-    'When you use TempHist, your city-level location is included in every request sent to the TempHist API (api.temphist.com). Only the city name is transmitted — no precise GPS coordinates are stored or shared. Your location is also stored in a browser cookie for up to one hour so the app remembers your preference between visits. Location data in transit is linked to your anonymous session identifier (see below).'
+    'TempHist sends your location to the TempHist API (api.temphist.com) over an encrypted (HTTPS) connection to fetch temperature history for your area. For everyday browsing, only your city name is sent — your GPS coordinates stay on your device. Your GPS coordinates are only ever transmitted if you explicitly use the Share button (see ‘Share feature’ below). This data is never sold, used for advertising, or shared with third parties for tracking. Your location is also stored in a browser cookie for up to one hour so the site remembers your preference between visits.'
   );
 
   // Anonymous authentication
@@ -99,13 +99,12 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   appendSection(
     container,
     'Share feature',
-    'If you use the Share button, your current location and chart data are sent to api.temphist.com/v1/shares to generate a shareable link. No additional personal data is included.'
+    'If you use the Share button, your current location (including its GPS coordinates), chart data, and the city name are sent to the TempHist API to generate a shareable link. No additional personal data is included.'
   );
 
   // What is not collected
   appendHeading(container, 'What is not collected');
   appendBulletList(container, [
-    'Precise GPS coordinates',
     'Personal identifiers such as name, email, or phone number',
     'Analytics or advertising data',
     'Cross-site tracking',
@@ -115,7 +114,7 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   appendSection(
     container,
     'Third-party services',
-    'TempHist uses Firebase (Google) for anonymous authentication. Firebase may use cookies from Google services (identitytoolkit.googleapis.com and securetoken.googleapis.com) for authentication purposes only. Historical weather data is sourced via the TempHist API from Visual Crossing. Neither service is used for advertising or cross-site tracking.'
+    'TempHist uses Firebase (Google) for anonymous authentication. Firebase may use cookies from Google services (identitytoolkit.googleapis.com and securetoken.googleapis.com) for authentication purposes only. Historical weather data is sourced via the TempHist API from Open-Meteo. Neither service is used for advertising or cross-site tracking.'
   );
 
   // Contact
@@ -149,7 +148,7 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   appendHeading(container, 'Location data');
   appendParagraph(
     container,
-    'When you use TempHist, your city-level location is included in every request sent to the TempHist API (api.temphist.com). The city name is obtained by reverse-geocoding your device location — only the city name is transmitted to the API, not your GPS coordinates. Location is linked to your anonymous session identifier in each request. To support location history and reduce repeated lookups, the app stores on your device the detected city name and up to 10 recent GPS locations in app storage (SharedPreferences). This data is cleared only when the app is uninstalled.'
+    'TempHist sends your location to the TempHist API (api.temphist.com) over an encrypted (HTTPS) connection so it can fetch temperature history for your area. For everyday use — viewing today\'s, weekly, monthly, or yearly temperature history — only your city name is sent; your precise GPS coordinates stay on your device. Your GPS coordinates are only ever transmitted if you explicitly tap the Share button (see ‘Share feature’ below) — simply selecting a location does not send your coordinates anywhere. This data is never sold, used for advertising, or shared with third parties for tracking. To support location history and reduce repeated lookups, the app stores on your device the detected city name and up to 10 recent GPS locations in app storage (SharedPreferences). This data is cleared only when the app is uninstalled.'
   );
 
   // Anonymous authentication
@@ -174,13 +173,12 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   appendSection(
     container,
     'Share feature',
-    'If you use the Share button, your current location and chart data are posted to api.temphist.com/v1/shares to generate a shareable link. No additional personal data is included.'
+    'If you use the Share button, your current location (including its GPS coordinates), chart data, and the city name are posted to api.temphist.com/v1/shares to generate a shareable link. No additional personal data is included.'
   );
 
   // What is not collected
   appendHeading(container, 'What is not collected');
   appendBulletList(container, [
-    'GPS coordinates transmitted to any server — only the city name is sent to the API',
     'Personal identifiers such as name, email, or phone number',
     'Analytics or advertising data',
     'Cross-site tracking',
@@ -190,7 +188,7 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   appendSection(
     container,
     'Third-party services',
-    'TempHist uses Firebase (Google) for anonymous authentication. Historical weather data is sourced via the TempHist API from Visual Crossing. Neither service is used for advertising or cross-site tracking.'
+    'TempHist uses Firebase (Google) for anonymous authentication. Historical weather data is sourced via the TempHist API from Open-Meteo. Neither service is used for advertising or cross-site tracking.'
   );
 
   // Contact
@@ -210,11 +208,9 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
 
 /**
  * Build the About page content into the given container element.
- * Used by both the SPA view (#aboutView) and the standalone /about page.
- * @param isSpa - true when rendered inside the main SPA (uses hash links like #/today);
- *                false for the standalone /about page (uses root-relative links like /#/today)
+ * Used by the standalone /about page.
  */
-export function buildAboutContent(container: HTMLElement, isSpa: boolean = false): void {
+export function buildAboutContent(container: HTMLElement): void {
   appendHeading(container, 'About TempHist', 'h2');
 
   appendParagraph(
@@ -226,28 +222,24 @@ export function buildAboutContent(container: HTMLElement, isSpa: boolean = false
   appendHeading(container, 'How it works');
   appendParagraph(
     container,
-    'Each view shows a bar chart with one bar per year. The current year\'s bar is highlighted in green.'
+    'Each view shows a bar chart with one bar per year. Warmer years are red, cooler years are blue.'
   );
 
-  // Period list with links
-  const periodItems: Array<{ label: string; route: string; description: string }> = [
-    { label: 'Today',      route: '/today', description: ' — the temperature recorded on today\'s date, in each of the past 50 years' },
-    { label: 'Past week',  route: '/week',  description: ' — the average temperature for the 7 days ending today, in each of the past 50 years' },
-    { label: 'Past month', route: '/month', description: ' — the average temperature for the 30 days ending today, in each of the past 50 years' },
-    { label: 'Past year',  route: '/year',  description: ' — the average temperature for the 12 months ending today, in each of the past 50 years' },
+  // Period list (plain text — these describe in-app views, not standalone
+  // pages, so they shouldn't link out from this page)
+  const periodItems: Array<{ label: string; description: string }> = [
+    { label: 'Today',      description: ' — the temperature recorded on today\'s date, in each of the past 50 years' },
+    { label: 'Past week',  description: ' — the average temperature for the 7 days ending today, in each of the past 50 years' },
+    { label: 'Past month', description: ' — the average temperature for the 30 days ending today, in each of the past 50 years' },
+    { label: 'Past year',  description: ' — the average temperature for the 12 months ending today, in each of the past 50 years' },
   ];
 
   const ul = document.createElement('ul');
-  periodItems.forEach(({ label, route, description }) => {
+  periodItems.forEach(({ label, description }) => {
     const li = document.createElement('li');
-    if (isSpa) {
-      const a = document.createElement('a');
-      a.href = `#${route}`;
-      a.textContent = label;
-      li.appendChild(a);
-    } else {
-      li.appendChild(document.createTextNode(label));
-    }
+    const strong = document.createElement('strong');
+    strong.textContent = label;
+    li.appendChild(strong);
     li.appendChild(document.createTextNode(description));
     ul.appendChild(li);
   });
@@ -262,11 +254,16 @@ export function buildAboutContent(container: HTMLElement, isSpa: boolean = false
   appendHeading(container, 'Data sources');
   const dataSourcesPara = document.createElement('p');
   dataSourcesPara.textContent = 'Historical weather data is sourced from ';
-  const vcLink = document.createElement('a');
-  vcLink.href = 'https://www.visualcrossing.com';
-  vcLink.textContent = 'Visual Crossing';
-  vcLink.rel = 'noopener noreferrer';
-  dataSourcesPara.appendChild(vcLink);
+  /*
+  const sourceLink = document.createElement('a');
+  sourceLink.href = 'https://www.visualcrossing.com';
+  sourceLink.textContent = 'Visual Crossing';
+  */
+  const sourceLink = document.createElement('a');
+  sourceLink.href = 'https://open-meteo.com';
+  sourceLink.textContent = 'Open-Meteo';
+  sourceLink.rel = 'noopener noreferrer';
+  dataSourcesPara.appendChild(sourceLink);
   dataSourcesPara.appendChild(document.createTextNode(' via the TempHist API.'));
   container.appendChild(dataSourcesPara);
 
@@ -294,7 +291,7 @@ export function renderAboutPage(): void {
   const container = document.createElement('div');
   container.className = 'container';
 
-  buildAboutContent(container, true);
+  buildAboutContent(container);
 
   renderImageAttributions(container).catch(error => {
     console.warn('Failed to render image attributions:', error);
@@ -319,4 +316,22 @@ export function renderPrivacyPage(): void {
   buildPrivacyWebContent(container);
 
   privacyView.appendChild(container);
+}
+
+/**
+ * Render the mobile app privacy policy into the standalone /privacy/app page's #content element.
+ */
+export function renderPrivacyAppPage(): void {
+  resetTrendBackground();
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  content.textContent = '';
+
+  const container = document.createElement('div');
+  container.className = 'container';
+
+  buildPrivacyAppContent(container);
+
+  content.appendChild(container);
 }

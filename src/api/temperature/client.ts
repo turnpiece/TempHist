@@ -16,6 +16,38 @@ import {
 
 declare const debugLog: (...args: any[]) => void;
 
+let _lastXCache: string | null = null;
+export function getLastXCache(): string | null { return _lastXCache; }
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) return;
+  await new Promise<void>(resolve => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+  });
+}
+
+function isAbortFetchError(error: unknown, msg: string): boolean {
+  return error instanceof Error && (error.name === 'AbortError' || msg.includes('aborted'));
+}
+
+function classifyNetworkError(error: unknown, url: string, headers: HeadersInit): never {
+  const msg = error instanceof Error ? error.message : '';
+  if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('CORS')) {
+    console.error('Network/CORS error (may be caused by Cloudflare 524 timeout):', {
+      url, error: msg,
+      note: 'If you see CORS errors with status 524, this is a Cloudflare timeout issue.',
+    });
+  } else {
+    console.error('Fetch error:', { url, error: msg, headers });
+  }
+  throw error;
+}
+
 export function getApiUrl(path: string): string {
   const apiBase = import.meta.env.VITE_API_BASE;
 
@@ -65,19 +97,7 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (attempt > 0) {
       LoadingManager.showRetryMessage(`Connection issue — retrying… (${attempt} of ${MAX_RETRIES})`);
-
-      await new Promise<void>(resolve => {
-        if (options.signal?.aborted) {
-          resolve();
-          return;
-        }
-        const timer = setTimeout(resolve, RETRY_DELAYS_MS[attempt - 1]);
-        options.signal?.addEventListener('abort', () => {
-          clearTimeout(timer);
-          resolve();
-        }, { once: true });
-      });
-
+      await sleepWithAbort(RETRY_DELAYS_MS[attempt - 1], options.signal ?? undefined);
       LoadingManager.clearRetryMessage();
 
       if (options.signal?.aborted) {
@@ -90,10 +110,7 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
       response = await fetch(url, { ...options, method: options.method || 'GET', headers });
     } catch (fetchError) {
       const msg = fetchError instanceof Error ? fetchError.message : '';
-
-      if (fetchError instanceof Error && (fetchError.name === 'AbortError' || msg.includes('aborted'))) {
-        throw fetchError;
-      }
+      if (isAbortFetchError(fetchError, msg)) throw fetchError;
 
       if (attempt < MAX_RETRIES) {
         console.warn(`apiFetch: Network error on attempt ${attempt + 1}, retrying:`, msg);
@@ -101,16 +118,8 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
         continue;
       }
 
-      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('CORS')) {
-        console.error('Network/CORS error (may be caused by Cloudflare 524 timeout):', {
-          url,
-          error: msg,
-          note: 'If you see CORS errors with status 524, this is a Cloudflare timeout issue.',
-        });
-      } else {
-        console.error('Fetch error:', { url, error: msg, headers });
-      }
-      throw fetchError;
+      if (window.TempHist?.analytics) window.TempHist.analytics.apiFailures++;
+      classifyNetworkError(fetchError, url, headers);
     }
 
     if (!response.ok) {
@@ -123,17 +132,17 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
       const errorText = await response.text();
       if (response.status === 524) {
         console.error('API Timeout (524): Cloudflare timeout - this may appear as a CORS error:', {
-          status: response.status,
-          statusText: response.statusText,
-          url,
+          status: response.status, statusText: response.statusText, url,
           note: "Cloudflare 524 errors don't include CORS headers, causing browsers to report CORS errors even when CORS is properly configured",
         });
         throw new Error(`API timeout (524): The request exceeded Cloudflare's timeout limit`);
       }
+      if (window.TempHist?.analytics) window.TempHist.analytics.apiFailures++;
       console.error('API Error:', { status: response.status, statusText: response.statusText, url, body: errorText });
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    if (window.TempHist?.analytics) window.TempHist.analytics.apiCalls++;
     return response;
   }
 
@@ -172,8 +181,8 @@ export async function createAsyncJob(
   validateLocation(location);
   validateIdentifier(identifier);
 
-  const apiPeriod =
-    period === 'week' ? 'weekly' : period === 'month' ? 'monthly' : period === 'year' ? 'yearly' : 'daily';
+  const periodMap: Record<string, string> = { week: 'weekly', month: 'monthly', year: 'yearly' };
+  const apiPeriod = periodMap[period] ?? 'daily';
 
   const basePath = `/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}/async`;
   const jobUrl = getApiUrl(localToday ? `${basePath}?local_today=${localToday}` : basePath);
@@ -218,29 +227,27 @@ export async function pollJobStatus(
       const status: AsyncJobResponse = await response.json();
 
       if (status.status === 'ready' && status.result) {
+        _lastXCache = response.headers.get('X-Cache');
         return status.result;
-      } else if (status.status === 'error') {
-        const errorMsg = status.error || 'Unknown job error';
-        throw new Error(`Job failed: ${errorMsg}`);
-      } else if (status.status === 'processing' || status.status === 'pending') {
-        if (onProgress) {
-          onProgress(status);
-        }
-
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-        pollCount++;
-      } else {
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-        pollCount++;
       }
+
+      if (status.status === 'error') {
+        throw new Error(`Job failed: ${status.error || 'Unknown job error'}`);
+      }
+
+      if (status.status === 'processing' || status.status === 'pending') {
+        onProgress?.(status);
+      }
+
+      await sleep(pollInterval);
+      pollCount++;
     } catch (error) {
       if (pollCount > 10) {
         throw new Error(
           `Job polling failed after ${pollCount} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
       }
-
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      await sleep(pollInterval);
       pollCount++;
     }
   }
@@ -257,8 +264,8 @@ async function fetchTemperatureDataSync(
   validateLocation(location);
   validateIdentifier(identifier);
 
-  const apiPeriod =
-    period === 'week' ? 'weekly' : period === 'month' ? 'monthly' : period === 'year' ? 'yearly' : 'daily';
+  const periodMap: Record<string, string> = { week: 'weekly', month: 'monthly', year: 'yearly' };
+  const apiPeriod = periodMap[period] ?? 'daily';
 
   const basePath = `/v1/records/${apiPeriod}/${encodeURIComponent(location)}/${identifier}`;
   const syncUrl = getApiUrl(localToday ? `${basePath}?local_today=${localToday}` : basePath);
@@ -276,6 +283,7 @@ async function fetchTemperatureDataSync(
       throw new Error(`Synchronous API failed: HTTP ${response.status}`);
     }
 
+    _lastXCache = response.headers.get('X-Cache');
     const data: TemperatureDataResponse = await response.json();
 
     return {
@@ -298,6 +306,7 @@ export async function fetchTemperatureDataAsync(
 ): Promise<JobResultResponse> {
   validateLocation(location);
   validateIdentifier(identifier);
+  _lastXCache = null;
 
   try {
     debugLog(`Attempting async fetch for ${period} data...`);

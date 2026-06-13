@@ -56,8 +56,8 @@ export class TempHistRouter {
     });
     
     // Show the appropriate view
-    let viewElement: HTMLElement | null = null;
-    let viewKey: string = '';
+    let viewElement: HTMLElement | null;
+    let viewKey: string;
     
     switch (route) {
       case '/today':
@@ -75,18 +75,6 @@ export class TempHistRouter {
       case '/year':
         viewElement = document.getElementById('yearView');
         viewKey = 'year';
-        break;
-      case '/about':
-        viewElement = document.getElementById('aboutView');
-        viewKey = 'about';
-        break;
-      case '/privacy':
-        viewElement = document.getElementById('privacyView');
-        viewKey = 'privacy';
-        break;
-      case '/feed':
-        viewElement = document.getElementById('feedView');
-        viewKey = 'feed';
         break;
       case '/splash':
         handleLocationChangeInternal();
@@ -223,7 +211,7 @@ export class TempHistRouter {
         const allNavItems = document.querySelectorAll('nav a');
         debugLog('All nav links found:', allNavItems.length);
         allNavItems.forEach((item, index) => {
-          debugLog(`Nav item ${index}:`, item.getAttribute('href'), item.getAttribute('data-route'));
+          debugLog(`Nav item ${index}:`, item.getAttribute('href'), (item as HTMLElement).dataset.route);
         });
       }
     }, 50);

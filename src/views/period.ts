@@ -17,45 +17,23 @@ import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } f
 
 declare const debugLog: (...args: any[]) => void;
 
-/**
- * Render function for period pages (week, month, year)
- */
-export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month' | 'year', title: string): Promise<void> {
-  const sec = document.getElementById(sectionId);
-  if (!sec) return;
+interface PeriodDOMRefs {
+  loadingEl: HTMLElement;
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+}
 
-  resetTrendBackground();
+interface ParsedPeriodData {
+  temperatureData: any[];
+  averageData: { temp: number; stdDev: number };
+  trendData: { slope: number; slopeError: number; unit: string; gradientFactor: number | null };
+  summaryData: any;
+  metadata: any;
+  unitGroup: string;
+}
 
-  // Check if the app is properly initialised
-  if (!window.tempLocation) {
-    // Wait a bit for the app to initialise
-    await new Promise(resolve => setTimeout(resolve, 100));
-    if (!window.tempLocation) {
-      debugLog('renderPeriod: No location found, using default');
-      window.tempLocation = DEFAULT_LOCATION;
-      window.tempLocationSource = 'default';
-      window.tempLocationIsDetected = false;
-    }
-  } else {
-    debugLog('renderPeriod: Using existing location:', window.tempLocation);
-  }
-
-  // Check if Firebase auth is ready
-  if (!window.currentUser) {
-    // Wait for Firebase auth to be ready
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-
-  // Get current date for display — use location's timezone (matches Today page)
-  const { day: dayStr, month: monthStr, year: yearNum } = getEffectiveDateForLocation(window.tempLocationTimezone);
-  const day = Number(dayStr);
-  const monthName = new Date(yearNum, Number(monthStr) - 1, 1).toLocaleString('en-GB', { month: 'long' });
-  const friendlyDate = `${getOrdinal(day)} ${monthName}`;
-  
-  // Match Today page layout exactly without using innerHTML (Trusted Types safe)
-  while (sec.firstChild) {
-    sec.removeChild(sec.firstChild);
-  }
+function buildPeriodSection(sec: HTMLElement, periodKey: string): PeriodDOMRefs | null {
+  sec.replaceChildren();
 
   const container = document.createElement('div');
   container.className = 'container';
@@ -86,7 +64,6 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   const loadingDiv = document.createElement('div');
   loadingDiv.id = `${periodKey}Loading`;
   loadingDiv.className = 'loading';
-
   loadingDiv.appendChild(createSpinner());
 
   const loadingText = document.createElement('p');
@@ -106,7 +83,6 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   const statsBubble = document.createElement('div');
   statsBubble.id = `${periodKey}StatsBubble`;
   statsBubble.className = 'stats-bubble';
-  container.appendChild(statsBubble);
 
   const avgText = document.createElement('div');
   avgText.id = `${periodKey}AvgText`;
@@ -123,6 +99,8 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   stddevText.className = 'stddev-text';
   statsBubble.appendChild(stddevText);
 
+  container.appendChild(statsBubble);
+
   const incompleteNotice = document.createElement('div');
   incompleteNotice.id = `${periodKey}IncompleteDataNotice`;
   incompleteNotice.className = 'notice';
@@ -133,96 +111,210 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
 
   const loadingEl = document.getElementById(`${periodKey}Loading`) as HTMLElement;
   const periodCanvasNode = document.getElementById(`${periodKey}Chart`);
-  
+
   if (!periodCanvasNode) {
     debugLog(`${periodKey}: Canvas element not found in DOM`);
-    return;
+    return null;
   }
-  
+
   if (!(periodCanvasNode instanceof HTMLCanvasElement)) {
     debugLog(`${periodKey}: Expected a <canvas> element but found`, periodCanvasNode?.nodeName);
-    return;
+    return null;
   }
-  
+
   const canvas = periodCanvasNode;
-  
-  // Ensure canvas element exists and is in the DOM
+
   if (!canvas.parentNode || !document.contains(canvas)) {
     debugLog(`${periodKey}: Canvas element not in DOM`);
-    return;
+    return null;
   }
-  
+
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     debugLog(`${periodKey}: Could not get canvas context`);
-    return;
+    return null;
   }
-  
+
   debugLog(`${periodKey} canvas dimensions:`, {
     width: canvas.clientWidth,
     height: canvas.clientHeight,
     offsetWidth: canvas.offsetWidth,
     offsetHeight: canvas.offsetHeight
   });
-  
-  // Ensure canvas has proper dimensions
+
   canvas.width = canvas.clientWidth || 800;
   canvas.height = canvas.clientHeight || 400;
 
-  // Set the date text immediately (needed for page title)
+  return { loadingEl, canvas, ctx };
+}
+
+function parsePeriodData(weatherData: any, periodKey: string): ParsedPeriodData {
+  let validationData: any;
+  let temperatureData: any[];
+
+  if (weatherData.data?.values) {
+    validationData = weatherData.data;
+    temperatureData = weatherData.data.values;
+  } else if (weatherData.values) {
+    validationData = weatherData;
+    temperatureData = weatherData.values;
+  } else {
+    throw new Error('Invalid data format received. Expected values array.');
+  }
+
+  try {
+    validateTemperatureDataResponse(validationData);
+  } catch (validationError) {
+    throw new Error(`Invalid temperature data format for ${periodKey}: ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`);
+  }
+
+  if (weatherData.data?.values) {
+    return {
+      temperatureData,
+      averageData: {
+        temp: weatherData.data.average.mean,
+        stdDev: weatherData.data.average.standard_deviation
+      },
+      trendData: {
+        slope: weatherData.data.trend.slope,
+        slopeError: weatherData.data.trend.slope_error,
+        unit: weatherData.data.trend.unit,
+        gradientFactor: weatherData.data.trend.gradient_factor ?? null,
+      },
+      summaryData: weatherData.data.summary,
+      metadata: weatherData.data.metadata,
+      unitGroup: weatherData.data.unit_group || '',
+    };
+  }
+
+  return {
+    temperatureData,
+    averageData: {
+      temp: weatherData.average.mean,
+      stdDev: weatherData.average.standard_deviation
+    },
+    trendData: {
+      slope: weatherData.trend.slope,
+      slopeError: weatherData.trend.slope_error,
+      unit: weatherData.trend.unit,
+      gradientFactor: weatherData.trend.gradient_factor ?? null,
+    },
+    summaryData: weatherData.summary,
+    metadata: weatherData.metadata,
+    unitGroup: weatherData.unit_group || '',
+  };
+}
+
+function showPeriodError(periodKey: string, error: unknown): void {
+  const dataNoticeEl = document.getElementById(`${periodKey}DataNotice`);
+  if (!dataNoticeEl) return;
+
+  const errorMessage = generateErrorMessage(error);
+
+  const contentEl = document.createElement('div');
+  contentEl.className = 'notice-content error';
+
+  const retryBtn = document.createElement('button');
+  retryBtn.className = 'btn-retry';
+  retryBtn.type = 'button';
+  retryBtn.textContent = 'Retry';
+  retryBtn.addEventListener('click', () => { globalThis.TempHistViews[periodKey]?.render?.(); });
+
+  const titleEl = document.createElement('p');
+  titleEl.className = 'notice-title large';
+  const icon = document.createElement('span');
+  icon.className = 'notice-icon';
+  icon.textContent = '✕';
+  titleEl.appendChild(icon);
+  titleEl.appendChild(document.createTextNode(' Unable to load data'));
+
+  const subtitleEl = document.createElement('p');
+  subtitleEl.className = 'notice-subtitle secondary';
+  subtitleEl.textContent = errorMessage;
+
+  contentEl.appendChild(retryBtn);
+  contentEl.appendChild(titleEl);
+  contentEl.appendChild(subtitleEl);
+
+  dataNoticeEl.replaceChildren(contentEl);
+}
+
+/**
+ * Render function for period pages (week, month, year)
+ */
+export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month' | 'year', title: string): Promise<void> {
+  const sec = document.getElementById(sectionId);
+  if (!sec) return;
+
+  resetTrendBackground();
+
+  // Ensure location is set
+  if (!globalThis.tempLocation) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (!globalThis.tempLocation) {
+      debugLog('renderPeriod: No location found, using default');
+      globalThis.tempLocation = DEFAULT_LOCATION;
+      globalThis.tempLocationSource = 'default';
+      globalThis.tempLocationIsDetected = false;
+    }
+  } else {
+    debugLog('renderPeriod: Using existing location:', globalThis.tempLocation);
+  }
+
+  if (!globalThis.currentUser) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  const { day: dayStr, month: monthStr, year: yearNum } = getEffectiveDateForLocation(globalThis.tempLocationTimezone);
+  const day = Number(dayStr);
+  const monthName = new Date(yearNum, Number(monthStr) - 1, 1).toLocaleString('en-GB', { month: 'long' });
+  const friendlyDate = `${getOrdinal(day)} ${monthName}`;
+
+  const refs = buildPeriodSection(sec, periodKey);
+  if (!refs) return;
+  const { loadingEl, canvas, ctx } = refs;
+
   const dateTextEl = document.getElementById(`${periodKey}DateText`);
   if (dateTextEl) {
     dateTextEl.textContent = `${title} ending ${friendlyDate}`;
   }
-  
-  // Set location text immediately (like Today page)
-  const currentLocation = window.tempLocation!;
+
+  const currentLocation = globalThis.tempLocation!;
   const displayLocation = getDisplayCity(currentLocation);
   const locationTextElement = document.getElementById(`${periodKey}LocationText`);
   if (locationTextElement) {
-    // Add classes based on location source
-    locationTextElement.className = `location-heading location-${window.tempLocationSource || 'unknown'}`;
-
-    // Show location with edit icon without using innerHTML
-    const countryCode = getCountryCodeForLocation(window.tempLocation!);
-    buildLocationDisplay(locationTextElement, displayLocation, periodKey, countryCode);
-
-    // Setup change location button click handler
+    locationTextElement.className = `location-heading location-${globalThis.tempLocationSource || 'unknown'}`;
+    const countryCode = getCountryCodeForLocation(globalThis.tempLocation!);
+    buildLocationDisplay(locationTextElement, displayLocation, periodKey, countryCode, !!globalThis.tempLocationIsDetected);
     setupChangeLocationButton(periodKey);
   }
-  
-  // Show loading state
+
   loadingEl.classList.add('visible');
   loadingEl.classList.remove('hidden');
   canvas.classList.add('hidden');
   canvas.classList.remove('visible');
 
-  // Track when loading started (for minimum loading time calculation)
   const loadingStartTime = Date.now();
-
-  // Clear any existing loading intervals to prevent conflicts
   clearAllLoadingIntervals();
-  
-  // Start dynamic loading messages for this period
   const periodLoadingInterval = LoadingManager.startPeriodLoading(periodKey);
 
   try {
-    // Use same caching system as Today page (DataCache)
     const identifier = `${monthStr}-${dayStr}`;
-
-    const localToday = window.tempLocationTimezone ? localTodayIn(window.tempLocationTimezone) : undefined;
-    const ttl = window.tempLocationTimezone
-      ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(window.tempLocationTimezone))
+    const localToday = globalThis.tempLocationTimezone ? localTodayIn(globalThis.tempLocationTimezone) : undefined;
+    const ttl = globalThis.tempLocationTimezone
+      ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(globalThis.tempLocationTimezone))
       : 10 * 60 * 1000;
 
-    // Check cache first (if feature flag is enabled)
     let weatherData: any;
+    let fromCache = false;
+
     if (FeatureFlags.isEnabled('data_caching')) {
-      const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier, localToday);
+      const cacheKey = DataCache.generateTemperatureKey(periodKey, globalThis.tempLocation!, identifier, localToday);
       debugLog(`${periodKey}: Checking cache with key:`, cacheKey);
       weatherData = DataCache.get(cacheKey);
 
       if (weatherData) {
+        fromCache = true;
         debugLog(`${periodKey}: Using cached data`);
       } else {
         debugLog(`${periodKey}: No cached data found`);
@@ -232,89 +324,27 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
     }
 
     if (!weatherData) {
-      // Progress callback for async job
-      const onProgress = (status: AsyncJobResponse) => {
-        debugLog(`${periodKey} job progress:`, status);
-      };
-
+      const onProgress = (status: AsyncJobResponse) => { debugLog(`${periodKey} job progress:`, status); };
       debugLog(`Starting ${periodKey} data fetch...`);
-      weatherData = await fetchTemperatureDataAsync(periodKey, window.tempLocation!, identifier, onProgress, localToday);
+      weatherData = await fetchTemperatureDataAsync(periodKey, globalThis.tempLocation!, identifier, onProgress, localToday);
 
-      // Cache the result (if feature flag is enabled)
       if (FeatureFlags.isEnabled('data_caching')) {
-        const cacheKey = DataCache.generateTemperatureKey(periodKey, window.tempLocation!, identifier, localToday);
+        const cacheKey = DataCache.generateTemperatureKey(periodKey, globalThis.tempLocation!, identifier, localToday);
         DataCache.set(cacheKey, weatherData, ttl);
         debugLog(`${periodKey}: Data cached for future use`);
       }
     }
-    
-    // Extract the data from the result
+
     debugLog(`${periodKey} data structure:`, weatherData);
-    
-    // Handle both prefetched data (direct format) and fresh API data (job result format)
-    // First, determine which format we have and validate the structure
-    let validationData: any;
-    let temperatureData: any[], averageData: any, trendData: any, summaryData: any, metadata: any, unitGroup: string;
-    
-    if (weatherData.data && weatherData.data.values) {
-      // Fresh API data (job result format)
-      validationData = weatherData.data;
-      temperatureData = weatherData.data.values;
-    } else if (weatherData.values) {
-      // Prefetched data (direct format)
-      validationData = weatherData;
-      temperatureData = weatherData.values;
-    } else {
-      throw new Error('Invalid data format received. Expected values array.');
-    }
-    
-    // Comprehensive validation of temperature data structure and ranges (before accessing nested properties)
-    try {
-      validateTemperatureDataResponse(validationData);
-    } catch (validationError) {
-      throw new Error(`Invalid temperature data format for ${periodKey}: ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`);
-    }
-    
-    // Now safely extract the data (validation ensures structure is correct)
-    if (weatherData.data && weatherData.data.values) {
-      // Fresh API data (job result format)
-      averageData = {
-        temp: weatherData.data.average.mean,
-        stdDev: weatherData.data.average.standard_deviation
-      };
-      trendData = {
-        slope: weatherData.data.trend.slope,
-        slopeError: weatherData.data.trend.slope_error,
-        unit: weatherData.data.trend.unit,
-        gradientFactor: weatherData.data.trend.gradient_factor ?? null,
-      };
-      summaryData = weatherData.data.summary;
-      metadata = weatherData.data.metadata;
-      unitGroup = weatherData.data.unit_group || '';
-    } else if (weatherData.values) {
-      // Prefetched data (direct format)
-      averageData = {
-        temp: weatherData.average.mean,
-        stdDev: weatherData.average.standard_deviation
-      };
-      trendData = {
-        slope: weatherData.trend.slope,
-        slopeError: weatherData.trend.slope_error,
-        unit: weatherData.trend.unit,
-        gradientFactor: weatherData.trend.gradient_factor ?? null,
-      };
-      summaryData = weatherData.summary;
-      metadata = weatherData.metadata;
-      unitGroup = weatherData.unit_group || '';
-    }
-    
-    // Check data completeness and show warning if needed
+
+    const { temperatureData, averageData, trendData, summaryData, metadata, unitGroup } =
+      parsePeriodData(weatherData, periodKey);
+
     debugLog(`Checking data completeness for ${periodKey} data, metadata:`, metadata);
     const isDataComplete = checkDataCompleteness(metadata, periodKey);
     if (!isDataComplete) {
       debugLog(`${periodKey}: Data is incomplete or unavailable`);
-      // If data is 0% complete (fatal error), stop processing and show error
-      if (metadata && metadata.completeness === 0) {
+      if (metadata?.completeness === 0) {
         debugLog(`No data available for ${periodKey} (0% completeness), stopping data processing`);
         return;
       }
@@ -323,82 +353,48 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       debugLog(`${periodKey}: Data is complete, no warning needed`);
     }
 
-    // Update the chart with the weather data
     const chartData = transformToChartData(temperatureData);
     debugLog(`${periodKey} chart data:`, chartData);
     debugLog(`${periodKey} chart data length:`, chartData.length);
     debugLog(`${periodKey} sample chart data point:`, chartData[0]);
-    
-    // Calculate temperature range for chart scaling
+
     const tempRange = calculateTemperatureRange(chartData);
     const minTemp = tempRange.min;
     const maxTemp = tempRange.max;
-    
-    // Get year range with validation
+
     const years = chartData.map(d => d.y);
     if (years.length === 0) {
       throw new Error('Chart data contains no years');
     }
-    
+
     const rawMinYear = Math.min(...years);
     const rawMaxYear = Math.max(...years);
-    
-    // Validate year range against acceptable bounds
+
     const earliestYear = DATE_RANGE_CONFIG.EARLIEST_YEAR;
     const latestYear = new Date().getFullYear() + DATE_RANGE_CONFIG.LATEST_YEAR_OFFSET;
-    
+
     const minYear = Math.max(rawMinYear, earliestYear);
     const maxYear = Math.min(rawMaxYear, latestYear);
-    
+
     if (rawMinYear < earliestYear || rawMaxYear > latestYear) {
       debugLog(`Year range adjusted: [${rawMinYear}, ${rawMaxYear}] -> [${minYear}, ${maxYear}]`);
     }
-    
-    // Get the actual current year (for highlighting the current year in green)
-    const actualCurrentYear = new Date().getFullYear();
-    
-    // Map period key to the API period value used in share payloads
-    const apiPeriod: 'daily' | 'weekly' | 'monthly' | 'yearly' =
-      periodKey === 'week' ? 'weekly' :
-      periodKey === 'month' ? 'monthly' :
-      periodKey === 'year' ? 'yearly' : 'daily';
 
-    // Skip minimum loading time if using cached data for instant display
-    const isUsingCachedData = weatherData && FeatureFlags.isEnabled('data_caching');
-    
-    if (isUsingCachedData) {
-      // Show chart immediately for cached data
-      actuallyShowPeriodChart();
-    } else {
-      // Ensure minimum loading time has elapsed (3 seconds) to show cycling messages for fresh data
-      const minLoadingTime = LOADING_TIMEOUTS.MIN_LOADING_TIME * 1000; // Convert to milliseconds
-      const elapsedTime = Date.now() - loadingStartTime; // Calculate actual elapsed time
-      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
-      
-      if (remainingTime > 0) {
-        setTimeout(() => {
-          actuallyShowPeriodChart();
-        }, remainingTime);
-      } else {
-        actuallyShowPeriodChart();
-      }
-    }
-    
+    const actualCurrentYear = new Date().getFullYear();
+
+    const periodApiMap: Record<string, 'daily' | 'weekly' | 'monthly' | 'yearly'> = {
+      week: 'weekly', month: 'monthly', year: 'yearly',
+    };
+    const apiPeriod = periodApiMap[periodKey] ?? 'daily';
+
     function actuallyShowPeriodChart() {
-      // Hide loading and show chart
       loadingEl.classList.add('hidden');
       loadingEl.classList.remove('visible');
       canvas.classList.add('visible');
       canvas.classList.remove('hidden');
-      
-      // Clear the loading message interval
+
       LoadingManager.stopPeriodLoading(periodLoadingInterval);
 
-      // Create chart using shared function
-      if (!ctx) {
-        throw new Error('Canvas context not available');
-      }
-      
       const chart = createTemperatureChart(
         ctx,
         chartData,
@@ -408,75 +404,42 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
         minTemp,
         maxTemp,
         minYear,
-        actualCurrentYear
+        actualCurrentYear,
+        `${periodKey}ly` as 'weekly' | 'monthly' | 'yearly'
       );
 
-      // Update trend line if enabled
       updateChartTrendLine(chart, chartData, minYear, maxYear);
-      
-      // Show chart elements since data loaded successfully
       showChartElements(periodKey);
-
-      // Location text is already set at the beginning (like Today page)
-      
-      // Update summary, average, and trend text
       updateSummaryTextElements(summaryData, averageData, trendData, periodKey);
-
       applyTrendBackground(trendData?.slope ?? null, unitGroup, undefined, trendData?.gradientFactor ?? null);
-
-      // Reveal share button now that data is ready
       setupShareButton(periodKey, { period: apiPeriod, identifier, ref_year: actualCurrentYear });
+    }
+
+    if (fromCache) {
+      actuallyShowPeriodChart();
+    } else {
+      const minLoadingTime = LOADING_TIMEOUTS.MIN_LOADING_TIME * 1000;
+      const elapsedTime = Date.now() - loadingStartTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+
+      if (remainingTime > 0) {
+        setTimeout(actuallyShowPeriodChart, remainingTime);
+      } else {
+        actuallyShowPeriodChart();
+      }
     }
 
   } catch (error) {
     debugLog(`Error fetching ${periodKey} data:`, error);
-    
-    // Check if this is an abort error (user navigated away)
+
     if (isAbortError(error)) {
       debugLog(`${periodKey} data fetch aborted (likely due to navigation)`);
-      // Silently handle abort - don't show error to user
       return;
     }
-    
-    // Show error state only for real errors
+
     loadingEl.classList.add('hidden');
     loadingEl.classList.remove('visible');
-    
-    // Clear the loading message interval
     LoadingManager.stopPeriodLoading(periodLoadingInterval);
-    
-    const dataNoticeEl = document.getElementById(`${periodKey}DataNotice`);
-    if (dataNoticeEl) {
-      const errorMessage = generateErrorMessage(error);
-
-      const contentEl = document.createElement('div');
-      contentEl.className = 'notice-content error';
-
-      const retryBtn = document.createElement('button');
-      retryBtn.className = 'btn-retry';
-      retryBtn.type = 'button';
-      retryBtn.textContent = 'Retry';
-      retryBtn.addEventListener('click', () => { window.TempHistViews[periodKey]?.render?.(); });
-
-      const titleEl = document.createElement('p');
-      titleEl.className = 'notice-title large';
-      const icon = document.createElement('span');
-      icon.className = 'notice-icon';
-      icon.textContent = '✕';
-      titleEl.appendChild(icon);
-      titleEl.appendChild(document.createTextNode(' Unable to load data'));
-
-      const subtitleEl = document.createElement('p');
-      subtitleEl.className = 'notice-subtitle secondary';
-      subtitleEl.textContent = errorMessage;
-
-      contentEl.appendChild(retryBtn);
-      contentEl.appendChild(titleEl);
-      contentEl.appendChild(subtitleEl);
-
-      while (dataNoticeEl.firstChild) dataNoticeEl.removeChild(dataNoticeEl.firstChild);
-      dataNoticeEl.appendChild(contentEl);
-    }
+    showPeriodError(periodKey, error);
   }
 }
-
