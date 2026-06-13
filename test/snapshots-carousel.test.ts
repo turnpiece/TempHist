@@ -193,14 +193,14 @@ describe('initSnapshotsCarousel', () => {
     expect(cards).toHaveLength(3)
   })
 
-  it('fetches from the /v1/shares endpoint with limit=4', async () => {
+  it('fetches from the /v1/shares endpoint with limit=6', async () => {
     mockFetchShares([makeShare('s1')])
 
     await initSnapshotsCarousel()
 
     const calledUrl = vi.mocked(fetch).mock.calls[0][0] as string
     expect(calledUrl).toContain('/v1/shares')
-    expect(calledUrl).toContain('limit=4')
+    expect(calledUrl).toContain('limit=6')
   })
 
   it('does nothing when the section element is not in the DOM', async () => {

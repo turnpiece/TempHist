@@ -104,7 +104,10 @@ export function buildCard(share: ShareItem): HTMLElement {
   img.alt = `${city} temperature history — ${periodLabel}`;
   img.loading = 'lazy';
   img.onload = () => imgWrap.classList.remove('feed-card__img-wrap--loading');
-  img.onerror = () => imgWrap.classList.remove('feed-card__img-wrap--loading');
+  img.onerror = () => {
+    imgWrap.classList.remove('feed-card__img-wrap--loading');
+    a.remove();
+  };
   img.src = imgSrc;
 
   imgWrap.appendChild(img);

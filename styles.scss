@@ -1434,9 +1434,14 @@ h2 {
   img {
     display: block;
     width: 100%;
+    aspect-ratio: 1200 / 630;
     height: auto;
     border-radius: 4px;
   }
+}
+
+.snap-grid .snap-card:nth-child(n+5) {
+  display: none;
 }
 
 .snap-foot {

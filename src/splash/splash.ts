@@ -764,7 +764,7 @@ export async function initSnapshotsCarousel(): Promise<void> {
 
   const base = getApiUrl('/v1/shares');
   const url = new URL(base, window.location.origin);
-  url.searchParams.set('limit', '4');
+  url.searchParams.set('limit', '6');
 
   let shares: any[];
   try {
@@ -815,7 +815,7 @@ export async function initSnapshotsCarousel(): Promise<void> {
   const grid = document.createElement('div');
   grid.className = 'snap-grid';
 
-  shares.slice(0, 4).forEach((share: any) => {
+  shares.slice(0, 6).forEach((share: any) => {
     const city = (share.location ?? '').split(',')[0].trim();
     const periodLabel = formatPeriodHeading(share);
     const imgSrc = getApiUrl(share.og_image_url);
@@ -838,9 +838,10 @@ export async function initSnapshotsCarousel(): Promise<void> {
     const chartDiv = document.createElement('div');
     chartDiv.className = 'snap-chart';
     const img = document.createElement('img');
-    img.src = imgSrc;
     img.alt = `${city} temperature history — ${periodLabel}`;
     img.loading = 'lazy';
+    img.onerror = () => card.remove();
+    img.src = imgSrc;
     chartDiv.appendChild(img);
 
     const foot = document.createElement('div');
