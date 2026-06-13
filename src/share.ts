@@ -247,13 +247,13 @@ function hideAppChrome(): void {
   const appShell = document.getElementById('appShell');
   if (appShell) appShell.classList.remove('hidden');
 
-  // Hide period navigation links — About, Privacy and Snapshots are always
-  // absolute paths now, so they work as-is on the share page.
+  // Hide SPA-only period links (Today, Week, Month, Year); keep standalone links
+  // (Locations, Snapshots, About, Privacy) which use absolute paths and work fine here.
   const nav = document.querySelector('nav');
   if (nav) {
     nav.querySelectorAll('a[data-route]').forEach(link => {
       const route = (link as HTMLAnchorElement).getAttribute('data-route');
-      if (route !== '/about' && route !== '/privacy' && route !== '/feed') {
+      if (route !== '/about' && route !== '/privacy' && route !== '/feed' && route !== '/locations') {
         const li = link.closest('li');
         if (li) (li as HTMLElement).style.display = 'none';
       }

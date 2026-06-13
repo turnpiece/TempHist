@@ -1460,7 +1460,7 @@ h2 {
   align-items: center;
   gap: 0.35rem;
 
-  .flag-img { flex-shrink: 0; }
+  .flag-img { flex-shrink: 0; margin-bottom: 0; }
 }
 .snap-period { font-size: 0.78rem; color: rgba($colour-text, 0.58); }
 
@@ -2245,6 +2245,11 @@ html.is-pending-location #dateText {
   &__city {
     font-size: 0.95rem;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+
+    .flag-img { flex-shrink: 0; margin-bottom: 0; }
   }
 
   &__meta {

@@ -16,7 +16,7 @@ import { LazyLoader } from '../utils/LazyLoader';
 import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
 import { renderAboutPage, renderPrivacyPage, renderPrivacyAppPage } from '../views/about';
-import { renderFeedPage, buildCard, ShareItem } from '../views/feed';
+import { renderFeedPage, buildCard, refreshFeedFlags, ShareItem } from '../views/feed';
 import { flagImg, renderLocationsPage } from '../locations/locations';
 import { formatPeriodHeading, openShareModal } from '../share';
 import { buildLocationDisplay } from '../utils/uiHelpers';
@@ -270,8 +270,9 @@ export async function prefetchApprovedLocations(): Promise<void> {
     // If a location heading is already visible (cookie fast-path rendered before prefetch),
     // re-render it now with the correct country flag
     refreshLocationFlag();
-    // Fill flags on any snap cards already rendered
+    // Fill flags on any snap or feed cards already rendered
     refreshSnapFlags();
+    refreshFeedFlags();
   } catch (error) {
     debugLog('Failed to prefetch approved locations:', error);
     // Store empty array if prefetch fails
@@ -902,6 +903,7 @@ export function initializeSplashScreen(): void {
         renderLocationsPage();
       } else if (SNAPSHOTS_ENABLED && currentPath === '/feed') {
         renderFeedPage();
+        prefetchApprovedLocations();
       }
     }
 

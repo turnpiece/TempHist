@@ -1,4 +1,6 @@
 import { getApiUrl, apiFetch } from '../api/temperature';
+import { flagImg } from '../locations/locations';
+import { getCountryCodeForLocation } from '../utils/location';
 import { resetTrendBackground } from '../utils/uiHelpers';
 import {
   buildShareUI,
@@ -117,7 +119,10 @@ export function buildCard(share: ShareItem): HTMLElement {
 
   const cityEl = document.createElement('div');
   cityEl.className = 'feed-card__city';
-  cityEl.textContent = city;
+  cityEl.dataset.city = city;
+  const countryCode = getCountryCodeForLocation(city);
+  if (countryCode) cityEl.appendChild(flagImg(countryCode, 20));
+  cityEl.appendChild(document.createTextNode(city));
 
   const meta = document.createElement('div');
   meta.className = 'feed-card__meta';
@@ -141,10 +146,15 @@ export function buildCard(share: ShareItem): HTMLElement {
   return a;
 }
 
-function buildEmptyMessage(): HTMLElement {
+function buildEmptyMessage(period: Period | ''): HTMLElement {
   const el = document.createElement('p');
   el.className = 'feed-empty';
-  el.textContent = 'No recent shares found.';
+  if (period === '') {
+    el.textContent = 'No snapshots have been shared yet.';
+  } else {
+    const label = FILTER_OPTIONS.find(o => o.period === period)?.label.toLowerCase() ?? period;
+    el.textContent = `No ${label} snapshots have been shared.`;
+  }
   return el;
 }
 
@@ -226,7 +236,6 @@ export function renderFeedPage(): void {
   // ── Fetch helpers ────────────────────────────────────────────────────────────
   function setLoading(isLoading: boolean): void {
     loadMoreBtn.disabled = isLoading;
-    filterBtns.forEach(b => { b.disabled = isLoading; });
   }
 
   async function loadShares(period: Period | '', offset: number, append: boolean): Promise<void> {
@@ -237,7 +246,7 @@ export function renderFeedPage(): void {
         grid.textContent = '';
       }
       if (data.shares.length === 0 && !append) {
-        grid.appendChild(buildEmptyMessage());
+        grid.appendChild(buildEmptyMessage(period));
         loadMoreBtn.hidden = true;
       } else {
         data.shares.forEach(share => grid.appendChild(buildCard(share)));
@@ -276,4 +285,14 @@ export function renderFeedPage(): void {
 
   // ── Initial load ─────────────────────────────────────────────────────────────
   loadShares('', 0, false);
+}
+
+/** After prefetchedLocations loads, add flags to any feed cards already rendered without them */
+export function refreshFeedFlags(): void {
+  document.querySelectorAll<HTMLElement>('.feed-card__city[data-city]').forEach(el => {
+    if (el.querySelector('.flag-img')) return;
+    const cc = getCountryCodeForLocation(el.dataset.city!);
+    if (!cc) return;
+    el.prepend(flagImg(cc, 20));
+  });
 }
