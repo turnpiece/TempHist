@@ -9,7 +9,6 @@ import { calculateTrendLine } from '../../chart/chart';
 import { setupMobileNavigation, checkAndHandleDateChange } from '../../splash/splash';
 import { displayLocationAndFetchData } from './locationHandlers';
 import { fetchHistoricalData } from './fetchHistoricalData';
-import { hideError } from './chartDisplay';
 import { getEffectiveDateForLocation } from '../../utils/dateUtils';
 import { clearTrendBackground } from '../../utils/uiHelpers';
 
@@ -56,9 +55,6 @@ export function mainAppLogic(): void {
     Math.max(currentYear, DATE_RANGE_CONFIG.EARLIEST_YEAR),
     maxAllowedYear
   );
-  const calculatedStartYear = validatedCurrentYear - DATE_RANGE_CONFIG.DEFAULT_YEAR_SPAN;
-  const startYear = Math.max(calculatedStartYear, DATE_RANGE_CONFIG.EARLIEST_YEAR);
-
   if (currentYear !== validatedCurrentYear) {
     debugLog(`Year ${currentYear} adjusted to valid range: ${validatedCurrentYear}`);
   }

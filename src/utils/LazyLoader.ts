@@ -15,9 +15,9 @@ interface LazyLoadOptions {
 }
 
 class LazyLoader {
-  private static cache = new Map<string, Promise<any>>();
-  private static loadingStates = new Map<string, boolean>();
-  private static retryCounts = new Map<string, number>();
+  private static readonly cache = new Map<string, Promise<any>>();
+  private static readonly loadingStates = new Map<string, boolean>();
+  private static readonly retryCounts = new Map<string, number>();
 
   /**
    * Load data for a specific period view

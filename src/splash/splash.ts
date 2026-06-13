@@ -2,18 +2,16 @@
  * Splash screen functionality - location selection and initialization
  */
 
-import { setLocationCookie, getLocationCookie } from '../utils/location';
+import { setLocationCookie, getLocationCookie, getCountryCodeForLocation, getDisplayCity } from '../utils/location';
 import { getGeoPrefetchPromise, getLocationKnownPromise } from '../services/geolocationPrefetch';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from '../services/locationDetection';
 import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../utils/dateUtils';
 import { resetCarouselState } from '../services/locationCarousel';
-import { apiFetch, getApiUrl } from '../api/temperature';
+import { apiFetch, getApiUrl, fetchTemperatureDataAsync } from '../api/temperature';
 import { SNAPSHOTS_ENABLED } from '../constants';
-import { getCountryCodeForLocation, getDisplayCity } from '../utils/location';
 import { DataCache } from '../utils/DataCache';
 import { LoadingManager } from '../utils/LoadingManager';
 import { LazyLoader } from '../utils/LazyLoader';
-import { fetchTemperatureDataAsync } from '../api/temperature';
 import type { PreapprovedLocation } from '../types/index';
 import { renderAboutPage, renderPrivacyPage, renderPrivacyAppPage } from '../views/about';
 import { renderFeedPage, buildCard, ShareItem } from '../views/feed';

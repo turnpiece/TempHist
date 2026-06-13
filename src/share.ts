@@ -12,9 +12,8 @@ import {
   CHART_FONT_SIZE_MEDIUM,
   INITIAL_LOADING_TEXT
 } from './constants/index';
-import type { ChartDataPoint, JobResultResponse } from './types/index';
+import type { ChartDataPoint, JobResultResponse, PreapprovedLocation } from './types/index';
 import { getOrdinal, countryCodeToFlag, getCountryCodeForLocation } from './utils/location';
-import type { PreapprovedLocation } from './types/index';
 import {
   calculateTrendLine,
   computeBarColors,
@@ -202,7 +201,7 @@ export function setupShareButton(periodKey: string, params: ShareParams): void {
 }
 
 function extractShareId(): string | null {
-  const match = window.location.pathname.match(/^\/s\/([^/]+)/);
+  const match = /^\/s\/([^/]+)/.exec(window.location.pathname);
   return match ? match[1] : null;
 }
 

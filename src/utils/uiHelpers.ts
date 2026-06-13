@@ -421,7 +421,7 @@ export function showChartElements(periodKey?: string): void {
  * Show incomplete data notice
  */
 function buildMissingYearsText(metadata: TemperatureDataMetadata): string {
-  const years = metadata.missing_years.map(y => y.year).sort();
+  const years = metadata.missing_years.map(y => y.year).sort((a, b) => a - b);
   if (years.length === 0) return '';
   if (years.length === 1) return `Data for ${years[0]} could not be loaded.`;
   if (years.length === 2) return `Data for ${years[0]} and ${years[1]} could not be loaded.`;

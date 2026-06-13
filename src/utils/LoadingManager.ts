@@ -5,7 +5,7 @@ import { getDisplayCity } from './location';
  * Consolidated loading message manager
  */
 export class LoadingManager {
-  private static activeIntervals = new Set<NodeJS.Timeout>();
+  private static readonly activeIntervals = new Set<NodeJS.Timeout>();
   private static globalStartTime: number | null = null;
   private static globalInterval: NodeJS.Timeout | null = null;
   private static retryMessage: string | null = null;

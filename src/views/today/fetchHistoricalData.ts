@@ -138,7 +138,7 @@ export async function fetchHistoricalData(): Promise<void> {
     }
 
     if (!jobResultData.data || !jobResultData.data.values || !Array.isArray(jobResultData.data.values)) {
-      throw new Error('Invalid data format received. Expected data.values array.');
+      throw new TypeError('Invalid data format received. Expected data.values array.');
     }
 
     const temperatureData = jobResultData.data.values;

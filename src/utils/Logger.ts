@@ -36,7 +36,7 @@ class Logger {
   private static logs: LogEntry[] = [];
   private static performanceEntries: PerformanceEntry[] = [];
   private static maxLogs = 1000;
-  private static sessionId = this.generateSessionId();
+  private static readonly sessionId = this.generateSessionId();
 
   /**
    * Configure logging

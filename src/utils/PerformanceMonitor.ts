@@ -33,7 +33,7 @@ class PerformanceMonitor {
   private static metrics: PerformanceMetric[] = [];
   private static observers: PerformanceObserver[] = [];
   private static isEnabled: boolean = true;
-  private static maxMetrics: number = 1000;
+  private static readonly maxMetrics: number = 1000;
 
   /**
    * Initialise performance monitoring

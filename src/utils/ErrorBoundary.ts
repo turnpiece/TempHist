@@ -10,7 +10,7 @@ interface ErrorInfo {
 }
 
 class ErrorBoundary {
-  private static errorHandlers: Array<(error: Error, errorInfo: ErrorInfo) => void> = [];
+  private static readonly errorHandlers: Array<(error: Error, errorInfo: ErrorInfo) => void> = [];
 
   /**
    * Register an error handler

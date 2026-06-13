@@ -70,7 +70,7 @@ export function updateChartTrendLine(
 
 /** Convert an rgb(...) string to a lighter HSL string (lightness clamped to min 0.80). */
 function lighterColor(color: string): string {
-  const match = color.match(/rgb\((\d+),(\d+),(\d+)\)/);
+  const match = /rgb\((\d+),(\d+),(\d+)\)/.exec(color);
   if (!match) return '#ffffff';
   const r = parseInt(match[1]) / 255;
   const g = parseInt(match[2]) / 255;

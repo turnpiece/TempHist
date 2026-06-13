@@ -56,8 +56,8 @@ export class TempHistRouter {
     });
     
     // Show the appropriate view
-    let viewElement: HTMLElement | null = null;
-    let viewKey: string = '';
+    let viewElement: HTMLElement | null;
+    let viewKey: string;
     
     switch (route) {
       case '/today':

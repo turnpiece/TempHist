@@ -27,7 +27,7 @@ export interface FeatureFlagConfig {
 }
 
 class FeatureFlags {
-  private static flags: Map<string, FeatureFlag> = new Map();
+  private static readonly flags: Map<string, FeatureFlag> = new Map();
   private static config: FeatureFlagConfig = {
     flags: [],
     defaultEnabled: false,
