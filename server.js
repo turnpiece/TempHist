@@ -77,6 +77,12 @@ function sendDistHtml(req, res, filename) {
   res.send(html);
 }
 
+// Allowlist of HTML entry points produced by the Vite build (see vite.config.ts rollupOptions.input).
+// Using an explicit set avoids checking file existence against user-controlled path segments.
+const HTML_ENTRY_POINTS = new Set([
+  'index.html', 'about.html', 'privacy.html', 'privacy-app.html', 'feed.html', 'locations.html',
+]);
+
 // HTML entry points: rewrite canonical https://temphist.com → request origin before static
 // (otherwise express.static index would serve / without this pass).
 app.use((req, res, next) => {
@@ -85,8 +91,7 @@ app.use((req, res, next) => {
   if (req.path === '/' || req.path === '/index.html') file = 'index.html';
   else if (req.path.endsWith('.html')) file = path.basename(req.path);
   else return next();
-  const filePath = path.join(__dirname, 'dist', file);
-  if (!fs.existsSync(filePath)) return next();
+  if (!HTML_ENTRY_POINTS.has(file)) return next();
   try {
     sendDistHtml(req, res, file);
   } catch (e) {
