@@ -86,8 +86,7 @@ export function showError(message: string): void {
     contentEl.appendChild(titleEl);
     contentEl.appendChild(subtitleEl);
 
-    while (dataNotice.firstChild) dataNotice.removeChild(dataNotice.firstChild);
-    dataNotice.appendChild(contentEl);
+    dataNotice.replaceChildren(contentEl);
   }
 }
 
@@ -101,11 +100,34 @@ export function showChart(): void {
   const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
 
   if (remainingTime > 0) {
-    setTimeout(() => {
-      actuallyShowChart();
-    }, remainingTime);
+    setTimeout(actuallyShowChart, remainingTime);
   } else {
     actuallyShowChart();
+  }
+}
+
+function updateChartInstance(canvasEl: HTMLElement): void {
+  if (!canvasEl.parentNode || !document.contains(canvasEl)) {
+    debugLog('Canvas element no longer in DOM, skipping chart update');
+    return;
+  }
+  const registeredChart = Chart.getChart(canvasEl);
+  if (!registeredChart) {
+    debugLog('No chart instance found on canvas element, skipping update');
+    if (globalThis.TempHist) globalThis.TempHist.mainChart = null;
+    return;
+  }
+  try {
+    registeredChart.update();
+    if (globalThis.TempHist) globalThis.TempHist.mainChart = registeredChart;
+  } catch (error) {
+    console.error('Error updating chart:', error);
+    try {
+      registeredChart.destroy();
+    } catch (destroyError) {
+      console.error('Error destroying chart:', destroyError);
+    }
+    if (globalThis.TempHist) globalThis.TempHist.mainChart = null;
   }
 }
 
@@ -148,34 +170,7 @@ function actuallyShowChart(): void {
   }
 
   if (canvasEl) {
-    if (canvasEl.parentNode && document.contains(canvasEl)) {
-      const registeredChart = Chart.getChart(canvasEl);
-      if (registeredChart) {
-        try {
-          registeredChart.update();
-          if (globalThis.TempHist) {
-            globalThis.TempHist.mainChart = registeredChart;
-          }
-        } catch (error) {
-          console.error('Error updating chart:', error);
-          try {
-            registeredChart.destroy();
-          } catch (destroyError) {
-            console.error('Error destroying chart:', destroyError);
-          }
-          if (globalThis.TempHist) {
-            globalThis.TempHist.mainChart = null;
-          }
-        }
-      } else {
-        debugLog('No chart instance found on canvas element, skipping update');
-        if (globalThis.TempHist) {
-          globalThis.TempHist.mainChart = null;
-        }
-      }
-    } else {
-      debugLog('Canvas element no longer in DOM, skipping chart update');
-    }
+    updateChartInstance(canvasEl);
   }
 }
 
