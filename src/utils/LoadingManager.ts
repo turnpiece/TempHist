@@ -92,126 +92,105 @@ export class LoadingManager {
     this.activeIntervals.delete(interval);
   }
 
-  /**
-   * Update global loading message
-   */
-  private static updateGlobalLoadingMessage(): void {
-    if (!this.globalStartTime) return;
-
-    const loadingText = document.getElementById('loadingText');
-    if (!loadingText) return;
-
-    if (this.retryMessage !== null) {
-      loadingText.textContent = this.retryMessage;
-      return;
-    }
-
-    const elapsedSeconds = Math.floor((Date.now() - this.globalStartTime) / 1000);
-
-    // Get current page/period
-    const currentHash = window.location.hash;
-    const isTodayPage = currentHash === '' || currentHash === '#today' || currentHash === '#/today';
-    const isWeekPage = currentHash === '#week' || currentHash === '#/week';
-    const isMonthPage = currentHash === '#month' || currentHash === '#/month';
-    const isYearPage = currentHash === '#year' || currentHash === '#/year';
-    
-    const displayCity = globalThis.tempLocation ? getDisplayCity(globalThis.tempLocation) : 'your location';
-    
-    if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.CONNECTING) {
-      loadingText.textContent = 'Connecting to the temperature data server...';
-    } else if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.ANALYZING) {
-      if (isTodayPage) {
-        loadingText.textContent = `Is today warmer or cooler than average in ${displayCity}?`;
-      } else if (isWeekPage) {
-        loadingText.textContent = `Has this past week been warmer or cooler than average in ${displayCity}?`;
-      } else if (isMonthPage) {
-        loadingText.textContent = `Has this past month been warmer or cooler than average in ${displayCity}?`;
-      } else if (isYearPage) {
-        loadingText.textContent = `Has this past year been warmer or cooler than average in ${displayCity}?`;
-      } else {
-        loadingText.textContent = 'Getting temperature data for today over the past 50 years...';
-      }
-    } else if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.GENERATING) {
-      if (isTodayPage) {
-        loadingText.textContent = `Analysing today's temperature in ${displayCity}...`;
-      } else if (isWeekPage) {
-        loadingText.textContent = `Analysing this week's temperatures in ${displayCity}...`;
-      } else if (isMonthPage) {
-        loadingText.textContent = `Analysing this month's temperatures in ${displayCity}...`;
-      } else if (isYearPage) {
-        loadingText.textContent = `Analysing this year's temperatures in ${displayCity}...`;
-      } else {
-        loadingText.textContent = 'Analysing historical data for ' + displayCity + '...';
-      }
-    } else if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.PATIENCE) {
-      if (isTodayPage) {
-        loadingText.textContent = 'Generating today\'s temperature comparison...';
-      } else if (isWeekPage) {
-        loadingText.textContent = 'Generating weekly temperature comparison...';
-      } else if (isMonthPage) {
-        loadingText.textContent = 'Generating monthly temperature comparison...';
-      } else if (isYearPage) {
-        loadingText.textContent = 'Generating yearly temperature comparison...';
-      } else {
-        loadingText.textContent = 'Generating temperature comparison chart...';
-      }
-    } else if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.LONG_WAIT) {
-      loadingText.textContent = 'You should be seeing a bar chart soon...';
-    } else if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.VERY_LONG_WAIT) {
-      loadingText.textContent = 'This is taking longer than usual. Please wait...';
-    } else {
-      loadingText.textContent = 'This really is taking a while, maybe due to a slow internet connection, high server load or something may have gone wrong.';
-    }
+  private static getPageType(): 'today' | 'week' | 'month' | 'year' | 'other' {
+    const hash = window.location.hash;
+    if (hash === '' || hash === '#today' || hash === '#/today') return 'today';
+    if (hash === '#week' || hash === '#/week') return 'week';
+    if (hash === '#month' || hash === '#/month') return 'month';
+    if (hash === '#year' || hash === '#/year') return 'year';
+    return 'other';
   }
 
-  /**
-   * Update period-specific loading message
-   */
+  private static getLoadingMessage(elapsedSeconds: number, pageType: string, displayCity: string): string {
+    const { MESSAGE_CYCLES } = LOADING_TIMEOUTS;
+    if (elapsedSeconds < MESSAGE_CYCLES.CONNECTING) {
+      return 'Connecting to the temperature data server...';
+    }
+    if (elapsedSeconds < MESSAGE_CYCLES.ANALYZING) {
+      const msgs: Record<string, string> = {
+        today: `Is today warmer or cooler than average in ${displayCity}?`,
+        week: `Has this past week been warmer or cooler than average in ${displayCity}?`,
+        month: `Has this past month been warmer or cooler than average in ${displayCity}?`,
+        year: `Has this past year been warmer or cooler than average in ${displayCity}?`,
+        other: 'Getting temperature data for today over the past 50 years...',
+      };
+      return msgs[pageType] ?? msgs.other;
+    }
+    if (elapsedSeconds < MESSAGE_CYCLES.GENERATING) {
+      const msgs: Record<string, string> = {
+        today: `Analysing today's temperature in ${displayCity}...`,
+        week: `Analysing this week's temperatures in ${displayCity}...`,
+        month: `Analysing this month's temperatures in ${displayCity}...`,
+        year: `Analysing this year's temperatures in ${displayCity}...`,
+        other: `Analysing historical data for ${displayCity}...`,
+      };
+      return msgs[pageType] ?? msgs.other;
+    }
+    if (elapsedSeconds < MESSAGE_CYCLES.PATIENCE) {
+      const msgs: Record<string, string> = {
+        today: "Generating today's temperature comparison...",
+        week: 'Generating weekly temperature comparison...',
+        month: 'Generating monthly temperature comparison...',
+        year: 'Generating yearly temperature comparison...',
+        other: 'Generating temperature comparison chart...',
+      };
+      return msgs[pageType] ?? msgs.other;
+    }
+    if (elapsedSeconds < MESSAGE_CYCLES.LONG_WAIT) return 'You should be seeing a bar chart soon...';
+    if (elapsedSeconds < MESSAGE_CYCLES.VERY_LONG_WAIT) return 'This is taking longer than usual. Please wait...';
+    return 'This really is taking a while, maybe due to a slow internet connection, high server load or something may have gone wrong.';
+  }
+
+  private static getPeriodLoadingMessage(elapsedSeconds: number, periodKey: string, displayCity: string): string {
+    const { MESSAGE_CYCLES } = LOADING_TIMEOUTS;
+    if (elapsedSeconds < MESSAGE_CYCLES.CONNECTING) {
+      return 'Connecting to the temperature data server...';
+    }
+    if (elapsedSeconds < MESSAGE_CYCLES.ANALYZING) {
+      const msgs: Record<string, string> = {
+        week: `Has this past week been warmer or cooler than average in ${displayCity}?`,
+        month: `Has this past month been warmer or cooler than average in ${displayCity}?`,
+        year: `Has this past year been warmer or cooler than average in ${displayCity}?`,
+      };
+      return msgs[periodKey] ?? '';
+    }
+    if (elapsedSeconds < MESSAGE_CYCLES.GENERATING) {
+      const msgs: Record<string, string> = {
+        week: `Analysing this week's temperatures in ${displayCity}...`,
+        month: `Analysing this month's temperatures in ${displayCity}...`,
+        year: `Analysing this year's temperatures in ${displayCity}...`,
+      };
+      return msgs[periodKey] ?? '';
+    }
+    if (elapsedSeconds < MESSAGE_CYCLES.PATIENCE) {
+      const msgs: Record<string, string> = {
+        week: 'Generating weekly temperature comparison...',
+        month: 'Generating monthly temperature comparison...',
+        year: 'Generating yearly temperature comparison...',
+      };
+      return msgs[periodKey] ?? '';
+    }
+    if (elapsedSeconds < MESSAGE_CYCLES.LONG_WAIT) return 'You should be seeing a bar chart soon...';
+    if (elapsedSeconds < MESSAGE_CYCLES.VERY_LONG_WAIT) return 'This is taking longer than usual. Please wait...';
+    return 'The data processing is taking a while. This may be due to high server load.';
+  }
+
+  private static updateGlobalLoadingMessage(): void {
+    if (!this.globalStartTime) return;
+    const loadingText = document.getElementById('loadingText');
+    if (!loadingText) return;
+    if (this.retryMessage !== null) { loadingText.textContent = this.retryMessage; return; }
+    const elapsedSeconds = Math.floor((Date.now() - this.globalStartTime) / 1000);
+    const displayCity = globalThis.tempLocation ? getDisplayCity(globalThis.tempLocation) : 'your location';
+    loadingText.textContent = this.getLoadingMessage(elapsedSeconds, this.getPageType(), displayCity);
+  }
+
   private static updatePeriodLoadingMessage(periodKey: 'week' | 'month' | 'year', startTime: number): void {
     const loadingText = document.getElementById(`${periodKey}LoadingText`);
     if (!loadingText) return;
-
-    if (this.retryMessage !== null) {
-      loadingText.textContent = this.retryMessage;
-      return;
-    }
-
+    if (this.retryMessage !== null) { loadingText.textContent = this.retryMessage; return; }
     const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-    
     const displayCity = globalThis.tempLocation ? getDisplayCity(globalThis.tempLocation) : 'your location';
-    
-    if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.CONNECTING) {
-      loadingText.textContent = 'Connecting to the temperature data server...';
-    } else if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.ANALYZING) {
-      if (periodKey === 'week') {
-        loadingText.textContent = `Has this past week been warmer or cooler than average in ${displayCity}?`;
-      } else if (periodKey === 'month') {
-        loadingText.textContent = `Has this past month been warmer or cooler than average in ${displayCity}?`;
-      } else if (periodKey === 'year') {
-        loadingText.textContent = `Has this past year been warmer or cooler than average in ${displayCity}?`;
-      }
-    } else if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.GENERATING) {
-      if (periodKey === 'week') {
-        loadingText.textContent = `Analysing this week's temperatures in ${displayCity}...`;
-      } else if (periodKey === 'month') {
-        loadingText.textContent = `Analysing this month's temperatures in ${displayCity}...`;
-      } else if (periodKey === 'year') {
-        loadingText.textContent = `Analysing this year's temperatures in ${displayCity}...`;
-      }
-    } else if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.PATIENCE) {
-      if (periodKey === 'week') {
-        loadingText.textContent = 'Generating weekly temperature comparison...';
-      } else if (periodKey === 'month') {
-        loadingText.textContent = 'Generating monthly temperature comparison...';
-      } else if (periodKey === 'year') {
-        loadingText.textContent = 'Generating yearly temperature comparison...';
-      }
-    } else if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.LONG_WAIT) {
-      loadingText.textContent = 'You should be seeing a bar chart soon...';
-    } else if (elapsedSeconds < LOADING_TIMEOUTS.MESSAGE_CYCLES.VERY_LONG_WAIT) {
-      loadingText.textContent = 'This is taking longer than usual. Please wait...';
-    } else {
-      loadingText.textContent = 'The data processing is taking a while. This may be due to high server load.';
-    }
+    loadingText.textContent = this.getPeriodLoadingMessage(elapsedSeconds, periodKey, displayCity);
   }
 }
