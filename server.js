@@ -77,21 +77,24 @@ function sendDistHtml(req, res, filename) {
   res.send(html);
 }
 
-// Allowlist of HTML entry points produced by the Vite build (see vite.config.ts rollupOptions.input).
-// Using an explicit set avoids checking file existence against user-controlled path segments.
-const HTML_ENTRY_POINTS = new Set([
-  'index.html', 'about.html', 'privacy.html', 'privacy-app.html', 'feed.html', 'locations.html',
+// Map request paths to Vite build entry points — values are always hardcoded strings,
+// never derived from user input, so fs.readFileSync never operates on user-controlled data.
+const HTML_PATH_TO_FILE = new Map([
+  ['/', 'index.html'],
+  ['/index.html', 'index.html'],
+  ['/about.html', 'about.html'],
+  ['/privacy.html', 'privacy.html'],
+  ['/privacy-app.html', 'privacy-app.html'],
+  ['/feed.html', 'feed.html'],
+  ['/locations.html', 'locations.html'],
 ]);
 
 // HTML entry points: rewrite canonical https://temphist.com → request origin before static
 // (otherwise express.static index would serve / without this pass).
 app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
-  let file = null;
-  if (req.path === '/' || req.path === '/index.html') file = 'index.html';
-  else if (req.path.endsWith('.html')) file = path.basename(req.path);
-  else return next();
-  if (!HTML_ENTRY_POINTS.has(file)) return next();
+  const file = HTML_PATH_TO_FILE.get(req.path);
+  if (!file) return next();
   try {
     sendDistHtml(req, res, file);
   } catch (e) {
