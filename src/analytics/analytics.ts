@@ -11,7 +11,7 @@ declare const __APP_VERSION__: string;
  * Report analytics data
  */
 export function reportAnalytics() {
-  const analytics = window.TempHist.analytics;
+  const analytics = globalThis.TempHist.analytics;
   const sessionDuration = Date.now() - analytics.startTime;
   
   // Determine the most common error type from recent errors
@@ -47,7 +47,7 @@ export function reportAnalytics() {
 export async function sendAnalytics(): Promise<void> {
   try {
     // Check if API is ready and Firebase is authenticated
-    if (!window.currentUser) {
+    if (!globalThis.currentUser) {
       debugLog('Analytics: Skipping send - Firebase not authenticated yet');
       return;
     }
@@ -59,7 +59,7 @@ export async function sendAnalytics(): Promise<void> {
       return;
     }
 
-    const meta = window.TempHist.analytics.lastRequestMetadata;
+    const meta = globalThis.TempHist.analytics.lastRequestMetadata;
     const payload = {
       session_duration: analyticsData.sessionDuration,
       api_calls: analyticsData.apiCalls,
@@ -113,7 +113,7 @@ export function setupAnalyticsReporting(): void {
   // Send analytics when page is about to unload
   window.addEventListener('beforeunload', () => {
     // Send analytics data on page unload (only if Firebase is authenticated)
-    if (window.currentUser) {
+    if (globalThis.currentUser) {
       sendAnalytics();
     }
   });
@@ -121,7 +121,7 @@ export function setupAnalyticsReporting(): void {
   // Send analytics periodically (every 5 minutes) for long sessions
   setInterval(() => {
     // Only send analytics if Firebase is authenticated and we have meaningful data
-    if (window.currentUser && (window.TempHist.analytics.apiCalls > 0 || window.TempHist.analytics.errors.length > 0)) {
+    if (globalThis.currentUser && (globalThis.TempHist.analytics.apiCalls > 0 || globalThis.TempHist.analytics.errors.length > 0)) {
       sendAnalytics();
     }
   }, 5 * 60 * 1000); // 5 minutes

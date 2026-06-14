@@ -36,7 +36,7 @@ export function getEffectiveDateForLocation(timezone?: string | null): {
       hour12: false,
     }).formatToParts(now);
     const get = (type: string) =>
-      parseInt(parts.find(p => p.type === type)!.value, 10);
+      Number.parseInt(parts.find(p => p.type === type)!.value, 10);
     yearNum = get('year');
     monthNum = get('month');
     dayNum = get('day');

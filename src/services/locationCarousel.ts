@@ -30,7 +30,7 @@ function geoSortLocations(locations: PreapprovedLocation[], countryCode: string)
  */
 async function waitForAuthentication(maxAttempts: number = 50, delayMs: number = 100): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
-    if ((window as any).currentUser) {
+    if (globalThis.currentUser) {
       return true;
     }
     await new Promise(resolve => setTimeout(resolve, delayMs));
@@ -104,15 +104,15 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
     const apiResponse = await apiFetch(getApiUrl('/v1/locations/preapproved'));
     if (apiResponse.ok) {
       const data = await apiResponse.json();
-      if ((window as any).debugLog) {
-        (window as any).debugLog('API response received:', typeof data, Array.isArray(data) ? `Array with ${data.length} items` : 'Not an array', data);
+      if (globalThis.debugLog) {
+        globalThis.debugLog('API response received:', typeof data, Array.isArray(data) ? `Array with ${data.length} items` : 'Not an array', data);
       }
       
       // Parse and validate locations
       const locations = parsePreapprovedLocations(data);
       if (locations) {
-        if ((window as any).debugLog) {
-          (window as any).debugLog('Successfully parsed locations:', locations.length);
+        if (globalThis.debugLog) {
+          globalThis.debugLog('Successfully parsed locations:', locations.length);
         }
         return locations;
       }
@@ -187,7 +187,7 @@ function showCarouselError(carousel: HTMLElement, track: HTMLElement): void {
 
   const arrows = carousel.querySelector('.location-carousel__arrows');
   if (arrows) {
-    carousel.insertBefore(errorEl, arrows);
+    arrows.before(errorEl);
   } else {
     carousel.appendChild(errorEl);
   }
@@ -323,8 +323,8 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
     }).catch(() => {});
 
     // Call handleManualLocationSelection from main.ts (available globally)
-    if (typeof window.handleManualLocationSelection === 'function') {
-      await window.handleManualLocationSelection(
+    if (typeof globalThis.handleManualLocationSelection === 'function') {
+      await globalThis.handleManualLocationSelection(
         fullLocationString,
         location.timezone ?? null,
         location.latitude ?? null,
@@ -333,8 +333,8 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
     } else {
       // Fallback: trigger location change directly
       console.warn('handleManualLocationSelection not available, using fallback');
-      window.tempLocation = fullLocationString;
-      window.tempLocationSource = 'manual';
+      globalThis.tempLocation = fullLocationString;
+      globalThis.tempLocationSource = 'manual';
       window.location.hash = '#/today';
     }
   });
@@ -452,8 +452,8 @@ export async function initLocationCarousel(): Promise<void> {
       
       if (preloadLink.href) {
         document.head.appendChild(preloadLink);
-        if ((window as any).debugLog) {
-          (window as any).debugLog('Preloaded first carousel image:', preloadLink.href);
+        if (globalThis.debugLog) {
+          globalThis.debugLog('Preloaded first carousel image:', preloadLink.href);
         }
       }
     }
@@ -467,8 +467,8 @@ export async function initLocationCarousel(): Promise<void> {
     const userCountry = ((window as any).__TH_COUNTRY || '').toUpperCase();
     const sortedLocations = geoSortLocations(locations, userCountry).slice(0, 10);
 
-    if ((window as any).debugLog) {
-      (window as any).debugLog('Creating cards for', sortedLocations.length, 'locations (country:', userCountry || 'unknown', ')');
+    if (globalThis.debugLog) {
+      globalThis.debugLog('Creating cards for', sortedLocations.length, 'locations (country:', userCountry || 'unknown', ')');
     }
 
     sortedLocations.forEach((location, index) => {

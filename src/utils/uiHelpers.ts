@@ -177,8 +177,7 @@ export function updateSummaryTextElements(
 
   if (summaryTextEl) {
     summaryTextEl.textContent = summaryText || 'No summary available.';
-    summaryTextEl.classList.add('summary-text');
-    summaryTextEl.classList.add('visible');
+    summaryTextEl.classList.add('summary-text', 'visible');
   }
 
   renderStatsToElements(avgTextEl, stddevTextEl, trendTextEl, averageData, trendData, '°C', 2);
@@ -224,7 +223,7 @@ function lerpBg(a: [number,number,number], b: [number,number,number], t: number)
 
 export function trendBackground(slopeCelsius: number, factor?: number | null): { top: string; bottom: string } | null {
   if (Math.abs(slopeCelsius) < 0.05) return null;
-  const t = factor != null ? Math.min(Math.max(factor, 0), 1) : Math.sqrt(Math.min(Math.abs(slopeCelsius) / 0.65, 1.0));
+  const t = factor != null ? Math.min(Math.max(factor, 0), 1) : Math.sqrt(Math.min(Math.abs(slopeCelsius) / 0.65, 1));
   if (slopeCelsius > 0) {
     return { top: lerpBg(BG_TOP, DARK_WARM, t), bottom: lerpBg(BG_BOTTOM, DARK_COOL, t) };
   } else {
@@ -421,11 +420,11 @@ export function showChartElements(periodKey?: string): void {
  * Show incomplete data notice
  */
 function buildMissingYearsText(metadata: TemperatureDataMetadata): string {
-  const years = metadata.missing_years.map(y => y.year).sort();
+  const years = metadata.missing_years.map(y => y.year).sort((a, b) => a - b);
   if (years.length === 0) return '';
   if (years.length === 1) return `Data for ${years[0]} could not be loaded.`;
   if (years.length === 2) return `Data for ${years[0]} and ${years[1]} could not be loaded.`;
-  return `Data for ${years.slice(0, -1).join(', ')} and ${years[years.length - 1]} could not be loaded.`;
+  return `Data for ${years.slice(0, -1).join(', ')} and ${years.at(-1)} could not be loaded.`;
 }
 
 function buildIncompleteNoticeContent(metadata: TemperatureDataMetadata): HTMLDivElement {
@@ -438,8 +437,8 @@ function buildIncompleteNoticeContent(metadata: TemperatureDataMetadata): HTMLDi
   retryButton.className = 'notice-retry-btn';
   retryButton.textContent = 'Retry';
   retryButton.onclick = () => {
-    if (window.retryDataFetch && typeof window.retryDataFetch === 'function') {
-      window.retryDataFetch();
+    if (globalThis.retryDataFetch && typeof globalThis.retryDataFetch === 'function') {
+      globalThis.retryDataFetch();
     }
   };
   contentEl.appendChild(retryButton);
@@ -473,8 +472,7 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?:
     const noticeEl = document.getElementById('incompleteDataNotice');
     if (!noticeEl) return;
 
-    while (noticeEl.firstChild) noticeEl.removeChild(noticeEl.firstChild);
-    noticeEl.appendChild(buildIncompleteNoticeContent(metadata));
+    noticeEl.replaceChildren(buildIncompleteNoticeContent(metadata));
     noticeEl.style.display = 'block';
     noticeEl.className = 'notice status-warning';
 
@@ -487,8 +485,7 @@ function showIncompleteDataNotice(metadata: TemperatureDataMetadata, periodKey?:
   debugLog(`${periodKey}IncompleteDataNotice element found:`, noticeEl);
 
   if (noticeEl) {
-    while (noticeEl.firstChild) noticeEl.removeChild(noticeEl.firstChild);
-    noticeEl.appendChild(buildIncompleteNoticeContent(metadata));
+    noticeEl.replaceChildren(buildIncompleteNoticeContent(metadata));
     noticeEl.style.display = 'block';
     noticeEl.className = 'notice status-warning';
     debugLog('Incomplete data warning displayed in dedicated notice element');
@@ -508,7 +505,7 @@ export function hideIncompleteDataNotice(periodKey?: string): void {
     const noticeEl = document.getElementById('incompleteDataNotice');
     if (noticeEl) {
       noticeEl.style.display = 'none';
-      while (noticeEl.firstChild) noticeEl.removeChild(noticeEl.firstChild);
+      noticeEl.replaceChildren();
       noticeEl.className = 'notice';
     }
   } else {
@@ -516,10 +513,7 @@ export function hideIncompleteDataNotice(periodKey?: string): void {
     const noticeEl = document.getElementById(`${periodKey}IncompleteDataNotice`);
     if (noticeEl) {
       noticeEl.style.display = 'none';
-      // Clear content (Trusted Types safe)
-      while (noticeEl.firstChild) {
-        noticeEl.removeChild(noticeEl.firstChild);
-      }
+      noticeEl.replaceChildren();
       noticeEl.className = 'notice';
     }
   }

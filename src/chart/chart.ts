@@ -52,7 +52,7 @@ export function updateChartTrendLine(
     return;
   }
 
-  const calculateTrendLineFn = (window as any).calculateTrendLine;
+  const calculateTrendLineFn = globalThis.calculateTrendLine;
   if (!calculateTrendLineFn) {
     console.warn('calculateTrendLine not available');
     return;
@@ -70,7 +70,7 @@ export function updateChartTrendLine(
 
 /** Convert an rgb(...) string to a lighter HSL string (lightness clamped to min 0.80). */
 function lighterColor(color: string): string {
-  const match = color.match(/rgb\((\d+),(\d+),(\d+)\)/);
+  const match = /rgb\((\d+),(\d+),(\d+)\)/.exec(color);
   if (!match) return '#ffffff';
   const r = parseInt(match[1]) / 255;
   const g = parseInt(match[2]) / 255;
@@ -86,7 +86,7 @@ function lighterColor(color: string): string {
       case b: h = ((r - g) / d + 4) / 6; break;
     }
   }
-  l = Math.max(l, 0.80);
+  l = Math.max(l, 0.8);
   return `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
 }
 
@@ -299,7 +299,7 @@ export function createTemperatureChart(
           hidden: !showTrend
         },
         {
-          label: `Temperature in ${getDisplayCity(window.tempLocation!)} ${periodTitle === 'Today' ? `on ${friendlyDate}` : `for ${periodTitle}`}`,
+          label: `Temperature in ${getDisplayCity(globalThis.tempLocation!)} ${periodTitle === 'Today' ? `on ${friendlyDate}` : `for ${periodTitle}`}`,
           type: 'bar',
           data: chartData,
           backgroundColor: barColors,

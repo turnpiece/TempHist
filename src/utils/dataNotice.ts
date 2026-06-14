@@ -2,7 +2,7 @@ import type { DataNoticeOptions } from '../types/index';
 
 // Debug logging helper
 const debugLog = (...args: any[]) => {
-  if (window.DEBUGGING) {
+  if (globalThis.DEBUGGING) {
     console.log(...args);
   }
 };
@@ -20,7 +20,7 @@ export function updateDataNotice(message: string | null, options: DataNoticeOpti
   }
 
   // Handle debug-only messages
-  if (options.debugOnly && !window.DEBUGGING) {
+  if (options.debugOnly && !globalThis.DEBUGGING) {
     dataNotice.textContent = '';
     dataNotice.className = 'notice'; // Keep the notice class for CSS :empty selector
     return;

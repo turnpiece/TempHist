@@ -33,7 +33,7 @@ class PerformanceMonitor {
   private static metrics: PerformanceMetric[] = [];
   private static observers: PerformanceObserver[] = [];
   private static isEnabled: boolean = true;
-  private static maxMetrics: number = 1000;
+  private static readonly maxMetrics: number = 1000;
 
   /**
    * Initialise performance monitoring
@@ -57,7 +57,7 @@ class PerformanceMonitor {
       try {
         const lcpObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
-          const lastEntry = entries[entries.length - 1] as any;
+          const lastEntry = entries.at(-1) as any;
           this.recordMetric('lcp', lastEntry.startTime, {
             element: lastEntry.element?.tagName,
             url: lastEntry.url
@@ -97,7 +97,7 @@ class PerformanceMonitor {
             }
           });
           this.recordMetric('cls', clsValue, {
-            sources: entries.map((e: any) => e.sources).flat()
+            sources: entries.flatMap((e: any) => e.sources)
           });
         });
         clsObserver.observe({ entryTypes: ['layout-shift'] });
@@ -172,7 +172,7 @@ class PerformanceMonitor {
    * Setup navigation timing
    */
   private static setupNavigationTiming(): void {
-    if (performance.navigation) {
+    {
       const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
       if (navigation) {
         this.recordMetric('dns_lookup', navigation.domainLookupEnd - navigation.domainLookupStart);

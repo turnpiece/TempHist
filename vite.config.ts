@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
-import { copyFileSync, readFileSync, existsSync } from 'fs'
-import { resolve, join } from 'path'
+import { copyFileSync, readFileSync, existsSync } from 'node:fs'
+import { resolve, join } from 'node:path'
 import { execSync } from 'child_process'
 
 // Read package.json to get version
@@ -115,10 +115,10 @@ export default defineConfig(({ mode }) => {
         const webAppJson = JSON.parse(loadTemplate('webapplication-json', 'json'))
         
         // Replace template placeholders
-        html = html.replace(/<!-- INCLUDE:head-common -->/g, loadTemplate('head-common'))
-        html = html.replace(/<!-- INCLUDE:header -->/g, loadTemplate('header'))
-        html = html.replace(/<!-- INCLUDE:nav -->/g, loadTemplate('nav'))
-        html = html.replace(/<!-- INCLUDE:footer -->/g, loadTemplate('footer'))
+        html = html.replaceAll('<!-- INCLUDE:head-common -->', loadTemplate('head-common'))
+        html = html.replaceAll('<!-- INCLUDE:header -->', loadTemplate('header'))
+        html = html.replaceAll('<!-- INCLUDE:nav -->', loadTemplate('nav'))
+        html = html.replaceAll('<!-- INCLUDE:footer -->', loadTemplate('footer'))
         
         // Handle WebApplication JSON injection
         // For index.html, we need to merge with additional properties
@@ -159,7 +159,7 @@ export default defineConfig(({ mode }) => {
             .split('\n')
             .map((line, i) => i === 0 ? line : '        ' + line)
             .join('\n')
-          html = html.replace(/<!-- INCLUDE:webapplication-json -->/g, webAppJsonStr)
+          html = html.replaceAll('<!-- INCLUDE:webapplication-json -->', webAppJsonStr)
         }
         
         return html
@@ -170,11 +170,11 @@ export default defineConfig(({ mode }) => {
       transformIndexHtml(html) {
         // Replace %VITE_API_BASE% with actual environment variable
         const apiBase = env.VITE_API_BASE || 'https://api.temphist.com'
-        html = html.replace(/%VITE_API_BASE%/g, apiBase)
+        html = html.replaceAll('%VITE_API_BASE%', apiBase)
         // Optional: bake a non-production canonical origin for static-only hosts (no Node HTML rewrite)
         const siteOrigin = env.VITE_SITE_ORIGIN
         if (siteOrigin) {
-          html = html.replace(/https:\/\/temphist\.com/g, siteOrigin.replace(/\/$/, ''))
+          html = html.replaceAll('https://temphist.com', siteOrigin.replace(/\/$/, ''))
         }
         return html
       }

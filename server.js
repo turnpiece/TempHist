@@ -59,13 +59,13 @@ function getPublicOrigin(req) {
 
 /** Rewrite baked-in production URLs so link previews use this host’s assets (e.g. dev vs prod). */
 function applySiteOriginToHtml(html, req) {
-  return html.replace(/https:\/\/temphist\.com/g, getPublicOrigin(req));
+  return html.replaceAll('https://temphist.com', getPublicOrigin(req));
 }
 
 function injectCountryCode(html, req) {
   const raw = (req.headers['cf-ipcountry'] || '').trim().toUpperCase();
   if (!/^[A-Z]{2}$/.test(raw)) return html;
-  return html.replace('</head>', `<script>window.__TH_COUNTRY="${raw}"</script></head>`);
+  return html.replace('</head>', `<script>globalThis.__TH_COUNTRY="${raw}"</script></head>`);
 }
 
 function sendDistHtml(req, res, filename) {
@@ -77,16 +77,24 @@ function sendDistHtml(req, res, filename) {
   res.send(html);
 }
 
+// Map request paths to Vite build entry points — values are always hardcoded strings,
+// never derived from user input, so fs.readFileSync never operates on user-controlled data.
+const HTML_PATH_TO_FILE = new Map([
+  ['/', 'index.html'],
+  ['/index.html', 'index.html'],
+  ['/about.html', 'about.html'],
+  ['/privacy.html', 'privacy.html'],
+  ['/privacy-app.html', 'privacy-app.html'],
+  ['/feed.html', 'feed.html'],
+  ['/locations.html', 'locations.html'],
+]);
+
 // HTML entry points: rewrite canonical https://temphist.com → request origin before static
 // (otherwise express.static index would serve / without this pass).
 app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
-  let file = null;
-  if (req.path === '/' || req.path === '/index.html') file = 'index.html';
-  else if (req.path.endsWith('.html')) file = path.basename(req.path);
-  else return next();
-  const filePath = path.join(__dirname, 'dist', file);
-  if (!fs.existsSync(filePath)) return next();
+  const file = HTML_PATH_TO_FILE.get(req.path);
+  if (!file) return next();
   try {
     sendDistHtml(req, res, file);
   } catch (e) {
@@ -114,8 +122,8 @@ function formatSharePeriodHeading(meta) {
     (period === 'yearly' && identifier && identifier.includes('-'))
   ) {
     const [monthStr, dayStr] = identifier.split('-');
-    const month = parseInt(monthStr, 10);
-    const day = parseInt(dayStr, 10);
+    const month = Number.parseInt(monthStr, 10);
+    const day = Number.parseInt(dayStr, 10);
     const monthName = new Date(ref_year, month - 1, 1).toLocaleString('en-GB', { month: 'long' });
     friendlyDate = `${getOrdinal(day)} ${monthName}`;
   }
@@ -130,7 +138,7 @@ function formatSharePeriodHeading(meta) {
 }
 
 function escapeAttr(str) {
-  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return str.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
 // Intercept /s/:id before static file serving so crawlers get OG-enriched HTML

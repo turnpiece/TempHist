@@ -3,12 +3,6 @@ import { flagImg } from '../locations/locations';
 import { getCountryCodeForLocation } from '../utils/location';
 import { resetTrendBackground } from '../utils/uiHelpers';
 import {
-  buildShareUI,
-  fetchShareMetadata,
-  fetchShareTemperatureData,
-  renderShareChart,
-  loadShareLocations,
-  showShareError,
   openShareModal,
   formatPeriodHeading,
 } from '../share';
@@ -83,7 +77,7 @@ export function buildCard(share: ShareItem): HTMLElement {
   const imgSrc = getApiUrl(share.og_image_url);
 
   const shareUrl = share.share_url;
-  const shareIdMatch = shareUrl.match(/\/s\/([^/?#]+)/);
+  const shareIdMatch = /\/s\/([^/?#]+)/.exec(shareUrl);
   const shareId = shareIdMatch ? shareIdMatch[1] : null;
 
   const a = document.createElement('a');

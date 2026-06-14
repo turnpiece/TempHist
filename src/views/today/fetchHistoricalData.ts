@@ -50,6 +50,92 @@ function toSelectionMethod(source: string | null): SelectionMethod | null {
   }
 }
 
+async function fetchOrGetCachedDailyData(
+  identifier: string,
+  localToday: string | undefined,
+  ttl: number
+): Promise<{ jobResult: any; responseTimeMs: number | null }> {
+  if (FeatureFlags.isEnabled('data_caching')) {
+    const cacheKey = DataCache.generateTemperatureKey('daily', globalThis.tempLocation!, identifier, localToday);
+    debugLog('Checking cache for key:', cacheKey);
+    const cached = DataCache.get(cacheKey);
+    if (cached) {
+      debugLog('Daily: Using cached data');
+      return { jobResult: cached, responseTimeMs: null };
+    }
+    debugLog('No cached data found');
+  }
+
+  const onProgress = (status: AsyncJobResponse) => { debugLog('Daily job progress:', status); };
+  debugLog('Starting async daily data fetch...');
+  const t0 = Date.now();
+  const jobResult = await fetchTemperatureDataAsync('daily', globalThis.tempLocation!, identifier, onProgress, localToday);
+  const responseTimeMs = Date.now() - t0;
+
+  if (FeatureFlags.isEnabled('data_caching')) {
+    const cacheKey = DataCache.generateTemperatureKey('daily', globalThis.tempLocation!, identifier, localToday);
+    DataCache.set(cacheKey, jobResult, ttl);
+    debugLog('Daily: Data cached for future use');
+  }
+
+  return { jobResult, responseTimeMs };
+}
+
+interface DailyDataExtract {
+  temperatureData: any[];
+  averageData: { temp: number; stdDev: number };
+  trendData: { slope: number; slopeError: number; unit: string; gradientFactor: number | null };
+  summaryData: any;
+  metadata: any;
+}
+
+function validateAndExtractDailyData(jobResultData: any): DailyDataExtract {
+  if (!jobResultData) {
+    throw new Error('No data received from API. The server may be unavailable or returned an empty response.');
+  }
+
+  if (!jobResultData.data?.values || !Array.isArray(jobResultData.data.values)) {
+    throw new TypeError('Invalid data format received. Expected data.values array.');
+  }
+
+  try {
+    validateTemperatureDataResponse(jobResultData.data);
+  } catch (validationError) {
+    throw new Error(
+      `Invalid temperature data format: ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`
+    );
+  }
+
+  return {
+    temperatureData: jobResultData.data.values,
+    averageData: {
+      temp: jobResultData.data.average?.mean,
+      stdDev: jobResultData.data.average?.standard_deviation,
+    },
+    trendData: {
+      slope: jobResultData.data.trend?.slope,
+      slopeError: jobResultData.data.trend?.slope_error,
+      unit: jobResultData.data.trend?.unit,
+      gradientFactor: jobResultData.data.trend?.gradient_factor ?? null,
+    },
+    summaryData: jobResultData.data.summary,
+    metadata: jobResultData.data.metadata,
+  };
+}
+
+function computeStartYear(rawYear: number): { startYear: number; validatedCurrentYear: number } {
+  const maxAllowedYear = new Date().getFullYear() + DATE_RANGE_CONFIG.LATEST_YEAR_OFFSET;
+  const validatedCurrentYear = Math.min(Math.max(rawYear, DATE_RANGE_CONFIG.EARLIEST_YEAR), maxAllowedYear);
+  if (rawYear !== validatedCurrentYear) {
+    debugLog(`Year ${rawYear} adjusted to valid range: ${validatedCurrentYear}`);
+  }
+  const calculatedStartYear = validatedCurrentYear - DATE_RANGE_CONFIG.DEFAULT_YEAR_SPAN;
+  return {
+    startYear: Math.max(calculatedStartYear, DATE_RANGE_CONFIG.EARLIEST_YEAR),
+    validatedCurrentYear,
+  };
+}
+
 export async function fetchHistoricalData(): Promise<void> {
   Logger.startPerformance('fetchHistoricalData');
   debugTime('Total fetch time');
@@ -65,7 +151,7 @@ export async function fetchHistoricalData(): Promise<void> {
   }
 
   const appShell = document.getElementById('appShell');
-  if (appShell && appShell.classList.contains('fading-in')) {
+  if (appShell?.classList.contains('fading-in')) {
     appShell.classList.remove('fading-in');
     appShell.classList.add('fade-in');
   }
@@ -74,104 +160,38 @@ export async function fetchHistoricalData(): Promise<void> {
   hideError();
 
   try {
-    const apiHealth = await Promise.race([
+    await Promise.race([
       checkApiHealth(),
       new Promise<'healthy'>((_, reject) =>
         setTimeout(() => reject(new Error('Health check timeout')), API_CONFIG.HEALTH_CHECK_TIMEOUT)
       ),
     ]).catch(() => {
       console.warn('Health check failed or timed out, proceeding anyway...');
-      return 'healthy' as const;
     });
 
-    if (apiHealth !== 'healthy') {
-      console.warn(`API health check returned '${apiHealth}', but proceeding with data fetch...`);
-    }
-
-    const { day, month, year: rawYear } = getEffectiveDateForLocation(window.tempLocationTimezone);
+    const { day, month, year: rawYear } = getEffectiveDateForLocation(globalThis.tempLocationTimezone);
     const identifier = `${month}-${day}`;
-    debugLog('About to fetch data - tempLocation:', window.tempLocation, 'identifier:', identifier);
+    debugLog('About to fetch data - tempLocation:', globalThis.tempLocation, 'identifier:', identifier);
 
-    const localToday = window.tempLocationTimezone ? localTodayIn(window.tempLocationTimezone) : undefined;
-    const ttl = window.tempLocationTimezone
-      ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(window.tempLocationTimezone))
+    const localToday = globalThis.tempLocationTimezone ? localTodayIn(globalThis.tempLocationTimezone) : undefined;
+    const ttl = globalThis.tempLocationTimezone
+      ? Math.min(10 * 60 * 1000, msUntilNextLocalMidnight(globalThis.tempLocationTimezone))
       : 10 * 60 * 1000;
 
-    let jobResult;
-    if (FeatureFlags.isEnabled('data_caching')) {
-      const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier, localToday);
-      debugLog('Checking cache for key:', cacheKey);
-      jobResult = DataCache.get(cacheKey);
-
-      if (jobResult) {
-        debugLog('Daily: Using cached data');
-      } else {
-        debugLog('No cached data found');
-      }
-    }
-
-    let responseTimeMs: number | null = null;
-    if (!jobResult) {
-      debugLog('About to call fetchTemperatureDataAsync - no cached data');
-      const onProgress = (status: AsyncJobResponse) => {
-        debugLog('Daily job progress:', status);
-      };
-
-      debugLog('Starting async daily data fetch...');
-      const t0 = Date.now();
-      jobResult = await fetchTemperatureDataAsync('daily', window.tempLocation!, identifier, onProgress, localToday);
-      responseTimeMs = Date.now() - t0;
-
-      if (FeatureFlags.isEnabled('data_caching')) {
-        const cacheKey = DataCache.generateTemperatureKey('daily', window.tempLocation!, identifier, localToday);
-        DataCache.set(cacheKey, jobResult, ttl);
-        debugLog('Daily: Data cached for future use');
-      }
-    }
+    const { jobResult, responseTimeMs } = await fetchOrGetCachedDailyData(identifier, localToday, ttl);
 
     const jobResultData = jobResult as any;
     debugLog('Job result structure:', jobResult);
     debugLog('Extracted weather data:', jobResultData);
 
-    if (!jobResultData) {
-      throw new Error('No data received from API. The server may be unavailable or returned an empty response.');
-    }
-
-    if (!jobResultData.data || !jobResultData.data.values || !Array.isArray(jobResultData.data.values)) {
-      throw new Error('Invalid data format received. Expected data.values array.');
-    }
-
-    const temperatureData = jobResultData.data.values;
-    const averageData = {
-      temp: jobResultData.data.average?.mean,
-      stdDev: jobResultData.data.average?.standard_deviation,
-    };
-    const trendData = {
-      slope: jobResultData.data.trend?.slope,
-      slopeError: jobResultData.data.trend?.slope_error,
-      unit: jobResultData.data.trend?.unit,
-      gradientFactor: jobResultData.data.trend?.gradient_factor ?? null,
-    };
-    const summaryData = jobResultData.data.summary;
-    const metadata = jobResultData.data.metadata;
-
-    if (!Array.isArray(temperatureData)) {
-      throw new Error('Temperature data is not an array.');
-    }
-
-    try {
-      validateTemperatureDataResponse(jobResultData.data);
-    } catch (validationError) {
-      throw new Error(
-        `Invalid temperature data format: ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`
-      );
-    }
+    const { temperatureData, averageData, trendData, summaryData, metadata } =
+      validateAndExtractDailyData(jobResultData);
 
     debugLog('Checking data completeness for daily data, metadata:', metadata);
     const isDataComplete = checkDataCompleteness(metadata, 'daily');
     if (!isDataComplete) {
       debugLog('Daily data is incomplete or unavailable');
-      if (metadata && metadata.completeness === 0) {
+      if (metadata?.completeness === 0) {
         debugLog('No data available (0% completeness), stopping data processing');
         LoadingManager.stopGlobalLoading();
         const loadingEl = document.getElementById('loading');
@@ -179,10 +199,8 @@ export async function fetchHistoricalData(): Promise<void> {
           loadingEl.classList.add('hidden');
           loadingEl.classList.remove('visible');
         }
-        if (canvasEl) {
-          canvasEl.classList.add('hidden');
-          canvasEl.classList.remove('visible');
-        }
+        canvasEl?.classList.add('hidden');
+        canvasEl?.classList.remove('visible');
         return;
       }
       debugLog('Daily data is incomplete but present, continuing with warning notice');
@@ -191,25 +209,13 @@ export async function fetchHistoricalData(): Promise<void> {
     }
 
     const chartData = transformToChartData(temperatureData);
-
     debugLog('Raw weather data:', temperatureData);
     debugLog('Chart data:', chartData);
 
     const dayNum = Number(day);
     const friendlyDate = `${getOrdinal(dayNum)} ${new Date().toLocaleString('en-GB', { month: 'long' })}`;
-    const currentYear = rawYear;
 
-    const maxAllowedYear = new Date().getFullYear() + DATE_RANGE_CONFIG.LATEST_YEAR_OFFSET;
-    const validatedCurrentYear = Math.min(
-      Math.max(currentYear, DATE_RANGE_CONFIG.EARLIEST_YEAR),
-      maxAllowedYear
-    );
-    const calculatedStartYear = validatedCurrentYear - DATE_RANGE_CONFIG.DEFAULT_YEAR_SPAN;
-    const startYear = Math.max(calculatedStartYear, DATE_RANGE_CONFIG.EARLIEST_YEAR);
-
-    if (currentYear !== validatedCurrentYear) {
-      debugLog(`Year ${currentYear} adjusted to valid range: ${validatedCurrentYear}`);
-    }
+    const { startYear, validatedCurrentYear: currentYear } = computeStartYear(rawYear);
 
     if (!canvasEl) {
       throw new Error('Canvas element not found');
@@ -237,6 +243,7 @@ export async function fetchHistoricalData(): Promise<void> {
     if (numBars <= 0 || numBars > 100) {
       throw new Error(`Invalid number of bars: ${numBars} (expected 1-100)`);
     }
+
     const targetBarHeight = 3;
     const totalBarHeight = numBars * targetBarHeight;
     const containerEl = canvasEl?.parentElement;
@@ -271,18 +278,13 @@ export async function fetchHistoricalData(): Promise<void> {
       'daily'
     );
 
-    window.TempHist = window.TempHist || {};
-    window.TempHist.mainChart = chart;
+    globalThis.TempHist = globalThis.TempHist || {};
+    globalThis.TempHist.mainChart = chart;
 
     showChartElements();
-
     debugTimeEnd('Chart initialisation');
 
-    const showTrend = true;
-    if (showTrend) {
-      updateChartTrendLine(chart, chartData, startYear, currentYear);
-    }
-
+    updateChartTrendLine(chart, chartData, startYear, currentYear);
     updateSummaryTextElements(summaryData, averageData, trendData);
     applyTrendBackground(trendData?.slope ?? null, jobResultData.data?.unit_group || '', 'todayGradient', trendData?.gradientFactor ?? null);
 
@@ -291,15 +293,15 @@ export async function fetchHistoricalData(): Promise<void> {
 
     setupShareButton('', { period: 'daily', identifier, ref_year: currentYear });
 
-    if (window.currentUser) {
+    if (globalThis.currentUser) {
       if (responseTimeMs !== null) {
         const xCache = getLastXCache();
-        window.TempHist.analytics.lastRequestMetadata = {
+        globalThis.TempHist.analytics.lastRequestMetadata = {
           response_time_ms: responseTimeMs,
           cache_hit: xCache !== null ? xCache.toUpperCase() === 'HIT' : null,
           canonical_location: jobResultData.data.location,
-          requested_location: window.tempLocation!,
-          selection_method: toSelectionMethod(window.tempLocationSource),
+          requested_location: globalThis.tempLocation!,
+          selection_method: toSelectionMethod(globalThis.tempLocationSource),
         };
       }
       sendAnalytics();
@@ -315,7 +317,6 @@ export async function fetchHistoricalData(): Promise<void> {
     }
 
     hideChart();
-
     const errorMessage = generateErrorMessage(error);
     showError(errorMessage);
   } finally {

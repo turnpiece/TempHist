@@ -1,8 +1,12 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
-const path = require('path');
+const path = require('node:path');
 const { getOrdinal } = require('./lib/getOrdinal');
 const app = express();
+
+function sanitizeLog(value) {
+  return String(value ?? '').replace(/[\r\n]/g, ' ');
+}
 
 // Load environment variables
 require('dotenv').config();
@@ -50,11 +54,11 @@ app.use((req, res, next) => {
   ];
   
   const origin = req.headers.origin;
-  const isAllowedOrigin = !origin || allowedOrigins.includes(origin);
-  
-  if (isAllowedOrigin && origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else if (isAllowedOrigin) {
+  const matchedOrigin = origin ? allowedOrigins.find(o => o === origin) : null;
+
+  if (matchedOrigin) {
+    res.header('Access-Control-Allow-Origin', matchedOrigin);
+  } else if (!origin) {
     res.header('Access-Control-Allow-Origin', '*');
   }
   
@@ -65,16 +69,16 @@ app.use((req, res, next) => {
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('🔍 CORS preflight request from:', origin);
+    console.log('🔍 CORS preflight request from:', sanitizeLog(origin));
     return res.sendStatus(200);
   }
-  
-  console.log('🌐 CORS request from:', origin, 'to:', req.path);
+
+  console.log('🌐 CORS request from:', sanitizeLog(origin), 'to:', sanitizeLog(req.path));
   next();
 });
 
 // Determine which directory to serve
-const distExists = require('fs').existsSync('./dist');
+const distExists = require('node:fs').existsSync('./dist');
 const staticDir = distExists ? './dist' : './';
 
 if (distExists) {
@@ -88,7 +92,7 @@ if (distExists) {
 let _indexHtmlCache = null;
 function getIndexHtml() {
   if (!_indexHtmlCache) {
-    _indexHtmlCache = require('fs').readFileSync(path.join(__dirname, staticDir, 'index.html'), 'utf-8');
+    _indexHtmlCache = require('node:fs').readFileSync(path.join(__dirname, staticDir, 'index.html'), 'utf-8');
   }
   return _indexHtmlCache;
 }
@@ -101,8 +105,8 @@ function formatSharePeriodHeading(meta) {
     (period === 'yearly' && identifier && identifier.includes('-'))
   ) {
     const [monthStr, dayStr] = identifier.split('-');
-    const month = parseInt(monthStr, 10);
-    const day = parseInt(dayStr, 10);
+    const month = Number.parseInt(monthStr, 10);
+    const day = Number.parseInt(dayStr, 10);
     const monthName = new Date(ref_year, month - 1, 1).toLocaleString('en-GB', { month: 'long' });
     friendlyDate = `${getOrdinal(day)} ${monthName}`;
   }
@@ -116,7 +120,7 @@ function formatSharePeriodHeading(meta) {
 }
 
 function escapeAttr(str) {
-  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return str.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
 app.use(async (req, res, next) => {
@@ -199,10 +203,10 @@ app.use('/api', createProxyMiddleware({
       proxyReq.setHeader('Authorization', `Bearer ${process.env.VITE_TEST_TOKEN}`);
     }
     
-    console.log('🔄 Proxying request:', req.method, req.url, '→', `${apiBase}${req.url.replace('/api', '')}`);
+    console.log('🔄 Proxying request:', sanitizeLog(req.method), sanitizeLog(req.url), '→', sanitizeLog(`${apiBase}${req.url.replace('/api', '')}`));
   },
   onProxyRes: (proxyRes, req, res) => {
-    console.log('✅ Proxy response:', proxyRes.statusCode, 'for', req.url);
+    console.log('✅ Proxy response:', proxyRes.statusCode, 'for', sanitizeLog(req.url));
   },
   onError: (err, req, res) => {
     console.error('❌ Proxy error:', err.message);

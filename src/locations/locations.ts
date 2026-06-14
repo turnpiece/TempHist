@@ -102,7 +102,7 @@ function buildFeaturedItem(loc: PreapprovedLocation): HTMLButtonElement {
       body: JSON.stringify({ location_id: loc.id }),
     }).catch(() => {});
 
-    const fn = (window as any).handleManualLocationSelection;
+    const fn = globalThis.handleManualLocationSelection;
     if (typeof fn === 'function') {
       await fn(
         valueParts.join(', '),
@@ -146,7 +146,7 @@ function buildTextItem(loc: PopularLocation): HTMLButtonElement {
       body: JSON.stringify({ location_id: loc.id }),
     }).catch(() => {});
 
-    const fn = (window as any).handleManualLocationSelection;
+    const fn = globalThis.handleManualLocationSelection;
     if (typeof fn === 'function') {
       await fn(
         valueParts.join(', '),
@@ -163,7 +163,7 @@ function buildTextItem(loc: PopularLocation): HTMLButtonElement {
 
 async function waitForAuth(maxMs = 5000): Promise<void> {
   const deadline = Date.now() + maxMs;
-  while (!(window as any).currentUser && Date.now() < deadline) {
+  while (!globalThis.currentUser && Date.now() < deadline) {
     await new Promise(r => setTimeout(r, 100));
   }
 }
