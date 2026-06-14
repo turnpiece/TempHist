@@ -182,37 +182,21 @@ export class TempHistRouter {
       navItems.forEach(item => {
         item.classList.remove('active');
       });
-      
-      // Add active class to current route
-      let activeItem = document.querySelector(`nav a[data-route="${route}"]`);
-      
-      if (!activeItem) {
-        // Fallback: try to match by href
-        activeItem = document.querySelector(`nav a[href="#${route}"]`);
+
+      // Add active class to every matching tab. Multiple matches are expected:
+      // both #todayView and the active period view each have a .period-tabs
+      // strip in the DOM, and we want the visible one's tab highlighted.
+      let activeItems = document.querySelectorAll(`nav a[data-route="${route}"]`);
+      if (activeItems.length === 0) {
+        activeItems = document.querySelectorAll(`nav a[href="#${route}"]`);
         debugLog('Trying href fallback for route:', `#${route}`);
       }
-      
-      if (activeItem) {
-        activeItem.classList.add('active');
-        debugLog('Highlighted nav item for route:', route, 'element:', activeItem);
-        debugLog('Active item classes:', activeItem.className);
-        debugLog('Active item computed styles:', {
-          color: window.getComputedStyle(activeItem).color,
-          fontWeight: window.getComputedStyle(activeItem).fontWeight,
-          textDecoration: window.getComputedStyle(activeItem).textDecoration
-        });
-        // Force a style update
-        (activeItem as HTMLElement).style.color = '';
-        (activeItem as HTMLElement).style.fontWeight = '';
-        (activeItem as HTMLElement).style.textDecoration = '';
+
+      if (activeItems.length > 0) {
+        activeItems.forEach(item => item.classList.add('active'));
+        debugLog('Highlighted', activeItems.length, 'nav item(s) for route:', route);
       } else {
         debugLog('No nav item found for route:', route);
-        // Try to find any nav items to debug
-        const allNavItems = document.querySelectorAll('nav a');
-        debugLog('All nav links found:', allNavItems.length);
-        allNavItems.forEach((item, index) => {
-          debugLog(`Nav item ${index}:`, item.getAttribute('href'), (item as HTMLElement).dataset.route);
-        });
       }
     }, 50);
   }

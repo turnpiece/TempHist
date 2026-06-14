@@ -61,7 +61,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <!-- INCLUDE:header -->
+    <!-- INCLUDE:nav -->
 
     <!-- Splash Screen / Homepage -->
     <div id="splashScreen" class="splash-screen">
@@ -182,14 +182,18 @@
     </div>
 
     <div id="appShell" class="hidden">
-      <!-- INCLUDE:nav -->
-
       <main id="viewOutlet" role="main">
         <!-- Default view (Today) keeps your existing chart DOM -->
         <section id="todayView" data-view="today">
           <div class="container">
             <h2 id="locationText" class="location-heading" aria-live="polite"></h2>
             <div id="dateText" class="period-subheading"></div>
+            <nav class="period-tabs" aria-label="Time range">
+              <a href="#/today" data-route="/today" class="period-tab">Today</a>
+              <a href="#/week" data-route="/week" class="period-tab">Past week</a>
+              <a href="#/month" data-route="/month" class="period-tab">Past month</a>
+              <a href="#/year" data-route="/year" class="period-tab">Past year</a>
+            </nav>
             <div id="dataNotice" class="notice"></div>
             <div id="summaryText" class="standard-text data-field"></div>
             

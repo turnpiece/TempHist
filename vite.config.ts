@@ -76,10 +76,6 @@ export default defineConfig(({ mode }) => {
         const vars = {
           HOME_LINK: isIndex ? '#/splash' : '/',
           LOCATIONS_LINK: '/locations',
-          TODAY_LINK: isIndex ? '#/today' : '/#/today',
-          WEEK_LINK: isIndex ? '#/week' : '/#/week',
-          MONTH_LINK: isIndex ? '#/month' : '/#/month',
-          YEAR_LINK: isIndex ? '#/year' : '/#/year',
           ABOUT_LINK: '/about',
           PRIVACY_LINK: '/privacy',
           FEED_LINK: '/feed',
@@ -87,11 +83,6 @@ export default defineConfig(({ mode }) => {
           ABOUT_ACTIVE: isAbout ? ' class="active"' : '',
           PRIVACY_ACTIVE: (isPrivacy || isPrivacyApp) ? ' class="active"' : '',
           FEED_ACTIVE: isFeed ? ' class="active"' : '',
-          // Hide app nav links (Today/week/month/year) on static pages where the
-          // SPA router is not active — visitors should enter the app via the home page
-          APP_NAV_HIDDEN: (isAbout || isPrivacy || isPrivacyApp || isFeed || isLocations) ? 'hidden' : '',
-          // Hide standalone-page-only links (e.g. Locations) inside the SPA
-          STANDALONE_NAV_HIDDEN: isIndex ? 'hidden' : '',
           // Hide Snapshots nav link when VITE_ENABLE_SNAPSHOTS=false
           SNAPSHOTS_NAV_HIDDEN: env.VITE_ENABLE_SNAPSHOTS === 'false' ? 'hidden' : ''
         }

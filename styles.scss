@@ -105,11 +105,10 @@ body {
   background-color: transparent; // html canvas gradient shows through
   color: $colour-text;
   margin: 0; // Reset browser default 8px margin — combined with `width: 100%` it pushes the body 16px past the viewport on iOS Safari and is the root cause of the lateral wobble.
-  padding: 10px 0;
+  padding: 56px 0 3rem; // Top padding reserves space for the fixed .topnav (56px tall)
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.4;
   min-height: 100vh;
-  padding-bottom: 3rem; // Extra bottom padding for mobile browser bar
   overflow-x: clip; // Prevent horizontal page scroll without creating a 2-axis scroll container on iOS Safari
   overscroll-behavior-x: none; // Prevent iOS lateral rubber-band scroll
   touch-action: pan-y; // Disable horizontal touch-panning at document level
@@ -203,137 +202,271 @@ a {
   }
 }
 
-#header {
-  padding: 8px 16px 12px 16px;
-  color: $colour-text;
-  display: flex; 
-  align-items: center; 
+// Unified top navigation bar — replaces both the old #header brand strip and
+// the #sidebar nav. Fixed at the viewport top across SPA and standalone pages.
+// z-index is above .splash-screen (9999) so the navbar remains visible while
+// the splash overlay is showing.
+.topnav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  
-  // On desktop (when sidebar is visible), header only covers sidebar width
-  @media (min-width: 901px) {
-    // Header width matches sidebar width (body padding already provides left spacing)
-    width: var(--sidebar-w); // 240px - matches sidebar width exactly
-    max-width: var(--sidebar-w);
-    box-sizing: border-box;
-    margin-right: auto; // Keep aligned to left (body padding handles left spacing)
-    margin-bottom: 0;
-    flex-shrink: 0; // Prevent header from shrinking
+  gap: 16px;
+  height: 56px;
+  padding: 8px 16px;
+  background-color: rgba($colour-bg, 0.10);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba($colour-text, 0.08);
+  box-sizing: border-box;
+}
+
+.topnav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: $colour-text;
+  flex-shrink: 0;
+
+  .topnav__logo {
+    display: block;
+    width: 32px;
+    height: 32px;
+  }
+
+  .topnav__wordmark {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  &:hover .topnav__wordmark {
+    color: var(--thisYear);
   }
 }
 
-.header-left {
+.topnav__links {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 22px;
+
+  a {
+    color: rgba($colour-text, 0.78);
+    text-decoration: none;
+    font-size: 0.95rem;
+    padding: 6px 4px;
+    transition: color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--thisYear);
+    }
+
+    &.active {
+      color: var(--thisYear);
+      font-weight: 600;
+    }
+  }
 }
 
-.header-left a {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  color: inherit;
-}
-
-#header h1 {
-  font-size: 1.4em;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.55);
-  transition: color 0.15s ease;
-}
-
-#header a:hover h1 {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-#header #logo {
-  width: 50px;
-  height: 50px;
-}
-
-#burgerBtn { 
-  font-size: 1.5rem; 
-  background: transparent; 
-  border: 1px solid var(--accent); 
-  border-radius: 50%;
-  color: var(--accent); 
+.topnav__menu-btn {
+  display: none; // shown <900px
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid rgba($colour-text, 0.25);
+  border-radius: 8px;
   cursor: pointer;
-  padding: 0;
-  transition: all 0.2s ease;
-  min-width: 44px;
-  min-height: 44px;
-  display: none;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba($colour-text, 0.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--thisYear);
+    outline-offset: 2px;
+  }
 }
 
-#burgerBtn:hover {
-  @extend .menu-selected-bg;
-  color: var(--thisYear);
-  border-color: var(--thisYear);
+.topnav__menu-icon {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: $colour-text;
+  border-radius: 2px;
+  position: relative;
 }
 
-#appShell { 
-  display: grid; 
-  grid-template-columns: var(--sidebar-w) 1fr; 
-  min-height: calc(100vh - 60px); // Account for header height approximately
-  opacity: 1; // Default visible state
+.topnav__menu-icon::before,
+.topnav__menu-icon::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 20px;
+  height: 2px;
+  background: $colour-text;
+  border-radius: 2px;
+}
+
+.topnav__menu-icon::before { top: -6px; }
+.topnav__menu-icon::after  { top: 6px; }
+
+.topnav__drawer {
+  position: fixed;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  width: min(280px, 80vw);
+  background: $colour-bg;
+  z-index: 1000;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transform: translateX(100%);
+  transition: transform 0.22s ease-out;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+
+  &[hidden] {
+    display: none;
+  }
+
+  &.is-open {
+    transform: translateX(0);
+  }
+
+  a {
+    display: block;
+    padding: 12px 14px;
+    border-radius: 10px;
+    color: $colour-text;
+    text-decoration: none;
+    font-size: 1.05rem;
+    transition: background-color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba($colour-text, 0.08);
+    }
+
+    &.active {
+      background: rgba($colour-loading-text, 0.18);
+      color: var(--thisYear);
+    }
+  }
+}
+
+.topnav__backdrop {
+  position: fixed;
+  inset: 56px 0 0 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 950;
+  animation: fadeIn 0.2s ease-out;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// Splash variant: transparent navbar, low-contrast links so the hero CTA dominates.
+// Triggered when #appShell still has .hidden (splash visible on index.html).
+body:has(#appShell.hidden) .topnav {
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom-color: transparent;
+}
+
+body:has(#appShell.hidden) .topnav__links a {
+  color: rgba($colour-text, 0.55);
+
+  &:hover,
+  &:focus-visible {
+    color: $colour-text;
+  }
+}
+
+// Below 900px: hide the inline link list and reveal the hamburger button
+@media (max-width: 900px) {
+  .topnav__links {
+    display: none;
+  }
+
+  .topnav__menu-btn {
+    display: inline-flex;
+  }
+}
+
+// Period pill tabs — segmented control above the chart on every viewport
+.period-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 1em;
+  padding: 4px;
+  background: rgba($colour-text, 0.05);
+  border-radius: 999px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .period-tab {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    border-radius: 999px;
+    color: rgba($colour-text, 0.72);
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      color: $colour-text;
+      background: rgba($colour-text, 0.06);
+    }
+
+    &.active {
+      background: rgba($colour-loading-text, 0.22);
+      color: var(--thisYear);
+    }
+  }
+}
+
+#appShell {
+  opacity: 1;
   transition: opacity 1.5s ease-in;
   width: 100%;
-  max-width: 100%; // Prevent overflow
+  max-width: 100%;
   box-sizing: border-box;
   position: relative;
-  overflow-x: clip; // Prevent horizontal overflow without iOS Safari promoting to a scroll container
 
   &.hidden {
     display: none;
   }
-  
-  // Start fade-in from transparent, then fade to visible
+
   &.fading-in {
     opacity: 0;
   }
-  
+
   &.fade-in {
     opacity: 1;
   }
-  
-  // On desktop, viewOutlet uses full height (starts at top where header area is)
-  @media (min-width: 901px) {
-    // Full viewport height - appShell covers whole viewport, header sits within sidebar column
-    min-height: 100vh;
-    height: 100vh; // Use full viewport height
-    align-items: start; // Align grid items to start (top)
-    overflow: visible; // Allow content to overflow upward (for negative margin)
-    position: relative; // Establish positioning context
-    
-    // Sidebar stays in first column
-    #sidebar {
-      grid-column: 1;
-      padding-left: 6px; // compensate for 10px padding on logo so it aligns with menu items
-    }
-    
-    // ViewOutlet spans second column and starts at top (uses space above where header is)
-    #viewOutlet {
-      grid-column: 2;
-      margin-top: -60px; // Negative margin to move up and use header space - content will overflow upward
-      padding-top: 0; // Start at top - no space needed for header since it's in sidebar area
-      min-height: calc(100vh + 60px); // Add 60px to account for negative margin so content isn't cut off
-      overflow: visible; // Let html handle scrolling and clipping — overflow-y: auto (and overflow-x: clip) created an invisible scroll container in Safari that clipped content below ~100vh
-      position: relative; // Establish positioning context
-    }
-
-    // Sidebar brand is only for mobile — ensure it stays hidden if viewport is resized to desktop
-    .sidebar-brand {
-      display: none;
-    }
-  }
-}
-
-#sidebar { 
-  border-right: 1px solid rgba($colour-loading-text, 0.1); 
-  padding: 16px; 
 }
 
 
@@ -470,35 +603,6 @@ a {
   font-style: italic;
 }
 
-#sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-
-.sidebar-brand {
-  display: none; // Hidden on desktop — header already shows logo and title
-}
-.menu-selected-bg {
-  background: rgba($colour-loading-text, 0.1);
-}
-
-#sidebar a:not(.sidebar-brand) {
-  color: rgba($colour-text, 0.68);
-  text-decoration: none;
-  padding: 8px 14px;
-  border-radius: 999px;  // pill shape
-  display: block;
-  transition: background-color 0.2s, color 0.2s;
-  font-weight: normal;
-  position: relative;
-}
-#sidebar a:not(.sidebar-brand):hover {
-  background: rgba($colour-loading-text, 0.12);
-  color: var(--thisYear);
-}
-#sidebar a[aria-current="page"] {
-  background: rgba($colour-loading-text, 0.18);
-  color: var(--thisYear);
-  font-weight: 600;
-}
-
 #viewOutlet {
   padding-top: 0;
   padding-left: 15px; // Explicit left padding for symmetry — matches splash screen lateral padding
@@ -544,16 +648,10 @@ body.privacy-page {
     }
   }
 
-  // Don't underline the header logo/title link or mobile sidebar brand
-  .header-left a,
-  .sidebar-brand {
+  // Don't underline anchors inside the top navbar or its mobile drawer
+  .topnav a,
+  .topnav__drawer a {
     text-decoration: none;
-    color: var(--accent);
-
-    &:hover {
-      color: var(--thisYear);
-      text-decoration: none;
-    }
   }
 }
 
@@ -880,111 +978,8 @@ h2 {
   }
 }
 
-@media (max-width: 900px) {
-  #appShell { 
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr; // Reset to default row structure on mobile
-  }
-  
-  // On mobile, header is full width again
-  #header {
-    max-width: 100%;
-  }
-  
-  #burgerBtn { display: flex; }
-
-  #sidebar {
-    position: fixed;
-    inset: 0 auto 0 0;
-    width: max(180px, min(30vw, 200px)); // Ensure enough room for sidebar brand
-    transform: translateX(-100%);
-    background: $colour-bg; 
-    z-index: 1000; 
-    transition: transform .2s ease-out; 
-    box-shadow: 4px 0 24px rgba(0,0,0,.08);
-    padding-top: 80px;
-    
-    // Ensure menu items fit with larger fonts
-    ul {
-      padding: 0 8px; // Add some padding for larger text
-      margin-top: 8px; // Small gap between brand bar and nav items
-    }
-    
-    a:not(.sidebar-brand) {
-      padding: 8px 14px;
-      font-size: 1rem; // Ensure consistent font size
-      line-height: 1.4; // Better line height for larger text
-      white-space: nowrap; // Prevent text wrapping
-      overflow: hidden;
-      text-overflow: ellipsis; // Show ellipsis if text is too long
-    }
-  }
-
-  .sidebar-brand {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 80px; // Occupies the sidebar's padding-top space
-    padding: 16px 16px 0 16px; // equal lateral padding; shifts content slightly left
-    box-sizing: border-box;
-    text-decoration: none;
-    color: var(--accent); // Match the colour of nav links
-
-    img {
-      flex-shrink: 0;
-      display: block; // Remove inline baseline offset
-      width: 36px;
-      height: 36px;
-    }
-
-    span {
-      font-size: 1.1rem;
-      font-weight: bold;
-      line-height: 1; // Keep line box tight so vertical centering is accurate
-      white-space: nowrap;
-    }
-  }
-
-  // Keep brand colour on hover — prevent it turning green like nav links
-  #sidebar .sidebar-brand:hover {
-    background: transparent;
-    color: var(--thisYear);
-  }
-
-  #sidebar.open { transform: translateX(0); }
-  body.menu-open { 
-    overflow: hidden;
-    
-    // Blur the main content when sidebar is open
-    #viewOutlet {
-      filter: blur(2px);
-      transition: filter 0.2s ease-out;
-    }
-    
-    // Also blur the header
-    #header {
-      filter: blur(2px);
-      transition: filter 0.2s ease-out;
-    }
-    
-    // Add a subtle overlay to darken the background
-    &::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      z-index: 999;
-      pointer-events: none;
-      animation: fadeIn 0.2s ease-out;
-    }
-  }
+body.has-drawer-open {
+  overflow: hidden;
 }
 
 /* Removed ID-specific #loading styles - now using consistent .loading class */
@@ -1506,12 +1501,6 @@ h2 {
     background: rgba($colour-text, 0.1);
     border-color: rgba($colour-text, 0.5);
   }
-}
-
-// Navigation active state (pill highlight)
-#sidebar a.active {
-  background: rgba($colour-loading-text, 0.18);
-  color: var(--thisYear) !important;
 }
 
 @keyframes fadeIn {

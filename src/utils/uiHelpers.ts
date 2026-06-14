@@ -57,7 +57,8 @@ export function buildLocationDisplay(
 
   button.appendChild(document.createTextNode(`${prefix}${displayText}`));
 
-  // Pencil icon — decorative, signals editability
+  // Chevron — decorative, signals that the heading acts as a dropdown to change
+  // location (replaces the previous pencil icon, which suggested text editing).
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
   svg.setAttribute('width', '18');
@@ -68,10 +69,7 @@ export function buildLocationDisplay(
   svg.setAttribute('xmlns', svgNS);
 
   const path = document.createElementNS(svgNS, 'path');
-  path.setAttribute(
-    'd',
-    'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'
-  );
+  path.setAttribute('d', 'M7 10l5 5 5-5z');
   path.setAttribute('fill', 'currentColor');
 
   svg.appendChild(path);

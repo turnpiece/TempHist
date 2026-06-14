@@ -1,18 +1,27 @@
-      <nav id="sidebar" aria-label="Primary">
-        <a class="sidebar-brand" href="{{HOME_LINK}}">
-          <img src="/assets/logo.svg" alt="TempHist logo" width="36" height="36"
+      <header class="topnav" id="topnav">
+        <a class="topnav__brand" href="{{HOME_LINK}}" aria-label="TempHist home">
+          <img class="topnav__logo" src="/assets/logo.svg" alt="" width="36" height="36"
                onerror="this.onerror=null; this.src='/assets/logo.png'" />
-          <span>TempHist</span>
+          <span class="topnav__wordmark">TempHist</span>
         </a>
-        <ul>
-          <li {{STANDALONE_NAV_HIDDEN}}><a href="{{LOCATIONS_LINK}}" data-route="/locations"{{LOCATIONS_ACTIVE}}>Locations</a></li>
-          <li {{APP_NAV_HIDDEN}}><a href="{{TODAY_LINK}}" data-route="/today">Today</a></li>
-          <li {{APP_NAV_HIDDEN}}><a href="{{WEEK_LINK}}" data-route="/week">Past week</a></li>
-          <li {{APP_NAV_HIDDEN}}><a href="{{MONTH_LINK}}" data-route="/month">Past month</a></li>
-          <li {{APP_NAV_HIDDEN}}><a href="{{YEAR_LINK}}" data-route="/year">Past year</a></li>
-          <li {{SNAPSHOTS_NAV_HIDDEN}}><a href="{{FEED_LINK}}" data-route="/feed"{{FEED_ACTIVE}}>Snapshots</a></li>
-          <li><a href="{{ABOUT_LINK}}" data-route="/about"{{ABOUT_ACTIVE}}>About</a></li>
-          <li><a href="{{PRIVACY_LINK}}" data-route="/privacy"{{PRIVACY_ACTIVE}}>Privacy</a></li>
-        </ul>
-      </nav>
 
+        <nav class="topnav__links" aria-label="Primary">
+          <a href="{{LOCATIONS_LINK}}" data-route="/locations"{{LOCATIONS_ACTIVE}}>Locations</a>
+          <a {{SNAPSHOTS_NAV_HIDDEN}} href="{{FEED_LINK}}" data-route="/feed"{{FEED_ACTIVE}}>Snapshots</a>
+          <a href="{{ABOUT_LINK}}" data-route="/about"{{ABOUT_ACTIVE}}>About</a>
+          <a href="{{PRIVACY_LINK}}" data-route="/privacy"{{PRIVACY_ACTIVE}}>Privacy</a>
+        </nav>
+
+        <button id="burgerBtn" class="topnav__menu-btn" type="button"
+                aria-label="Open menu" aria-controls="topnavDrawer" aria-expanded="false">
+          <span class="topnav__menu-icon" aria-hidden="true"></span>
+        </button>
+      </header>
+
+      <div class="topnav__backdrop" id="topnavBackdrop" hidden></div>
+      <nav id="topnavDrawer" class="topnav__drawer" aria-label="Mobile menu" hidden>
+        <a href="{{LOCATIONS_LINK}}" data-route="/locations"{{LOCATIONS_ACTIVE}}>Locations</a>
+        <a {{SNAPSHOTS_NAV_HIDDEN}} href="{{FEED_LINK}}" data-route="/feed"{{FEED_ACTIVE}}>Snapshots</a>
+        <a href="{{ABOUT_LINK}}" data-route="/about"{{ABOUT_ACTIVE}}>About</a>
+        <a href="{{PRIVACY_LINK}}" data-route="/privacy"{{PRIVACY_ACTIVE}}>Privacy</a>
+      </nav>
