@@ -13,8 +13,8 @@
     <link rel="preconnect" href="%VITE_API_BASE%" crossorigin>
 
     <script>
-      if (window.trustedTypes && window.trustedTypes.createPolicy) {
-        window.trustedTypes.createPolicy('default', {
+      if (globalThis.trustedTypes && globalThis.trustedTypes.createPolicy) {
+        globalThis.trustedTypes.createPolicy('default', {
           createHTML: function(s) { return s; },
           createScriptURL: function(s) { return s; },
           createScript: function(s) { return s; },
