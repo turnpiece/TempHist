@@ -61,17 +61,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <!-- INCLUDE:header -->
+    <!-- INCLUDE:nav -->
 
     <!-- Splash Screen / Homepage -->
     <div id="splashScreen" class="splash-screen">
 
-      <!-- Masthead: logo + wordmark -->
+      <!-- Masthead: logo + tagline (the topnav already carries the TempHist
+           wordmark, so the masthead expands the brand into what it means). -->
       <div class="masthead">
         <a href="/" class="masthead-inner">
-          <img src="/assets/logo.svg" alt="TempHist logo" width="50" height="50"
-               onerror="this.onerror=null; this.src='/assets/logo.png'" />
-          <span class="masthead-name">TempHist</span>
+          <span class="masthead-name">TEMPERATURE HISTORY</span>
         </a>
       </div>
 
@@ -182,14 +181,18 @@
     </div>
 
     <div id="appShell" class="hidden">
-      <!-- INCLUDE:nav -->
-
       <main id="viewOutlet" role="main">
         <!-- Default view (Today) keeps your existing chart DOM -->
         <section id="todayView" data-view="today">
           <div class="container">
             <h2 id="locationText" class="location-heading" aria-live="polite"></h2>
             <div id="dateText" class="period-subheading"></div>
+            <nav class="period-tabs" aria-label="Time range">
+              <a href="#/today" data-route="/today" class="period-tab">Today</a>
+              <a href="#/week" data-route="/week" class="period-tab">Week</a>
+              <a href="#/month" data-route="/month" class="period-tab">Month</a>
+              <a href="#/year" data-route="/year" class="period-tab">Year</a>
+            </nav>
             <div id="dataNotice" class="notice"></div>
             <div id="summaryText" class="standard-text data-field"></div>
             

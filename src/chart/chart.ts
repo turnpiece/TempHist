@@ -325,6 +325,9 @@ export function createTemperatureChart(
           bottom: 15
         }
       },
+      // Skip `touchmove` so vertical page scroll passes through the chart on
+      // mobile instead of being captured by hover-tooltip tracking.
+      events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchend'],
       plugins: {
         legend: { display: false },
         annotation: {
@@ -375,6 +378,21 @@ export function createTemperatureChart(
             color: CHART_AXIS_COLOR,
             stepSize: xStepSize,
           }
+        },
+        // Duplicate the temperature scale at the bottom so the axis is always
+        // visible after scrolling down through the 50-year bar list.
+        x2: {
+          type: 'linear',
+          border: { color: 'rgba(236, 236, 236, 0.35)' },
+          position: 'bottom',
+          min: xAxisMin,
+          max: xAxisMax,
+          ticks: {
+            font: axisFont,
+            color: CHART_AXIS_COLOR,
+            stepSize: xStepSize,
+          },
+          grid: { display: false }
         },
         y: {
           type: 'linear',

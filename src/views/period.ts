@@ -23,6 +23,36 @@ interface PeriodDOMRefs {
   ctx: CanvasRenderingContext2D;
 }
 
+/**
+ * Build the period pill-tab strip (Today / Past week / Past month / Past year)
+ * that sits above the chart on every period view. Identical markup to the static
+ * version embedded in #todayView so the router can highlight whichever instance
+ * is currently visible.
+ */
+function buildPeriodTabs(): HTMLElement {
+  const tabs = document.createElement('nav');
+  tabs.className = 'period-tabs';
+  tabs.setAttribute('aria-label', 'Time range');
+
+  const entries: Array<{ route: string; label: string }> = [
+    { route: '/today', label: 'Today' },
+    { route: '/week', label: 'Week' },
+    { route: '/month', label: 'Month' },
+    { route: '/year', label: 'Year' },
+  ];
+
+  for (const { route, label } of entries) {
+    const a = document.createElement('a');
+    a.className = 'period-tab';
+    a.href = `#${route}`;
+    a.dataset.route = route;
+    a.textContent = label;
+    tabs.appendChild(a);
+  }
+
+  return tabs;
+}
+
 interface ParsedPeriodData {
   temperatureData: any[];
   averageData: { temp: number; stdDev: number };
@@ -47,6 +77,8 @@ function buildPeriodSection(sec: HTMLElement, periodKey: string): PeriodDOMRefs 
   dateHeading.id = `${periodKey}DateText`;
   dateHeading.className = 'period-subheading';
   container.appendChild(dateHeading);
+
+  container.appendChild(buildPeriodTabs());
 
   const dataNotice = document.createElement('div');
   dataNotice.id = `${periodKey}DataNotice`;

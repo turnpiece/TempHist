@@ -24,97 +24,81 @@ declare const Chart: any;
 declare const debugLog: (...args: any[]) => void;
 
 /**
- * Setup mobile navigation functionality
+ * Wire up the mobile top-nav drawer.
+ *
+ * The drawer opens when the user taps the topnav hamburger button (<900px),
+ * dismisses on backdrop tap, link tap, Escape, or a second tap of the button.
+ * Listeners are bound only once per page load.
  */
+let drawerListenersAttached = false;
 export function setupMobileNavigation(): void {
+  if (drawerListenersAttached) return;
+
   const burgerBtn = document.getElementById('burgerBtn');
-  const sidebar = document.getElementById('sidebar');
-  
-  if (!burgerBtn || !sidebar) {
-    debugLog('Mobile navigation elements not found - burgerBtn:', !!burgerBtn, 'sidebar:', !!sidebar);
+  const drawer = document.getElementById('topnavDrawer');
+  const backdrop = document.getElementById('topnavBackdrop');
+
+  if (!burgerBtn || !drawer || !backdrop) {
+    debugLog('Drawer elements not found — burgerBtn:', !!burgerBtn, 'drawer:', !!drawer, 'backdrop:', !!backdrop);
     return;
   }
-  
-  debugLog('Setting up mobile navigation - burgerBtn and sidebar found');
-  
-  // Remove any existing event listeners to prevent duplicates
-  const newBurgerBtn = burgerBtn.cloneNode(true) as HTMLElement;
-  burgerBtn.parentNode?.replaceChild(newBurgerBtn, burgerBtn);
-  
-  // Handle burger button interaction (both touch and click for mobile compatibility)
-  const handleBurgerClick = (e: Event) => {
+
+  const closeDrawer = () => {
+    drawer.classList.remove('is-open');
+    drawer.setAttribute('hidden', '');
+    backdrop.setAttribute('hidden', '');
+    burgerBtn.setAttribute('aria-expanded', 'false');
+    burgerBtn.setAttribute('aria-label', 'Open menu');
+    document.body.classList.remove('has-drawer-open');
+  };
+
+  const openDrawer = () => {
+    drawer.removeAttribute('hidden');
+    backdrop.removeAttribute('hidden');
+    // Force a reflow so the transform transition runs from translateX(100%)
+    void drawer.offsetWidth;
+    drawer.classList.add('is-open');
+    burgerBtn.setAttribute('aria-expanded', 'true');
+    burgerBtn.setAttribute('aria-label', 'Close menu');
+    document.body.classList.add('has-drawer-open');
+  };
+
+  burgerBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    const isOpen = sidebar.classList.contains('open');
-    
-    if (isOpen) {
-      // Close the sidebar
-      sidebar.classList.remove('open');
-      newBurgerBtn.setAttribute('aria-expanded', 'false');
-      newBurgerBtn.setAttribute('aria-label', 'Open menu');
-      document.body.classList.remove('menu-open');
-      debugLog('Mobile menu closed');
-    } else {
-      // Open the sidebar
-      sidebar.classList.add('open');
-      newBurgerBtn.setAttribute('aria-expanded', 'true');
-      newBurgerBtn.setAttribute('aria-label', 'Close menu');
-      document.body.classList.add('menu-open');
-      debugLog('Mobile menu opened');
-    }
-  };
-  
-  // Add both touchstart and click listeners for better mobile support
-  newBurgerBtn.addEventListener('touchstart', handleBurgerClick, { passive: false });
-  newBurgerBtn.addEventListener('click', handleBurgerClick);
-  
-  // Handle clicking outside the sidebar to close it
-  document.addEventListener('click', (e) => {
-    const isOpen = sidebar.classList.contains('open');
-    if (isOpen && !sidebar.contains(e.target as Node) && !newBurgerBtn.contains(e.target as Node)) {
-      sidebar.classList.remove('open');
-      newBurgerBtn.setAttribute('aria-expanded', 'false');
-      newBurgerBtn.setAttribute('aria-label', 'Open menu');
-      document.body.classList.remove('menu-open');
-      debugLog('Mobile menu closed by clicking outside');
-    }
+    if (drawer.classList.contains('is-open')) closeDrawer();
+    else openDrawer();
   });
-  
-  // Handle sidebar link clicks to close the menu
-  const sidebarLinks = sidebar.querySelectorAll('a');
-  sidebarLinks.forEach(link => {
-    link.addEventListener('click', () => {
-      sidebar.classList.remove('open');
-      newBurgerBtn.setAttribute('aria-expanded', 'false');
-      newBurgerBtn.setAttribute('aria-label', 'Open menu');
-      document.body.classList.remove('menu-open');
-      debugLog('Mobile menu closed by link click');
-    });
+
+  backdrop.addEventListener('click', closeDrawer);
+
+  drawer.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', closeDrawer);
   });
-  
-  // Handle escape key to close menu
+
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
-      sidebar.classList.remove('open');
-      newBurgerBtn.setAttribute('aria-expanded', 'false');
-      newBurgerBtn.setAttribute('aria-label', 'Open menu');
-      document.body.classList.remove('menu-open');
-      debugLog('Mobile menu closed by escape key');
-    }
+    if (e.key === 'Escape' && drawer.classList.contains('is-open')) closeDrawer();
   });
+
+  drawerListenersAttached = true;
+  debugLog('Top-nav drawer wired');
 }
 
 /**
- * Handle window resize to re-setup mobile navigation if needed
+ * Handle window resize to ensure the drawer stays in a sane state when the
+ * viewport crosses the 900px breakpoint (e.g. orientation change).
  */
 export function handleWindowResize(): void {
-  const burgerBtn = document.getElementById('burgerBtn');
-  if (burgerBtn && window.innerWidth <= 900) {
-    // Only re-setup if we're in mobile view and the button is visible
-    const computedStyle = window.getComputedStyle(burgerBtn);
-    if (computedStyle.display !== 'none') {
-      setupMobileNavigation();
+  if (window.innerWidth > 900) {
+    const drawer = document.getElementById('topnavDrawer');
+    const backdrop = document.getElementById('topnavBackdrop');
+    const burgerBtn = document.getElementById('burgerBtn');
+    if (drawer?.classList.contains('is-open')) {
+      drawer.classList.remove('is-open');
+      drawer.setAttribute('hidden', '');
+      backdrop?.setAttribute('hidden', '');
+      burgerBtn?.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('has-drawer-open');
     }
   }
 }
