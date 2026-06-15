@@ -37,6 +37,7 @@
     "npm": ">=9.0.0"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "firebase": "^11.9.1",

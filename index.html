@@ -55,10 +55,7 @@
     <!-- Suppress splash screen on share pages before first paint -->
     <script>if (/^\/s\/[^/]+/.test(location.pathname)) document.documentElement.classList.add('is-share-page');</script>
     <!-- Suppress splash when arriving with a pending location selection from /locations -->
-    <script>try { if (sessionStorage.getItem('temphist_pending_location')) document.documentElement.classList.add('is-pending-location'); } catch (e) {}</script>
-    <!-- Inter font for redesigned homepage -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>try { if (sessionStorage.getItem('temphist_pending_location')) document.documentElement.classList.add('is-pending-location'); } catch { /* sessionStorage unavailable */ }</script>
   </head>
   <body>
     <!-- INCLUDE:nav -->
@@ -103,7 +100,7 @@
           <!-- Location carousel -->
           <div class="hero-cities">
             <div class="location-carousel" id="location-carousel">
-              <div class="location-carousel__track" id="location-carousel-track" role="listbox" aria-label="Popular locations">
+              <div class="location-carousel__track" id="location-carousel-track" aria-labelledby="location-picker-heading">
                 <!-- Cards injected here -->
               </div>
               <div class="carousel-progress" id="carousel-progress">
@@ -186,7 +183,7 @@
         <section id="todayView" data-view="today">
           <div class="dashboard">
             <div class="dashboard__left">
-              <h2 id="locationText" class="location-heading" aria-live="polite"></h2>
+              <h2 id="locationText" class="location-heading" aria-live="polite">Loading location...</h2>
               <div id="dateText" class="period-subheading"></div>
               <nav class="period-tabs" aria-label="Time range">
                 <a href="#/today" data-route="/today" class="period-tab">Today</a>

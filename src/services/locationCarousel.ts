@@ -214,7 +214,6 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
   const button = document.createElement('button');
   button.className = 'location-card';
   button.type = 'button';
-  button.setAttribute('role', 'option');
   button.dataset.locationId = location.id;
 
   // Image wrapper (always present for spacing)

@@ -66,3 +66,6 @@ graphify-out/.chunk_files_*.txt
 graphify-out/obsidian/
 graphify-out/converted/
 graphify-out/cache/
+
+# Sonar
+.sonar_lock
