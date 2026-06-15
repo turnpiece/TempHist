@@ -343,15 +343,43 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
 }
 
 /**
- * Initialise carousel scroll functionality — progress bar only (arrows removed)
+ * Initialise carousel scroll functionality — progress bar only (arrows removed).
+ *
+ * The progress bar acts as a native-style scroll thumb: its width represents
+ * the visible portion of the track and its position represents how far the user
+ * has scrolled. This means the indicator is already visible at rest (at scrollLeft=0),
+ * which is what tells the user "there's more content to the right" before they ever
+ * interact.
  */
 function initCarouselScroll(_carousel: HTMLElement, track: HTMLElement): (() => void) {
   const progressBar = document.getElementById('carousel-progress-bar') as HTMLElement | null;
+  const progressTrack = document.getElementById('carousel-progress') as HTMLElement | null;
 
   const updateProgress = () => {
     if (!progressBar) return;
     const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
-    progressBar.style.width = maxScroll > 0 ? `${(track.scrollLeft / maxScroll) * 100}%` : '0%';
+
+    // No overflow → no scrolling possible, hide the indicator entirely.
+    if (maxScroll === 0) {
+      if (progressTrack) progressTrack.style.visibility = 'hidden';
+      return;
+    }
+    if (progressTrack) progressTrack.style.visibility = '';
+
+    const ratio = track.clientWidth / track.scrollWidth; // 0..1
+    // Floor the thumb at 18% so it stays comfortably tappable/visible even
+    // when the track is very long relative to the viewport.
+    const thumbPct = Math.min(100, Math.max(18, ratio * 100));
+    const position = track.scrollLeft / maxScroll;     // 0..1
+    const leftPct = position * (100 - thumbPct);
+    progressBar.style.width = `${thumbPct}%`;
+    // Once there's actual scroll, take over from the CSS attention-nudge
+    // animation: cancel it (otherwise its transform keyframes win over inline)
+    // and pin the thumb to the real scroll position.
+    if (position > 0) {
+      progressBar.style.animation = 'none';
+      progressBar.style.transform = `translateX(${leftPct / thumbPct * 100}%)`;
+    }
   };
 
   track.addEventListener('scroll', updateProgress, { passive: true });

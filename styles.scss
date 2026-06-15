@@ -1227,7 +1227,7 @@ body.has-drawer-open {
 }
 
 .hero-desc {
-  color: rgba($colour-text, 0.6);
+  color: rgba($colour-text, 0.85);
   font-size: 1rem;
   margin: 0;
   line-height: 1.65;
@@ -1260,20 +1260,33 @@ body.has-drawer-open {
   &.is-detecting { opacity: 0; pointer-events: none; }
 }
 
+// Scroll-thumb-style indicator below the location carousel. Track is dim;
+// the thumb represents the visible portion of the carousel and slides as the
+// user scrolls. A short attention-grabbing nudge runs on first paint so users
+// see immediately that the carousel scrolls horizontally.
 .carousel-progress {
-  height: 3px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 1.5px;
-  margin-top: 0.75rem;
+  height: 5px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 999px;
+  margin-top: 1rem;
   overflow: hidden;
 }
 
 .carousel-progress-bar {
   height: 100%;
-  background: rgba(255,255,255,0.45);
-  border-radius: 1.5px;
-  width: 0%;
-  transition: width 0.1s linear;
+  background: rgba(255,255,255,0.85);
+  border-radius: 999px;
+  width: 18%; // matches the JS floor — keeps the thumb visible before first paint sets the real width
+  transition: width 0.12s linear, transform 0.12s linear;
+  transform: translateX(0);
+  will-change: transform, width;
+  animation: carousel-thumb-nudge 1.4s ease-in-out 0.4s 2;
+}
+
+@keyframes carousel-thumb-nudge {
+  0%, 100% { transform: translateX(0); }
+  40%      { transform: translateX(40%); }
+  70%      { transform: translateX(10%); }
 }
 
 .choose-label {
@@ -1345,7 +1358,7 @@ body.has-drawer-open {
   }
 
   p {
-    color: rgba($colour-text, 0.6);
+    color: rgba($colour-text, 0.85);
     font-size: 0.875rem;
     line-height: 1.65;
     margin: 0;
@@ -1397,7 +1410,7 @@ body.has-drawer-open {
 }
 
 .snap-desc {
-  color: rgba($colour-text, 0.6);
+  color: rgba($colour-text, 0.85);
   font-size: 0.9rem;
   line-height: 1.6;
   margin: 0;
@@ -1476,7 +1489,7 @@ body.has-drawer-open {
 
   .flag-img { flex-shrink: 0; margin-bottom: 0; }
 }
-.snap-period { font-size: 0.78rem; color: rgba($colour-text, 0.58); }
+.snap-period { font-size: 0.78rem; color: rgba($colour-text, 0.78); }
 
 // Button Styles
 .btn {
