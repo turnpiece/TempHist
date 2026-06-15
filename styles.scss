@@ -1895,16 +1895,106 @@ body.locations-page {
 
 // ── Locations page view ───────────────────────────────────────────────────────
 
-.locations-section-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba($colour-text, 0.4);
-  margin: 2.25rem 0 0.75rem;
-
-  &:first-child { margin-top: 0; }
+// Client-side filter input — sits above the first region so it acts as a
+// persistent header for the page. The input never triggers an API call.
+.locations-filter {
+  margin: 0 0 1.5rem;
 }
+
+.locations-filter__input {
+  width: 100%;
+  max-width: 360px;
+  padding: 0.65rem 0.9rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: $colour-text;
+  font: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+
+  &::placeholder { color: rgba($colour-text, 0.55); }
+
+  &:focus {
+    outline: none;
+    border-color: var(--thisYear);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 3px rgba($colour-loading-text, 0.18);
+  }
+}
+
+// Region section — header + (optional featured grid) + (optional text grid).
+.locations-region {
+  margin-bottom: 2.5rem;
+
+  &:last-of-type { margin-bottom: 0; }
+
+  .locations-grid + .locations-grid {
+    margin-top: 1rem; // breathing room between featured and text subgrids
+  }
+}
+
+// Region header — sticky so the visitor always knows which region they're
+// scrolling through. The topnav scrolls away (position: static), so the
+// header anchors to the viewport's top edge once it gets there. The bright
+// blue carries the contrast on its own; no surrounding chip needed.
+.locations-region__header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 0 0.9rem;
+  padding: 0.65rem 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #b5c8eb; // matches the lifted h3 colour used on About/Privacy
+}
+
+// Popular list — compact flag + name rows, no card chrome.
+.locations-popular-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.25rem 1rem;
+}
+
+.locations-popular-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $colour-text;
+  font: inherit;
+  font-size: 0.95rem;
+  text-align: left;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+
+  .flag-img {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: var(--thisYear);
+    background: rgba($colour-loading-text, 0.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--thisYear);
+    outline-offset: 2px;
+  }
+}
+
+.locations-popular-row__name {
+  font-weight: 500;
+}
+
 
 .locations-grid {
   display: grid;

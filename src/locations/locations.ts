@@ -117,24 +117,91 @@ function buildFeaturedItem(loc: PreapprovedLocation): HTMLButtonElement {
   return btn;
 }
 
-function buildTextItem(loc: PopularLocation): HTMLButtonElement {
+async function waitForAuth(maxMs = 5000): Promise<void> {
+  const deadline = Date.now() + maxMs;
+  while (!globalThis.currentUser && Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 100));
+  }
+}
+
+function parseLocArr(result: PromiseSettledResult<any>): any[] {
+  if (result.status !== 'fulfilled' || !result.value) return [];
+  const d = result.value;
+  const arr = Array.isArray(d) ? d
+    : Array.isArray(d?.data) ? d.data
+    : Array.isArray(d?.locations) ? d.locations
+    : [];
+  return arr.filter((x: any) => x?.id && x?.name && x?.country_code);
+}
+
+// ── Region grouping ──────────────────────────────────────────────────────────
+// Visitors think geographically before they think alphabetically, so the page
+// is grouped by region. Each location's country code lands in exactly one
+// bucket; the ordered REGION_BUCKETS array also controls render order so the
+// page reads top-to-bottom in a stable, familiar sequence.
+
+type RegionLabel =
+  | 'Europe'
+  | 'North America'
+  | 'Latin America'
+  | 'Asia Pacific'
+  | 'Middle East'
+  | 'Africa'
+  | 'Other';
+
+const REGION_BUCKETS: ReadonlyArray<RegionLabel> = [
+  'Europe',
+  'North America',
+  'Latin America',
+  'Asia Pacific',
+  'Middle East',
+  'Africa',
+  'Other',
+];
+
+function regionFor(countryCode: string | undefined | null): RegionLabel {
+  const cc = (countryCode || '').toUpperCase();
+  if (['GB','FR','DE','IT','ES','NL','BE','CH','AT','SE','NO','DK','FI','PT','IE','PL','CZ','GR','HU','RO','UA','RU'].includes(cc)) return 'Europe';
+  if (['US','CA'].includes(cc)) return 'North America';
+  if (['MX','BR','AR','CL','CO','PE','UY','VE'].includes(cc)) return 'Latin America';
+  if (['JP','CN','IN','SG','HK','KR','TH','VN','ID','MY','PH','AU','NZ','TW'].includes(cc)) return 'Asia Pacific';
+  if (['AE','SA','IL','TR','EG','QA','KW','JO','LB'].includes(cc)) return 'Middle East';
+  if (['ZA','NG','KE','GH','MA','ET','TN','DZ'].includes(cc)) return 'Africa';
+  return 'Other';
+}
+
+function groupPreapprovedByRegion(
+  featured: PreapprovedLocation[],
+): Map<RegionLabel, PreapprovedLocation[]> {
+  const grouped = new Map<RegionLabel, PreapprovedLocation[]>();
+  featured.forEach(loc => {
+    const r = regionFor(loc.country_code);
+    const bucket = grouped.get(r) ?? [];
+    bucket.push(loc);
+    grouped.set(r, bucket);
+  });
+  return grouped;
+}
+
+const POPULAR_LIMIT = 20;
+
+/**
+ * Compact one-line list item used in the "Popular" section: flag + city name
+ * only, no surrounding card, no country label. Reuses the click behaviour of
+ * the text card so selection routes through the same handler.
+ */
+function buildPopularRow(loc: PopularLocation): HTMLButtonElement {
   const btn = document.createElement('button');
-  btn.className = 'location-item';
+  btn.className = 'locations-popular-row';
   btn.type = 'button';
   btn.setAttribute('aria-label', `${loc.name}, ${loc.country_name}`);
 
   btn.appendChild(flagImg(loc.country_code, 20));
 
   const nameEl = document.createElement('span');
-  nameEl.className = 'location-item__name';
+  nameEl.className = 'locations-popular-row__name';
   nameEl.textContent = loc.name;
-
-  const countryEl = document.createElement('span');
-  countryEl.className = 'location-item__country';
-  countryEl.textContent = loc.country_name;
-
   btn.appendChild(nameEl);
-  btn.appendChild(countryEl);
 
   btn.addEventListener('click', async () => {
     const valueParts = [loc.name];
@@ -161,21 +228,41 @@ function buildTextItem(loc: PopularLocation): HTMLButtonElement {
   return btn;
 }
 
-async function waitForAuth(maxMs = 5000): Promise<void> {
-  const deadline = Date.now() + maxMs;
-  while (!globalThis.currentUser && Date.now() < deadline) {
-    await new Promise(r => setTimeout(r, 100));
-  }
+/**
+ * Apply the search term to every location card and hide region sections that
+ * end up with nothing visible. Matching is case-insensitive and runs against
+ * the city + country name strings cached on the card via data-* attributes,
+ * so the filter is O(n) over the DOM and never touches the API.
+ */
+function applyLocationsFilter(root: HTMLElement, query: string): void {
+  const needle = query.trim().toLowerCase();
+  const sections = root.querySelectorAll<HTMLElement>('.locations-region');
+  sections.forEach(section => {
+    let visibleInSection = 0;
+    section.querySelectorAll<HTMLElement>('[data-search]').forEach(card => {
+      const haystack = card.dataset.search || '';
+      const matches = !needle || haystack.includes(needle);
+      card.hidden = !matches;
+      if (matches) visibleInSection++;
+    });
+    section.hidden = visibleInSection === 0;
+  });
+
+  // If every section is hidden, surface a "no results" message so the page
+  // doesn't look broken.
+  const empty = root.querySelector<HTMLElement>('.locations-empty-state');
+  if (empty) empty.hidden = Array.from(sections).some(s => !s.hidden);
 }
 
-function parseLocArr(result: PromiseSettledResult<any>): any[] {
-  if (result.status !== 'fulfilled' || !result.value) return [];
-  const d = result.value;
-  const arr = Array.isArray(d) ? d
-    : Array.isArray(d?.data) ? d.data
-    : Array.isArray(d?.locations) ? d.locations
-    : [];
-  return arr.filter((x: any) => x?.id && x?.name && x?.country_code);
+function annotateCardForSearch(
+  card: HTMLElement,
+  loc: { name: string; country_name: string; admin1?: string | null },
+): void {
+  const haystack = [loc.name, loc.country_name, loc.admin1 || '']
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  card.dataset.search = haystack;
 }
 
 /**
@@ -211,9 +298,11 @@ export async function renderLocationsPage(): Promise<void> {
   await waitForAuth();
 
   try {
+    // Request a generous upper bound on popular; the API may ignore the
+    // `limit` query param today, in which case we still clamp client-side below.
     const [preapprovedRes, popularRes] = await Promise.allSettled([
       apiFetch(getApiUrl('/v1/locations/preapproved')).then(r => r.ok ? r.json() : null),
-      apiFetch(getApiUrl('/v1/locations/popular')).then(r => r.ok ? r.json() : null),
+      apiFetch(getApiUrl(`/v1/locations/popular?limit=${POPULAR_LIMIT}`)).then(r => r.ok ? r.json() : null),
     ]);
 
     while (content.firstChild) content.removeChild(content.firstChild);
@@ -221,9 +310,11 @@ export async function renderLocationsPage(): Promise<void> {
     const featured: PreapprovedLocation[] = parseLocArr(preapprovedRes);
     const popular: PopularLocation[] = parseLocArr(popularRes);
     const featuredIds = new Set(featured.map(l => l.id));
-    const extras = popular.filter(l => !featuredIds.has(l.id));
+    // Popular only shows entries that aren't already in the curated set, and
+    // is capped at POPULAR_LIMIT.
+    const popularItems = popular.filter(l => !featuredIds.has(l.id)).slice(0, POPULAR_LIMIT);
 
-    if (!featured.length && !extras.length) {
+    if (!featured.length && !popularItems.length) {
       const empty = document.createElement('p');
       empty.className = 'locations-status';
       empty.textContent = 'No locations available.';
@@ -231,27 +322,84 @@ export async function renderLocationsPage(): Promise<void> {
       return;
     }
 
-    if (featured.length) {
-      const label = document.createElement('p');
-      label.className = 'locations-section-label';
-      label.textContent = 'Featured';
-      content.appendChild(label);
+    // Client-side filter input. Stays at the top of the content; the filter
+    // never calls the API — it only toggles `hidden` on already-rendered cards.
+    const filterRow = document.createElement('div');
+    filterRow.className = 'locations-filter';
+    const filterInput = document.createElement('input');
+    filterInput.type = 'search';
+    filterInput.className = 'locations-filter__input';
+    filterInput.placeholder = 'Filter locations…';
+    filterInput.setAttribute('aria-label', 'Filter locations by name');
+    filterInput.autocomplete = 'off';
+    filterRow.appendChild(filterInput);
+    content.appendChild(filterRow);
+
+    // Regional sections cover only the curated/preapproved set — those are the
+    // ones with images and the careful geographic grouping. Popular entries
+    // (which may be anywhere in the world and won't have images) get a single
+    // dedicated section below.
+    const grouped = groupPreapprovedByRegion(featured);
+
+    for (const label of REGION_BUCKETS) {
+      const group = grouped.get(label);
+      if (!group || !group.length) continue;
+
+      const section = document.createElement('section');
+      section.className = 'locations-region';
+      const labelId = `region-${label.replace(/\s+/g, '-').toLowerCase()}`;
+      section.setAttribute('aria-labelledby', labelId);
+
+      const header = document.createElement('h3');
+      header.className = 'locations-region__header';
+      header.id = labelId;
+      header.textContent = label;
+      section.appendChild(header);
+
       const grid = document.createElement('div');
       grid.className = 'locations-grid locations-grid--featured';
-      featured.forEach(loc => grid.appendChild(buildFeaturedItem(loc)));
-      content.appendChild(grid);
+      group.forEach(loc => {
+        const card = buildFeaturedItem(loc);
+        annotateCardForSearch(card, loc);
+        grid.appendChild(card);
+      });
+      section.appendChild(grid);
+
+      content.appendChild(section);
     }
 
-    if (extras.length) {
-      const label = document.createElement('p');
-      label.className = 'locations-section-label';
-      label.textContent = 'More locations';
-      content.appendChild(label);
-      const grid = document.createElement('div');
-      grid.className = 'locations-grid';
-      extras.forEach(loc => grid.appendChild(buildTextItem(loc)));
-      content.appendChild(grid);
+    if (popularItems.length) {
+      const section = document.createElement('section');
+      section.className = 'locations-region locations-region--popular';
+      section.setAttribute('aria-labelledby', 'region-popular');
+
+      const header = document.createElement('h3');
+      header.className = 'locations-region__header';
+      header.id = 'region-popular';
+      header.textContent = 'Popular';
+      section.appendChild(header);
+
+      const list = document.createElement('div');
+      list.className = 'locations-popular-list';
+      popularItems.forEach(loc => {
+        const row = buildPopularRow(loc);
+        annotateCardForSearch(row, loc);
+        list.appendChild(row);
+      });
+      section.appendChild(list);
+
+      content.appendChild(section);
     }
+
+    const emptyState = document.createElement('p');
+    emptyState.className = 'locations-status locations-empty-state';
+    emptyState.textContent = 'No locations match that filter.';
+    emptyState.hidden = true;
+    content.appendChild(emptyState);
+
+    filterInput.addEventListener('input', () => {
+      applyLocationsFilter(content, filterInput.value);
+    });
   } catch {
     while (content.firstChild) content.removeChild(content.firstChild);
     const err = document.createElement('p');
