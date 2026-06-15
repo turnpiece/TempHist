@@ -184,33 +184,39 @@
       <main id="viewOutlet" role="main">
         <!-- Default view (Today) keeps your existing chart DOM -->
         <section id="todayView" data-view="today">
-          <div class="container">
-            <h2 id="locationText" class="location-heading" aria-live="polite"></h2>
-            <div id="dateText" class="period-subheading"></div>
-            <nav class="period-tabs" aria-label="Time range">
-              <a href="#/today" data-route="/today" class="period-tab">Today</a>
-              <a href="#/week" data-route="/week" class="period-tab">Week</a>
-              <a href="#/month" data-route="/month" class="period-tab">Month</a>
-              <a href="#/year" data-route="/year" class="period-tab">Year</a>
-            </nav>
-            <div id="dataNotice" class="notice"></div>
-            <div id="summaryText" class="standard-text data-field"></div>
-            
-            <div class="chart-container">
-              <div id="loading" class="loading">
-                <div class="spinner"></div>
-                <p id="loadingText" class="loading-text">Loading temperature data…</p>
+          <div class="dashboard">
+            <div class="dashboard__left">
+              <h2 id="locationText" class="location-heading" aria-live="polite"></h2>
+              <div id="dateText" class="period-subheading"></div>
+              <nav class="period-tabs" aria-label="Time range">
+                <a href="#/today" data-route="/today" class="period-tab">Today</a>
+                <a href="#/week" data-route="/week" class="period-tab">Week</a>
+                <a href="#/month" data-route="/month" class="period-tab">Month</a>
+                <a href="#/year" data-route="/year" class="period-tab">Year</a>
+              </nav>
+              <div id="dataNotice" class="notice"></div>
+              <div id="summaryText" class="standard-text data-field"></div>
+            </div>
+
+            <div class="dashboard__right">
+              <div class="chart-container">
+                <div id="loading" class="loading">
+                  <div class="spinner"></div>
+                  <p id="loadingText" class="loading-text">Loading temperature data…</p>
+                </div>
+
+                <canvas id="tempChart" class="data-field"></canvas>
               </div>
-              
-              <canvas id="tempChart" class="data-field"></canvas>
             </div>
-            
-            <div id="todayStatsBubble" class="stats-bubble data-field">
-              <div id="avgText" class="avg-text"></div>
-              <div id="trendText" class="trend-text"></div>
-              <div id="stddevText" class="stddev-text"></div>
+
+            <div class="dashboard__stats">
+              <div id="todayStatsBubble" class="stats-bubble data-field">
+                <div id="avgText" class="avg-text"></div>
+                <div id="trendText" class="trend-text"></div>
+                <div id="stddevText" class="stddev-text"></div>
+              </div>
+              <div id="incompleteDataNotice" class="notice" style="display: none;"></div>
             </div>
-            <div id="incompleteDataNotice" class="notice" style="display: none;"></div>
           </div>
         </section>
 

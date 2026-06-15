@@ -65,30 +65,43 @@ interface ParsedPeriodData {
 function buildPeriodSection(sec: HTMLElement, periodKey: string): PeriodDOMRefs | null {
   sec.replaceChildren();
 
-  const container = document.createElement('div');
-  container.className = 'container';
+  // Outer dashboard wrapper: single column below 1024px, 2-column above.
+  // DOM order is left → right → stats so mobile stacks as
+  // heading/tabs/summary → chart → stats. On desktop, grid-template-areas
+  // places stats below the left column while the chart spans both rows.
+  const dashboard = document.createElement('div');
+  dashboard.className = 'dashboard';
+
+  const left = document.createElement('div');
+  left.className = 'dashboard__left';
+
+  const right = document.createElement('div');
+  right.className = 'dashboard__right';
+
+  const statsCol = document.createElement('div');
+  statsCol.className = 'dashboard__stats';
 
   const locationText = document.createElement('h2');
   locationText.id = `${periodKey}LocationText`;
   locationText.className = 'location-heading';
-  container.appendChild(locationText);
+  left.appendChild(locationText);
 
   const dateHeading = document.createElement('div');
   dateHeading.id = `${periodKey}DateText`;
   dateHeading.className = 'period-subheading';
-  container.appendChild(dateHeading);
+  left.appendChild(dateHeading);
 
-  container.appendChild(buildPeriodTabs());
+  left.appendChild(buildPeriodTabs());
 
   const dataNotice = document.createElement('div');
   dataNotice.id = `${periodKey}DataNotice`;
   dataNotice.className = 'notice';
-  container.appendChild(dataNotice);
+  left.appendChild(dataNotice);
 
   const summaryText = document.createElement('div');
   summaryText.id = `${periodKey}SummaryText`;
   summaryText.className = 'standard-text summary-text';
-  container.appendChild(summaryText);
+  left.appendChild(summaryText);
 
   const chartContainer = document.createElement('div');
   chartContainer.className = 'chart-container';
@@ -110,7 +123,7 @@ function buildPeriodSection(sec: HTMLElement, periodKey: string): PeriodDOMRefs 
   canvasEl.id = `${periodKey}Chart`;
   chartContainer.appendChild(canvasEl);
 
-  container.appendChild(chartContainer);
+  right.appendChild(chartContainer);
 
   const statsBubble = document.createElement('div');
   statsBubble.id = `${periodKey}StatsBubble`;
@@ -131,15 +144,18 @@ function buildPeriodSection(sec: HTMLElement, periodKey: string): PeriodDOMRefs 
   stddevText.className = 'stddev-text';
   statsBubble.appendChild(stddevText);
 
-  container.appendChild(statsBubble);
+  statsCol.appendChild(statsBubble);
 
   const incompleteNotice = document.createElement('div');
   incompleteNotice.id = `${periodKey}IncompleteDataNotice`;
   incompleteNotice.className = 'notice';
   incompleteNotice.style.display = 'none';
-  container.appendChild(incompleteNotice);
+  statsCol.appendChild(incompleteNotice);
 
-  sec.appendChild(container);
+  dashboard.appendChild(left);
+  dashboard.appendChild(right);
+  dashboard.appendChild(statsCol);
+  sec.appendChild(dashboard);
 
   const loadingEl = document.getElementById(`${periodKey}Loading`) as HTMLElement;
   const periodCanvasNode = document.getElementById(`${periodKey}Chart`);

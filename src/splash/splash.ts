@@ -17,7 +17,7 @@ import { renderAboutPage, renderPrivacyPage, renderPrivacyAppPage } from '../vie
 import { renderFeedPage, buildCard, refreshFeedFlags, ShareItem } from '../views/feed';
 import { flagImg, renderLocationsPage } from '../locations/locations';
 import { formatPeriodHeading, openShareModal } from '../share';
-import { buildLocationDisplay } from '../utils/uiHelpers';
+import { buildLocationDisplay, clearTrendBackground } from '../utils/uiHelpers';
 import { setupChangeLocationButton } from '../views/today';
 
 declare const Chart: any;
@@ -1000,9 +1000,16 @@ export function initializeSplashScreen(): void {
  */
 export function handleLocationChangeInternal(): void {
   debugLog('Change location executed, navigating to splash screen');
-  
+
   // Destroy all charts before navigating away to prevent stale references
   clearAllCachedData();
+
+  // The trend gradient overlay sticks on <html> while a data page is showing;
+  // hide it so the splash gradient isn't tinted red/blue underneath the navbar.
+  // Use clearTrendBackground (not resetTrendBackground) because the next
+  // location selection will recompute its own trend; we don't want the today
+  // view's render → reapplyTrendBackground to restore the previous one.
+  clearTrendBackground();
   
   // Show splash screen
   const splashScreen = document.getElementById('splashScreen');

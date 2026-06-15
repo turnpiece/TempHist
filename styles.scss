@@ -52,6 +52,9 @@ $colour-avg: #D0D4DE;          // neutral grey — was blue (blue now means cold
 
 // Layout variables
 $max-content-width: 600px;
+$max-page-content-width: 1180px;
+$desktop-page-gutter: 2rem;
+$max-page-shell-width: calc(#{$max-page-content-width} + #{2 * $desktop-page-gutter});
 $max-chart-height: 1800px;
 $sidebar-w: 240px; // Must match --sidebar-w CSS custom property
 
@@ -117,9 +120,10 @@ body {
   max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
   box-sizing: border-box; // Include padding in width calculation
 
-  // On very wide screens, centre the page so the sidebar isn't stranded far to the left
+  // On very wide screens, centre the shell around the widest page content.
+  // The extra gutter keeps the topnav logo aligned with 1180px content blocks.
   @media (min-width: 901px) {
-    max-width: 1100px;
+    max-width: $max-page-shell-width;
     margin-left: auto;
     margin-right: auto;
   }
@@ -135,6 +139,69 @@ a {
   position: relative;
   max-width: $max-content-width;
   margin: 0 auto 1em;
+}
+
+// Dashboard: 2-column data layout used by the SPA period views
+// (today/week/month/year). Below the desktop breakpoint it behaves like the
+// regular .container — single column, capped at $max-content-width. DOM
+// order is left → right → stats so mobile stacks as
+// heading/tabs/summary → chart → stats. From 1024px upward (≈ 11-inch iPad
+// landscape) grid-template-areas pulls stats back below the left column
+// while the chart column spans both rows.
+.dashboard {
+  position: relative;
+  max-width: $max-content-width;
+  margin: 0 auto 1em;
+}
+
+.dashboard__left,
+.dashboard__right,
+.dashboard__stats {
+  min-width: 0; // prevents long words / wide canvases from blowing out a grid track
+}
+
+@media (min-width: 1024px) {
+  .dashboard {
+    max-width: $max-page-content-width;
+    min-height: calc(800px + 2rem);
+    padding-right: calc(min(600px, calc(100% - 560px)) + 2.5rem);
+  }
+
+  .dashboard__left,
+  .dashboard__stats {
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .dashboard__right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: min(600px, calc(100% - 560px));
+    padding-top: 2rem;
+  }
+
+  .dashboard__stats {
+    margin-top: 1rem;
+  }
+
+  .dashboard__left .summary-text {
+    font-size: 1.4rem;
+    line-height: 1.45;
+  }
+
+  // Pin the chart to the left edge of its column (default centering would
+  // disconnect the bars from their year markers).
+  .dashboard__right .chart-container {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  // The stats bubble used to sit below the chart with its own max-width.
+  // Inside its own column it should fill the column edge-to-edge.
+  .dashboard__stats .stats-bubble {
+    max-width: 100%;
+  }
 }
 
 .chart-container {
@@ -1167,7 +1234,7 @@ body.has-drawer-open {
 // ── Masthead ───────────────────────────────────────────────────────────────────
 
 .masthead {
-  padding: 2rem 2rem 0; // Extra top space to clear the fixed topnav cleanly
+  padding: 2rem 2rem 0;
   animation: fadeInUp 0.6s ease-out;
 }
 
@@ -1878,8 +1945,8 @@ body.locations-page {
   // Splash sections sit at a 1.5rem gutter on small screens. The data-page
   // shell (#viewOutlet) and the navbar drop further to 1rem so denser controls
   // — like the five-button Snapshots filter row — fit without horizontal scroll.
-  .topnav         { padding: 8px 1rem; }
-  #viewOutlet     { padding-left: 1rem; padding-right: 1rem; }
+  .topnav         { padding: 8px 1.5rem; }
+  #viewOutlet     { padding-left: 1.5rem; padding-right: 1.5rem; }
   .masthead       { padding: 1rem 1.5rem 0; }
   .hero-section   { padding: 1rem 1.5rem 0; }
   .explainer      { padding: 3rem 1.5rem; }
