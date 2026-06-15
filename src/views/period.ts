@@ -36,9 +36,9 @@ function buildPeriodTabs(): HTMLElement {
 
   const entries: Array<{ route: string; label: string }> = [
     { route: '/today', label: 'Today' },
-    { route: '/week', label: 'Past week' },
-    { route: '/month', label: 'Past month' },
-    { route: '/year', label: 'Past year' },
+    { route: '/week', label: 'Week' },
+    { route: '/month', label: 'Month' },
+    { route: '/year', label: 'Year' },
   ];
 
   for (const { route, label } of entries) {
