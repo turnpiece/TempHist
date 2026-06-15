@@ -217,7 +217,7 @@ a {
   justify-content: space-between;
   gap: 16px;
   height: 56px;
-  padding: 8px 16px;
+  padding: 8px 32px;
   background-color: rgba($colour-bg, 0.10);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -267,9 +267,13 @@ a {
       color: var(--thisYear);
     }
 
+    // Underline (not bold) for the active route — keeps the link width
+    // identical so the row doesn't shift when navigation changes.
     &.active {
       color: var(--thisYear);
-      font-weight: 600;
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 6px;
     }
   }
 }
@@ -327,7 +331,8 @@ a {
   bottom: 0;
   width: min(280px, 80vw);
   background: $colour-bg;
-  z-index: 1000;
+  // Must sit above .splash-screen (z-index 9999) and the topnav (10000).
+  z-index: 10002;
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
@@ -352,16 +357,20 @@ a {
     color: $colour-text;
     text-decoration: none;
     font-size: 1.05rem;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease;
 
     &:hover,
     &:focus-visible {
-      background: rgba($colour-text, 0.08);
+      background: rgba($colour-loading-text, 0.10);
+      color: var(--thisYear);
     }
 
     &.active {
-      background: rgba($colour-loading-text, 0.18);
+      background: transparent;
       color: var(--thisYear);
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 6px;
     }
   }
 }
@@ -370,7 +379,8 @@ a {
   position: fixed;
   inset: 56px 0 0 0;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 950;
+  // Above the splash overlay (9999) and topnav (10000); below the drawer.
+  z-index: 10001;
   animation: fadeIn 0.2s ease-out;
 
   &[hidden] {
@@ -392,7 +402,7 @@ body:has(#appShell.hidden) .topnav__links a {
 
   &:hover,
   &:focus-visible {
-    color: $colour-text;
+    color: var(--thisYear);
   }
 }
 
@@ -437,8 +447,8 @@ body:has(#appShell.hidden) .topnav__links a {
     transition: background-color 0.15s ease, color 0.15s ease;
 
     &:hover {
-      color: $colour-text;
-      background: rgba($colour-text, 0.06);
+      color: var(--thisYear);
+      background: rgba($colour-loading-text, 0.10);
     }
 
     &.active {
@@ -482,7 +492,7 @@ body:has(#appShell.hidden) .topnav__links a {
   font: inherit;
   color: inherit;
   text-align: left;
-  transition: opacity 0.15s ease;
+  transition: color 0.15s ease;
 
   svg {
     display: block;
@@ -492,19 +502,15 @@ body:has(#appShell.hidden) .topnav__links a {
   }
 
   &:hover {
-    opacity: 0.8;
+    color: var(--thisYear);
 
     svg {
       opacity: 1;
     }
   }
 
-  &:active {
-    opacity: 0.65;
-  }
-
   &:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--thisYear);
     outline-offset: 3px;
     border-radius: 3px;
   }
@@ -628,10 +634,16 @@ body:has(#appShell.hidden) .topnav__links a {
 #privacyView,
 body.about-page,
 body.privacy-page {
+  // Eyebrow-style section headings (uppercase, blue, letter-spaced).
+  // Reserves the green accent for active/hover link states.
   h3 {
-    color: var(--thisYear);
-    font-size: 1.3em;
-    margin: 1.5em 0 0.5em 0;
+    color: var(--blue-bar, #6b8ed4);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 2em 0 0.5em 0;
   }
 
   p {
@@ -649,17 +661,22 @@ body.privacy-page {
   }
 
   // Don't underline anchors inside the top navbar or its mobile drawer
-  .topnav a,
-  .topnav__drawer a {
+  // (except the .active link, which uses underline as its selected-state cue).
+  .topnav a:not(.active),
+  .topnav__drawer a:not(.active) {
     text-decoration: none;
   }
 }
 
 // Also apply h3 styling to standalone pages
 .container h3 {
-  color: var(--thisYear);
-  font-size: 1.3em;
-  margin: 1.5em 0 0.5em 0;
+  color: var(--blue-bar, #6b8ed4);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 2em 0 0.5em 0;
 }
 
 // Image attribution styles
@@ -1145,7 +1162,7 @@ body.has-drawer-open {
 // ── Masthead ───────────────────────────────────────────────────────────────────
 
 .masthead {
-  padding: 2.75rem 2rem 0;
+  padding: 4rem 2rem 0; // Extra top space to clear the fixed topnav cleanly
   animation: fadeInUp 0.6s ease-out;
 }
 
@@ -1161,18 +1178,22 @@ body.has-drawer-open {
   img { display: block; flex-shrink: 0; }
 }
 
+// Tagline beside the masthead logo. "TEMPERATURE HISTORY" is set in the
+// eyebrow style so it reads as an explanation of TempHist rather than a
+// second wordmark next to the one already in the topnav.
 .masthead-name {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: rgba(255, 255, 255, 0.72);
 }
 
 // ── Hero ───────────────────────────────────────────────────────────────────────
 
 .hero-section {
-  padding: 3rem 2rem 0;
+  padding: 1rem 2rem 0;
   animation: fadeInUp 0.6s ease-out;
 }
 
@@ -1381,14 +1402,14 @@ body.has-drawer-open {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  color: var(--blue-bar, #6b8ed4);
+  color: $colour-text;
   font-size: 0.875rem;
   font-weight: 500;
   text-decoration: none;
   transition: color 0.15s;
   margin-top: 0.5rem;
 
-  &:hover { color: $colour-text; }
+  &:hover { color: var(--thisYear); }
 
   svg { transition: transform 0.15s; }
   &:hover svg { transform: translateX(3px); }
@@ -1801,14 +1822,14 @@ body.locations-page {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  color: var(--blue-bar, #6b8ed4);
+  color: $colour-text;
   font-size: 0.875rem;
   font-weight: 500;
   text-decoration: none;
   margin-top: 0.875rem;
   transition: color 0.15s;
 
-  &:hover { color: $colour-text; }
+  &:hover { color: var(--thisYear); }
 }
 
 @media (max-width: 480px) {
@@ -1838,8 +1859,8 @@ body.locations-page {
 @media (max-width: 640px) {
   // Lateral padding matches #viewOutlet (15px) so the splash screen and
   // SPA pages line up consistently.
-  .masthead       { padding: 1.75rem 15px 0; }
-  .hero-section   { padding: 2rem 15px 0; }
+  .masthead       { padding: 4rem 15px 0; }
+  .hero-section   { padding: 1rem 15px 0; }
   .explainer      { padding: 3rem 15px; }
   .snapshots      { padding: 3rem 15px; }
   .feature-grid   { grid-template-columns: 1fr; }
@@ -2144,16 +2165,15 @@ html.is-pending-location #dateText {
     transition: background 0.15s, color 0.15s, border-color 0.15s;
 
     &:hover:not(:disabled) {
-      background: rgba($colour-text, 0.1);
-      color: $colour-text;
-      border-color: rgba($colour-text, 0.4);
+      background: rgba($colour-loading-text, 0.10);
+      color: var(--thisYear);
+      border-color: rgba($colour-loading-text, 0.4);
     }
 
     &.active {
-      background: rgba($colour-text, 0.15);
-      color: $colour-text;
-      border-color: rgba($colour-text, 0.5);
-      font-weight: 600;
+      background: rgba($colour-loading-text, 0.18);
+      color: var(--thisYear);
+      border-color: rgba($colour-loading-text, 0.5);
     }
 
     &:disabled {
