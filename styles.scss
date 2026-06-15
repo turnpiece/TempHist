@@ -300,6 +300,7 @@ a {
   background: $colour-text;
   border-radius: 2px;
   position: relative;
+  transition: background-color 0.15s ease;
 }
 
 .topnav__menu-icon::before,
@@ -311,10 +312,21 @@ a {
   height: 2px;
   background: $colour-text;
   border-radius: 2px;
+  transition: background-color 0.15s ease;
 }
 
 .topnav__menu-icon::before { top: -6px; }
 .topnav__menu-icon::after  { top: 6px; }
+
+// Burger bars turn green to match the rest of the topnav hover/focus accents.
+.topnav__menu-btn:hover .topnav__menu-icon,
+.topnav__menu-btn:hover .topnav__menu-icon::before,
+.topnav__menu-btn:hover .topnav__menu-icon::after,
+.topnav__menu-btn:focus-visible .topnav__menu-icon,
+.topnav__menu-btn:focus-visible .topnav__menu-icon::before,
+.topnav__menu-btn:focus-visible .topnav__menu-icon::after {
+  background: var(--thisYear);
+}
 
 .topnav__drawer {
   position: fixed;
@@ -627,11 +639,12 @@ body:has(#appShell.hidden) .topnav__links a {
 body.about-page,
 body.privacy-page {
   // Eyebrow-style section headings (uppercase, blue, letter-spaced).
-  // Reserves the green accent for active/hover link states.
+  // Reserves the green accent for active/hover link states. The blue is
+  // lifted from --blue-bar so it stays readable on the dark page bg.
   h3 {
-    color: var(--blue-bar, #6b8ed4);
+    color: #b5c8eb;
     font-family: 'Inter', system-ui, sans-serif;
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -662,9 +675,9 @@ body.privacy-page {
 
 // Also apply h3 styling to standalone pages
 .container h3 {
-  color: var(--blue-bar, #6b8ed4);
+  color: #b5c8eb;
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1849,10 +1862,11 @@ body.locations-page {
 }
 
 @media (max-width: 640px) {
-  // Lateral padding is bumped down a notch (1.5rem) so the navbar, splash
-  // sections and SPA content all line up at the same gutter on small screens.
-  .topnav         { padding: 8px 1.5rem; }
-  #viewOutlet     { padding-left: 1.5rem; padding-right: 1.5rem; }
+  // Splash sections sit at a 1.5rem gutter on small screens. The data-page
+  // shell (#viewOutlet) and the navbar drop further to 1rem so denser controls
+  // — like the five-button Snapshots filter row — fit without horizontal scroll.
+  .topnav         { padding: 8px 1rem; }
+  #viewOutlet     { padding-left: 1rem; padding-right: 1rem; }
   .masthead       { padding: 1rem 1.5rem 0; }
   .hero-section   { padding: 1rem 1.5rem 0; }
   .explainer      { padding: 3rem 1.5rem; }
