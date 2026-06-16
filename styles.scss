@@ -164,20 +164,20 @@ a {
   .dashboard {
     max-width: $max-page-content-width;
     min-height: calc(800px + 2rem);
-    padding-right: calc(min(600px, calc(100% - 560px)) + 2.5rem);
+    padding-right: calc(min(600px, calc(100% - 460px)) + 2.5rem);
   }
 
   .dashboard__left,
   .dashboard__stats {
     width: 100%;
-    max-width: 520px;
+    max-width: 420px;
   }
 
   .dashboard__right {
     position: absolute;
     top: 0;
     right: 0;
-    width: min(600px, calc(100% - 560px));
+    width: min(600px, calc(100% - 460px));
     padding-top: 2rem;
   }
 
@@ -632,7 +632,7 @@ body:has(#appShell.hidden) .topnav__links a {
 // Primary location heading — shown above the period label
 // Icons (flag or fallback emoji) are injected by buildLocationDisplay in JS
 .location-heading {
-  font-size: 2em;
+  font-size: 1.8em;
   margin-top: 0;
   margin-bottom: 0.2em;
   font-weight: normal;

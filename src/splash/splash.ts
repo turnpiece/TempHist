@@ -207,7 +207,7 @@ function refreshLocationFlag(): void {
   const countryCode = getCountryCodeForLocation(globalThis.tempLocation);
   const isDetected = !!globalThis.tempLocationIsDetected;
   if (!countryCode && !isDetected) return;
-  const displayCity = getDisplayCity(globalThis.tempLocation);
+  const displayCity = getDisplayCity(globalThis.tempLocation, 27);
   // Update all visible location headings (today + active period views)
   const headings = document.querySelectorAll<HTMLElement>('.location-heading');
   headings.forEach(el => {

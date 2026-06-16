@@ -77,15 +77,19 @@ export function getLocationCookie(): CookieData {
 /**
  * Extract city name from full location string
  */
-export function getDisplayCity(fullLocation: string): string {
+export function getDisplayCity(fullLocation: string, maxLength?: number): string {
   if (!fullLocation) return fullLocation;
-  
+
   // Decode URL-encoded location first
   const decodedLocation = decodeURIComponent(fullLocation);
-  
+
   // Split by commas and get the first part (city)
   const parts = decodedLocation.split(',').map(part => part.trim());
-  return parts[0];
+  const city = parts[0];
+  if (maxLength && city.length > maxLength) {
+    return city.slice(0, maxLength - 1) + '…';
+  }
+  return city;
 }
 
 /**
