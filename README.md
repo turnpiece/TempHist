@@ -109,6 +109,7 @@ npm run start:local    # serve on localhost:3000 with OG injection
 | `VITE_API_BASE` | Yes | API base URL. Dev: `/api` (relative — proxied by Vite or `server-local.js`). Prod: `https://api.temphist.com` |
 | `VITE_ENABLE_SNAPSHOTS` | No | Set to `false` to disable the Snapshots feed and splash-screen carousel entirely. Defaults to `true`. When `false` the nav link is hidden at build time and all related JS is tree-shaken from the production bundle. |
 | `VITE_TEST_TOKEN` | Dev only | Test token injected by `server-local.js` when Firebase auth is unavailable |
+| `VITE_APPCHECK_DEBUG_TOKEN` | Dev only | Firebase App Check debug token UUID. Register it once in Firebase Console → App Check → Manage debug tokens. Omit to let Firebase generate a new one (you'll be prompted to register it on first run). |
 | `PORT` | No | Server port (default: 3000). Set automatically by Railway in production |
 | `API_BASE` | Dev only | [TempHist API](https://github.com/turnpiece/TempHist-API) URL used by `server-local.js`. Set to `http://localhost:8000` to run the API locally, or point at `https://devapi.temphist.com` / `https://stagingapi.temphist.com` to skip running it locally. |
 
@@ -155,9 +156,24 @@ RewriteRule ^ /%1 [NC,L,R=301]
 
 1. Create a project at [Firebase Console](https://console.firebase.google.com/)
 2. Enable Anonymous Authentication
-3. Add your Firebase config to `src/main.ts`
+3. Enable App Check (reCAPTCHA v3) and add your site key as `VITE_RECAPTCHA_SITE_KEY` in `.env`
+4. Add your Firebase config to `src/firebase.ts`
 
-For local development, `server-local.js` injects a test token automatically so Firebase is not required.
+### App Check debug token (local dev)
+
+In dev mode, the app sets `FIREBASE_APPCHECK_DEBUG_TOKEN` so Firebase generates a debug token instead of requiring reCAPTCHA. On first run you'll see this in the browser console:
+
+```
+App Check debug token: <uuid>. You will need to add it to your app's App Check settings in the Firebase console for it to work.
+```
+
+Register that UUID in **Firebase Console → App Check → Apps → [your web app] → Manage debug tokens**, then add it to `.env`:
+
+```
+VITE_APPCHECK_DEBUG_TOKEN=<your-debug-token-uuid>
+```
+
+Without this, `signInAnonymously` will silently hang and the location carousel (and all API calls) will fail with "No authenticated user" warnings.
 
 ## Testing
 

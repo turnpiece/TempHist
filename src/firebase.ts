@@ -15,7 +15,7 @@ const firebaseConfig = {
 // In dev mode, Firebase generates a debug token (logged to console) that you register once in
 // the Firebase Console → App Check → Manage debug tokens, so local dev works without reCAPTCHA.
 if (import.meta.env.DEV) {
-  (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN || true;
 }
 
 export const app = initializeApp(firebaseConfig);
