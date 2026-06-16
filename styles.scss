@@ -496,8 +496,7 @@ body:has(#appShell.hidden) .topnav__links a {
   padding: 4px;
   background: rgba($colour-text, 0.05);
   border-radius: 999px;
-  width: fit-content;
-  max-width: 100%;
+  width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -507,7 +506,7 @@ body:has(#appShell.hidden) .topnav__links a {
   }
 
   .period-tab {
-    flex: 0 0 auto;
+    flex: 1;
     padding: 8px 16px;
     border-radius: 999px;
     color: rgba($colour-text, 0.72);
@@ -515,6 +514,7 @@ body:has(#appShell.hidden) .topnav__links a {
     font-size: 0.92rem;
     font-weight: 500;
     white-space: nowrap;
+    text-align: center;
     transition: background-color 0.15s ease, color 0.15s ease;
 
     &:hover {

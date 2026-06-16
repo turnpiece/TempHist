@@ -33,7 +33,7 @@ export function flagImg(code: string, width: 20 | 40 = 20): HTMLImageElement {
   img.src = `https://flagcdn.com/w${width}/${cc}.png`;
   img.srcset = `https://flagcdn.com/w${width * 2}/${cc}.png 2x`;
   img.width = width;
-  img.height = Math.round(width * 0.75);
+  img.height = Math.round(width * 0.5);
   img.alt = '';
   img.setAttribute('aria-hidden', 'true');
   return img;
