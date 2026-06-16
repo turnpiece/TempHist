@@ -792,7 +792,6 @@ export async function initSnapshotsCarousel(): Promise<void> {
   left.appendChild(eyebrow);
   left.appendChild(heading);
   left.appendChild(desc);
-  left.appendChild(ctaLink);
 
   // ── Right column: 2×2 grid ────────────────────────────────────────
   const grid = document.createElement('div');
@@ -851,6 +850,7 @@ export async function initSnapshotsCarousel(): Promise<void> {
 
   inner.appendChild(left);
   inner.appendChild(grid);
+  inner.appendChild(ctaLink);
   section.appendChild(inner);
 }
 
