@@ -2514,7 +2514,7 @@ html.is-pending-location #dateText {
   background: $colour-bg;
   border: 1px solid rgba($colour-text, 0.15);
   border-radius: 12px;
-  width: min(640px, 100%);
+  width: min(600px, 100%);
   position: relative;
   padding: 2rem 1.5rem 1.5rem;
   flex-shrink: 0;
@@ -2538,8 +2538,10 @@ html.is-pending-location #dateText {
   }
 }
 
-// Inside the share modal the panel is already capped at 640px, so force
-// .dashboard to stay single-column regardless of viewport width.
+// Inside the share modal the panel is already capped at 600px, so force
+// .dashboard to stay single-column regardless of viewport width. Also undo
+// any viewport-based media query overrides (font size) that are
+// inappropriate for a fixed-size modal container.
 .share-modal-panel .dashboard {
   max-width: 100%;
   padding-right: 0;
@@ -2548,6 +2550,17 @@ html.is-pending-location #dateText {
   .dashboard__right {
     position: static;
     width: 100%;
+    padding-top: 0;
+  }
+
+  .dashboard__left,
+  .dashboard__stats {
+    max-width: 100%;
+  }
+
+  .dashboard__left .summary-text {
+    font-size: 1rem;
+    line-height: 1.5;
   }
 }
 

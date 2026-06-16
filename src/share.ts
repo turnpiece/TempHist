@@ -213,6 +213,16 @@ export function initSharePage(): void {
 
   const refs = buildShareUI(viewOutlet);
 
+  const footer = document.createElement('footer');
+  footer.className = 'site-footer';
+  const footerP = document.createElement('p');
+  footerP.innerHTML =
+    '© 2026 <a href="https://turnpiece.com" title="Turnpiece: ideas &gt; application">Turnpiece</a> · ' +
+    '<a href="/about">About</a> · ' +
+    '<a href="/privacy">Privacy Policy</a>';
+  footer.appendChild(footerP);
+  viewOutlet.appendChild(footer);
+
   (async () => {
     try {
       // Fetch share metadata and preapproved locations in parallel
@@ -311,16 +321,6 @@ export function buildShareUI(viewOutlet: HTMLElement, prefill?: SharePrefill): S
 
   section.appendChild(refs.dashboard);
   viewOutlet.appendChild(section);
-
-  const footer = document.createElement('footer');
-  footer.className = 'site-footer';
-  const footerP = document.createElement('p');
-  footerP.innerHTML =
-    '© 2026 <a href="https://turnpiece.com" title="Turnpiece: ideas &gt; application">Turnpiece</a> · ' +
-    '<a href="/about">About</a> · ' +
-    '<a href="/privacy">Privacy Policy</a>';
-  footer.appendChild(footerP);
-  viewOutlet.appendChild(footer);
 
   return {
     section,
