@@ -102,7 +102,7 @@ function formatSharePeriodHeading(meta) {
   let friendlyDate = '';
   if (
     period === 'daily' || period === 'weekly' || period === 'monthly' ||
-    (period === 'yearly' && identifier && identifier.includes('-'))
+    (period === 'yearly' && identifier?.includes('-'))
   ) {
     const [monthStr, dayStr] = identifier.split('-');
     const month = Number.parseInt(monthStr, 10);

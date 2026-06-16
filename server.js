@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const fs = require('node:fs');
 const { getOrdinal } = require('./lib/getOrdinal');
 require('dotenv').config();
 const app = express();
@@ -52,7 +52,7 @@ app.use((req, res, next) => {
 /** Public site origin for OG / JSON-LD URLs (honours reverse proxies). */
 function getPublicOrigin(req) {
   const xfProto = req.get('x-forwarded-proto');
-  const proto = (xfProto ? xfProto.split(',')[0].trim() : '') || req.protocol || 'https';
+  const proto = xfProto?.split(',')[0].trim() || req.protocol || 'https';
   const host = req.get('x-forwarded-host') || req.get('host') || 'temphist.com';
   return `${proto}://${host}`;
 }
@@ -77,23 +77,24 @@ function sendDistHtml(req, res, filename) {
   res.send(html);
 }
 
-// Map request paths to Vite build entry points — values are always hardcoded strings,
-// never derived from user input, so fs.readFileSync never operates on user-controlled data.
-const HTML_PATH_TO_FILE = new Map([
-  ['/', 'index.html'],
-  ['/index.html', 'index.html'],
-  ['/about.html', 'about.html'],
-  ['/privacy.html', 'privacy.html'],
-  ['/privacy-app.html', 'privacy-app.html'],
-  ['/feed.html', 'feed.html'],
-  ['/locations.html', 'locations.html'],
-]);
+function htmlFileForPath(urlPath) {
+  switch (urlPath) {
+    case '/':
+    case '/index.html':       return 'index.html';
+    case '/about.html':       return 'about.html';
+    case '/privacy.html':     return 'privacy.html';
+    case '/privacy-app.html': return 'privacy-app.html';
+    case '/feed.html':        return 'feed.html';
+    case '/locations.html':   return 'locations.html';
+    default:                  return null;
+  }
+}
 
 // HTML entry points: rewrite canonical https://temphist.com → request origin before static
 // (otherwise express.static index would serve / without this pass).
 app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
-  const file = HTML_PATH_TO_FILE.get(req.path);
+  const file = htmlFileForPath(req.path);
   if (!file) return next();
   try {
     sendDistHtml(req, res, file);
@@ -119,7 +120,7 @@ function formatSharePeriodHeading(meta) {
 
   if (
     period === 'daily' || period === 'weekly' || period === 'monthly' ||
-    (period === 'yearly' && identifier && identifier.includes('-'))
+    (period === 'yearly' && identifier?.includes('-'))
   ) {
     const [monthStr, dayStr] = identifier.split('-');
     const month = Number.parseInt(monthStr, 10);

@@ -2438,14 +2438,6 @@ html.is-pending-location #dateText {
     font-size: 0.8rem;
     color: rgba($colour-text, 0.6);
   }
-
-  &__period {
-    // intentionally inherits meta colour
-  }
-
-  &__time {
-    // intentionally inherits meta colour
-  }
 }
 
 @keyframes feed-shimmer {
