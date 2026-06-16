@@ -5,22 +5,14 @@ import {
   transformToChartData,
   calculateTemperatureRange
 } from './api/temperature';
-import {
-  CHART_COLORS,
-  CHART_AXIS_COLOR,
-  CHART_FONT_SIZE_SMALL,
-  CHART_FONT_SIZE_MEDIUM,
-  INITIAL_LOADING_TEXT
-} from './constants/index';
 import type { ChartDataPoint, JobResultResponse, PreapprovedLocation } from './types/index';
 import { getOrdinal, countryCodeToFlag, getCountryCodeForLocation } from './utils/location';
 import {
-  calculateTrendLine,
-  computeBarColors,
-  buildExternalTooltipHandler,
-  getTemperatureLinearAxisExtents
+  createTemperatureChart,
+  updateChartTrendLine,
 } from './chart/chart';
-import { renderStatsToElements, createSpinner, applyTrendBackground } from './utils/uiHelpers';
+import { renderStatsToElements, applyTrendBackground } from './utils/uiHelpers';
+import { buildDashboard } from './utils/dashboardBuilder';
 
 // Chart.js global (loaded via CDN defer in index.html)
 declare const Chart: any;
@@ -45,8 +37,6 @@ export interface SharePrefill {
 
 export interface ShareUIRefs {
   section: HTMLElement;
-  contentEl: HTMLElement;
-  belowChartEl: HTMLElement;
   titleEl: HTMLElement;
   locationEl: HTMLElement;
   summaryTextEl: HTMLElement;
@@ -60,6 +50,7 @@ export interface ShareUIRefs {
   stddevTextEl: HTMLElement;
   trendTextEl: HTMLElement;
   generatedAtEl: HTMLElement;
+  ctaDiv: HTMLElement;
 }
 
 export function isSharePagePath(): boolean {
@@ -293,138 +284,60 @@ export function buildShareUI(viewOutlet: HTMLElement, prefill?: SharePrefill): S
   const section = document.createElement('section');
   section.className = 'share-page';
 
-  const container = document.createElement('div');
-  container.className = 'container';
+  const generatedAtEl = document.createElement('div');
+  generatedAtEl.className = 'share-generated-at share-page-pending';
 
-  const locationEl = document.createElement('h2');
-  locationEl.className = 'location-heading';
+  const ctaDiv = document.createElement('div');
+  ctaDiv.className = 'share-page-cta share-page-pending';
+  const ctaLink = document.createElement('a');
+  ctaLink.href = '/';
+  ctaLink.textContent = 'Explore your own temperature history →';
+  ctaDiv.appendChild(ctaLink);
 
-  const titleEl = document.createElement('div');
-  titleEl.className = 'period-subheading';
+  const refs = buildDashboard({
+    showErrorContainer: true,
+    extraStatsContent: [generatedAtEl, ctaDiv],
+  });
+
+  refs.loadingEl.classList.add('visible');
 
   if (prefill) {
-    // We already know the location and period — show them immediately in a
-    // separate wrapper that is not hidden by .share-page-pending.
-    // (opacity:0 on a parent cannot be overridden by children, so the elements
-    // must live outside the pending wrapper to be visible while loading.)
-    const preHeaderEl = document.createElement('div');
-    preHeaderEl.className = 'share-page-preheader';
     const prefillCity = prefill.location.split(',')[0].trim();
     const prefillCode = getCountryCodeForLocation(prefill.location);
     const prefillFlag = prefillCode ? countryCodeToFlag(prefillCode) : null;
-    locationEl.textContent = prefillFlag ? `${prefillFlag} ${prefillCity}` : prefillCity;
-    titleEl.textContent = formatPeriodHeading(prefill);
-    preHeaderEl.appendChild(locationEl);
-    preHeaderEl.appendChild(titleEl);
-    container.appendChild(preHeaderEl);
+    refs.locationEl.textContent = prefillFlag ? `${prefillFlag} ${prefillCity}` : prefillCity;
+    refs.titleEl.textContent = formatPeriodHeading(prefill);
   }
 
-  // Wrap summary text in a pending div so it stays hidden until data loads
-  const contentEl = document.createElement('div');
-  contentEl.className = 'share-page-pending';
-  container.appendChild(contentEl);
-
-  if (!prefill) {
-    // Without prefill the headings stay inside the pending wrapper and fade in
-    // together with the summary once data has loaded (existing behaviour for the
-    // standalone /s/:id share page).
-    contentEl.appendChild(locationEl);
-    contentEl.appendChild(titleEl);
-  }
-
-  const summaryTextEl = document.createElement('div');
-  summaryTextEl.className = 'summary-text';
-  contentEl.appendChild(summaryTextEl);
-
-  // Chart container
-  const chartContainer = document.createElement('div');
-  chartContainer.className = 'chart-container';
-
-  const loadingEl = document.createElement('div');
-  loadingEl.className = 'loading visible';
-
-  loadingEl.appendChild(createSpinner());
-
-  const loadingTextEl = document.createElement('p');
-  loadingTextEl.className = 'loading-text';
-  loadingTextEl.textContent = INITIAL_LOADING_TEXT;
-  loadingEl.appendChild(loadingTextEl);
-
-  chartContainer.appendChild(loadingEl);
-
-  const errorContainerEl = document.createElement('div');
-  errorContainerEl.className = 'error-container';
-  errorContainerEl.style.display = 'none';
-
-  const errorContent = document.createElement('div');
-  errorContent.className = 'error-content';
-
-  const errorMessageEl = document.createElement('div');
-  errorMessageEl.className = 'error-message';
-  errorContent.appendChild(errorMessageEl);
-
-  errorContainerEl.appendChild(errorContent);
-  chartContainer.appendChild(errorContainerEl);
-
-  const canvas = document.createElement('canvas');
-  canvas.id = 'shareChart';
-  chartContainer.appendChild(canvas);
-
-  container.appendChild(chartContainer);
-
-  // Elements below the chart, hidden until data loads
-  const belowChartEl = document.createElement('div');
-  belowChartEl.className = 'share-page-pending';
-  container.appendChild(belowChartEl);
-
-  const statsBubbleEl = document.createElement('div');
-  statsBubbleEl.className = 'stats-bubble';
-  belowChartEl.appendChild(statsBubbleEl);
-
-  const avgTextEl = document.createElement('div');
-  avgTextEl.className = 'avg-text';
-  statsBubbleEl.appendChild(avgTextEl);
-
-  const stddevTextEl = document.createElement('div');
-  stddevTextEl.className = 'stddev-text';
-  statsBubbleEl.appendChild(stddevTextEl);
-
-  const trendTextEl = document.createElement('div');
-  trendTextEl.className = 'trend-text';
-  statsBubbleEl.appendChild(trendTextEl);
-
-  const generatedAtEl = document.createElement('div');
-  generatedAtEl.className = 'share-generated-at';
-  belowChartEl.appendChild(generatedAtEl);
-
-  const ctaDiv = document.createElement('div');
-  ctaDiv.className = 'share-page-cta';
-  const ctaLink = document.createElement('a');
-  ctaLink.href = '/';
-  ctaLink.textContent = 'Explore your own temperature history \u2192';
-  ctaDiv.appendChild(ctaLink);
-  belowChartEl.appendChild(ctaDiv);
-
-  section.appendChild(container);
+  section.appendChild(refs.dashboard);
   viewOutlet.appendChild(section);
+
+  const footer = document.createElement('footer');
+  footer.className = 'site-footer';
+  const footerP = document.createElement('p');
+  footerP.innerHTML =
+    '© 2026 <a href="https://turnpiece.com" title="Turnpiece: ideas &gt; application">Turnpiece</a> · ' +
+    '<a href="/about">About</a> · ' +
+    '<a href="/privacy">Privacy Policy</a>';
+  footer.appendChild(footerP);
+  viewOutlet.appendChild(footer);
 
   return {
     section,
-    contentEl,
-    belowChartEl,
-    titleEl,
-    locationEl,
-    summaryTextEl,
-    loadingEl,
-    loadingTextEl,
-    errorContainerEl,
-    errorMessageEl,
-    canvas,
-    statsBubbleEl,
-    avgTextEl,
-    stddevTextEl,
-    trendTextEl,
-    generatedAtEl
+    titleEl: refs.titleEl,
+    locationEl: refs.locationEl,
+    summaryTextEl: refs.summaryTextEl,
+    loadingEl: refs.loadingEl,
+    loadingTextEl: refs.loadingTextEl,
+    errorContainerEl: refs.errorContainerEl!,
+    errorMessageEl: refs.errorMessageEl!,
+    canvas: refs.canvas,
+    statsBubbleEl: refs.statsBubbleEl,
+    avgTextEl: refs.avgTextEl,
+    stddevTextEl: refs.stddevTextEl,
+    trendTextEl: refs.trendTextEl,
+    generatedAtEl,
+    ctaDiv,
   };
 }
 
@@ -490,10 +403,6 @@ export async function renderShareChart(
   const data = result.data;
   const chartData = transformToChartData(data.values);
   const rawRange = calculateTemperatureRange(chartData);
-  const { min: xAxisMin, max: xAxisMax, stepSize: xStepSize } = getTemperatureLinearAxisExtents(
-    rawRange.min,
-    rawRange.max
-  );
 
   const years = chartData.map(d => d.y);
   const minYear = Math.min(...years);
@@ -505,19 +414,14 @@ export async function renderShareChart(
   const cityName = meta.location.split(',')[0].trim();
 
   // Look up flag from preapproved locations by city name
-  const cityLower = cityName.toLowerCase();
-  const matchedLocation = locations.find(l => l.name.toLowerCase() === cityLower);
+  const matchedLocation = locations.find(l => l.name.toLowerCase() === cityName.toLowerCase());
   const flag = matchedLocation ? countryCodeToFlag(matchedLocation.country_code) : null;
   const locationLabel = flag ? `${flag} ${cityName}` : `\ud83d\udccd ${cityName}`;
 
-  // Update heading (location primary, period secondary)
   refs.locationEl.textContent = locationLabel;
   refs.titleEl.textContent = formatPeriodHeading(meta);
-
-  // Display the API summary
   refs.summaryTextEl.textContent = data.summary || '';
 
-  // Populate stats bubble
   renderStatsToElements(
     refs.avgTextEl,
     refs.stddevTextEl,
@@ -528,7 +432,6 @@ export async function renderShareChart(
     tempDecimals
   );
 
-  // Show generation datetime
   refs.generatedAtEl.textContent = formatGeneratedAt(meta.created_at);
 
   if (applyBg) {
@@ -541,131 +444,31 @@ export async function renderShareChart(
   refs.canvas.classList.add('visible');
   refs.summaryTextEl.classList.add('visible');
   refs.statsBubbleEl.classList.add('visible');
-  refs.contentEl.classList.replace('share-page-pending', 'share-page-ready');
-  refs.belowChartEl.classList.replace('share-page-pending', 'share-page-ready');
+  refs.generatedAtEl.classList.replace('share-page-pending', 'share-page-ready');
+  refs.ctaDiv.classList.replace('share-page-pending', 'share-page-ready');
 
   const ctx = refs.canvas.getContext('2d');
   if (!ctx) throw new Error('No canvas context');
 
-  const periodLabel = formatPeriodLabel(meta);
-  const barColors = computeBarColors(chartData, data.average.mean, data.average.standard_deviation);
+  const periodTitleMap: Record<string, string> = {
+    daily: 'Today', weekly: 'Week', monthly: 'Month', yearly: 'Year',
+  };
 
-  const chart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      datasets: [
-        {
-          label: 'Trend',
-          type: 'line',
-          data: [],
-          backgroundColor: CHART_COLORS.TREND,
-          borderColor: CHART_COLORS.TREND,
-          fill: false,
-          pointRadius: 0,
-          borderWidth: 2,
-          clip: false
-        },
-        {
-          label: `Temperature in ${cityName} for ${periodLabel}`,
-          type: 'bar',
-          data: chartData,
-          backgroundColor: barColors,
-          borderWidth: 0,
-          borderRadius: 3,
-          base: xAxisMin
-        }
-      ]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      parsing: false,
-      animation: { duration: 0 },
-      normalized: true,
-      layout: {
-        padding: { left: 0, right: 20, top: 5, bottom: 15 }
-      },
-      plugins: {
-        legend: { display: false },
-        annotation: {
-          annotations: {
-            averageLine: {
-              type: 'line',
-              yMin: minYear - 1.5,
-              yMax: maxYear + 1.5,
-              xMin: data.average.mean,
-              xMax: data.average.mean,
-              borderColor: CHART_COLORS.AVERAGE,
-              borderWidth: 2,
-              label: {
-                display: true,
-                content: `Average: ${data.average.mean.toFixed(tempDecimals)}${unitLabel}`,
-                position: 'start',
-                font: { size: CHART_FONT_SIZE_MEDIUM, family: "ui-monospace, 'SF Mono', 'Courier New', monospace" }
-              }
-            }
-          }
-        },
-        tooltip: {
-          enabled: false,
-          external: buildExternalTooltipHandler(data.average.mean, barColors, tempDecimals, unitLabel)
-        }
-      },
-      scales: {
-        x: {
-          type: 'linear',
-          position: 'top',
-          border: { color: 'rgba(236, 236, 236, 0.35)' },
-          title: {
-            display: true,
-            text: `Temperature (${unitLabel})`,
-            font: { size: CHART_FONT_SIZE_MEDIUM, family: "ui-monospace, 'SF Mono', 'Courier New', monospace" },
-            color: CHART_AXIS_COLOR
-          },
-          min: xAxisMin,
-          max: xAxisMax,
-          ticks: {
-            font: { size: CHART_FONT_SIZE_SMALL, family: "ui-monospace, 'SF Mono', 'Courier New', monospace" },
-            color: CHART_AXIS_COLOR,
-            stepSize: xStepSize
-          }
-        },
-        y: {
-          type: 'linear',
-          border: { color: 'rgba(236, 236, 236, 0.35)' },
-          min: minYear,
-          max: maxYear,
-          ticks: {
-            maxTicksLimit: 20,
-            callback: (val: any) => val.toString(),
-            font: { size: CHART_FONT_SIZE_SMALL, family: "ui-monospace, 'SF Mono', 'Courier New', monospace" },
-            color: CHART_AXIS_COLOR
-          },
-          title: { display: false },
-          grid: { display: false },
-          offset: true
-        }
-      },
-      elements: {
-        bar: {
-          minBarLength: 30,
-          maxBarThickness: 30,
-          categoryPercentage: 0.1,
-          barPercentage: 1.0
-        }
-      }
-    }
-  });
-
-  // Add trend line
-  const trendResult = calculateTrendLine(
-    chartData.map(d => ({ x: d.y, y: d.x })),
-    minYear - 1.5,
-    maxYear + 1.5
+  const chart = createTemperatureChart(
+    ctx,
+    chartData,
+    { temp: data.average.mean, stdDev: data.average.standard_deviation },
+    periodTitleMap[meta.period] ?? meta.period,
+    formatFriendlyDate(meta),
+    rawRange.min,
+    rawRange.max,
+    minYear,
+    maxYear,
+    meta.period,
+    { unitLabel, tempDecimals }
   );
-  chart.data.datasets[0].data = trendResult.points.map((p: ChartDataPoint) => ({ x: p.y, y: p.x }));
-  chart.update();
+
+  updateChartTrendLine(chart, chartData, minYear, maxYear);
 
   return chart;
 }
@@ -835,7 +638,7 @@ export function openShareModal(shareId: string, prefill?: SharePrefill): void {
   activeModal = { el: backdrop, chart: null, savedBg };
 
   const refs = buildShareUI(panel, prefill);
-  panel.querySelector<HTMLElement>('.share-page-cta')?.style.setProperty('display', 'none');
+  refs.ctaDiv.style.display = 'none';
 
   (async () => {
     try {
@@ -861,9 +664,7 @@ export function showShareError(refs: ShareUIRefs, message: string): void {
   refs.locationEl.style.display = 'none';
   refs.errorContainerEl.style.display = 'block';
   refs.errorMessageEl.textContent = message;
-  // Reveal content wrappers so the error message and CTA link are visible
-  refs.contentEl.classList.replace('share-page-pending', 'share-page-ready');
-  refs.belowChartEl.classList.replace('share-page-pending', 'share-page-ready');
+  refs.ctaDiv.classList.replace('share-page-pending', 'share-page-ready');
 }
 
 function showRootError(message: string): void {

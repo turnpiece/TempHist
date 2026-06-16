@@ -2538,6 +2538,19 @@ html.is-pending-location #dateText {
   }
 }
 
+// Inside the share modal the panel is already capped at 640px, so force
+// .dashboard to stay single-column regardless of viewport width.
+.share-modal-panel .dashboard {
+  max-width: 100%;
+  padding-right: 0;
+  min-height: 0;
+
+  .dashboard__right {
+    position: static;
+    width: 100%;
+  }
+}
+
 .share-modal-close {
   position: absolute;
   top: 0.6rem;

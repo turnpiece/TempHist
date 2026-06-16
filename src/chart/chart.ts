@@ -260,13 +260,15 @@ export function createTemperatureChart(
   maxTemp: number,
   startYear: number,
   currentYear: number,
-  period: 'daily' | 'weekly' | 'monthly' | 'yearly'
+  period: 'daily' | 'weekly' | 'monthly' | 'yearly',
+  options?: { unitLabel?: string; tempDecimals?: number }
 ): any {
   if (!ctx || !ctx.canvas) {
     throw new Error('Invalid canvas context provided to createTemperatureChart');
   }
 
-  const tempDecimals = period === 'daily' ? 1 : 2;
+  const unitLabel = options?.unitLabel ?? '°C';
+  const tempDecimals = options?.tempDecimals ?? (period === 'daily' ? 1 : 2);
   const barColors = computeBarColors(chartData, averageData.temp, averageData.stdDev);
   const trendColour = CHART_COLORS.TREND;
   const avgColour = CHART_COLORS.AVERAGE;
@@ -342,7 +344,7 @@ export function createTemperatureChart(
               borderWidth: 2,
               label: {
                 display: true,
-                content: `Average: ${averageData.temp.toFixed(2)}°C`,
+                content: `Average: ${averageData.temp.toFixed(tempDecimals)}${unitLabel}`,
                 position: 'start',
                 font: {
                   size: CHART_FONT_SIZE_MEDIUM,
@@ -354,7 +356,7 @@ export function createTemperatureChart(
         },
         tooltip: {
           enabled: false,
-          external: buildExternalTooltipHandler(averageData.temp, barColors as string[], tempDecimals)
+          external: buildExternalTooltipHandler(averageData.temp, barColors as string[], tempDecimals, unitLabel)
         }
       },
       scales: {
@@ -364,7 +366,7 @@ export function createTemperatureChart(
           position: 'top',
           title: {
             display: true,
-            text: 'Temperature (°C)',
+            text: `Temperature (${unitLabel})`,
             font: {
               size: CHART_FONT_SIZE_MEDIUM,
               family: CHART_AXIS_FONT_FAMILY

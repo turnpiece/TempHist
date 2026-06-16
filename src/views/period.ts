@@ -3,14 +3,15 @@
  */
 
 import type { AsyncJobResponse } from '../types/index';
-import { DEFAULT_LOCATION, INITIAL_LOADING_TEXT, LOADING_TIMEOUTS, DATE_RANGE_CONFIG } from '../constants/index';
+import { DEFAULT_LOCATION, LOADING_TIMEOUTS, DATE_RANGE_CONFIG } from '../constants/index';
 import { getDisplayCity, getOrdinal, getCountryCodeForLocation } from '../utils/location';
 import { LoadingManager } from '../utils/LoadingManager';
 import { DataCache } from '../utils/DataCache';
 import { FeatureFlags } from '../utils/FeatureFlags';
 import { fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange, validateTemperatureDataResponse } from '../api/temperature';
 import { createTemperatureChart, updateChartTrendLine } from '../chart/chart';
-import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, createSpinner, applyTrendBackground, resetTrendBackground } from '../utils/uiHelpers';
+import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, applyTrendBackground, resetTrendBackground } from '../utils/uiHelpers';
+import { buildDashboard } from '../utils/dashboardBuilder';
 import { setupChangeLocationButton } from './today';
 import { setupShareButton } from '../share';
 import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../utils/dateUtils';
@@ -65,112 +66,15 @@ interface ParsedPeriodData {
 function buildPeriodSection(sec: HTMLElement, periodKey: string): PeriodDOMRefs | null {
   sec.replaceChildren();
 
-  // Outer dashboard wrapper: single column below 1024px, 2-column above.
-  // DOM order is left → right → stats so mobile stacks as
-  // heading/tabs/summary → chart → stats. On desktop, grid-template-areas
-  // places stats below the left column while the chart spans both rows.
-  const dashboard = document.createElement('div');
-  dashboard.className = 'dashboard';
+  const { dashboard, loadingEl, canvas } = buildDashboard({
+    idPrefix: periodKey,
+    tabsEl: buildPeriodTabs(),
+    showDataNotice: true,
+    showIncompleteNotice: true,
+  });
 
-  const left = document.createElement('div');
-  left.className = 'dashboard__left';
-
-  const right = document.createElement('div');
-  right.className = 'dashboard__right';
-
-  const statsCol = document.createElement('div');
-  statsCol.className = 'dashboard__stats';
-
-  const locationText = document.createElement('h2');
-  locationText.id = `${periodKey}LocationText`;
-  locationText.className = 'location-heading';
-  left.appendChild(locationText);
-
-  const dateHeading = document.createElement('div');
-  dateHeading.id = `${periodKey}DateText`;
-  dateHeading.className = 'period-subheading';
-  left.appendChild(dateHeading);
-
-  left.appendChild(buildPeriodTabs());
-
-  const dataNotice = document.createElement('div');
-  dataNotice.id = `${periodKey}DataNotice`;
-  dataNotice.className = 'notice';
-  left.appendChild(dataNotice);
-
-  const summaryText = document.createElement('div');
-  summaryText.id = `${periodKey}SummaryText`;
-  summaryText.className = 'standard-text summary-text';
-  left.appendChild(summaryText);
-
-  const chartContainer = document.createElement('div');
-  chartContainer.className = 'chart-container';
-
-  const loadingDiv = document.createElement('div');
-  loadingDiv.id = `${periodKey}Loading`;
-  loadingDiv.className = 'loading';
-  loadingDiv.appendChild(createSpinner());
-
-  const loadingText = document.createElement('p');
-  loadingText.id = `${periodKey}LoadingText`;
-  loadingText.className = 'loading-text';
-  loadingText.textContent = INITIAL_LOADING_TEXT;
-  loadingDiv.appendChild(loadingText);
-
-  chartContainer.appendChild(loadingDiv);
-
-  const canvasEl = document.createElement('canvas');
-  canvasEl.id = `${periodKey}Chart`;
-  chartContainer.appendChild(canvasEl);
-
-  right.appendChild(chartContainer);
-
-  const statsBubble = document.createElement('div');
-  statsBubble.id = `${periodKey}StatsBubble`;
-  statsBubble.className = 'stats-bubble';
-
-  const avgText = document.createElement('div');
-  avgText.id = `${periodKey}AvgText`;
-  avgText.className = 'avg-text';
-  statsBubble.appendChild(avgText);
-
-  const trendText = document.createElement('div');
-  trendText.id = `${periodKey}TrendText`;
-  trendText.className = 'trend-text';
-  statsBubble.appendChild(trendText);
-
-  const stddevText = document.createElement('div');
-  stddevText.id = `${periodKey}StddevText`;
-  stddevText.className = 'stddev-text';
-  statsBubble.appendChild(stddevText);
-
-  statsCol.appendChild(statsBubble);
-
-  const incompleteNotice = document.createElement('div');
-  incompleteNotice.id = `${periodKey}IncompleteDataNotice`;
-  incompleteNotice.className = 'notice';
-  incompleteNotice.style.display = 'none';
-  statsCol.appendChild(incompleteNotice);
-
-  dashboard.appendChild(left);
-  dashboard.appendChild(right);
-  dashboard.appendChild(statsCol);
+  loadingEl.classList.add('visible');
   sec.appendChild(dashboard);
-
-  const loadingEl = document.getElementById(`${periodKey}Loading`) as HTMLElement;
-  const periodCanvasNode = document.getElementById(`${periodKey}Chart`);
-
-  if (!periodCanvasNode) {
-    debugLog(`${periodKey}: Canvas element not found in DOM`);
-    return null;
-  }
-
-  if (!(periodCanvasNode instanceof HTMLCanvasElement)) {
-    debugLog(`${periodKey}: Expected a <canvas> element but found`, periodCanvasNode?.nodeName);
-    return null;
-  }
-
-  const canvas = periodCanvasNode;
 
   if (!canvas.parentNode || !document.contains(canvas)) {
     debugLog(`${periodKey}: Canvas element not in DOM`);
