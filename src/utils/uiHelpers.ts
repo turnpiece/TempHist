@@ -39,9 +39,7 @@ export function buildLocationDisplay(
   const buttonId = periodKey ? `changeLocationBtn-${periodKey}` : 'changeLocationBtn';
 
   // Clear existing contents
-  while (container.firstChild) {
-    container.removeChild(container.firstChild);
-  }
+  container.replaceChildren();
 
   // Flag for known location; no prefix for detected without a country code; 📍 only for manual unknown
   const prefix = countryCode

@@ -440,7 +440,7 @@ export async function initLocationCarousel(): Promise<void> {
   }
 
   // Clear any previous state (skeleton cards + error message) before (re-)initialising
-  while (track.firstChild) track.removeChild(track.firstChild);
+  track.replaceChildren();
   const existingError = document.getElementById('location-carousel-error');
   if (existingError) existingError.remove();
 
@@ -486,12 +486,10 @@ export async function initLocationCarousel(): Promise<void> {
     }
 
     // Clear track content without using innerHTML (Trusted Types safe)
-    while (track.firstChild) {
-      track.removeChild(track.firstChild);
-    }
+    track.replaceChildren();
 
     // Geo-sort: put user's region first, then slice to 10
-    const userCountry = ((window as any).__TH_COUNTRY || '').toUpperCase();
+    const userCountry = ((globalThis as any).__TH_COUNTRY || '').toUpperCase();
     const sortedLocations = geoSortLocations(locations, userCountry).slice(0, 10);
 
     if (globalThis.debugLog) {

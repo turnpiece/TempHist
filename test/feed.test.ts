@@ -75,17 +75,17 @@ function mockErrorResponse(status: number): Response {
 describe('fetchShares', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    global.fetch = vi.fn()
-    // apiFetch() requires window.currentUser to be set, otherwise it throws
+    globalThis.fetch = vi.fn() as any
+    // apiFetch() requires globalThis.currentUser to be set, otherwise it throws
     // before ever reaching the mocked global fetch above
-    ;(window as any).currentUser = {
+    ;(globalThis as any).currentUser = {
       uid: 'test-uid',
       getIdToken: vi.fn().mockResolvedValue('mock-id-token'),
     }
   })
 
   afterEach(() => {
-    delete (window as any).currentUser
+    delete (globalThis as any).currentUser
   })
 
   it('fetches shares with default params', async () => {

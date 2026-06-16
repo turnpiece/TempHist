@@ -305,7 +305,7 @@ export async function renderLocationsPage(): Promise<void> {
       apiFetch(getApiUrl(`/v1/locations/popular?limit=${POPULAR_LIMIT}`)).then(r => r.ok ? r.json() : null),
     ]);
 
-    while (content.firstChild) content.removeChild(content.firstChild);
+    content.replaceChildren();
 
     const featured: PreapprovedLocation[] = parseLocArr(preapprovedRes);
     const popular: PopularLocation[] = parseLocArr(popularRes);
@@ -401,7 +401,7 @@ export async function renderLocationsPage(): Promise<void> {
       applyLocationsFilter(content, filterInput.value);
     });
   } catch {
-    while (content.firstChild) content.removeChild(content.firstChild);
+    content.replaceChildren();
     const err = document.createElement('p');
     err.className = 'locations-status locations-status--error';
     err.textContent = 'Failed to load locations. Please try again.';

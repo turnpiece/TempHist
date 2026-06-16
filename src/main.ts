@@ -192,9 +192,7 @@ function retryDataFetch(): void {
     if (noticeEl) {
       noticeEl.style.display = 'none';
       // Clear content (Trusted Types safe)
-      while (noticeEl.firstChild) {
-        noticeEl.removeChild(noticeEl.firstChild);
-      }
+      noticeEl.replaceChildren();
       noticeEl.className = 'notice';
     }
   }

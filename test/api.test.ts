@@ -22,10 +22,10 @@ describe('API Functions', () => {
     vi.resetAllMocks()
 
     // Restore mocks cleared by resetAllMocks that setup.ts initialised
-    global.fetch = vi.fn()
+    globalThis.fetch = vi.fn() as any
 
     // Mock currentUser
-    window.currentUser = {
+    ;(globalThis as any).currentUser = {
       uid: 'test-user-id',
       getIdToken: vi.fn().mockResolvedValue('mock-token')
     }

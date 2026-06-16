@@ -10,8 +10,8 @@ describe('Location Detection', () => {
     document.body.innerHTML = ''
     
     // Reset window globals
-    window.tempLocation = null
-    window.tempLocationSource = null
+    ;(globalThis as any).tempLocation = null
+    ;(globalThis as any).tempLocationSource = null
   })
 
   describe('Geolocation API', () => {

@@ -620,7 +620,7 @@ export async function proceedWithLocation(
       splashScreen.classList.remove('fade-out');
       
       // Re-enable body scroll when splash screen is hidden (restore for iOS Safari)
-      const savedScrollY = (window as any).savedScrollY || 0;
+      const savedScrollY = (globalThis as any).savedScrollY || 0;
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
@@ -637,7 +637,7 @@ export async function proceedWithLocation(
       // Restore scroll position
       if (savedScrollY) {
         window.scrollTo(0, savedScrollY);
-        delete (window as any).savedScrollY;
+        delete (globalThis as any).savedScrollY;
       }
       
       // Ensure layout is correct after restoring body from fixed positioning
@@ -977,7 +977,7 @@ export function initializeSplashScreen(): void {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
     // Store scroll position for restoration
-    (window as any).savedScrollY = scrollY;
+    (globalThis as any).savedScrollY = scrollY;
     // Ensure splash screen starts at top
     splashScreen.scrollTop = 0;
   }
@@ -1031,7 +1031,7 @@ export function handleLocationChangeInternal(): void {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
     // Store scroll position for restoration
-    (window as any).savedScrollY = scrollY;
+    (globalThis as any).savedScrollY = scrollY;
     // Reset splash screen scroll to top
     splashScreen.scrollTop = 0;
   }
@@ -1079,4 +1079,4 @@ export function handleLocationChangeInternal(): void {
 }
 
 // Expose handleManualLocationSelection globally for use by location carousel
-(window as any).handleManualLocationSelection = handleManualLocationSelection;
+(globalThis as any).handleManualLocationSelection = handleManualLocationSelection;

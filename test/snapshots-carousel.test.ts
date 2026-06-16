@@ -137,11 +137,11 @@ describe('initSnapshotsCarousel', () => {
 
   beforeEach(async () => {
     vi.resetAllMocks()
-    global.fetch = vi.fn()
+    globalThis.fetch = vi.fn() as any
     setupDOM()
-    // apiFetch() requires window.currentUser to be set, otherwise it throws
+    // apiFetch() requires globalThis.currentUser to be set, otherwise it throws
     // before ever reaching the mocked global fetch above
-    ;(window as any).currentUser = {
+    ;(globalThis as any).currentUser = {
       uid: 'test-uid',
       getIdToken: vi.fn().mockResolvedValue('mock-id-token'),
     }
@@ -151,7 +151,7 @@ describe('initSnapshotsCarousel', () => {
   })
 
   afterEach(() => {
-    delete (window as any).currentUser
+    delete (globalThis as any).currentUser
   })
 
   it('populates the section with 2-column layout, heading, description, CTA and card grid when shares are returned', async () => {

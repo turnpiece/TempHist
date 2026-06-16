@@ -75,7 +75,7 @@ export function installDevTestHooks(debugLog: (...args: unknown[]) => void): voi
   };
 
   // Auto-apply if ?mockTrend=cooling|warming|<number> is in the URL.
-  const mockParam = new URLSearchParams(window.location.search).get('mockTrend');
+  const mockParam = new URLSearchParams(globalThis.location.search).get('mockTrend');
   if (mockParam !== null) {
     const parsed = Number.parseFloat(mockParam);
     const slope = !Number.isNaN(parsed) ? parsed : (mockParam as 'cooling' | 'warming');
