@@ -36,7 +36,7 @@ app.use((req, res, next) => {
     "form-action 'self'",
     "frame-ancestors 'none'",
     "require-trusted-types-for 'script'",
-    "trusted-types 'none'"
+    "trusted-types default decodeHTMLEntitiesPolicy goog#html firebase-js-sdk gapi#gapi 'allow-duplicates'"
   ].join('; ');
   
   res.header('Content-Security-Policy', cspDirectives);

@@ -29,6 +29,10 @@
       integrity="sha384-WVRZ5bDoBpBp9eKFxji3f7JiiY/SCi2kWJpzG+AgHnafhqQOzp4mmqsPBZgiCxlu"
       crossorigin="anonymous" defer
     ></script>
+    <!-- Preload reCAPTCHA before the main module so Firebase AppCheck finds self.grecaptcha
+         already defined and skips its dynamic script.src injection, which violates
+         require-trusted-types-for on iOS Safari. -->
+    <script src="https://www.google.com/recaptcha/api.js" defer></script>
 
     <!-- Structured Data -->
     <script type="application/ld+json">
