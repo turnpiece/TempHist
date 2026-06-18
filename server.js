@@ -103,6 +103,18 @@ app.use((req, res, next) => {
   }
 });
 
+// --- robots.txt ---
+// Disallow all crawlers unless ALLOW_INDEXING=true is set (production only).
+app.get('/robots.txt', (req, res) => {
+  const allow = process.env.ALLOW_INDEXING === 'true';
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send(allow
+    ? 'User-agent: *\nAllow: /\n'
+    : 'User-agent: *\nDisallow: /\n'
+  );
+});
+
 // --- Open Graph tag injection for /s/:id share pages ---
 
 // Cache the base HTML to avoid repeated disk reads on every share page request
