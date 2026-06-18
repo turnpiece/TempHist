@@ -42,7 +42,7 @@ import { isSharePagePath, initSharePage } from './share';
 // pages (about/privacy/feed/share) have no use for the user's location and
 // shouldn't trigger the browser's permission prompt.
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!document.querySelector('#todayView')) return;
+  if (!document.querySelector('#todayView') || isSharePagePath()) return;
   await initLocationCarousel();
   startGeolocationPrefetch();
 });
