@@ -3,6 +3,32 @@ import { copyFileSync, readFileSync, existsSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { execSync } from 'child_process'
 
+// Shared helpers for share-page OG/JSON-LD injection (used by Vite dev plugin and server.js)
+function getOrdinalVite(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+function formatShareHeadingVite(meta: { period: string; identifier: string; ref_year: number }): string {
+  const { period, identifier, ref_year } = meta;
+  let friendlyDate = '';
+  if (period === 'daily' || period === 'weekly' || period === 'monthly' || (period === 'yearly' && identifier?.includes('-'))) {
+    const [monthStr, dayStr] = identifier.split('-');
+    const monthName = new Date(ref_year, Number(monthStr) - 1, 1).toLocaleString('en-GB', { month: 'long' });
+    friendlyDate = `${getOrdinalVite(Number(dayStr))} ${monthName}`;
+  }
+  switch (period) {
+    case 'daily':   return friendlyDate;
+    case 'weekly':  return `Week ending ${friendlyDate}`;
+    case 'monthly': return `Month ending ${friendlyDate}`;
+    case 'yearly':  return `Year ending ${friendlyDate}`;
+    default:        return friendlyDate;
+  }
+}
+function escapeAttrVite(str: string): string {
+  return str.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+}
+
 // Read package.json to get version
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8'))
 
@@ -56,6 +82,68 @@ export default defineConfig(({ mode }) => {
           else if (url === '/locations') req.url = '/locations.html';
           next();
         });
+      }
+    },
+    {
+      // Inject share-specific OG tags and JSON-LD for /s/:id routes in dev mode,
+      // mirroring the production middleware in server.js
+      name: 'dev-share-og-injection',
+      configureServer(server) {
+        server.middlewares.use(async (req, res, next) => {
+            const match = req.url?.split('?')[0].match(/^\/s\/([a-zA-Z0-9_-]+)$/);
+            if (!match) return next();
+
+            const shareId = match[1];
+            // Use the direct backend URL — VITE_API_BASE may be a relative proxy path (/api)
+            // which is invalid for server-side fetch. API_BASE is always an absolute URL.
+            const apiBase = env.API_BASE || (env.VITE_API_BASE?.startsWith('http') ? env.VITE_API_BASE : null) || 'http://localhost:8000';
+
+            try {
+              const apiRes = await fetch(`${apiBase}/v1/shares/${encodeURIComponent(shareId)}`);
+              if (!apiRes.ok) return next();
+              const meta = await apiRes.json() as { location: string; period: string; identifier: string; ref_year: number };
+
+              const cityName = meta.location.split(',')[0].trim().toUpperCase();
+              const heading = formatShareHeadingVite(meta);
+              const title = `${cityName} · ${heading} | TempHist`;
+              const description = `Historical temperature data for ${cityName}: ${heading}.`;
+              const shareUrl = `http://localhost:${server.config.server.port ?? 5173}/s/${shareId}`;
+
+              const indexHtml = readFileSync(resolve(__dirname, 'index.html'), 'utf-8');
+              let html = await server.transformIndexHtml(req.url!, indexHtml);
+
+              const ogTags = [
+                `<meta property="og:type" content="website">`,
+                `<meta property="og:site_name" content="TempHist">`,
+                `<meta property="og:title" content="${escapeAttrVite(title)}">`,
+                `<meta property="og:description" content="${escapeAttrVite(description)}">`,
+                `<meta property="og:url" content="${escapeAttrVite(shareUrl)}">`,
+                `<meta name="twitter:card" content="summary_large_image">`,
+                `<meta name="twitter:title" content="${escapeAttrVite(title)}">`,
+                `<meta name="twitter:description" content="${escapeAttrVite(description)}">`,
+              ].join('\n    ');
+
+              const ldJson = JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'WebPage',
+                name: title,
+                description,
+                url: shareUrl,
+                isPartOf: { '@type': 'WebSite', name: 'TempHist', url: 'https://temphist.com' },
+              });
+
+              html = html
+                .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, `<script type="application/ld+json">${ldJson}</script>`)
+                .replace(/<meta\s+(?:property="og:[^"]*"|name="twitter:[^"]*")[^>]*\/?\s*>/gi, '')
+                .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttrVite(title)}</title>`)
+                .replace('</head>', `    ${ogTags}\n  </head>`);
+
+              res.setHeader('Content-Type', 'text/html; charset=utf-8');
+              res.end(html);
+            } catch {
+              next();
+            }
+          });
       }
     },
     {

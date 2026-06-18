@@ -150,7 +150,7 @@ app.use(async (req, res, next) => {
       return next();
     }
 
-    const cityName = meta.location.split(',')[0].trim();
+    const cityName = meta.location.split(',')[0].trim().toUpperCase();
     const heading = formatSharePeriodHeading(meta);
     const title = `${cityName} \u00b7 ${heading} | TempHist`;
     const description = `Historical temperature data for ${cityName}: ${heading}.`;
@@ -170,7 +170,18 @@ app.use(async (req, res, next) => {
       `<meta name="twitter:image" content="${escapeAttr(imageUrl)}">`,
     ].join('\n    ');
 
+    const ldJson = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      'name': title,
+      'description': description,
+      'url': shareUrl,
+      'isPartOf': { '@type': 'WebSite', 'name': 'TempHist', 'url': 'https://temphist.com' },
+    });
+
     const html = getIndexHtml()
+      .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, `<script type="application/ld+json">${ldJson}</script>`)
+      .replace(/<meta\s+(?:property="og:[^"]*"|name="twitter:[^"]*")[^>]*\/?\s*>/gi, '')
       .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttr(title)}</title>`)
       .replace('</head>', `    ${ogTags}\n  </head>`);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');

@@ -540,11 +540,11 @@ function formatGeneratedAt(createdAt: string): string {
 }
 
 function updatePageMeta(meta: ShareMetadata): void {
-  const cityName = meta.location.split(',')[0].trim();
+  const cityName = meta.location.split(',')[0].trim().toUpperCase();
   const heading = formatPeriodHeading(meta);
 
   const title = `${cityName} \u00b7 ${heading} | TempHist`;
-  const description = `Historical temperature data for ${cityName}: ${heading.toLowerCase()}.`;
+  const description = `Historical temperature data for ${cityName}: ${heading}.`;
 
   document.title = title;
 
