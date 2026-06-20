@@ -642,6 +642,9 @@ body:has(#appShell.hidden) .topnav__links a {
   &.location-default  { color: var(--trend); }
   &.location-unknown  { color: $colour-text; }
   &.location-cookie   { color: $colour-text; }
+
+  // Hide the empty placeholder — preserves layout height but avoids showing blank space
+  &:empty { visibility: hidden; }
 }
 
 // Period sub-heading — shown below the location name, with share button inline
@@ -656,6 +659,9 @@ body:has(#appShell.hidden) .topnav__links a {
   display: flex;
   align-items: center;
   gap: 0.4em;
+
+  // Hide the border and content until text/share-button is injected by JS
+  &:empty { visibility: hidden; }
 }
 
 // Inline location status messages
