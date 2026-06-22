@@ -56,7 +56,7 @@ export function setupMobileNavigation(): void {
     drawer.removeAttribute('hidden');
     backdrop.removeAttribute('hidden');
     // Force a reflow so the transform transition runs from translateX(100%)
-    void drawer.offsetWidth;
+    drawer.offsetWidth;
     drawer.classList.add('is-open');
     burgerBtn.setAttribute('aria-expanded', 'true');
     burgerBtn.setAttribute('aria-label', 'Close menu');
@@ -632,7 +632,7 @@ export async function proceedWithLocation(
       
       // Force layout recalculation to prevent width miscalculation on mobile
       // This ensures the body and appShell recalculate their widths correctly
-      void document.body.offsetHeight; // Force reflow
+      document.body.offsetHeight; // Force reflow
       
       // Restore scroll position
       if (savedScrollY) {
@@ -645,8 +645,8 @@ export async function proceedWithLocation(
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           // Force browser to recalculate layout widths
-          void document.body.offsetWidth;
-          void document.documentElement.offsetWidth;
+          document.body.offsetWidth;
+          document.documentElement.offsetWidth;
           
           const appShell = document.getElementById('appShell');
           const viewOutlet = document.getElementById('viewOutlet');
@@ -656,7 +656,7 @@ export async function proceedWithLocation(
             if (appShell.style.width) {
               appShell.style.width = '';
             }
-            void appShell.offsetWidth; // Force reflow
+            appShell.offsetWidth; // Force reflow
           }
           
           if (viewOutlet) {
@@ -664,7 +664,7 @@ export async function proceedWithLocation(
             if (viewOutlet.style.maxWidth) {
               viewOutlet.style.maxWidth = '';
             }
-            void viewOutlet.offsetWidth; // Force reflow
+            viewOutlet.offsetWidth; // Force reflow
           }
 
           // Note: previously we clamped body/html maxWidth to window.innerWidth in

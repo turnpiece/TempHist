@@ -39,6 +39,51 @@ export function flagImg(code: string, width: 20 | 40 = 20): HTMLImageElement {
   return img;
 }
 
+interface SelectableLocation {
+  id: string;
+  name: string;
+  country_name: string;
+  admin1?: string | null;
+  timezone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  country_code?: string | null;
+}
+
+async function selectLocation(loc: SelectableLocation): Promise<void> {
+  // Build the human-readable string the main app expects: "City, Region, Country"
+  // (region/admin1 is omitted when absent or blank).
+  const valueParts = [loc.name];
+  if (loc.admin1?.trim()) valueParts.push(loc.admin1.trim());
+  valueParts.push(loc.country_name);
+
+  // Record the selection server-side. Include lat/lon/timezone when available
+  // so the API gets richer data for matching and analytics (see API#89).
+  // Fire-and-forget — a failure here must never block the UI transition.
+  const payload: Record<string, unknown> = { location_id: loc.id };
+  if (loc.latitude  != null) payload.latitude  = loc.latitude;
+  if (loc.longitude != null) payload.longitude = loc.longitude;
+  if (loc.timezone  != null) payload.timezone  = loc.timezone;
+
+  apiFetch(getApiUrl('/v1/locations/selections'), {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+
+  // Hand off to the main app's location handler, which triggers the data fetch
+  // and navigates away from the locations page.
+  const fn = globalThis.handleManualLocationSelection;
+  if (typeof fn === 'function') {
+    await fn(
+      valueParts.join(', '),
+      loc.timezone ?? null,
+      loc.latitude ?? null,
+      loc.longitude ?? null,
+      loc.country_code ?? null
+    );
+  }
+}
+
 function buildFeaturedItem(loc: PreapprovedLocation): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.className = 'location-item location-item--featured';
@@ -92,27 +137,7 @@ function buildFeaturedItem(loc: PreapprovedLocation): HTMLButtonElement {
   overlay.appendChild(nameEl);
   btn.appendChild(overlay);
 
-  btn.addEventListener('click', async () => {
-    const valueParts = [loc.name];
-    if (loc.admin1 && loc.admin1.trim()) valueParts.push(loc.admin1.trim());
-    valueParts.push(loc.country_name);
-
-    apiFetch(getApiUrl('/v1/locations/selections'), {
-      method: 'POST',
-      body: JSON.stringify({ location_id: loc.id }),
-    }).catch(() => {});
-
-    const fn = globalThis.handleManualLocationSelection;
-    if (typeof fn === 'function') {
-      await fn(
-        valueParts.join(', '),
-        loc.timezone ?? null,
-        loc.latitude ?? null,
-        loc.longitude ?? null,
-        loc.country_code ?? null
-      );
-    }
-  });
+  btn.addEventListener('click', () => selectLocation(loc));
 
   return btn;
 }
@@ -203,27 +228,7 @@ function buildPopularRow(loc: PopularLocation): HTMLButtonElement {
   nameEl.textContent = loc.name;
   btn.appendChild(nameEl);
 
-  btn.addEventListener('click', async () => {
-    const valueParts = [loc.name];
-    if (loc.admin1 && loc.admin1.trim()) valueParts.push(loc.admin1.trim());
-    valueParts.push(loc.country_name);
-
-    apiFetch(getApiUrl('/v1/locations/selections'), {
-      method: 'POST',
-      body: JSON.stringify({ location_id: loc.id }),
-    }).catch(() => {});
-
-    const fn = globalThis.handleManualLocationSelection;
-    if (typeof fn === 'function') {
-      await fn(
-        valueParts.join(', '),
-        loc.timezone ?? null,
-        loc.latitude ?? null,
-        loc.longitude ?? null,
-        loc.country_code ?? null
-      );
-    }
-  });
+  btn.addEventListener('click', () => selectLocation(loc));
 
   return btn;
 }

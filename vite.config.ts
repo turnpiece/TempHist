@@ -52,6 +52,7 @@ export default defineConfig(({ mode }) => {
   publicDir: 'public',
   build: {
     outDir: 'dist',
+    target: 'es2015',
     minify: 'terser',
     rollupOptions: {
       input: {
@@ -63,9 +64,6 @@ export default defineConfig(({ mode }) => {
         locations: resolve(__dirname, 'locations.html')
       }
     }
-  },
-  esbuild: {
-    target: 'es2015'
   },
   plugins: [
     {

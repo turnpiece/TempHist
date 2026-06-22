@@ -16,3 +16,12 @@
     <meta property="og:image:alt" content="TempHist — historical temperature charts for your location" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://temphist.com/assets/og-default.png" />
+    <script>
+      if (globalThis.trustedTypes && globalThis.trustedTypes.createPolicy) {
+        globalThis.trustedTypes.createPolicy('default', {
+          createHTML: function(s) { return s; },
+          createScriptURL: function(s) { return s; },
+          createScript: function(s) { return s; },
+        });
+      }
+    </script>
