@@ -40,7 +40,7 @@
     "@fontsource/inter": "^5.2.8",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "firebase": "^11.9.1",
+    "firebase": "^12.15.0",
     "http-proxy-middleware": "^3.0.7"
   },
   "devDependencies": {
