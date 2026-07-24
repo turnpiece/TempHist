@@ -1,7 +1,6 @@
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
-const toIco = require('to-ico');
 
 const svgPath = path.join(__dirname, '../assets/logo.svg');
 const outputDir = path.join(__dirname, '..');
@@ -63,7 +62,8 @@ async function generateFavicons() {
     )
   );
   const icoPath = path.join(outputDir, 'favicon.ico');
-  fs.writeFileSync(icoPath, await toIco(icoBuffers));
+  const { default: pngToIco } = await import('png-to-ico');
+  fs.writeFileSync(icoPath, await pngToIco(icoBuffers));
   console.log(`✓ Generated favicon.ico (${icoSizes.join(', ')} px layers from favicon-512.png)`);
 
   console.log('\nFavicon generation complete!');
