@@ -635,6 +635,10 @@ body:has(#appShell.hidden) .topnav__links a {
   margin-top: 0;
   margin-bottom: 0.2em;
   font-weight: normal;
+  // Override the ancestor h2's uppercase rule explicitly — the dashboard's
+  // button wrapper happens not to inherit it, but the share page sets this
+  // text directly, so it needs its own override to stay in natural case.
+  text-transform: none;
 
   &.location-detected { color: var(--success); }
   &.location-manual   { color: $colour-text; }

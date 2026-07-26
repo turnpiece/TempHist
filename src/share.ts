@@ -540,7 +540,7 @@ function formatGeneratedAt(createdAt: string): string {
 }
 
 function updatePageMeta(meta: ShareMetadata): void {
-  const cityName = meta.location.split(',')[0].trim().toUpperCase();
+  const cityName = meta.location.split(',')[0].trim();
   const heading = formatPeriodHeading(meta);
 
   const title = `${cityName} \u00b7 ${heading} | TempHist`;
