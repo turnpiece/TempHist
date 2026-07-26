@@ -190,7 +190,7 @@ app.use(async (req, res, next) => {
       return next(); // Network error / timeout — serve plain SPA
     }
 
-    const cityName = meta.location.split(',')[0].trim().toUpperCase();
+    const cityName = meta.location.split(',')[0].trim();
     const heading = formatSharePeriodHeading(meta);
     const title = `${cityName} \u00b7 ${heading} | TempHist`;
     const description = `Historical temperature data for ${cityName}: ${heading}.`;
