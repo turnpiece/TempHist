@@ -1,10 +1,11 @@
 const express = require('express');
-const path = require('path');
+const path = require('node:path');
 const fs = require('node:fs');
 const { getOrdinal } = require('./lib/getOrdinal');
 require('dotenv').config();
 const app = express();
 app.set('trust proxy', true);
+app.disable('x-powered-by');
 
 // Configuration
 const port = process.env.PORT || 3000;
@@ -165,7 +166,7 @@ app.use(async (req, res, next) => {
   if (!/^[a-zA-Z0-9_-]+$/.test(shareId)) return next();
 
   const apiBase = process.env.API_BASE || process.env.VITE_API_BASE;
-  if (!apiBase || !apiBase.startsWith('http')) {
+  if (!apiBase?.startsWith('http')) {
     console.warn('[OG] No absolute API base URL configured — skipping OG injection for', shareId);
     return next();
   }
@@ -254,7 +255,7 @@ app.use(express.static('dist', {
     } else if (/\/assets\//.test(filePath)) {
       // Other assets (images, fonts): 30 days
       res.setHeader('Cache-Control', 'public, max-age=2592000');
-    } else if (/\.html$/.test(filePath)) {
+    } else if (filePath.endsWith('.html')) {
       // HTML entry points: always revalidate
       res.setHeader('Cache-Control', 'no-cache');
     } else if (/favicon|logo\./.test(filePath)) {
