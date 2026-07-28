@@ -305,9 +305,16 @@ async function handleUseLocation(): Promise<void> {
     }
 
     if (geoResult) {
+      // Include coords/country_code so the API can converge this onto the canonical
+      // catalog entry instead of slugifying the raw display string (API#103).
+      const geoPayload: Record<string, unknown> = { name: geoResult.location };
+      if (geoResult.latitude != null) geoPayload.latitude = geoResult.latitude;
+      if (geoResult.longitude != null) geoPayload.longitude = geoResult.longitude;
+      if (geoResult.countryCode != null) geoPayload.country_code = geoResult.countryCode;
+
       apiFetch(getApiUrl('/v1/locations/selections'), {
         method: 'POST',
-        body: JSON.stringify({ name: geoResult.location }),
+        body: JSON.stringify(geoPayload),
       }).catch(() => {});
       await proceedWithLocation(geoResult.location, true, 'detected', null, geoResult.latitude, geoResult.longitude, geoResult.countryCode);
       return;
@@ -328,9 +335,15 @@ async function handleUseLocation(): Promise<void> {
   try {
     const ipResult = await getLocationFromIP();
     if (ipResult) {
+      const ipPayload: Record<string, unknown> = { name: ipResult.location };
+      if (ipResult.latitude != null) ipPayload.latitude = ipResult.latitude;
+      if (ipResult.longitude != null) ipPayload.longitude = ipResult.longitude;
+      if (ipResult.countryCode != null) ipPayload.country_code = ipResult.countryCode;
+      if (ipResult.timezone != null) ipPayload.timezone = ipResult.timezone;
+
       apiFetch(getApiUrl('/v1/locations/selections'), {
         method: 'POST',
-        body: JSON.stringify({ name: ipResult.location }),
+        body: JSON.stringify(ipPayload),
       }).catch(() => {});
       // Auto-select the IP-based location and proceed
       await proceedWithLocation(ipResult.location, true, 'detected', ipResult.timezone, ipResult.latitude, ipResult.longitude, ipResult.countryCode);
