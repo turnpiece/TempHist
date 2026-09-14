@@ -48,9 +48,18 @@ interface SelectableLocation {
   latitude?: number | null;
   longitude?: number | null;
   country_code?: string | null;
+  /** Present on curated locations, which have their own /locations/:slug page. */
+  slug?: string | null;
 }
 
-async function selectLocation(loc: SelectableLocation): Promise<void> {
+/**
+ * @param hasLocationPage whether this location has a server-rendered
+ *   /locations/:slug page. Passed in rather than looked up: the caller always
+ *   knows (featured cards and the splash carousel are curated by construction;
+ *   popular rows are checked against the curated set), and it avoids shipping
+ *   the location snapshot to the client just to answer this.
+ */
+async function selectLocation(loc: SelectableLocation, hasLocationPage = false): Promise<void> {
   // Build the human-readable string the main app expects: "City, Region, Country"
   // (region/admin1 is omitted when absent or blank).
   const valueParts = [loc.name];
@@ -70,6 +79,14 @@ async function selectLocation(loc: SelectableLocation): Promise<void> {
     body: JSON.stringify(payload),
   }).catch(() => {});
 
+  // Curated locations have a real URL. Navigating there is both simpler than the
+  // sessionStorage → '/' round-trip and better for the user: they land on a
+  // canonical, shareable, CDN-cacheable page instead of a bare '/'.
+  if (hasLocationPage && loc.slug) {
+    window.location.href = `/locations/${loc.slug}`;
+    return;
+  }
+
   // Hand off to the main app's location handler, which triggers the data fetch
   // and navigates away from the locations page.
   const fn = globalThis.handleManualLocationSelection;
@@ -84,10 +101,29 @@ async function selectLocation(loc: SelectableLocation): Promise<void> {
   }
 }
 
-function buildFeaturedItem(loc: PreapprovedLocation): HTMLButtonElement {
-  const btn = document.createElement('button');
+/**
+ * Wire an <a href="/locations/:slug"> so crawlers can follow it while clicks stay
+ * in the SPA.
+ *
+ * The modifier check is not optional: without it, cmd/ctrl-click, middle-click
+ * and "open in new tab" all break on a page that is entirely a grid of links.
+ */
+export function attachLocationNav(
+  anchor: HTMLAnchorElement,
+  slug: string,
+  onSelect: () => void,
+): void {
+  anchor.href = `/locations/${slug}`;
+  anchor.addEventListener('click', (e: MouseEvent) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    onSelect();
+  });
+}
+
+function buildFeaturedItem(loc: PreapprovedLocation): HTMLAnchorElement {
+  const btn = document.createElement('a');
   btn.className = 'location-item location-item--featured';
-  btn.type = 'button';
   btn.setAttribute('aria-label', `${loc.name}, ${loc.country_name}`);
 
   const imageWrapper = document.createElement('div');
@@ -137,7 +173,7 @@ function buildFeaturedItem(loc: PreapprovedLocation): HTMLButtonElement {
   overlay.appendChild(nameEl);
   btn.appendChild(overlay);
 
-  btn.addEventListener('click', () => selectLocation(loc));
+  attachLocationNav(btn, loc.slug, () => { void selectLocation(loc, true); });
 
   return btn;
 }
@@ -215,22 +251,35 @@ const POPULAR_LIMIT = 20;
  * only, no surrounding card, no country label. Reuses the click behaviour of
  * the text card so selection routes through the same handler.
  */
-function buildPopularRow(loc: PopularLocation): HTMLButtonElement {
-  const btn = document.createElement('button');
-  btn.className = 'locations-popular-row';
-  btn.type = 'button';
-  btn.setAttribute('aria-label', `${loc.name}, ${loc.country_name}`);
+function buildPopularRow(loc: PopularLocation, isCurated: boolean): HTMLElement {
+  // Only curated locations have a /locations/:slug page. Linking a popular-but-
+  // uncurated city would point at a 404, so those stay buttons.
+  //
+  // In practice isCurated is currently always false here, because popularItems is
+  // already de-duplicated against the featured set by id. This stays as a guard
+  // rather than an assumption: if that de-dup ever changes, the failure mode would
+  // otherwise be silently emitting links to 404s.
+  const el = isCurated
+    ? document.createElement('a')
+    : document.createElement('button');
+  el.className = 'locations-popular-row';
+  if (el instanceof HTMLButtonElement) el.type = 'button';
+  el.setAttribute('aria-label', `${loc.name}, ${loc.country_name}`);
 
-  btn.appendChild(flagImg(loc.country_code, 20));
+  el.appendChild(flagImg(loc.country_code, 20));
 
   const nameEl = document.createElement('span');
   nameEl.className = 'locations-popular-row__name';
   nameEl.textContent = loc.name;
-  btn.appendChild(nameEl);
+  el.appendChild(nameEl);
 
-  btn.addEventListener('click', () => selectLocation(loc));
+  if (el instanceof HTMLAnchorElement) {
+    attachLocationNav(el, loc.slug, () => { void selectLocation(loc, true); });
+  } else {
+    el.addEventListener('click', () => { void selectLocation(loc, false); });
+  }
 
-  return btn;
+  return el;
 }
 
 /**
@@ -315,6 +364,8 @@ export async function renderLocationsPage(): Promise<void> {
     const featured: PreapprovedLocation[] = parseLocArr(preapprovedRes);
     const popular: PopularLocation[] = parseLocArr(popularRes);
     const featuredIds = new Set(featured.map(l => l.id));
+    // Slugs that actually have a server-rendered /locations/:slug page.
+    const curatedSlugs = new Set(featured.map(l => l.slug));
     // Popular only shows entries that aren't already in the curated set, and
     // is capped at POPULAR_LIMIT.
     const popularItems = popular.filter(l => !featuredIds.has(l.id)).slice(0, POPULAR_LIMIT);
@@ -387,7 +438,7 @@ export async function renderLocationsPage(): Promise<void> {
       const list = document.createElement('div');
       list.className = 'locations-popular-list';
       popularItems.forEach(loc => {
-        const row = buildPopularRow(loc);
+        const row = buildPopularRow(loc, curatedSlugs.has(loc.slug));
         annotateCardForSearch(row, loc);
         list.appendChild(row);
       });

@@ -2229,16 +2229,20 @@ html.is-share-page #splashScreen {
   display: none;
 }
 
-// Suppress splash + reveal app shell when resuming from a /locations selection.
+// Suppress splash + reveal app shell when resuming from a /locations selection,
+// or when the server rendered a /locations/:slug page (html.is-location-page,
+// which is set in the markup itself so it holds even with JS disabled).
 // Mirror the splash-carousel flow: show the header, location, date, and loading
 // spinner immediately, but suppress data-driven elements until JS stages them
 // in their proper `opacity: 0` initial state. Otherwise their initial paint
 // (opacity 1, default) would transition to opacity 0 when JS adds
 // `.summary-text` / `.stats-bubble`, producing a visible "flash and fade".
-html.is-pending-location #splashScreen {
+html.is-pending-location #splashScreen,
+html.is-location-page #splashScreen {
   display: none;
 }
-html.is-pending-location #appShell {
+html.is-pending-location #appShell,
+html.is-location-page #appShell {
   display: grid;
 }
 // Start these elements at opacity 0 BEFORE first paint so that when JS later
@@ -2248,17 +2252,118 @@ html.is-pending-location #appShell {
 // summary box for ~400ms before fading out.
 html.is-pending-location #summaryText,
 html.is-pending-location #todayStatsBubble,
-html.is-pending-location #tempChart {
+html.is-pending-location #tempChart,
+html.is-location-page #summaryText,
+html.is-location-page #todayStatsBubble,
+html.is-location-page #tempChart {
   opacity: 0;
 }
 // Reserve vertical space for the heading and date so they don't shift down
 // once JS populates them. Heights are derived from each element's font-size
 // and natural line-height; close enough that the swap is unnoticeable.
-html.is-pending-location #locationText {
+html.is-pending-location #locationText,
+html.is-location-page #locationText {
   min-height: 1.4em; // matches h2 line-height (44.8px at 32px font-size)
 }
-html.is-pending-location #dateText {
+html.is-pending-location #dateText,
+html.is-location-page #dateText {
   min-height: 1.4em; // content-box min-height; .period-subheading adds the padding + border to reach final 33.6px
+}
+
+// Location cards and popular rows are anchors (crawlers can't follow buttons),
+// so they need the button-ish resets that the element gave us for free.
+.location-card,
+.location-item,
+.locations-popular-row {
+  text-decoration: none;
+  color: inherit;
+}
+
+a.location-card,
+a.location-item {
+  display: block;
+}
+
+// --- Server-rendered location page prose (/locations/:slug) ---
+// Rendered outside #appShell so it survives with JavaScript disabled, which is
+// how crawlers see it. Sits below the chart for JS users.
+.location-intro {
+  max-width: $max-page-content-width;
+  margin: 0 auto;
+  padding: 2rem $desktop-page-gutter 3rem;
+  color: $colour-text;
+  box-sizing: border-box;
+
+  h1 {
+    font-size: 1.75rem;
+    line-height: 1.25;
+    margin: 0 0 1rem;
+  }
+
+  p {
+    max-width: 64ch;
+    line-height: 1.6;
+    margin: 0 0 1rem;
+  }
+
+  a {
+    color: $colour-link;
+  }
+}
+
+.location-intro__image {
+  display: block;
+  margin: 0 0 1.25rem;
+
+  img {
+    width: 100%;
+    height: auto;
+    max-height: 320px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+}
+
+.location-intro__lede {
+  opacity: 0.85;
+  font-size: 0.95rem;
+}
+
+.location-intro__attribution {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+// Internal links to the other curated cities. These are what get 20 otherwise
+// sparsely-linked pages crawled, so they must be real anchors, always rendered.
+.location-intro__siblings {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba($colour-border, 0.35);
+
+  h2 {
+    font-size: 1rem;
+    text-transform: none;
+    margin: 0 0 0.75rem;
+  }
+
+  a {
+    display: inline-block;
+    margin: 0 0.75rem 0.5rem 0;
+    font-size: 0.9rem;
+  }
+}
+
+.location-intro__all {
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .location-intro {
+    padding: 1.5rem 1rem 2.5rem;
+
+    h1 { font-size: 1.4rem; }
+  }
 }
 
 .share-page-pending {

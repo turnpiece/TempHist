@@ -229,6 +229,22 @@ export interface DataNoticeOptions {
 
 // Project globals — declared as var so they are accessible via globalThis.X
 declare global {
+  /**
+   * Injected by server.js on /locations/:slug pages (see lib/locationPage.cjs).
+   * Its presence means the location is already known and the splash is skipped.
+   */
+  var __TH_LOCATION: {
+    slug: string;
+    id: string;
+    location: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    timezone: string;
+    countryCode: string;
+  } | undefined;
+  /** Slug currently applied to the app, used to detect history navigation. */
+  var __TH_APPLIED_SLUG: string | null | undefined;
   var tempLocation: string | null;
   var tempLocationTimezone: string | null;
   var tempLocationSource: string | null;

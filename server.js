@@ -2,6 +2,9 @@ const express = require('express');
 const path = require('node:path');
 const fs = require('node:fs');
 const { getOrdinal } = require('./lib/getOrdinal');
+const { LOCATION_SLUG_RE, getAllLocations, getLocationBySlug } = require('./lib/locations.cjs');
+const { injectLocationPage } = require('./lib/locationPage.cjs');
+const { buildSitemapXml } = require('./lib/sitemap.cjs');
 require('dotenv').config();
 const app = express();
 app.set('trust proxy', true);
@@ -69,13 +72,18 @@ function injectCountryCode(html, req) {
   return html.replace('</head>', `<script>globalThis.__TH_COUNTRY="${raw}"</script></head>`);
 }
 
-function sendDistHtml(req, res, filename) {
+/**
+ * `country: false` skips the per-visitor cf-ipcountry injection. Any response
+ * that may be cached by the CDN must pass it — otherwise one visitor's country
+ * gets baked into HTML served to everyone (see the location pages below).
+ */
+function sendDistHtml(req, res, filename, { country = true, cacheControl = 'no-cache', status = 200 } = {}) {
   const filePath = path.join(__dirname, 'dist', filename);
   let html = applySiteOriginToHtml(fs.readFileSync(filePath, 'utf-8'), req);
-  html = injectCountryCode(html, req);
+  if (country) html = injectCountryCode(html, req);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.send(html);
+  res.setHeader('Cache-Control', cacheControl);
+  res.status(status).send(html);
 }
 
 function htmlFileForPath(urlPath) {
@@ -118,9 +126,20 @@ app.get('/robots.txt', (req, res) => {
   res.setHeader('Content-Type', 'text/plain');
   res.setHeader('Cache-Control', 'public, max-age=3600');
   res.send(allow
-    ? 'User-agent: *\nAllow: /\n'
+    ? `User-agent: *\nAllow: /\nSitemap: ${getPublicOrigin(req)}/sitemap.xml\n`
     : 'User-agent: *\nDisallow: /\n'
   );
+});
+
+// --- sitemap.xml ---
+// Explicit route, registered before express.static so there is no ambiguity with
+// the SPA catch-all's blanket 404 on *.xml. Gated on ALLOW_INDEXING for the same
+// reason as robots.txt: staging must not advertise a sitemap.
+app.get('/sitemap.xml', (req, res) => {
+  if (process.env.ALLOW_INDEXING !== 'true') return res.status(404).send('Not found');
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.send(buildSitemapXml(getPublicOrigin(req)));
 });
 
 // --- Open Graph tag injection for /s/:id share pages ---
@@ -235,6 +254,9 @@ app.use(async (req, res, next) => {
       .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, `<script type="application/ld+json">${ldJson}</script>`)
       .replace(/<meta\s+(?:property="og:[^"]*"|name="twitter:[^"]*")[^>]*\/?\s*>/gi, '')
       .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttr(title)}</title>`)
+      // head-common.html carries a canonical pointing at the home page. Without
+      // this replace, every share page would tell Google it *is* the home page.
+      .replace(/<link\s+rel="canonical"[^>]*\/?\s*>/i, `<link rel="canonical" href="${escapeAttr(shareUrl)}" />`)
       .replace('</head>', `    ${ogTags}\n  </head>`);
     html = applySiteOriginToHtml(html, req);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -242,6 +264,64 @@ app.use(async (req, res, next) => {
     return res.send(html);
   } catch (err) {
     console.error('[OG] Unexpected error for share', shareId, ':', err.message);
+    return next();
+  }
+});
+
+// --- Server-rendered /locations/:slug pages ---
+//
+// Must run before express.static and the SPA catch-all: the catch-all answers
+// 200 for every unmatched path, so an unknown slug would otherwise be indexed as
+// a soft 404.
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+
+  const match = req.path.match(/^\/locations\/([^/]+)\/?$/);
+  if (!match) return next(); // includes bare /locations and /locations/a/b
+
+  const raw = decodeURIComponent(match[1]);
+  const slug = raw.toLowerCase();
+
+  if (!LOCATION_SLUG_RE.test(slug)) return next();
+
+  // Canonicalise case and trailing slash so each page has exactly one URL.
+  const canonicalPath = `/locations/${slug}`;
+  if (req.path !== canonicalPath) return res.redirect(301, canonicalPath);
+
+  const location = getLocationBySlug(slug);
+  if (!location) {
+    // Real 404 with a useful body: the locations index, marked noindex.
+    try {
+      const filePath = path.join(__dirname, 'dist', 'locations.html');
+      let html = applySiteOriginToHtml(fs.readFileSync(filePath, 'utf-8'), req);
+      html = html.replace('</head>', '    <meta name="robots" content="noindex">\n  </head>');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache');
+      return res.status(404).send(html);
+    } catch (e) {
+      return next(e);
+    }
+  }
+
+  try {
+    const apiBase = process.env.API_BASE || process.env.VITE_API_BASE || '';
+    let html = injectLocationPage(
+      getIndexHtml(), location, getPublicOrigin(req), apiBase, getAllLocations(),
+    );
+    html = applySiteOriginToHtml(html, req);
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    // No injectCountryCode here: the response is CDN-cacheable, and baking one
+    // visitor's cf-ipcountry into it would serve their country to everyone.
+    // s-maxage only takes effect with a Cloudflare cache rule for /locations/*;
+    // without one it is inert, not harmful.
+    res.setHeader('Cache-Control', isProd
+      ? 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400'
+      : 'no-cache');
+    res.setHeader('Vary', 'Accept-Encoding');
+    return res.send(html);
+  } catch (err) {
+    console.error('[locations] Failed to render', slug, ':', err.message);
     return next();
   }
 });

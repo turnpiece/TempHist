@@ -221,6 +221,14 @@
       </main>
     </div>
 
+    <!--
+      Server-rendered location prose for /locations/:slug (see lib/locationPage.cjs).
+      Deliberately outside #appShell: that starts class="hidden", so anything inside
+      it is invisible to a crawler that does not run JS. Must NOT carry a data-view
+      attribute, or the router will hide it along with the period views.
+      Inert on every other page.
+    -->
+    <!-- SSR:LOCATION_INTRO -->
 
     <script type="module" src="/src/main.ts" defer></script>
   </body>

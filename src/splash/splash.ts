@@ -425,7 +425,73 @@ export async function handleManualLocationSelection(
   countryCode: string | null = null
 ): Promise<void> {
   debugLog('Manual location selected:', selectedLocation);
+  // A client-side location change invalidates the server-rendered intro block
+  // for whichever city the page was built for.
+  removeStaleLocationIntro(null);
   await proceedWithLocation(selectedLocation, false, 'manual', timezone, latitude, longitude, countryCode);
+}
+
+/**
+ * Drop the server-rendered /locations/:slug prose once the user has navigated to
+ * a different location client-side. Passing the new slug keeps the block when it
+ * still matches (the boot path), so nothing flickers on first load.
+ */
+export function removeStaleLocationIntro(nextSlug: string | null): void {
+  const intro = document.getElementById('locationIntro');
+  if (intro && intro.getAttribute('data-slug') !== nextSlug) intro.remove();
+}
+
+/**
+ * Record a direct landing on /locations/:slug as a location selection, so organic
+ * search traffic still feeds /v1/locations/popular and the API's cache warming.
+ *
+ * Googlebot executes JavaScript, so firing this on load would inflate popularity
+ * with crawler hits. Require a visible tab, a ~2s dwell, and a real interaction
+ * (pointer, key or scroll) before recording anything. Deliberately conservative:
+ * under-counting organic landings is much cheaper to live with than a popularity
+ * ranking quietly shaped by crawlers.
+ */
+let selectionPingSent = false;
+function scheduleSelectionPing(boot: {
+  id: string; latitude?: number | null; longitude?: number | null; timezone?: string | null;
+}): void {
+  if (selectionPingSent) return;
+  if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+
+  let dwellMet = false;
+  let interacted = false;
+
+  const send = () => {
+    if (selectionPingSent || !dwellMet || !interacted) return;
+    selectionPingSent = true;
+    cleanup();
+
+    const payload: Record<string, unknown> = { location_id: boot.id };
+    if (boot.latitude != null) payload.latitude = boot.latitude;
+    if (boot.longitude != null) payload.longitude = boot.longitude;
+    if (boot.timezone != null) payload.timezone = boot.timezone;
+
+    apiFetch(getApiUrl('/v1/locations/selections'), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }).catch(() => { /* fire-and-forget */ });
+  };
+
+  const onInteract = () => { interacted = true; send(); };
+  const onPageHide = () => { clearTimeout(dwellTimer); cleanup(); };
+  const cleanup = () => {
+    window.removeEventListener('pointerdown', onInteract);
+    window.removeEventListener('keydown', onInteract);
+    window.removeEventListener('scroll', onInteract);
+    window.removeEventListener('pagehide', onPageHide);
+  };
+
+  const dwellTimer = setTimeout(() => { dwellMet = true; send(); }, 2000);
+
+  window.addEventListener('pointerdown', onInteract, { once: true });
+  window.addEventListener('keydown', onInteract, { once: true });
+  window.addEventListener('scroll', onInteract, { once: true, passive: true });
+  window.addEventListener('pagehide', onPageHide, { once: true });
 }
 
 /**
@@ -602,11 +668,16 @@ export async function proceedWithLocation(
   // Store in cookie for future visits
   setLocationCookie(location, locationSource, timezone);
 
-  // If we're on a sub-page (e.g. /locations), the SPA DOM elements
-  // (splashScreen/appShell/views) don't exist here — stash the selection in
-  // sessionStorage and hard-navigate to the SPA root, where the bootstrap
-  // resumes proceedWithLocation with the full payload.
-  if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+  // If the SPA DOM elements (splashScreen/appShell/views) aren't on this page —
+  // e.g. the standalone /locations page — stash the selection in sessionStorage
+  // and hard-navigate to the SPA root, where the bootstrap resumes
+  // proceedWithLocation with the full payload.
+  //
+  // This tests for the DOM rather than the pathname because /locations/:slug is
+  // served from index.html and therefore *does* have the app DOM; a pathname
+  // test would bounce those pages to / and destroy the location URL.
+  const hasAppDom = !!document.getElementById('appShell') && !!document.getElementById('todayView');
+  if (!hasAppDom) {
     try {
       sessionStorage.setItem('temphist_pending_location', JSON.stringify({
         location, isDetectedLocation, locationSource, timezone, latitude, longitude, countryCode,
@@ -719,7 +790,20 @@ export async function proceedWithLocation(
     globalThis.TempHistRouter.handleRoute();
   }
   
-  if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.navigate === 'function') {
+  // On a /locations/:slug URL with no hash, the router's own handleRoute() above
+  // has already rendered Today. Calling navigate('/today') here would append
+  // '#/today' to a clean, canonical URL for no benefit — so leave the URL alone
+  // and let the user's first period-tab click introduce a hash if they want one.
+  //
+  // Keyed on the path rather than __TH_LOCATION so it covers both routes onto
+  // these URLs: a server-rendered page load, and a card click that pushState'd
+  // here from the splash.
+  const onCleanLocationPage =
+    /^\/locations\/[a-z0-9-]+$/.test(window.location.pathname) && !window.location.hash;
+
+  if (onCleanLocationPage) {
+    debugLog('Server-rendered location page — leaving URL as', window.location.pathname);
+  } else if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.navigate === 'function') {
     globalThis.TempHistRouter.navigate('/today');
   } else {
     // Fallback: update URL and trigger route handling
@@ -879,7 +963,7 @@ export function initializeSplashScreen(): void {
     // Handle standalone pages by populating their content
     const currentPath = window.location.pathname;
     const isKnownStandalone = currentPath === '/privacy' || currentPath === '/privacy/app' ||
-      currentPath === '/about' || currentPath === '/locations' ||
+      currentPath === '/about' || currentPath.startsWith('/locations') ||
       (SNAPSHOTS_ENABLED && currentPath === '/feed');
     if (isKnownStandalone) {
       debugLog('Populating content for standalone page:', currentPath);
@@ -894,7 +978,8 @@ export function initializeSplashScreen(): void {
         renderPrivacyAppPage();
       } else if (currentPath === '/about') {
         renderAboutPage();
-      } else if (currentPath === '/locations') {
+      } else if (currentPath.startsWith('/locations')) {
+        // Also covers the 404 body served for an unknown /locations/:slug.
         renderLocationsPage();
       } else if (SNAPSHOTS_ENABLED && currentPath === '/feed') {
         renderFeedPage();
@@ -906,6 +991,48 @@ export function initializeSplashScreen(): void {
     // it starts hidden via CSS to avoid a flash of the footer sitting directly
     // under the header while the view section is still empty.
     document.body.classList.add('content-ready');
+    return;
+  }
+
+  // Server-rendered /locations/:slug page: the location is already known, so go
+  // straight into the app instead of showing the splash. Runs before the
+  // sessionStorage resume below and clears that key, so a stale pending entry
+  // from an earlier visit can't fire proceedWithLocation a second time.
+  const bootLocation = (globalThis as any).__TH_LOCATION;
+  if (bootLocation?.location) {
+    debugLog('Booting directly into server-rendered location:', bootLocation.slug);
+    try { sessionStorage.removeItem('temphist_pending_location'); } catch { /* ignore */ }
+
+    const splashEl = document.getElementById('splashScreen');
+    const appShellEl = document.getElementById('appShell');
+    if (splashEl) splashEl.style.display = 'none';
+    if (appShellEl) {
+      appShellEl.classList.remove('hidden');
+      appShellEl.style.display = 'grid';
+    }
+
+    // The brand link is baked as '#/splash' on index.html; on a location page
+    // that would just add a dead hash to the URL.
+    document.querySelectorAll('a[href="#/splash"]').forEach((a) => a.setAttribute('href', '/'));
+
+    (globalThis as any).__TH_APPLIED_SLUG = bootLocation.slug;
+
+    proceedWithLocation(
+      bootLocation.location,
+      false,
+      'manual',
+      bootLocation.timezone ?? null,
+      bootLocation.latitude ?? null,
+      bootLocation.longitude ?? null,
+      bootLocation.countryCode ?? null
+    );
+
+    scheduleSelectionPing(bootLocation);
+    document.documentElement.classList.remove('is-pending-location');
+    // Returning here is load-bearing: it skips the "reset to Today" block below,
+    // so the router's initial handleRoute() sees an empty hash, renders Today and
+    // never calls navigate(). That is what keeps the URL at /locations/london
+    // rather than /locations/london#/today.
     return;
   }
 

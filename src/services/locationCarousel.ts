@@ -210,10 +210,12 @@ function showCarouselError(carousel: HTMLElement, track: HTMLElement): void {
  * @param location - The location data
  * @param isPriorityImage - If true, image loads eagerly with high priority (for first visible images)
  */
-function createLocationCard(location: PreapprovedLocation, isPriorityImage: boolean = false): HTMLButtonElement {
-  const button = document.createElement('button');
+function createLocationCard(location: PreapprovedLocation, isPriorityImage: boolean = false): HTMLAnchorElement {
+  // An anchor, not a button: these are the primary internal links to the
+  // server-rendered /locations/:slug pages, and crawlers cannot follow buttons.
+  const button = document.createElement('a');
   button.className = 'location-card';
-  button.type = 'button';
+  button.href = `/locations/${location.slug}`;
   button.dataset.locationId = location.id;
 
   // Image wrapper (always present for spacing)
@@ -305,7 +307,12 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
     });
   }
 
-  button.addEventListener('click', async () => {
+  button.addEventListener('click', async (e: MouseEvent) => {
+    // Let the browser handle modified clicks natively (new tab, new window,
+    // download) — otherwise cmd/ctrl/middle-click silently breaks.
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+
     // Construct the full location string (same format as dropdown)
     // Format: "City, Admin1, Country" (e.g., "Manchester, England, United Kingdom")
     const valueParts = [location.name];
@@ -320,6 +327,13 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
       method: 'POST',
       body: JSON.stringify({ location_id: location.id }),
     }).catch(() => {});
+
+    // Reflect the selection in the URL so the address bar, history and any
+    // subsequent share match the page the user is actually looking at.
+    try {
+      history.pushState(null, '', `/locations/${location.slug}`);
+      (globalThis as any).__TH_APPLIED_SLUG = location.slug;
+    } catch { /* non-fatal: the SPA still works without the URL change */ }
 
     // Call handleManualLocationSelection from main.ts (available globally)
     if (typeof globalThis.handleManualLocationSelection === 'function') {
