@@ -106,10 +106,17 @@ app.use((req, res, next) => {
 
 // --- robots.txt ---
 // Disallow all crawlers unless ALLOW_INDEXING=true is set (production only).
+//
+// Keep the TTL short. The body is driven by an env var, so a long cache means a
+// stale `Disallow: /` can keep the whole site out of search results long after
+// the flag is flipped, and clearing it needs a manual CDN purge — which is
+// exactly what happened when ALLOW_INDEXING was first enabled. An hour is short
+// enough that a future flip self-heals, and robots.txt is tiny and rarely
+// fetched, so the extra origin traffic is negligible.
 app.get('/robots.txt', (req, res) => {
   const allow = process.env.ALLOW_INDEXING === 'true';
   res.setHeader('Content-Type', 'text/plain');
-  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
   res.send(allow
     ? 'User-agent: *\nAllow: /\n'
     : 'User-agent: *\nDisallow: /\n'
