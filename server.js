@@ -363,7 +363,7 @@ app.use(express.static('dist', {
     } else if (filePath.endsWith('.html')) {
       // HTML entry points: always revalidate
       res.setHeader('Cache-Control', 'no-cache');
-    } else if (/favicon|logo\./.test(filePath)) {
+    } else if (/favicon|apple-touch-icon|logo\./.test(filePath)) {
       // Favicons and logos: 7 days
       res.setHeader('Cache-Control', 'public, max-age=604800');
     } else {

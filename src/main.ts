@@ -31,11 +31,20 @@ import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
 import { showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice, reapplyTrendBackground } from './utils/uiHelpers';
-import { isSharePagePath, initSharePage } from './share';
+import { isSharePagePath, mountSharePageShell, loadSharePageData } from './share';
 // installDevTestHooks is loaded dynamically inside the DEBUGGING guard below so it is
 // excluded from production bundles entirely. To re-enable, ensure DEBUGGING is true (i.e.
 // run the dev server) — no code change needed.
 
+
+// Share pages (/s/:id): build the dashboard shell immediately, with no
+// network or auth dependency, so the container reaches its final size right
+// away instead of staying hidden until Firebase anonymous auth resolves.
+// Actual data fetching still needs an auth token — see loadSharePageData(),
+// called once onAuthStateChanged fires below.
+if (isSharePagePath()) {
+  mountSharePageShell();
+}
 
 // Initialise location carousel and geolocation prefetch when DOM is ready —
 // but only on the splash screen (index.html, where #todayView exists). Standalone
@@ -262,9 +271,10 @@ function startAppWithFirebaseUser(user: FirebaseUser): void {
 
   debugLog('Script starting...');
 
-  // If this is a share page (/s/:id), hand off to the share page module
+  // If this is a share page (/s/:id), the shell was already mounted above;
+  // now that we have an auth token, fetch and render its data.
   if (isSharePagePath()) {
-    initSharePage();
+    loadSharePageData();
     return;
   }
 

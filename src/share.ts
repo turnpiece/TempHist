@@ -196,7 +196,19 @@ function extractShareId(): string | null {
   return match ? match[1] : null;
 }
 
-export function initSharePage(): void {
+// Bridges mountSharePageShell() (sync, runs immediately) to loadSharePageData()
+// (async, gated behind Firebase auth — see comment on fetchShareMetadata for why).
+let pendingShare: { shareId: string; refs: ShareUIRefs } | null = null;
+
+/**
+ * Build the share page's DOM shell (hide the SPA chrome, insert the dashboard
+ * skeleton with its loading spinner) synchronously, with no network or auth
+ * dependency. Called as soon as the script runs so the container reaches its
+ * final size immediately, instead of staying `display:none` until Firebase
+ * anonymous auth resolves — that gap was the main source of the layout shift
+ * Lighthouse flags on share pages ("entire content area popping into place").
+ */
+export function mountSharePageShell(): void {
   const shareId = extractShareId();
   if (!shareId) {
     showRootError('Invalid share link.');
@@ -218,6 +230,19 @@ export function initSharePage(): void {
   // share content that buildShareUI just appended.
   const footer = viewOutlet.querySelector('footer');
   if (footer) viewOutlet.appendChild(footer);
+
+  pendingShare = { shareId, refs };
+}
+
+/**
+ * Fetch and render the share's data. Requires `window.currentUser` (apiFetch
+ * throws without it), so this must run after Firebase anonymous sign-in
+ * resolves — call it from the onAuthStateChanged handler, after
+ * mountSharePageShell() has already built the shell.
+ */
+export function loadSharePageData(): void {
+  if (!pendingShare) return;
+  const { shareId, refs } = pendingShare;
 
   (async () => {
     try {

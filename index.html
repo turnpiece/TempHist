@@ -11,6 +11,12 @@
     <title>TempHist • Temperature history</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="%VITE_API_BASE%" crossorigin>
+    <!-- Firebase anonymous auth is on the critical path before any API call can be
+         made (see src/api/temperature/client.ts apiFetch); warm these up early so
+         share pages (which gate their data fetch on it) aren't waiting on DNS/TLS
+         on top of the request itself. -->
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"
       integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG"
