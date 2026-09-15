@@ -171,15 +171,40 @@ describe('injectLocationPage', () => {
   });
 
   it.skipIf(!html)('sets the location-page class so the splash is hidden without JS', () => {
-    expect(render('london')).toContain('class="is-location-page"');
+    expect(render('london')).toContain('is-location-page');
+  });
+
+  it.skipIf(!html)('also emits the transient staging class, which JS removes', () => {
+    // Without this the data-driven elements flash in at opacity 1 before JS
+    // stages them. It must NOT be carried by is-location-page itself, which is
+    // never removed — that left the chart permanently invisible.
+    expect(render('london')).toContain('is-pending-location');
   });
 
   it.skipIf(!html)('bootstraps the client with the API-matching display string', () => {
     expect(render('london')).toContain('"location":"London, England, United Kingdom"');
   });
 
-  it.skipIf(!html)('points og:image at the absolutised city image', () => {
-    expect(render('london')).toContain(`content="${API}/data/locations/processed/london.jpg"`);
+  it.skipIf(!html)('leaves og:image as the purpose-built default card', () => {
+    // The city photos are only 320x200, below what link previews want, and
+    // head-common's og:image:width/height/type describe the 1200x630 default.
+    // Swapping in the city image would either ship a poor card or leave those
+    // three tags describing an image that is no longer referenced.
+    const out = render('london');
+    expect(out).toContain('og-default.png');
+    expect(out).not.toContain(`og:image" content="${API}/data/locations/processed`);
+    expect((out.match(/property="og:image"/g) || []).length).toBe(1);
+    expect((out.match(/property="og:image:width"/g) || []).length).toBe(1);
+  });
+
+  it.skipIf(!html)('renders the city image at its real intrinsic size, lazily', () => {
+    // All 20 processed images are 320x200; the block sits below the chart, so it
+    // is never the LCP element and must not compete with the data fetch.
+    const out = render('london');
+    expect(out).toContain('width="320" height="200"');
+    expect(out).toContain('loading="lazy"');
+    expect(out).not.toContain('fetchpriority="high"');
+    expect(out).not.toContain('rel="preload"');
   });
 
   it.skipIf(!html)('consumes the SSR marker', () => {

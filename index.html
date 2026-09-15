@@ -217,18 +217,22 @@
         <section id="monthView" data-view="month" hidden></section>
         <section id="yearView" data-view="year" hidden></section>
 
+        <!--
+          Server-rendered location prose for /locations/:slug (lib/locationPage.cjs).
+          Inside #viewOutlet so it sits above the footer rather than below it, and
+          before the footer include so the page reads chart → prose → footer.
+          #appShell normally starts class="hidden", which would hide this from a
+          crawler that does not run JS — but on /locations/:slug the server also
+          sets html.is-location-page, which forces the shell visible in CSS, so
+          the prose is in the rendered page either way.
+          Must NOT carry a data-view attribute, or the router hides it with the
+          period views. Inert on every other page.
+        -->
+        <!-- SSR:LOCATION_INTRO -->
+
         <!-- INCLUDE:footer -->
       </main>
     </div>
-
-    <!--
-      Server-rendered location prose for /locations/:slug (see lib/locationPage.cjs).
-      Deliberately outside #appShell: that starts class="hidden", so anything inside
-      it is invisible to a crawler that does not run JS. Must NOT carry a data-view
-      attribute, or the router will hide it along with the period views.
-      Inert on every other page.
-    -->
-    <!-- SSR:LOCATION_INTRO -->
 
     <script type="module" src="/src/main.ts" defer></script>
   </body>
