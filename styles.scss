@@ -2229,16 +2229,30 @@ html.is-share-page #splashScreen {
   display: none;
 }
 
-// Suppress splash + reveal app shell when resuming from a /locations selection.
+// Two separate classes, with different lifetimes — do not merge them:
+//
+//   .is-pending-location  TRANSIENT. Added pre-paint, removed by JS once the
+//                         data-driven elements have been staged at their proper
+//                         opacity:0 resting state. Everything below that sets
+//                         opacity:0 or reserves height belongs to this class
+//                         only; anything permanent would stay invisible forever.
+//   .is-location-page     PERSISTENT. Written into the markup by the server for
+//                         /locations/:slug and never removed, so it may only
+//                         carry rules that should hold for the life of the page
+//                         (hiding the splash, revealing the shell). The server
+//                         also emits .is-pending-location for the staging half.
+//
 // Mirror the splash-carousel flow: show the header, location, date, and loading
 // spinner immediately, but suppress data-driven elements until JS stages them
 // in their proper `opacity: 0` initial state. Otherwise their initial paint
 // (opacity 1, default) would transition to opacity 0 when JS adds
 // `.summary-text` / `.stats-bubble`, producing a visible "flash and fade".
-html.is-pending-location #splashScreen {
+html.is-pending-location #splashScreen,
+html.is-location-page #splashScreen {
   display: none;
 }
-html.is-pending-location #appShell {
+html.is-pending-location #appShell,
+html.is-location-page #appShell {
   display: grid;
 }
 // Start these elements at opacity 0 BEFORE first paint so that when JS later
@@ -2259,6 +2273,137 @@ html.is-pending-location #locationText {
 }
 html.is-pending-location #dateText {
   min-height: 1.4em; // content-box min-height; .period-subheading adds the padding + border to reach final 33.6px
+}
+
+// Location cards and popular rows are anchors (crawlers can't follow buttons),
+// so they need the button-ish resets that the element gave us for free.
+.location-card,
+.location-item,
+.locations-popular-row {
+  text-decoration: none;
+  color: inherit;
+}
+
+a.location-card,
+a.location-item {
+  display: block;
+}
+
+// --- Server-rendered location page prose (/locations/:slug) ---
+// Lives inside #viewOutlet, above the footer. #viewOutlet already supplies the
+// horizontal gutters, so this only adds vertical rhythm.
+.location-intro {
+  max-width: $max-page-content-width;
+  margin: 0 auto;
+  padding: 2.5rem 0 1rem;
+  color: $colour-text;
+  box-sizing: border-box;
+  border-top: 1px solid rgba($colour-border, 0.35);
+
+  h1 {
+    font-size: 1.6rem;
+    line-height: 1.25;
+    margin: 0 0 1.5rem;
+  }
+
+  p {
+    line-height: 1.6;
+    margin: 0 0 1rem;
+  }
+
+  a {
+    color: $colour-link;
+  }
+}
+
+// Image and prose sit side by side once there is room for both; below that the
+// grid collapses to a single column and they stack, image first.
+.location-intro__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+
+  @media (min-width: 900px) {
+    // The source images are 320px wide, so give the image column a little more
+    // than that and no more — a proportional (e.g. 5fr) column would stretch it
+    // to ~465px on a wide viewport and visibly soften it.
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    gap: 2.5rem;
+    align-items: start;
+  }
+}
+
+// With no image there is no second column to balance, so keep the prose to a
+// comfortable measure instead of letting it run the full page width.
+.location-intro__body--no-media .location-intro__text {
+  max-width: 68ch;
+}
+
+.location-intro__media {
+  margin: 0;
+  // Never render the 320px source wider than it can support.
+  max-width: 360px;
+}
+
+.location-intro__image {
+  display: block;
+
+  img {
+    display: block;
+    width: 100%;
+    // Matches the source images' own 320x200, so nothing is cropped or
+    // distorted; object-fit is belt-and-braces if the API ever reprocesses them
+    // at a different shape. Setting the ratio here (rather than a max-height
+    // against width:100%, which leaves the box a different shape from the image
+    // and stretches it) is what keeps it proportional at every width.
+    aspect-ratio: 16 / 10;
+    height: auto;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+}
+
+.location-intro__lede {
+  opacity: 0.85;
+  font-size: 0.95rem;
+}
+
+.location-intro__attribution {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin: 0.5rem 0 0;
+}
+
+// Internal links to the other curated cities. These are what get 20 otherwise
+// sparsely-linked pages crawled, so they must be real anchors, always rendered.
+.location-intro__siblings {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba($colour-border, 0.35);
+
+  h2 {
+    font-size: 1rem;
+    text-transform: none;
+    margin: 0 0 0.75rem;
+  }
+
+  a {
+    display: inline-block;
+    margin: 0 0.75rem 0.5rem 0;
+    font-size: 0.9rem;
+  }
+}
+
+.location-intro__all {
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .location-intro {
+    padding: 2rem 0 1rem;
+
+    h1 { font-size: 1.35rem; }
+  }
 }
 
 .share-page-pending {

@@ -1,7 +1,16 @@
 import { defineConfig, loadEnv } from 'vite'
 import { copyFileSync, readFileSync, existsSync } from 'node:fs'
 import { resolve, join } from 'node:path'
+import { createRequire } from 'node:module'
 import { execSync } from 'child_process'
+
+// Location-page rendering is shared verbatim with server.js rather than
+// reimplemented here — the two copies of the /s/:id share logic have already
+// drifted (see #110), and this avoids a third.
+const requireCjs = createRequire(join(__dirname, 'vite.config.ts'))
+const { LOCATION_SLUG_RE, getAllLocations, getLocationBySlug } = requireCjs('./lib/locations.cjs')
+const { injectLocationPage } = requireCjs('./lib/locationPage.cjs')
+const { buildSitemapXml } = requireCjs('./lib/sitemap.cjs')
 
 // Shared helpers for share-page OG/JSON-LD injection (used by Vite dev plugin and server.js)
 function getOrdinalVite(n: number): string {
@@ -83,6 +92,69 @@ export default defineConfig(({ mode }) => {
       }
     },
     {
+      // Server-rendered /locations/:slug pages in dev, mirroring server.js.
+      // Registered before the share plugin and before Vite's own static/SPA
+      // handling so unknown slugs 404 rather than falling through to index.html.
+      name: 'dev-location-routing',
+      configureServer(server) {
+        server.middlewares.use(async (req, res, next) => {
+          const url = req.url?.split('?')[0] ?? '';
+          const match = url.match(/^\/locations\/([^/]+)\/?$/);
+          if (!match) return next();
+
+          const slug = decodeURIComponent(match[1]).toLowerCase();
+          if (!LOCATION_SLUG_RE.test(slug)) return next();
+
+          const canonicalPath = `/locations/${slug}`;
+          if (url !== canonicalPath) {
+            res.statusCode = 301;
+            res.setHeader('Location', canonicalPath);
+            return res.end();
+          }
+
+          const location = getLocationBySlug(slug);
+          const port = server.config.server.port ?? 5173;
+          const origin = `http://localhost:${port}`;
+
+          if (!location) {
+            // Match production: a real 404, with the locations index as the body.
+            try {
+              const raw = readFileSync(resolve(__dirname, 'locations.html'), 'utf-8');
+              let html = await server.transformIndexHtml(req.url!, raw);
+              html = html.replace('</head>', '    <meta name="robots" content="noindex">\n  </head>');
+              res.statusCode = 404;
+              res.setHeader('Content-Type', 'text/html; charset=utf-8');
+              return res.end(html);
+            } catch {
+              return next();
+            }
+          }
+
+          try {
+            const apiBase = env.API_BASE
+              || (env.VITE_API_BASE?.startsWith('http') ? env.VITE_API_BASE : null)
+              || 'http://localhost:8000';
+            const raw = readFileSync(resolve(__dirname, 'index.html'), 'utf-8');
+            const transformed = await server.transformIndexHtml(req.url!, raw);
+            const html = injectLocationPage(transformed, location, origin, apiBase, getAllLocations());
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            return res.end(html);
+          } catch (err) {
+            console.warn('[dev-location-routing] failed for', slug, err);
+            return next();
+          }
+        });
+
+        // sitemap.xml, mirroring the production route.
+        server.middlewares.use((req, res, next) => {
+          if ((req.url?.split('?')[0] ?? '') !== '/sitemap.xml') return next();
+          const port = server.config.server.port ?? 5173;
+          res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+          return res.end(buildSitemapXml(`http://localhost:${port}`));
+        });
+      }
+    },
+    {
       // Inject share-specific OG tags and JSON-LD for /s/:id routes in dev mode,
       // mirroring the production middleware in server.js
       name: 'dev-share-og-injection',
@@ -134,6 +206,9 @@ export default defineConfig(({ mode }) => {
                 .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, `<script type="application/ld+json">${ldJson}</script>`)
                 .replace(/<meta\s+(?:property="og:[^"]*"|name="twitter:[^"]*")[^>]*\/?\s*>/gi, '')
                 .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttrVite(title)}</title>`)
+                // head-common.html now carries a canonical pointing at the home
+                // page; without this the share page would claim to be the home page.
+                .replace(/<link\s+rel="canonical"[^>]*\/?\s*>/i, `<link rel="canonical" href="${escapeAttrVite(shareUrl)}" />`)
                 .replace('</head>', `    ${ogTags}\n  </head>`);
 
               res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -170,7 +245,18 @@ export default defineConfig(({ mode }) => {
           PRIVACY_ACTIVE: (isPrivacy || isPrivacyApp) ? ' class="active"' : '',
           FEED_ACTIVE: isFeed ? ' class="active"' : '',
           // Hide Snapshots nav link when VITE_ENABLE_SNAPSHOTS=false
-          SNAPSHOTS_NAV_HIDDEN: env.VITE_ENABLE_SNAPSHOTS === 'false' ? 'hidden' : ''
+          SNAPSHOTS_NAV_HIDDEN: env.VITE_ENABLE_SNAPSHOTS === 'false' ? 'hidden' : '',
+          // Self-referencing canonical per entry point. server.js rewrites the
+          // origin per host via applySiteOriginToHtml, so baking in the production
+          // origin here is correct. NOTE: /s/:id and /locations/:slug are served
+          // from index.html, so their middleware MUST replace this tag — otherwise
+          // every share and location page canonicalises itself to the home page.
+          CANONICAL_URL: isLocations ? 'https://temphist.com/locations'
+            : isAbout ? 'https://temphist.com/about'
+            : isPrivacyApp ? 'https://temphist.com/privacy/app'
+            : isPrivacy ? 'https://temphist.com/privacy'
+            : isFeed ? 'https://temphist.com/feed'
+            : 'https://temphist.com/'
         }
         
         // Helper function to load and substitute template

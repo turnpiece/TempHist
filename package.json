@@ -1,6 +1,6 @@
 {
   "name": "temphist",
-  "version": "1.2.20",
+  "version": "1.2.24",
   "description": "Daily temperature history chart. Shows the temperature on the same day each year over the past 50 years for the current location.",
   "main": "src/main.ts",
   "scripts": {
@@ -12,14 +12,15 @@
     "start": "node server.js",
     "start:local": "node server-local.js",
     "dev": "vite",
-    "build": "npx tsc && npx vite build",
+    "build": "node scripts/check-locations-snapshot.mjs && npx tsc && npx vite build",
     "type-check": "npx tsc --noEmit",
     "preview": "vite preview",
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
     "version:major": "npm version major",
     "version:show": "echo $npm_package_version",
-    "postversion": "git push --follow-tags"
+    "postversion": "git push --follow-tags",
+    "check:locations": "node scripts/check-locations-snapshot.mjs"
   },
   "repository": {
     "type": "git",
@@ -37,24 +38,24 @@
     "npm": ">=9.0.0"
   },
   "dependencies": {
-    "@fontsource/inter": "^5.2.8",
+    "@fontsource/inter": "^5.3.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "firebase": "^12.15.0",
+    "firebase": "^12.16.0",
     "http-proxy-middleware": "^4.2.0"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.9",
-    "@vitest/ui": "^4.1.9",
-    "axios": "^1.18.1",
+    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/ui": "^4.1.11",
+    "axios": "^1.19.0",
     "clean-css-cli": "^5.6.3",
-    "jsdom": "^29.1.1",
+    "jsdom": "^30.0.1",
     "png-to-ico": "^3.0.2",
-    "sass": "^1.101.0",
+    "sass": "^1.102.0",
     "sharp": "^0.35.2",
-    "terser": "^5.48.0",
-    "typescript": "^6.0.3",
-    "vite": "^8.1.0",
-    "vitest": "^4.1.9"
+    "terser": "^5.49.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.0",
+    "vitest": "^4.1.11"
   }
 }

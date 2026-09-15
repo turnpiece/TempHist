@@ -39,6 +39,11 @@ export class TempHistRouter {
 
   handleRoute(): void {
     debugLog('Router handling route change');
+
+    // Path-level navigation between server-rendered location pages (Back/Forward
+    // after a pushState from a card click). The hash routing below only deals
+    // with period views, so this has to be handled before it.
+    if (this.handleLocationPathChange()) return;
     
     // Clear any existing loading intervals when navigating
     clearAllLoadingIntervals();
@@ -77,6 +82,13 @@ export class TempHistRouter {
         viewKey = 'year';
         break;
       case '/splash':
+        // On a server-rendered /locations/:slug page the splash markup is hidden
+        // and its listeners were never wired, so re-showing it in place yields a
+        // blank screen. Go to the real splash at / instead.
+        if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+          window.location.href = '/';
+          return;
+        }
         handleLocationChangeInternal();
         return;
       default:
@@ -163,6 +175,38 @@ export class TempHistRouter {
     }
   }
   
+  /**
+   * Reconcile the app with the location in the URL path after history navigation.
+   * Returns true when it has taken over the route.
+   *
+   * A full reload is the honest fallback: rebuilding app state for an arbitrary
+   * slug client-side would mean duplicating the server's bootstrap, and these
+   * pages are cheap to re-fetch.
+   */
+  private handleLocationPathChange(): boolean {
+    const applied = (globalThis as any).__TH_APPLIED_SLUG as string | null | undefined;
+    const path = window.location.pathname;
+    const match = /^\/locations\/([a-z0-9-]+)$/.exec(path);
+
+    if (match) {
+      if (applied && match[1] !== applied) {
+        window.location.reload();
+        return true;
+      }
+      return false;
+    }
+
+    // Navigated back off a location page to the SPA root — the app still holds
+    // that location's state, so reload to get the correct (splash) start state.
+    if (applied && (path === '/' || path === '/index.html')) {
+      (globalThis as any).__TH_APPLIED_SLUG = null;
+      window.location.reload();
+      return true;
+    }
+
+    return false;
+  }
+
   updateNavigationHighlight(route: string): void {
     debugLog('Updating navigation highlight for route:', route);
     

@@ -43,6 +43,11 @@ import { isSharePagePath, initSharePage } from './share';
 // shouldn't trigger the browser's permission prompt.
 document.addEventListener('DOMContentLoaded', async () => {
   if (!document.querySelector('#todayView') || isSharePagePath()) return;
+  // /locations/:slug is served from index.html, so #todayView exists there too.
+  // The carousel is never shown on those pages, and firing the geolocation
+  // permission prompt at someone who arrived from a search result to read about
+  // one specific city is exactly the wrong first impression.
+  if ((globalThis as any).__TH_LOCATION) return;
   await initLocationCarousel();
   startGeolocationPrefetch();
 });

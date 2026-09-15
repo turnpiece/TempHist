@@ -1,0 +1,506 @@
+[
+  {
+    "id": "london",
+    "slug": "london",
+    "name": "London",
+    "admin1": "England",
+    "country_name": "United Kingdom",
+    "country_code": "GB",
+    "continent": "Europe",
+    "latitude": 51.5074,
+    "longitude": -0.1278,
+    "timezone": "Europe/London",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/london.webp",
+      "jpeg": "/data/locations/processed/london.jpg"
+    },
+    "imageAlt": "London Eye and Thames river"
+  },
+  {
+    "id": "manchester",
+    "slug": "manchester",
+    "name": "Manchester",
+    "admin1": "England",
+    "country_name": "United Kingdom",
+    "country_code": "GB",
+    "continent": "Europe",
+    "latitude": 53.4808,
+    "longitude": -2.2426,
+    "timezone": "Europe/London",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/manchester.webp",
+      "jpeg": "/data/locations/processed/manchester.jpg"
+    },
+    "imageAlt": "Sunny canal ciew in Manchester city center",
+    "imageAttribution": {
+      "title": "Sunny Canal View in Manchester City Center",
+      "photographerName": "Miguel Arcanjo Saddi",
+      "sourceName": "Pexels",
+      "sourceUrl": "https://www.pexels.com/photo/sunny-canal-view-in-manchester-city-center-34577518/",
+      "licenseName": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "attributionRequired": false
+    }
+  },
+  {
+    "id": "birmingham",
+    "slug": "birmingham",
+    "name": "Birmingham",
+    "admin1": "England",
+    "country_name": "United Kingdom",
+    "country_code": "GB",
+    "continent": "Europe",
+    "latitude": 52.4862,
+    "longitude": -1.8904,
+    "timezone": "Europe/London",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/birmingham.webp",
+      "jpeg": "/data/locations/processed/birmingham.jpg"
+    },
+    "imageAlt": "Birmingham skyline from Snowhill"
+  },
+  {
+    "id": "edinburgh",
+    "slug": "edinburgh",
+    "name": "Edinburgh",
+    "admin1": "Scotland",
+    "country_name": "United Kingdom",
+    "country_code": "GB",
+    "continent": "Europe",
+    "latitude": 55.9533,
+    "longitude": -3.1883,
+    "timezone": "Europe/London",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/edinburgh.webp",
+      "jpeg": "/data/locations/processed/edinburgh.jpg"
+    },
+    "imageAlt": "Edinburgh skyline from Salisbury Crags",
+    "imageAttribution": {
+      "title": "Edinburgh skyline from Salisbury Crags",
+      "photographerName": "Ad Meskens",
+      "sourceName": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Edinburgh_skyline_from_Salisbury_Crags_02.JPG",
+      "licenseName": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "attributionRequired": true
+    }
+  },
+  {
+    "id": "glasgow",
+    "slug": "glasgow",
+    "name": "Glasgow",
+    "admin1": "Scotland",
+    "country_name": "United Kingdom",
+    "country_code": "GB",
+    "continent": "Europe",
+    "latitude": 55.8642,
+    "longitude": -4.2518,
+    "timezone": "Europe/London",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/glasgow.webp",
+      "jpeg": "/data/locations/processed/glasgow.jpg"
+    },
+    "imageAlt": "Aerial view of Glasgow"
+  },
+  {
+    "id": "cardiff",
+    "slug": "cardiff",
+    "name": "Cardiff",
+    "admin1": "Wales",
+    "country_name": "United Kingdom",
+    "country_code": "GB",
+    "continent": "Europe",
+    "latitude": 51.4816,
+    "longitude": -3.1791,
+    "timezone": "Europe/London",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/cardiff.webp",
+      "jpeg": "/data/locations/processed/cardiff.jpg"
+    },
+    "imageAlt": "Cardiff Castle shell keep",
+    "imageAttribution": {
+      "title": "Cardiff Castle shell keep",
+      "photographerName": "bluemonday16",
+      "sourceName": "Flickr",
+      "sourceUrl": "https://www.flickr.com/photos/robinbyles/7285120452/",
+      "licenseName": "CC BY-NC 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc/2.0/deed.en",
+      "attributionRequired": true
+    }
+  },
+  {
+    "id": "belfast",
+    "slug": "belfast",
+    "name": "Belfast",
+    "admin1": "Northern Ireland",
+    "country_name": "United Kingdom",
+    "country_code": "GB",
+    "continent": "Europe",
+    "latitude": 54.5973,
+    "longitude": -5.9301,
+    "timezone": "Europe/London",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/belfast.webp",
+      "jpeg": "/data/locations/processed/belfast.jpg"
+    },
+    "imageAlt": "Belfast City Hall",
+    "imageAttribution": {
+      "title": "Belfast City Hall",
+      "photographerName": "William Murphy",
+      "sourceName": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Belfast_City_Hall.jpg",
+      "licenseName": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/deed.en",
+      "attributionRequired": true
+    }
+  },
+  {
+    "id": "dublin",
+    "slug": "dublin",
+    "name": "Dublin",
+    "admin1": "Leinster",
+    "country_name": "Ireland",
+    "country_code": "IE",
+    "continent": "Europe",
+    "latitude": 53.3498,
+    "longitude": -6.2603,
+    "timezone": "Europe/Dublin",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/dublin.webp",
+      "jpeg": "/data/locations/processed/dublin.jpg"
+    },
+    "imageAlt": "Samuel Beckett Bridge at sunset in Dublin",
+    "imageAttribution": {
+      "title": "Samuel Beckett Bridge at sunset, Dublin",
+      "photographerName": null,
+      "sourceName": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Samuel_Beckett_Bridge_At_Sunset_Dublin_Ireland_(97037639).jpeg",
+      "licenseName": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/deed.en",
+      "attributionRequired": true
+    }
+  },
+  {
+    "id": "new_york",
+    "slug": "new-york",
+    "name": "New York",
+    "admin1": "New York",
+    "country_name": "United States",
+    "country_code": "US",
+    "continent": "North America",
+    "latitude": 40.7128,
+    "longitude": -74.006,
+    "timezone": "America/New_York",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/new-york.webp",
+      "jpeg": "/data/locations/processed/new-york.jpg"
+    },
+    "imageAlt": "New York skyline"
+  },
+  {
+    "id": "chicago",
+    "slug": "chicago",
+    "name": "Chicago",
+    "admin1": "Illinois",
+    "country_name": "United States",
+    "country_code": "US",
+    "continent": "North America",
+    "latitude": 41.8781,
+    "longitude": -87.6298,
+    "timezone": "America/Chicago",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/chicago.webp",
+      "jpeg": "/data/locations/processed/chicago.jpg"
+    },
+    "imageAlt": "Chicago, photo of buildings",
+    "imageAttribution": {
+      "title": "Photo Of Buildings",
+      "photographerName": "Chait Goli",
+      "sourceName": "Pexels",
+      "sourceUrl": "https://www.pexels.com/photo/photo-of-buildings-1823681/",
+      "licenseName": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "attributionRequired": false
+    }
+  },
+  {
+    "id": "san_francisco",
+    "slug": "san-francisco",
+    "name": "San Francisco",
+    "admin1": "California",
+    "country_name": "United States",
+    "country_code": "US",
+    "continent": "North America",
+    "latitude": 37.7749,
+    "longitude": -122.4194,
+    "timezone": "America/Los_Angeles",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/san-francisco.webp",
+      "jpeg": "/data/locations/processed/san-francisco.jpg"
+    },
+    "imageAlt": "San Francisco from the Marin Headlands",
+    "imageAttribution": {
+      "title": "San Francisco from the Marin Headlands on August 22, 2022",
+      "photographerName": "Lightandtruth",
+      "sourceName": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:San_Francisco_from_the_Marin_Headlands_in_August_2022.jpg",
+      "licenseName": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+      "attributionRequired": true
+    }
+  },
+  {
+    "id": "los_angeles",
+    "slug": "los-angeles",
+    "name": "Los Angeles",
+    "admin1": "California",
+    "country_name": "United States",
+    "country_code": "US",
+    "continent": "North America",
+    "latitude": 34.0522,
+    "longitude": -118.2437,
+    "timezone": "America/Los_Angeles",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/los-angeles.webp",
+      "jpeg": "/data/locations/processed/los-angeles.jpg"
+    },
+    "imageAlt": "Los Angeles skyline in winter",
+    "imageAttribution": {
+      "title": "Los Angeles skyline and San Gabriel mountains, winter 2016",
+      "photographerName": "salewskia",
+      "sourceName": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Los_Angeles,_Winter_2016.jpg",
+      "licenseName": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+      "attributionRequired": true
+    }
+  },
+  {
+    "id": "sydney",
+    "slug": "sydney",
+    "name": "Sydney",
+    "admin1": "New South Wales",
+    "country_name": "Australia",
+    "country_code": "AU",
+    "continent": "Oceania",
+    "latitude": -33.8688,
+    "longitude": 151.2093,
+    "timezone": "Australia/Sydney",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/sydney.webp",
+      "jpeg": "/data/locations/processed/sydney.jpg"
+    },
+    "imageAlt": "Sydney Harbour",
+    "imageAttribution": {
+      "title": "On Sydney Harbour",
+      "photographerName": "Bernard Spragg",
+      "sourceName": "Flickr",
+      "sourceUrl": "https://www.flickr.com/photos/volvob12b/8069201903",
+      "licenseName": "CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attributionRequired": false
+    }
+  },
+  {
+    "id": "melbourne",
+    "slug": "melbourne",
+    "name": "Melbourne",
+    "admin1": "Victoria",
+    "country_name": "Australia",
+    "country_code": "AU",
+    "continent": "Oceania",
+    "latitude": -37.8136,
+    "longitude": 144.9631,
+    "timezone": "Australia/Melbourne",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/melbourne.webp",
+      "jpeg": "/data/locations/processed/melbourne.jpg"
+    },
+    "imageAlt": "Melbourne city skyline",
+    "imageAttribution": {
+      "title": "Melbourne city skyline",
+      "photographerName": "Nick English",
+      "sourceName": "Pexels",
+      "sourceUrl": "https://www.pexels.com/photo/18198178",
+      "licenseName": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "attributionRequired": false
+    }
+  },
+  {
+    "id": "auckland",
+    "slug": "auckland",
+    "name": "Auckland",
+    "admin1": "Auckland",
+    "country_name": "New Zealand",
+    "country_code": "NZ",
+    "continent": "Oceania",
+    "latitude": -36.8485,
+    "longitude": 174.7633,
+    "timezone": "Pacific/Auckland",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/auckland.webp",
+      "jpeg": "/data/locations/processed/auckland.jpg"
+    },
+    "imageAlt": "Auckland Harbour Bridge at sunset",
+    "imageAttribution": {
+      "title": "Spirit of New Zealand, sailing under the Harbour Bridge in Auckland at sunset",
+      "photographerName": "Stephen Witherden",
+      "sourceName": "Flickr",
+      "sourceUrl": "https://www.flickr.com/photos/swit012/2225752140/",
+      "licenseName": "CC BY 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/deed.en",
+      "attributionRequired": true
+    }    
+  },
+  {
+    "id": "toronto",
+    "slug": "toronto",
+    "name": "Toronto",
+    "admin1": "Ontario",
+    "country_name": "Canada",
+    "country_code": "CA",
+    "continent": "North America",
+    "latitude": 43.6532,
+    "longitude": -79.3832,
+    "timezone": "America/Toronto",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/toronto.webp",
+      "jpeg": "/data/locations/processed/toronto.jpg"
+    },
+    "imageAlt": "Toronto skyline",
+    "imageAttribution": {
+      "title": "Toronto skyline",
+      "photographerName": "Bernard Spragg",
+      "sourceName": "Flickr",
+      "sourceUrl": "https://www.flickr.com/photos/volvob12b/48993906211/",
+      "licenseName": "CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attributionRequired": false
+    }  
+  },
+  {
+    "id": "vancouver",
+    "slug": "vancouver",
+    "name": "Vancouver",
+    "admin1": "British Columbia",
+    "country_name": "Canada",
+    "country_code": "CA",
+    "continent": "North America",
+    "latitude": 49.2827,
+    "longitude": -123.1207,
+    "timezone": "America/Vancouver",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/vancouver.webp",
+      "jpeg": "/data/locations/processed/vancouver.jpg"
+    },
+    "imageAlt": "Vancouver cityscape",
+    "imageAttribution": {
+      "title": "Vancouver cityscape",
+      "photographerName": "Luke Lawreszuk",
+      "sourceName": "Sprayedout.com",
+      "sourceUrl": "https://www.sprayedout.com/vancouver-downtown-north-vancouver-mountains-cityscape/",
+      "licenseName": "CC BY-NC-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "attributionRequired": true
+    }
+  },
+  {
+    "id": "singapore",
+    "slug": "singapore",
+    "name": "Singapore",
+    "admin1": "Singapore",
+    "country_name": "Singapore",
+    "country_code": "SG",
+    "continent": "Asia",
+    "latitude": 1.3521,
+    "longitude": 103.8198,
+    "timezone": "Asia/Singapore",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/singapore.webp",
+      "jpeg": "/data/locations/processed/singapore.jpg"
+    },
+    "imageAlt": "Singapore skyline at blue hour",
+    "imageAttribution": {
+      "title": "Singapore skyline at blue hour",
+      "photographerName": "Cpgfella",
+      "sourceName": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Singapore_Skyline_at_Bluehour.jpg",
+      "licenseName": "CC BY-SA 4.0",
+      "licenseUrl": null,
+      "attributionRequired": true
+    }
+  },
+  {
+    "id": "hong_kong",
+    "slug": "hong-kong",
+    "name": "Hong Kong",
+    "admin1": "Hong Kong",
+    "country_name": "Hong Kong",
+    "country_code": "HK",
+    "continent": "Asia",
+    "latitude": 22.3193,
+    "longitude": 114.1694,
+    "timezone": "Asia/Hong_Kong",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/hong-kong.webp",
+      "jpeg": "/data/locations/processed/hong-kong.jpg"
+    },
+    "imageAlt": "Hong Kong from Victoria Peak",
+    "imageAttribution": {
+      "title": "Hong Kong from Victoria Peak",
+      "photographerName": "Mustang Joe",
+      "sourceName": "Flickr",
+      "sourceUrl": "https://www.flickr.com/photos/mustangjoe/54148420380/",
+      "licenseName": "CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attributionRequired": false
+    }
+  },
+  {
+    "id": "cape_town",
+    "slug": "cape-town",
+    "name": "Cape Town",
+    "admin1": "Western Cape",
+    "country_name": "South Africa",
+    "country_code": "ZA",
+    "continent": "Africa",
+    "latitude": -33.9249,
+    "longitude": 18.4241,
+    "timezone": "Africa/Johannesburg",
+    "tier": "global",
+    "imageUrl": {
+      "webp": "/data/locations/processed/cape-town.webp",
+      "jpeg": "/data/locations/processed/cape-town.jpg"
+    },
+    "imageAlt": "Aerial view of Sea Point, Cape Town",
+    "imageAttribution": {
+      "title": "Aerial View of Sea Point, Cape Town South Africa",
+      "photographerName": "Hilton1949",
+      "sourceName": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Aerial_View_of_Sea_Point,_Cape_Town_South_Africa.jpg",
+      "licenseName": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/deed.en",
+      "attributionRequired": true
+    }
+  }
+]
