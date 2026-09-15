@@ -7,7 +7,9 @@ const require = createRequire(import.meta.url);
 const {
   LOCATION_SLUG_RE, absolutiseImages, displayStringFor, getAllLocations, getLocationBySlug,
 } = require('../lib/locations.cjs');
-const { buildMeta, injectLocationPage, jsonForScript, regionPhrase } = require('../lib/locationPage.cjs');
+const {
+  buildMeta, formatTimezone, injectLocationPage, jsonForScript, regionPhrase,
+} = require('../lib/locationPage.cjs');
 const { buildSitemapXml } = require('../lib/sitemap.cjs');
 
 const ORIGIN = 'https://temphist.com';
@@ -78,6 +80,17 @@ describe('regionPhrase', () => {
 
   it('does not repeat a city-state name', () => {
     expect(regionPhrase(getLocationBySlug('singapore'))).toBe('Singapore');
+  });
+});
+
+describe('formatTimezone', () => {
+  it('reads underscored IANA names as words', () => {
+    expect(formatTimezone('America/New_York')).toBe('America/New York');
+    expect(formatTimezone('Asia/Hong_Kong')).toBe('Asia/Hong Kong');
+  });
+
+  it('leaves names without underscores alone', () => {
+    expect(formatTimezone('Europe/London')).toBe('Europe/London');
   });
 });
 
@@ -205,6 +218,14 @@ describe('injectLocationPage', () => {
     expect(out).toContain('loading="lazy"');
     expect(out).not.toContain('fetchpriority="high"');
     expect(out).not.toContain('rel="preload"');
+  });
+
+  it.skipIf(!html)('displays timezones as words but bootstraps the canonical id', () => {
+    // The visible text is for people; the bootstrap value is passed to Intl and
+    // the API, which need the real identifier.
+    const out = render('new-york');
+    expect(out).toContain('America/New York');
+    expect(out).toContain('"timezone":"America/New_York"');
   });
 
   it.skipIf(!html)('consumes the SSR marker', () => {
