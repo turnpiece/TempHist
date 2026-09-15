@@ -313,11 +313,29 @@ app.use((req, res, next) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     // No injectCountryCode here: the response is CDN-cacheable, and baking one
     // visitor's cf-ipcountry into it would serve their country to everyone.
-    // s-maxage only takes effect with a Cloudflare cache rule for /locations/*;
-    // without one it is inert, not harmful.
+    //
+    // Browser and edge lifetimes are stated in separate headers. CDN-Cache-Control
+    // is evaluated ahead of Cache-Control (Cloudflare-CDN-Cache-Control >
+    // CDN-Cache-Control > Cache-Control), so the edge reads one and browsers the
+    // other. Carrying both in a single Cache-Control had two problems:
+    //
+    //   - s-maxage implies proxy-revalidate, which disables
+    //     stale-while-revalidate, so the stale window never actually applied.
+    //   - max-age=0 means "cache and revalidate" only while Origin Cache Control
+    //     is on (the default on Free/Pro/Business). With it off — the Enterprise
+    //     default — the same header means BYPASS and nothing caches at all.
+    //
+    // Browsers revalidate every time, so a deploy is visible immediately; the
+    // edge holds the page for an hour and may serve it stale for a day while it
+    // refreshes. Note the edge only caches these at all if a Cloudflare cache
+    // rule marks /locations/* eligible — HTML is not cached by default. Without
+    // that rule these headers are inert, not harmful.
     res.setHeader('Cache-Control', isProd
-      ? 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400'
+      ? 'public, max-age=0, must-revalidate'
       : 'no-cache');
+    if (isProd) {
+      res.setHeader('CDN-Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+    }
     res.setHeader('Vary', 'Accept-Encoding');
     return res.send(html);
   } catch (err) {

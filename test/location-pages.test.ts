@@ -150,6 +150,34 @@ describe('buildSitemapXml', () => {
   });
 });
 
+describe('location page cache headers (server.js)', () => {
+  // Asserted against the source rather than over HTTP: there is no harness for
+  // booting server.js, and standing one up for two header strings would be more
+  // machinery than the risk warrants. The risk being guarded is specific — that
+  // the browser and edge directives get "tidied" back into a single
+  // Cache-Control, which silently reintroduces two bugs:
+  //   - s-maxage implies proxy-revalidate, disabling stale-while-revalidate
+  //   - max-age=0 means BYPASS wherever Origin Cache Control is off
+  const serverSrc = readFileSync(resolve(__dirname, '..', 'server.js'), 'utf-8');
+  const locationBlock = serverSrc.slice(serverSrc.indexOf('Server-rendered /locations/:slug pages'));
+
+  it('states the edge lifetime in CDN-Cache-Control, not Cache-Control', () => {
+    expect(locationBlock).toContain("setHeader('CDN-Cache-Control'");
+    expect(locationBlock).toContain('stale-while-revalidate=86400');
+  });
+
+  it('sends browsers a revalidate-always directive', () => {
+    expect(locationBlock).toContain("'public, max-age=0, must-revalidate'");
+  });
+
+  it('never puts s-maxage in an actual header value', () => {
+    // Match only real setHeader values, so the explanatory comment above them
+    // (which names s-maxage to say why it is avoided) does not trip this.
+    const headerValues = [...serverSrc.matchAll(/setHeader\([^)]*\)/g)].map((m) => m[0]);
+    expect(headerValues.some((h) => h.includes('s-maxage'))).toBe(false);
+  });
+});
+
 describe('injectLocationPage', () => {
   // Use the real built page when present so the test exercises the actual
   // markers and tag shapes rather than a hand-written approximation.
