@@ -213,15 +213,11 @@ export function initSharePage(): void {
 
   const refs = buildShareUI(viewOutlet);
 
-  const footer = document.createElement('footer');
-  footer.className = 'site-footer';
-  const footerP = document.createElement('p');
-  footerP.innerHTML =
-    '© 2026 <a href="https://turnpiece.com" title="Turnpiece: ideas &gt; application">Turnpiece</a> · ' +
-    '<a href="/about">About</a> · ' +
-    '<a href="/privacy">Privacy Policy</a>';
-  footer.appendChild(footerP);
-  viewOutlet.appendChild(footer);
+  // The real site footer is already a child of #viewOutlet (kept visible by
+  // hideAppChrome above); move it back to the end so it stays below the
+  // share content that buildShareUI just appended.
+  const footer = viewOutlet.querySelector('footer');
+  if (footer) viewOutlet.appendChild(footer);
 
   (async () => {
     try {
@@ -265,10 +261,13 @@ function hideAppChrome(): void {
   const brandLink = document.querySelector('.topnav__brand') as HTMLAnchorElement | null;
   if (brandLink) brandLink.href = '/';
 
-  // Hide any existing view sections (today, week, etc.)
+  // Hide any existing view sections (today, week, etc.), but keep the
+  // real site footer (with social links) visible so it isn't replaced
+  // by a hand-rolled duplicate.
   const viewOutlet = document.getElementById('viewOutlet');
   if (viewOutlet) {
     Array.from(viewOutlet.children).forEach(child => {
+      if ((child as HTMLElement).tagName === 'FOOTER') return;
       (child as HTMLElement).hidden = true;
     });
   }
