@@ -1,0 +1,5 @@
+/* Share page (share-entry.ts) stylesheet — only what rendering a standalone
+   /s/:id page actually needs (layout vars, dashboard/chart, topnav, footer,
+   and the share-page-specific rules). See styles.scss for the full site
+   stylesheet every other page uses. */
+@use 'styles/core';

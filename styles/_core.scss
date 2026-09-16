@@ -1,0 +1,1260 @@
+/* TempHist styles — shared across every entry point (main.ts AND
+   share-entry.ts): base/vars, layout shell, dashboard/chart, topnav, and the
+   handful of page-specific rules (share-page-*) the share entry itself needs.
+   Anything only used by the SPA/splash/locations/feed/share-modal lives in
+   styles/_extra.scss instead, which only main.ts pulls in — see styles.scss
+   (main.ts's entry) vs share.scss (share-entry.ts's). */
+@use "sass:color";
+
+// Ensure the HTML `hidden` attribute always wins over explicit `display` rules
+[hidden] { display: none !important; }
+
+:root {
+  // Homepage redesign variables
+  --bg-dark:  #22256a;
+  --green:    #38b549;
+  --green-h:  #44c856;
+  --blue-bar: #6b8ed4;
+  --r:        12px;
+  // Red now means warmth — use neutral grey for generic UI accents
+  --accent: #8E8E93;
+  --success: #51cf66;
+  --thisYear: #51cf66;
+  --trend: #C8C400;
+  --avg: #D0D4DE;
+  // Warmth/cold semantic colours
+  --warm: #FF3B30;
+  --cool: #3B82F6;
+  --warning: #FF8C00;
+  --error: #dc3545;
+  --error-bg: rgba(36, 36, 86, 0.9);
+  --sidebar-w: 240px;
+  // Logo colours (used by the conic-gradient spinner)
+  --logo-blue: #267CFA;
+  --logo-light-red: #E64C43;
+  --logo-grey: #80848E;
+  --logo-bright-red: #FF1A1A;
+  --logo-muted-blue: #4F7BD3;
+  --logo-dark-red: #A35C53;
+  --dynamic-hot-red: #FF1A1A;
+  --dynamic-cold-blue: #1A66FF;
+}
+
+// Colours
+$colour-primary: #8E8E93;      // neutral grey — was red
+$colour-bg: #242456;
+$colour-bg-bottom: #343499;
+$colour-text: #ececec;
+$colour-link: $colour-text;
+$colour-border: $colour-primary;
+$colour-loading-text: #51cf66;
+$colour-spinner: $colour-loading-text;
+$colour-spinner-bg: rgba($colour-loading-text, 0.2);
+$colour-warning: #FF8C00;      // amber — distinct from red (warmth) and blue (cold)
+$colour-error: #dc3545;
+$colour-error-bg: rgba(36, 36, 86, 0.9);
+$colour-avg: #D0D4DE;          // neutral grey — was blue (blue now means cold)
+
+// Layout variables
+$max-content-width: 600px;
+$max-page-content-width: 1180px;
+$desktop-page-gutter: 2rem;
+$max-page-shell-width: calc(#{$max-page-content-width} + #{2 * $desktop-page-gutter});
+$max-chart-height: 1800px;
+$sidebar-w: 240px; // Must match --sidebar-w CSS custom property
+
+html {
+  // --static-bg-base is set by JS to grad.bottom when a trend is active, so the solid
+  // background-color and the bottom of the 1000px gradient both end at the same colour as the
+  // trend overlay — giving a seamless merge at the mask boundary regardless of page height.
+  background-color: var(--static-bg-base, #{$colour-bg-bottom});
+  background-image: linear-gradient(#{$colour-bg}, var(--static-bg-base, #{$colour-bg-bottom}));
+  background-repeat: no-repeat;
+  background-size: 100% 1000px; // fixed gradient height — consistent across all page lengths
+  transition: background-color 1s ease; // fade in sync with the overlay opacity transition
+  min-height: 100vh;
+  overflow-x: clip; // Prevent horizontal page scroll without creating a scroll container (avoids iOS Safari promoting overflow:hidden+overflow:auto into a 2-axis scroll container)
+  overflow-y: auto; // Allow vertical scrolling
+  overscroll-behavior-x: none; // Prevent iOS lateral rubber-band scroll
+  width: 100%;
+  max-width: 100%; // Prevent overflow
+  position: relative;
+  box-sizing: border-box;
+
+  // Tinted trend gradient overlay: page-anchored, full viewport width, limited to 1000px.
+  // Positioned on html (not body) so it escapes body's max-width constraint.
+  // The static background's --static-bg-base is set by JS to grad.bottom, so the solid
+  // background-color and gradient endpoint both match the overlay's bottom colour — the mask
+  // fade and the static bg meet at exactly the same colour for a seamless merge.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1000px;
+    background-image: var(--trend-bg-image, none);
+    opacity: var(--trend-bg-opacity, 0);
+    transition: opacity 1s ease;
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  }
+
+  // Only reserve scrollbar gutter on devices with classic (non-overlay) scrollbars.
+  // iOS/Android use overlay scrollbars, so the rule does nothing useful there and can
+  // interact poorly with viewport width calculations.
+  @media (hover: hover) and (pointer: fine) {
+    scrollbar-gutter: stable;
+  }
+}
+
+body {
+  background-color: transparent; // html canvas gradient shows through
+  color: $colour-text;
+  margin: 0; // Reset browser default 8px margin — combined with `width: 100%` it pushes the body 16px past the viewport on iOS Safari and is the root cause of the lateral wobble.
+  padding: 0 0 3rem; // .topnav sits in normal flow at the top; no extra reserve needed
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.4;
+  min-height: 100vh;
+  overflow-x: clip; // Prevent horizontal page scroll without creating a 2-axis scroll container on iOS Safari
+  overscroll-behavior-x: none; // Prevent iOS lateral rubber-band scroll
+  touch-action: pan-y; // Disable horizontal touch-panning at document level
+  position: relative; // Establish positioning context
+  width: 100%;
+  max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
+  box-sizing: border-box; // Include padding in width calculation
+
+  // On very wide screens, centre the shell around the widest page content.
+  // The extra gutter keeps the topnav logo aligned with 1180px content blocks.
+  @media (min-width: 901px) {
+    max-width: $max-page-shell-width;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+}
+
+a {
+  text-decoration: underline;
+  color: inherit; // Links inherit the colour of their parent element
+}
+
+.container {
+  position: relative;
+  max-width: $max-content-width;
+  margin: 0 auto 1em;
+}
+
+// Dashboard: 2-column data layout used by the SPA period views
+// (today/week/month/year). Below the desktop breakpoint it behaves like the
+// regular .container — single column, capped at $max-content-width. DOM
+// order is left → right → stats so mobile stacks as
+// heading/tabs/summary → chart → stats. From 1024px upward (≈ 11-inch iPad
+// landscape) grid-template-areas pulls stats back below the left column
+// while the chart column spans both rows.
+.dashboard {
+  position: relative;
+  max-width: $max-content-width;
+  margin: 0 auto 1em;
+}
+
+.dashboard__left,
+.dashboard__right,
+.dashboard__stats {
+  min-width: 0; // prevents long words / wide canvases from blowing out a grid track
+}
+
+@media (min-width: 1024px) {
+  .dashboard {
+    max-width: $max-page-content-width;
+    min-height: calc(800px + 2rem);
+    padding-right: calc(min(600px, calc(100% - 460px)) + 2.5rem);
+  }
+
+  .dashboard__left,
+  .dashboard__stats {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .dashboard__right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: min(600px, calc(100% - 460px));
+    padding-top: 2rem;
+  }
+
+  .dashboard__stats {
+    margin-top: 1rem;
+  }
+
+  .dashboard__left .summary-text {
+    font-size: 1.4rem;
+    line-height: 1.45;
+  }
+
+  // Pin the chart to the left edge of its column (default centering would
+  // disconnect the bars from their year markers).
+  .dashboard__right .chart-container {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  // The stats bubble used to sit below the chart with its own max-width.
+  // Inside its own column it should fill the column edge-to-edge.
+  .dashboard__stats .stats-bubble {
+    max-width: 100%;
+  }
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 800px;
+  min-width: 300px;
+  max-width: $max-content-width;
+  max-height: $max-chart-height;
+  overflow: hidden; // Prevent content from overflowing container
+
+  canvas {
+    width: 100%;
+    height: 100%;
+    min-width: 300px;
+    max-width: 100%; // Prevent canvas from exceeding container width
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.4s;
+    display: block;
+    box-sizing: border-box; // Include any borders in width calculation
+    
+    &.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  .loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: $max-content-width;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 2rem;
+    text-align: left;
+    z-index: 3;
+    opacity: 1;
+    transition: opacity 0.4s;
+    pointer-events: auto;
+    padding-top: 0.5rem;
+    padding-left: 0;
+
+    &.visible {
+      display: flex;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    &.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+}
+
+@media (max-width: 500px) {
+  .chart-container {
+    max-height: $max-chart-height;
+  }
+}
+
+// Unified top navigation bar — replaces both the old #header brand strip and
+// the #sidebar nav. Sits at the top of body in normal document flow; on the
+// splash page the splash overlay starts below it so the navbar remains visible.
+.topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 56px;
+  padding: 8px 2rem;
+  border-bottom: 1px solid rgba($colour-text, 0.08);
+  box-sizing: border-box;
+}
+
+.topnav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: $colour-text;
+  flex-shrink: 0;
+
+  .topnav__logo {
+    display: block;
+    width: 32px;
+    height: 32px;
+  }
+
+  .topnav__wordmark {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  &:hover .topnav__wordmark {
+    color: var(--thisYear);
+  }
+}
+
+.topnav__links {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+
+  a {
+    color: rgba($colour-text, 0.78);
+    text-decoration: none;
+    font-size: 0.95rem;
+    padding: 6px 4px;
+    transition: color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--thisYear);
+    }
+
+    // Underline (not bold) for the active route — keeps the link width
+    // identical so the row doesn't shift when navigation changes.
+    &.active {
+      color: var(--thisYear);
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 6px;
+    }
+  }
+}
+
+.topnav__menu-btn {
+  display: none; // shown <900px
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid rgba($colour-text, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba($colour-text, 0.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--thisYear);
+    outline-offset: 2px;
+  }
+}
+
+.topnav__menu-icon {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: $colour-text;
+  border-radius: 2px;
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.topnav__menu-icon::before,
+.topnav__menu-icon::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 20px;
+  height: 2px;
+  background: $colour-text;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.topnav__menu-icon::before { top: -6px; }
+.topnav__menu-icon::after  { top: 6px; }
+
+// Burger bars turn green to match the rest of the topnav hover/focus accents.
+.topnav__menu-btn:hover .topnav__menu-icon,
+.topnav__menu-btn:hover .topnav__menu-icon::before,
+.topnav__menu-btn:hover .topnav__menu-icon::after,
+.topnav__menu-btn:focus-visible .topnav__menu-icon,
+.topnav__menu-btn:focus-visible .topnav__menu-icon::before,
+.topnav__menu-btn:focus-visible .topnav__menu-icon::after {
+  background: var(--thisYear);
+}
+
+.topnav__drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(280px, 80vw);
+  background: $colour-bg;
+  // Must sit above .splash-screen (z-index 9999) when the drawer opens on splash.
+  z-index: 10002;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transform: translateX(100%);
+  transition: transform 0.22s ease-out;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+
+  &[hidden] {
+    display: none;
+  }
+
+  &.is-open {
+    transform: translateX(0);
+  }
+
+  a {
+    display: block;
+    padding: 12px 14px;
+    border-radius: 10px;
+    color: $colour-text;
+    text-decoration: none;
+    font-size: 1.05rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba($colour-loading-text, 0.10);
+      color: var(--thisYear);
+    }
+
+    &.active {
+      background: transparent;
+      color: var(--thisYear);
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 6px;
+    }
+  }
+}
+
+.topnav__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  // Above the splash overlay (9999); below the drawer.
+  z-index: 10001;
+  animation: fadeIn 0.2s ease-out;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// Splash variant: transparent navbar, low-contrast links so the hero CTA dominates.
+// Triggered when #appShell still has .hidden (splash visible on index.html).
+body:has(#appShell.hidden) .topnav {
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom-color: transparent;
+}
+
+body:has(#appShell.hidden) .topnav__links a {
+  color: rgba($colour-text, 0.55);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--thisYear);
+  }
+}
+
+// Below 900px: hide the inline link list and reveal the hamburger button
+@media (max-width: 900px) {
+  .topnav__links {
+    display: none;
+  }
+
+  .topnav__menu-btn {
+    display: inline-flex;
+  }
+}
+
+// Period pill tabs — segmented control above the chart on every viewport
+.period-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 1em;
+  padding: 4px;
+  background: rgba($colour-text, 0.05);
+  border-radius: 999px;
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .period-tab {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 999px;
+    color: rgba($colour-text, 0.72);
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-align: center;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      color: var(--thisYear);
+      background: rgba($colour-loading-text, 0.10);
+    }
+
+    &.active {
+      background: rgba($colour-loading-text, 0.22);
+      color: var(--thisYear);
+    }
+  }
+}
+
+#appShell {
+  opacity: 1;
+  transition: opacity 1.5s ease-in;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
+
+  &.hidden {
+    display: none;
+  }
+
+  &.fading-in {
+    opacity: 0;
+  }
+
+  &.fade-in {
+    opacity: 1;
+  }
+}
+
+
+// Location edit icon styling
+.location-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  transition: color 0.15s ease;
+
+  svg {
+    display: block;
+    opacity: 0.6;
+    flex-shrink: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  &:hover {
+    color: var(--thisYear);
+
+    svg {
+      opacity: 1;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--thisYear);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+}
+
+// Share icon button — sits inline with the period sub-heading
+.share-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 4px;
+  margin-left: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--accent);
+  vertical-align: middle;
+
+  svg {
+    display: block;
+    transition: all 0.2s ease;
+  }
+
+  &:hover {
+    color: var(--success);
+    transform: scale(1.15);
+  }
+
+  &:active {
+    transform: scale(1.05);
+  }
+
+  &:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  &--loading,
+  &:disabled {
+    opacity: 0.5;
+    cursor: wait;
+    transform: none;
+  }
+}
+
+// Primary location heading — shown above the period label
+// Icons (flag or fallback emoji) are injected by buildLocationDisplay in JS
+.location-heading {
+  font-size: 1.8em;
+  margin-top: 0;
+  margin-bottom: 0.2em;
+  font-weight: normal;
+  // Override the ancestor h2's uppercase rule explicitly — the dashboard's
+  // button wrapper happens not to inherit it, but the share page sets this
+  // text directly, so it needs its own override to stay in natural case.
+  text-transform: none;
+
+  &.location-detected { color: var(--success); }
+  &.location-manual   { color: $colour-text; }
+  &.location-default  { color: var(--trend); }
+  &.location-unknown  { color: $colour-text; }
+  &.location-cookie   { color: $colour-text; }
+
+  // Hide the empty placeholder — preserves layout height but avoids showing blank space
+  &:empty { visibility: hidden; }
+}
+
+// Period sub-heading — shown below the location name, with share button inline
+.period-subheading {
+  font-size: 1.2em;
+  font-weight: normal;
+  color: rgba($colour-text, 0.65);
+  margin-top: 0;
+  margin-bottom: 1em;
+  border-bottom: 1px solid rgba($colour-text, 0.2);
+  padding-bottom: 0.3em;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+
+  // Hide the border and content until text/share-button is injected by JS
+  &:empty { visibility: hidden; }
+}
+
+// Inline location status messages
+.location-detecting {
+  font-size: 0.75em;
+  color: var(--success);
+  margin-left: 8px;
+  font-style: italic;
+}
+
+.location-error {
+  font-size: 0.75em;
+  color: var(--warning);
+  margin-left: 8px;
+  font-style: italic;
+}
+
+.location-permission-denied {
+  font-size: 0.85em;
+  color: var(--warning);
+  margin: 0.5em 0 0;
+  font-style: italic;
+}
+
+#viewOutlet {
+  padding-top: 0;
+  padding-left: 2rem;  // Matches the .topnav and splash content gutters at desktop
+  padding-right: 2rem;
+  padding-bottom: 4rem; // Extra bottom padding for mobile browser bar
+  position: relative;
+  overflow-y: auto;
+  overflow-x: clip; // Prevent horizontal scroll on all viewports without iOS scroll-container promotion
+  overscroll-behavior-x: none; // Prevent iOS lateral rubber-band on this scroll container
+  max-width: 100%; // Use percentage instead of 100vw to avoid scrollbar width issues
+  box-sizing: border-box; // Include padding in width calculation
+  width: 100%;
+
+  // On desktop, allow overflow upward for negative margin
+  @media (min-width: 901px) {
+    overflow-y: visible; // Let html handle page scrolling — overflow-y: auto created an invisible scroll container in Safari that clipped content below ~100vh
+    overflow-x: clip; // Prevent horizontal scrolling without iOS scroll-container promotion
+  }
+}
+
+
+.standard-text {
+  font-size: 1em;
+  padding: .4em 0;
+  min-height: 2.2em; /* desktop default, enough for one line + padding */
+  max-width: $max-content-width;
+}
+
+.summary-text {
+  color: #fff;
+  background: rgba(#51cf66, 0.3);
+  border-radius: 10px;
+  padding: 0.5em 0.85em;
+  min-height: 2em;
+  display: block;
+  width: 100%;
+  max-width: $max-content-width;
+  box-sizing: border-box;
+  margin-bottom: 1em;
+  opacity: 0;
+  transition: opacity 0.4s;
+
+  &.visible {
+    opacity: 1;
+  }
+}
+
+// Semi-transparent bubble grouping avg + trend + (optional std dev) below the chart
+.stats-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  background: rgba(#607090, 0.6);
+  border: 1px solid rgba(#607090, 0.5);
+  border-radius: 10px;
+  padding: 0.5em 0.85em;
+  margin-top: 0.4em;
+  width: 100%;
+  max-width: $max-content-width;
+  box-sizing: border-box;
+  font-size: 0.88em;
+  opacity: 0;
+  transition: opacity 0.4s;
+
+  &.visible {
+    opacity: 1;
+  }
+}
+
+.avg-text {
+  color: var(--avg);
+}
+
+.trend-text {
+  color: var(--trend);
+}
+
+.stddev-text {
+  color: #8AAFD0;
+}
+
+// Status and notification colours
+.status-error {
+  color: var(--warning);
+}
+
+.status-success {
+  color: var(--thisYear);
+}
+
+.status-neutral {
+  color: rgba($colour-text, 0.65);
+}
+
+
+.notice {
+  color: rgba($colour-text, 0.65);
+  margin: 1em 0;
+  max-width: 600px;
+  
+  &:empty {
+    display: none;
+  }
+  
+  .notice-content {
+    text-align: left;
+    padding: 15px 30px;
+    border-radius: 6px;
+    border: 1px solid;
+    
+    &.success {
+      color: $colour-loading-text;
+      background: rgba($colour-loading-text, 0.1);
+      border-color: rgba($colour-loading-text, 0.3);
+    }
+    
+    &.error {
+      color: var(--warning);
+      background: rgba(255, 140, 0, 0.1);
+      border-color: rgba(255, 140, 0, 0.3);
+      padding: 20px;
+      border-radius: 8px;
+      border-width: 2px;
+    }
+    
+    &.warning {
+      color: var(--warning);
+      background: rgba(255, 140, 0, 0.1);
+      border-color: rgba(255, 140, 0, 0.3);
+      padding: 20px;
+      border-radius: 8px;
+      border-width: 2px;
+    }
+  }
+  
+  .notice-title {
+    margin: 0;
+    font-weight: 500;
+
+    &.large {
+      margin: 0 0 15px 0;
+      font-weight: 600;
+      font-size: 16px;
+    }
+  }
+
+  .notice-icon {
+    font-size: 1.35em;
+    line-height: 1;
+    vertical-align: middle;
+  }
+  
+  .notice-subtitle {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    
+    &.secondary {
+      margin: 0 0 15px 0;
+      color: rgba($colour-text, 0.65);
+    }
+  }
+}
+
+// Incomplete data warning specific styles
+.notice.status-warning {
+  .notice-content.warning {
+    .notice-title.large {
+      color: var(--warning);
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .notice-subtitle.secondary {
+      color: rgba($colour-text, 0.65);
+      font-size: 13px;
+      font-weight: 400;
+      margin-bottom: 0;
+      line-height: 1.4;
+    }
+
+    p {
+      color: rgba($colour-text, 0.65);
+      font-size: 13px;
+      font-weight: 400;
+      margin: 0 0 6px 0;
+      line-height: 1.4;
+    }
+
+    // Inline variant — no bubble border/background (used for incomplete data notice)
+    &.inline {
+      background: none;
+      border: none;
+      padding: 0.25em 0;
+      overflow: hidden; // contain the floated retry button
+    }
+  }
+}
+
+// Shared retry/ghost-warning button — used by notices and carousel error
+.btn-retry {
+  background: rgba($colour-warning, 0.08);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+  border-radius: 999px;
+  font-size: 0.82em;
+  font-weight: 600;
+  cursor: pointer;
+  float: right;
+  padding: 3px 12px;
+  margin: 0 6px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba($colour-warning, 0.2);
+  }
+}
+
+// Alias kept for backwards compatibility with dynamically-created DOM
+.notice-retry-btn {
+  @extend .btn-retry;
+}
+
+
+// Platform-specific instructions
+.platform-instructions {
+  text-align: left;
+  background: rgba(0,0,0,0.05);
+  padding: 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+  font-size: 13px;
+  
+  .platform-header {
+    margin: 0 0 10px 0;
+    font-weight: 600;
+  }
+  
+  ol {
+    margin: 0;
+    padding-left: 20px;
+    line-height: 1.6;
+  }
+}
+
+// Refresh button
+.refresh-button {
+  background: var(--warning);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 10px;
+  
+  &:hover {
+    background: color.adjust($colour-warning, $lightness: -10%);
+  }
+  
+  &.info {
+    background: var(--avg);
+    
+    &:hover {
+      background: color.adjust($colour-avg, $lightness: -10%);
+    }
+  }
+}
+
+h2 {
+  color: $colour-text;
+  font-size: 2em;
+  margin-top: 0;
+  margin-bottom: 0.5em;
+  font-weight: normal;
+  font-family: 'Inter', system-ui, sans-serif;
+  text-transform: uppercase;
+}
+
+@media (max-width: $max-content-width) {
+  .standard-text {
+    min-height: 2em;
+  }
+
+  h2, .location-heading {
+    font-size: 1.5em;
+  }
+
+  .period-subheading {
+    font-size: 1em;
+  }
+}
+
+body.has-drawer-open {
+  overflow: hidden;
+}
+
+/* Removed ID-specific #loading styles - now using consistent .loading class */
+
+/* Global loading styles */
+.loading-text {
+  margin: 1rem 0 0;
+  color: $colour-loading-text;
+  font-size: 1.1rem;
+  text-align: left;
+}
+
+// Conic-gradient ring spinner — palette cycles through the TempHist logo colours
+.spinner {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #267CFA 0%,
+    #80848E 25%,
+    #FF1A1A 55%,
+    #A35C53 80%,
+    #267CFA 100%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 0);
+          mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 0);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Location detection — revert to the original plain green ring
+.location-loading .spinner {
+  width: 40px;
+  height: 40px;
+  background: none;
+  -webkit-mask: none;
+          mask: none;
+  border: 4px solid $colour-spinner-bg;
+  border-top: 4px solid $colour-spinner;
+}
+
+
+#tempChart {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.4s;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  margin: 0;
+  padding: 0;
+
+  &.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.error-container {
+  margin-top: 20px;
+  width: 100%;
+  
+  .error-content {
+    text-align: left;
+    padding: 15px 30px;
+    border-radius: 6px;
+    border: 1px solid;
+    color: var(--warning);
+    background: rgba(255, 140, 0, 0.1);
+    border-color: rgba(255, 140, 0, 0.3);
+
+    .error-message {
+      color: var(--warning);
+      font-size: 1.1em;
+      margin-bottom: 10px;
+      
+      &::before {
+        content: "⚠️ ";
+        margin-right: 8px;
+      }
+    }
+
+    .reload-button {
+      background: $colour-error;
+      color: $colour-text;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+      
+      &:hover {
+        background: color.adjust($colour-error, $lightness: -10%);
+      }
+    }
+  }
+}
+
+.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+  /* Optionally: visibility: hidden; */
+}
+
+
+// Button Styles
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 200px;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  &:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  &:not(:disabled):active {
+    transform: translateY(0);
+  }
+}
+
+.btn-primary {
+  background: $colour-loading-text; // green — matches current-year / detected-location colour
+  color: #1a2e1a;
+
+  &:hover:not(:disabled) {
+    background: color.adjust($colour-loading-text, $lightness: 8%);
+  }
+}
+
+.btn-secondary {
+  background: transparent;
+  color: $colour-text;
+  border: 2px solid rgba($colour-text, 0.3);
+  
+  &:hover:not(:disabled) {
+    background: rgba($colour-text, 0.1);
+    border-color: rgba($colour-text, 0.5);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// ── Splash footer ─────────────────────────────────────────────────────────────
+
+.site-footer {
+  border-top: 1px solid rgba($colour-text, 0.1);
+  padding: 1.75rem 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+
+  p {
+    font-size: 0.85rem;
+    color: rgba($colour-text, 0.45);
+    margin: 0;
+  }
+
+  a {
+    color: rgba($colour-text, 0.45);
+    text-decoration: none;
+    &:hover { color: $colour-text; }
+  }
+}
+
+.site-footer__social {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.site-footer__social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  svg {
+    width: 1.05rem;
+    height: 1.05rem;
+    fill: currentColor;
+  }
+}
+// Responsive Design
+@media (max-width: $max-content-width) {
+  .btn {
+    min-width: 180px;
+    padding: 10px 20px;
+  }
+
+  // Extra bottom padding for mobile browser bar
+  #viewOutlet {
+    padding-bottom: 6rem;
+  }
+}
+// Below 640px: shell/navbar gutter shrinks to 1rem so denser controls fit
+// without horizontal scroll (see the splash-specific rules for the same
+// breakpoint in styles/_splash.scss, which drop the same gutter for the
+// homepage sections).
+@media (max-width: 640px) {
+  .topnav         { padding: 8px 1.5rem; }
+  #viewOutlet     { padding-left: 1.5rem; padding-right: 1.5rem; }
+}
+.share-page-pending {
+  opacity: 0;
+}
+
+.share-page-ready {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.share-generated-at {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.share-page-cta {
+  margin-top: 0.75rem;
+  text-align: left;
+
+  a {
+    color: var(--thisYear);
+    text-decoration: none;
+    font-size: 0.95rem;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

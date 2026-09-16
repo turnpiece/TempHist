@@ -2,13 +2,14 @@
  * Entry point for share.html (/s/:id) — deliberately separate from main.ts so
  * share pages don't ship the SPA's router, splash screen, geolocation, and
  * location-carousel code, none of which a share page uses. See coreRuntime.ts
- * for the runtime globals this shares with main.ts.
+ * for the runtime globals this shares with main.ts, and share.scss (not
+ * styles.scss) for the trimmed-down stylesheet.
  */
 import '@fontsource/inter/latin-400.css';
 import '@fontsource/inter/latin-500.css';
 import '@fontsource/inter/latin-600.css';
 import '@fontsource/inter/latin-700.css';
-import '../styles.scss';
+import '../share.scss';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import type { FirebaseUser } from './types/index.js';
