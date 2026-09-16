@@ -193,6 +193,11 @@ a {
   .dashboard__left .summary-text {
     font-size: 1.4rem;
     line-height: 1.45;
+    // ~4 lines + padding at this font-size — matches real summary text
+    // closely enough that filling it in doesn't push the chart/stats/footer
+    // down. See the base rule below for why this needs restating per
+    // breakpoint (min-height is in the element's own em, which changes here).
+    min-height: 7em;
   }
 
   // Pin the chart to the left edge of its column (default centering would
@@ -727,7 +732,12 @@ body:has(#appShell.hidden) .topnav__links a {
   background: rgba(#51cf66, 0.3);
   border-radius: 10px;
   padding: 0.5em 0.85em;
-  min-height: 2em;
+  // ~3 lines + padding: close to real summary text at the base font-size, so
+  // there's little left to shift when the text (fetched async) is filled in
+  // and this switches from opacity:0 to .visible. It stays invisible either
+  // way (opacity:0 below), so over-reserving costs blank space, not a flash
+  // of visible empty box — under-reserving is the one that costs CLS.
+  min-height: 5.5em;
   display: block;
   width: 100%;
   max-width: $max-content-width;
@@ -755,6 +765,10 @@ body:has(#appShell.hidden) .topnav__links a {
   max-width: $max-content-width;
   box-sizing: border-box;
   font-size: 0.88em;
+  // Reserves space for its 3 lines (avg/trend/stddev) before they're filled
+  // in — this had no reservation at all before, so the bubble grew from 0 to
+  // ~6em the moment data arrived. Same opacity:0 reasoning as .summary-text.
+  min-height: 6em;
   opacity: 0;
   transition: opacity 0.4s;
 
@@ -977,6 +991,15 @@ h2 {
 @media (max-width: $max-content-width) {
   .standard-text {
     min-height: 2em;
+  }
+
+  // .summary-text also carries the .standard-text class, so without this it
+  // would inherit the 2em reset above and lose the reservation that keeps
+  // the share/dashboard summary from shifting the chart/stats/footer down
+  // when its text (fetched async) arrives — narrower width means more line
+  // wraps, not less, so it needs at least as much room here as at wider ones.
+  .summary-text {
+    min-height: 5.5em;
   }
 
   h2, .location-heading {
