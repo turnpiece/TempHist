@@ -153,6 +153,16 @@ function getIndexHtml() {
   return _indexHtmlCache;
 }
 
+// Share pages have their own leaner entry (share.html / share-entry.ts) that
+// skips the SPA's router/splash/carousel code — see share-entry.ts.
+let _shareHtmlCache = null;
+function getShareHtml() {
+  if (!_shareHtmlCache) {
+    _shareHtmlCache = fs.readFileSync(path.join(__dirname, 'dist', 'share.html'), 'utf-8');
+  }
+  return _shareHtmlCache;
+}
+
 function formatSharePeriodHeading(meta) {
   const { period, identifier, ref_year } = meta;
   let friendlyDate = '';
@@ -250,7 +260,7 @@ app.use(async (req, res, next) => {
 
     // Replace the home-page JSON-LD with a share-specific WebPage schema in place,
     // and strip generic og:/twitter: tags so crawlers only see the share-specific ones.
-    let html = getIndexHtml()
+    let html = getShareHtml()
       .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, `<script type="application/ld+json">${ldJson}</script>`)
       .replace(/<meta\s+(?:property="og:[^"]*"|name="twitter:[^"]*")[^>]*\/?\s*>/gi, '')
       .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttr(title)}</title>`)
@@ -403,7 +413,14 @@ app.use((req, res, next) => {
   if (requestedPath === '/locations') {
     return sendDistHtml(req, res, 'locations.html');
   }
-  
+  // Share pages that reach here mean the OG-injection middleware above bailed
+  // out (bad API base, timeout, non-OK response, invalid id) — still serve the
+  // share entry so the client-side fetch/error handling in share.ts can take
+  // over, just without the enriched OG tags.
+  if (/^\/s\/[^/]+$/.test(requestedPath)) {
+    return sendDistHtml(req, res, 'share.html');
+  }
+
   // Default to index.html for all other routes (SPA behavior)
   return sendDistHtml(req, res, 'index.html');
 });

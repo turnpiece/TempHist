@@ -53,10 +53,6 @@ export interface ShareUIRefs {
   ctaDiv: HTMLElement;
 }
 
-export function isSharePagePath(): boolean {
-  return /^\/s\/[^/]+/.test(window.location.pathname);
-}
-
 // ─── Share creation ───────────────────────────────────────────────────────────
 
 export interface ShareParams {

@@ -70,7 +70,8 @@ export default defineConfig(({ mode }) => {
         privacy: resolve(__dirname, 'privacy.html'),
         privacyApp: resolve(__dirname, 'privacy-app.html'),
         feed: resolve(__dirname, 'feed.html'),
-        locations: resolve(__dirname, 'locations.html')
+        locations: resolve(__dirname, 'locations.html'),
+        share: resolve(__dirname, 'share.html')
       }
     }
   },
@@ -179,8 +180,8 @@ export default defineConfig(({ mode }) => {
               const description = `Historical temperature data for ${cityName}: ${heading}.`;
               const shareUrl = `http://localhost:${server.config.server.port ?? 5173}/s/${shareId}`;
 
-              const indexHtml = readFileSync(resolve(__dirname, 'index.html'), 'utf-8');
-              let html = await server.transformIndexHtml(req.url!, indexHtml);
+              const shareHtml = readFileSync(resolve(__dirname, 'share.html'), 'utf-8');
+              let html = await server.transformIndexHtml(req.url!, shareHtml);
 
               const ogTags = [
                 `<meta property="og:type" content="website">`,

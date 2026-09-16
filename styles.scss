@@ -2225,10 +2225,7 @@ body.locations-page {
 }
 
 // Share page
-html.is-share-page #splashScreen {
-  display: none;
-}
-
+//
 // Two separate classes, with different lifetimes — do not merge them:
 //
 //   .is-pending-location  TRANSIENT. Added pre-paint, removed by JS once the

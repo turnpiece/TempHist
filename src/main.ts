@@ -31,27 +31,26 @@ import { TempHistRouter } from './routing/router';
 import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analytics/analytics';
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
 import { showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice, reapplyTrendBackground } from './utils/uiHelpers';
-import { isSharePagePath, mountSharePageShell, loadSharePageData } from './share';
+import { initCoreRuntime } from './coreRuntime';
 // installDevTestHooks is loaded dynamically inside the DEBUGGING guard below so it is
 // excluded from production bundles entirely. To re-enable, ensure DEBUGGING is true (i.e.
 // run the dev server) — no code change needed.
 
+// Share pages (/s/:id) have their own entry point (share.html / share-entry.ts)
+// and never load this file — see coreRuntime.ts for the runtime setup they share.
+initCoreRuntime();
 
-// Share pages (/s/:id): build the dashboard shell immediately, with no
-// network or auth dependency, so the container reaches its final size right
-// away instead of staying hidden until Firebase anonymous auth resolves.
-// Actual data fetching still needs an auth token — see loadSharePageData(),
-// called once onAuthStateChanged fires below.
-if (isSharePagePath()) {
-  mountSharePageShell();
-}
+// Kept as a module-local literal (not read back from initCoreRuntime) so Vite's
+// static import.meta.env.DEV replacement lets Terser dead-code-eliminate the
+// `if (DEBUGGING)` dynamic import below in production builds.
+const DEBUGGING = import.meta.env.DEV || false;
 
 // Initialise location carousel and geolocation prefetch when DOM is ready —
 // but only on the splash screen (index.html, where #todayView exists). Standalone
-// pages (about/privacy/feed/share) have no use for the user's location and
+// pages (about/privacy/feed) have no use for the user's location and
 // shouldn't trigger the browser's permission prompt.
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!document.querySelector('#todayView') || isSharePagePath()) return;
+  if (!document.querySelector('#todayView')) return;
   // /locations/:slug is served from index.html, so #todayView exists there too.
   // The carousel is never shown on those pages, and firing the geolocation
   // permission prompt at someone who arrived from a search result to read about
@@ -65,8 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Import types
 import type { FirebaseUser } from './types/index.js';
 
-// Global namespace and cache
-globalThis.TempHist = globalThis.TempHist || {};
+// Global namespace and cache (TempHist.analytics and the debug globals are
+// already set up by initCoreRuntime() above)
 globalThis.TempHist.cache = globalThis.TempHist.cache || {
   prefetch: {
     // example shape expected:
@@ -80,20 +79,6 @@ globalThis.TempHistViews = globalThis.TempHistViews || {};
 // Legacy functions for backward compatibility (exported from utils/uiHelpers)
 // Re-export for backward compatibility with router
 export { clearAllLoadingIntervals } from './utils/uiHelpers';
-
-// Error monitoring and analytics
-globalThis.TempHist.analytics = globalThis.TempHist.analytics || {
-  errors: [],
-  apiCalls: 0,
-  apiFailures: 0,
-  retryAttempts: 0,
-  locationFailures: 0,
-  startTime: Date.now(),
-  lastRequestMetadata: null,
-};
-
-// Global debug configuration - only enabled in development
-const DEBUGGING = import.meta.env.DEV || false;
 
 // Configure logger - use WARN level in production to reduce console noise
 Logger.configure({
@@ -111,7 +96,7 @@ DataCache.configure({
 // Set up error reporting
 ErrorBoundary.onError((error, errorInfo) => {
   console.error('ErrorBoundary: Error caught:', error, errorInfo);
-  
+
   // Report to analytics
   if (globalThis.TempHist?.analytics) {
     globalThis.TempHist.analytics.errors.push({
@@ -128,31 +113,6 @@ ErrorBoundary.onError((error, errorInfo) => {
     });
   }
 });
-
-// Helper functions for debug logging (global scope)
-function debugLog(...args: any[]): void {
-  if (DEBUGGING) {
-    console.log(...args);
-  }
-}
-
-function debugTime(label: string): void {
-  if (DEBUGGING) {
-    console.time(label);
-  }
-}
-
-function debugTimeEnd(label: string): void {
-  if (DEBUGGING) {
-    console.timeEnd(label);
-  }
-}
-
-// Make debug functions and configuration globally available
-globalThis.DEBUGGING = DEBUGGING;
-globalThis.debugLog = debugLog;
-globalThis.debugTime = debugTime;
-globalThis.debugTimeEnd = debugTimeEnd;
 
 if (DEBUGGING) {
   // Dynamic import keeps testHooks out of the production bundle — Rollup eliminates this
@@ -271,13 +231,6 @@ function startAppWithFirebaseUser(user: FirebaseUser): void {
 
   debugLog('Script starting...');
 
-  // If this is a share page (/s/:id), the shell was already mounted above;
-  // now that we have an auth token, fetch and render its data.
-  if (isSharePagePath()) {
-    loadSharePageData();
-    return;
-  }
-
   // Initialise analytics reporting
   setupAnalyticsReporting();
   
@@ -300,11 +253,11 @@ globalThis.TempHistViews.year = { render: () => renderPeriod('yearView', 'year',
 // - views/about.ts (About/Privacy pages — now standalone-only, see splash.ts)
 // All remaining initialization code is below.
 
-// Initialize router and register views (not needed on share pages or standalone
-// static pages — the router hides all [data-view] elements on the page and would
-// blank the standalone page's own content, which has no matching route to restore it)
+// Initialize router and register views (not needed on standalone static pages —
+// the router hides all [data-view] elements on the page and would blank the
+// standalone page's own content, which has no matching route to restore it)
 const isStandaloneStaticPage = !document.querySelector('#todayView');
-if (!isSharePagePath() && !isStandaloneStaticPage) {
+if (!isStandaloneStaticPage) {
   globalThis.TempHistRouter = new TempHistRouter();
   if (globalThis.TempHistRouter && typeof globalThis.TempHistRouter.registerView === 'function') {
     globalThis.TempHistRouter.registerView('today', globalThis.TempHistViews.today);

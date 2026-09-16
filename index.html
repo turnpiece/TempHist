@@ -53,8 +53,6 @@
       "screenshot": "https://temphist.com/assets/og-default.png"
     }
     </script>
-    <!-- Suppress splash screen on share pages before first paint -->
-    <script>if (/^\/s\/[^/]+/.test(location.pathname)) document.documentElement.classList.add('is-share-page');</script>
     <!-- Suppress splash when arriving with a pending location selection from /locations -->
     <script>try { if (sessionStorage.getItem('temphist_pending_location')) document.documentElement.classList.add('is-pending-location'); } catch { /* sessionStorage unavailable */ }</script>
   </head>
