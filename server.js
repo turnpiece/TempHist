@@ -270,7 +270,21 @@ app.use(async (req, res, next) => {
       .replace('</head>', `    ${ogTags}\n  </head>`);
     html = applySiteOriginToHtml(html, req);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache');
+
+    // The API computes is_today fresh per request: true means the day's value
+    // can still change (keep it short/no-cache, same as before), false means
+    // the day is over and this share's data is permanently fixed — safe to
+    // cache aggressively at the edge. Browser and edge lifetimes are stated in
+    // separate headers for the same reason as /locations/:slug (see there):
+    // browsers always revalidate so a template change is visible immediately,
+    // while the edge holds the fully-baked page for a long time.
+    if (isProd && meta.is_today === false) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      res.setHeader('CDN-Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
+      res.setHeader('Vary', 'Accept-Encoding');
+    } else {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
     return res.send(html);
   } catch (err) {
     console.error('[OG] Unexpected error for share', shareId, ':', err.message);

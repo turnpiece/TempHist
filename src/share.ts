@@ -24,6 +24,12 @@ interface ShareMetadata {
   ref_year: number;
   unit: 'celsius' | 'fahrenheit';
   created_at: string;
+  /** Computed fresh per request by the API: true while the day's value can
+   *  still change, false once the day is over and the data is fixed for
+   *  good. Not used client-side — server.js's OG-injection middleware reads
+   *  it straight off the API response to decide how long it can cache the
+   *  share page at the edge. */
+  is_today?: boolean;
 }
 
 /** Subset of ShareMetadata available before the full API response — used to
