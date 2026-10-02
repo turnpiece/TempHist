@@ -89,12 +89,14 @@ if (distExists) {
 
 // --- Open Graph tag injection for /s/:id share pages ---
 
-let _indexHtmlCache = null;
-function getIndexHtml() {
-  if (!_indexHtmlCache) {
-    _indexHtmlCache = require('node:fs').readFileSync(path.join(__dirname, staticDir, 'index.html'), 'utf-8');
+// Share pages have their own leaner build entry (share.html / share-entry.ts) —
+// keep this in sync with server.js's getShareHtml().
+let _shareHtmlCache = null;
+function getShareHtml() {
+  if (!_shareHtmlCache) {
+    _shareHtmlCache = require('node:fs').readFileSync(path.join(__dirname, staticDir, 'share.html'), 'utf-8');
   }
-  return _indexHtmlCache;
+  return _shareHtmlCache;
 }
 
 function formatSharePeriodHeading(meta) {
@@ -179,7 +181,7 @@ app.use(async (req, res, next) => {
       'isPartOf': { '@type': 'WebSite', 'name': 'TempHist', 'url': 'https://temphist.com' },
     });
 
-    const html = getIndexHtml()
+    const html = getShareHtml()
       .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, `<script type="application/ld+json">${ldJson}</script>`)
       .replace(/<meta\s+(?:property="og:[^"]*"|name="twitter:[^"]*")[^>]*\/?\s*>/gi, '')
       .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttr(title)}</title>`)
@@ -254,7 +256,12 @@ app.use((req, res, next) => {
   if (requestedPath === '/privacy' || requestedPath === '/privacy.html') {
     return res.sendFile(path.join(__dirname, staticDir, 'privacy.html'));
   }
-  
+  // Share pages that reach here mean the OG-injection middleware above bailed
+  // out — still serve the share entry rather than the main SPA.
+  if (/^\/s\/[^/]+$/.test(requestedPath)) {
+    return res.sendFile(path.join(__dirname, staticDir, 'share.html'));
+  }
+
   // Default to index.html for all other routes
   res.sendFile(path.join(__dirname, staticDir, 'index.html'));
 });

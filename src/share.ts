@@ -24,6 +24,12 @@ interface ShareMetadata {
   ref_year: number;
   unit: 'celsius' | 'fahrenheit';
   created_at: string;
+  /** Computed fresh per request by the API: true while the day's value can
+   *  still change, false once the day is over and the data is fixed for
+   *  good. Not used client-side — server.js's OG-injection middleware reads
+   *  it straight off the API response to decide how long it can cache the
+   *  share page at the edge. */
+  is_today?: boolean;
 }
 
 /** Subset of ShareMetadata available before the full API response — used to
@@ -51,10 +57,6 @@ export interface ShareUIRefs {
   trendTextEl: HTMLElement;
   generatedAtEl: HTMLElement;
   ctaDiv: HTMLElement;
-}
-
-export function isSharePagePath(): boolean {
-  return /^\/s\/[^/]+/.test(window.location.pathname);
 }
 
 // ─── Share creation ───────────────────────────────────────────────────────────
@@ -196,7 +198,19 @@ function extractShareId(): string | null {
   return match ? match[1] : null;
 }
 
-export function initSharePage(): void {
+// Bridges mountSharePageShell() (sync, runs immediately) to loadSharePageData()
+// (async, gated behind Firebase auth — see comment on fetchShareMetadata for why).
+let pendingShare: { shareId: string; refs: ShareUIRefs } | null = null;
+
+/**
+ * Build the share page's DOM shell (hide the SPA chrome, insert the dashboard
+ * skeleton with its loading spinner) synchronously, with no network or auth
+ * dependency. Called as soon as the script runs so the container reaches its
+ * final size immediately, instead of staying `display:none` until Firebase
+ * anonymous auth resolves — that gap was the main source of the layout shift
+ * Lighthouse flags on share pages ("entire content area popping into place").
+ */
+export function mountSharePageShell(): void {
   const shareId = extractShareId();
   if (!shareId) {
     showRootError('Invalid share link.');
@@ -213,15 +227,24 @@ export function initSharePage(): void {
 
   const refs = buildShareUI(viewOutlet);
 
-  const footer = document.createElement('footer');
-  footer.className = 'site-footer';
-  const footerP = document.createElement('p');
-  footerP.innerHTML =
-    '© 2026 <a href="https://turnpiece.com" title="Turnpiece: ideas &gt; application">Turnpiece</a> · ' +
-    '<a href="/about">About</a> · ' +
-    '<a href="/privacy">Privacy Policy</a>';
-  footer.appendChild(footerP);
-  viewOutlet.appendChild(footer);
+  // The real site footer is already a child of #viewOutlet (kept visible by
+  // hideAppChrome above); move it back to the end so it stays below the
+  // share content that buildShareUI just appended.
+  const footer = viewOutlet.querySelector('footer');
+  if (footer) viewOutlet.appendChild(footer);
+
+  pendingShare = { shareId, refs };
+}
+
+/**
+ * Fetch and render the share's data. Requires `window.currentUser` (apiFetch
+ * throws without it), so this must run after Firebase anonymous sign-in
+ * resolves — call it from the onAuthStateChanged handler, after
+ * mountSharePageShell() has already built the shell.
+ */
+export function loadSharePageData(): void {
+  if (!pendingShare) return;
+  const { shareId, refs } = pendingShare;
 
   (async () => {
     try {
@@ -265,10 +288,13 @@ function hideAppChrome(): void {
   const brandLink = document.querySelector('.topnav__brand') as HTMLAnchorElement | null;
   if (brandLink) brandLink.href = '/';
 
-  // Hide any existing view sections (today, week, etc.)
+  // Hide any existing view sections (today, week, etc.), but keep the
+  // real site footer (with social links) visible so it isn't replaced
+  // by a hand-rolled duplicate.
   const viewOutlet = document.getElementById('viewOutlet');
   if (viewOutlet) {
     Array.from(viewOutlet.children).forEach(child => {
+      if ((child as HTMLElement).tagName === 'FOOTER') return;
       (child as HTMLElement).hidden = true;
     });
   }
