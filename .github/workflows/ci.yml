@@ -15,10 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Railway builds with Node 20 (nixpacks.toml), so test against the same.
+      # vitest 5, jsdom 30 and undici 8 require Node >=22.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
