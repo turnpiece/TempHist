@@ -28,7 +28,9 @@ body.privacy-page {
     max-width: 700px;
   }
 
-  a {
+  // The shared footer (.site-footer, styled in _core.scss) keeps its own
+  // muted, non-underlined links, so it's excluded from the prose link rule.
+  a:not(.site-footer a) {
     color: inherit;
     text-decoration: underline;
     transition: color 0.2s;
