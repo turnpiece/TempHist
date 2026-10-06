@@ -1252,6 +1252,17 @@ body.has-drawer-open {
   .topnav         { padding: 8px 1.5rem; }
   #viewOutlet     { padding-left: 1.5rem; padding-right: 1.5rem; }
 }
+// The share page builds its heading, date line and "generated at" line empty
+// and fills them in once the share's data arrives. Empty blocks have no height
+// — and an empty block's margins also collapse straight through it, which
+// nudges the whole page down by the h2's margin-bottom until it is filled —
+// so each reserves its single line up front (1.4em = body line-height).
+.share-page .location-heading,
+.share-page .period-subheading,
+.share-page .share-generated-at {
+  min-height: 1.4em;
+}
+
 .share-page-pending {
   opacity: 0;
 }
