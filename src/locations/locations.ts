@@ -30,10 +30,14 @@ export function flagImg(code: string, width: 20 | 40 = 20): HTMLImageElement {
   const cc = code.toLowerCase();
   const img = document.createElement('img');
   img.className = 'flag-img';
-  img.src = `https://flagcdn.com/w${width}/${cc}.png`;
-  img.srcset = `https://flagcdn.com/w${width * 2}/${cc}.png 2x`;
+  // Flag aspect ratios vary (NZ 2:1, SG 3:2, CH 1:1, NP 1:1.2), so use flagcdn's
+  // fixed-size 4:3 images, which letterbox every flag with transparency. The
+  // intrinsic size then always matches the width/height attributes.
+  const height = Math.round(width * 3 / 4);
+  img.src = `https://flagcdn.com/${width}x${height}/${cc}.png`;
+  img.srcset = `https://flagcdn.com/${width * 2}x${height * 2}/${cc}.png 2x`;
   img.width = width;
-  img.height = Math.round(width * 2 / 3); // flagcdn flags are mostly 3:2
+  img.height = height;
   img.alt = '';
   img.setAttribute('aria-hidden', 'true');
   return img;
