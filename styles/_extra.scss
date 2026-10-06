@@ -989,6 +989,7 @@ body.locations-page {
 
 .flag-img {
   display: inline-block;
+  height: auto; // keep the image's natural ratio; width/height attrs only reserve space
   vertical-align: middle;
   border-radius: 2px;
   margin-bottom: 0.35rem;
