@@ -153,6 +153,16 @@ function getIndexHtml() {
   return _indexHtmlCache;
 }
 
+// Share pages have their own leaner entry (share.html / share-entry.ts) that
+// skips the SPA's router/splash/carousel code — see share-entry.ts.
+let _shareHtmlCache = null;
+function getShareHtml() {
+  if (!_shareHtmlCache) {
+    _shareHtmlCache = fs.readFileSync(path.join(__dirname, 'dist', 'share.html'), 'utf-8');
+  }
+  return _shareHtmlCache;
+}
+
 function formatSharePeriodHeading(meta) {
   const { period, identifier, ref_year } = meta;
   let friendlyDate = '';
@@ -250,7 +260,7 @@ app.use(async (req, res, next) => {
 
     // Replace the home-page JSON-LD with a share-specific WebPage schema in place,
     // and strip generic og:/twitter: tags so crawlers only see the share-specific ones.
-    let html = getIndexHtml()
+    let html = getShareHtml()
       .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, `<script type="application/ld+json">${ldJson}</script>`)
       .replace(/<meta\s+(?:property="og:[^"]*"|name="twitter:[^"]*")[^>]*\/?\s*>/gi, '')
       .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttr(title)}</title>`)
@@ -260,7 +270,21 @@ app.use(async (req, res, next) => {
       .replace('</head>', `    ${ogTags}\n  </head>`);
     html = applySiteOriginToHtml(html, req);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache');
+
+    // The API computes is_today fresh per request: true means the day's value
+    // can still change (keep it short/no-cache, same as before), false means
+    // the day is over and this share's data is permanently fixed — safe to
+    // cache aggressively at the edge. Browser and edge lifetimes are stated in
+    // separate headers for the same reason as /locations/:slug (see there):
+    // browsers always revalidate so a template change is visible immediately,
+    // while the edge holds the fully-baked page for a long time.
+    if (isProd && meta.is_today === false) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      res.setHeader('CDN-Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
+      res.setHeader('Vary', 'Accept-Encoding');
+    } else {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
     return res.send(html);
   } catch (err) {
     console.error('[OG] Unexpected error for share', shareId, ':', err.message);
@@ -363,7 +387,7 @@ app.use(express.static('dist', {
     } else if (filePath.endsWith('.html')) {
       // HTML entry points: always revalidate
       res.setHeader('Cache-Control', 'no-cache');
-    } else if (/favicon|logo\./.test(filePath)) {
+    } else if (/favicon|apple-touch-icon|logo\./.test(filePath)) {
       // Favicons and logos: 7 days
       res.setHeader('Cache-Control', 'public, max-age=604800');
     } else {
@@ -403,7 +427,14 @@ app.use((req, res, next) => {
   if (requestedPath === '/locations') {
     return sendDistHtml(req, res, 'locations.html');
   }
-  
+  // Share pages that reach here mean the OG-injection middleware above bailed
+  // out (bad API base, timeout, non-OK response, invalid id) — still serve the
+  // share entry so the client-side fetch/error handling in share.ts can take
+  // over, just without the enriched OG tags.
+  if (/^\/s\/[^/]+$/.test(requestedPath)) {
+    return sendDistHtml(req, res, 'share.html');
+  }
+
   // Default to index.html for all other routes (SPA behavior)
   return sendDistHtml(req, res, 'index.html');
 });

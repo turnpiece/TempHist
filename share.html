@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- INCLUDE:head-common -->
+    <meta name="description" content="Historical temperature data shared from TempHist." />
+    <meta property="og:title" content="TempHist • Temperature history" />
+    <meta property="og:description" content="See how today's temperature compares to the same date over the past 50 years for your location." />
+    <meta property="og:url" content="https://temphist.com/" />
+    <meta name="twitter:title" content="TempHist • Temperature history" />
+    <meta name="twitter:description" content="See how today's temperature compares to the same date over the past 50 years for your location." />
+    <title>TempHist • Temperature history</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="%VITE_API_BASE%" crossorigin>
+    <!-- Firebase anonymous auth is on the critical path before any API call can be
+         made (see src/api/temperature/client.ts apiFetch); warm these up early since
+         this page's data fetch is gated on it. -->
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"
+      integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG"
+      crossorigin="anonymous" defer></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"
+      integrity="sha384-WVRZ5bDoBpBp9eKFxji3f7JiiY/SCi2kWJpzG+AgHnafhqQOzp4mmqsPBZgiCxlu"
+      crossorigin="anonymous" defer
+    ></script>
+    <!-- Preload reCAPTCHA before the main module so Firebase AppCheck finds self.grecaptcha
+         already defined and skips its dynamic script.src injection, which violates
+         require-trusted-types-for on iOS Safari. -->
+    <script src="https://www.google.com/recaptcha/api.js" defer></script>
+
+    <!-- Structured data: replaced with a share-specific WebPage schema by the
+         OG-injection middleware (server.js / vite.config.ts dev plugin). This
+         generic fallback only shows if that middleware can't reach the API. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "TempHist • Temperature history",
+      "description": "See how today's temperature compares to the same date over the past 50 years for your location.",
+      "url": "https://temphist.com/",
+      "isPartOf": { "@type": "WebSite", "name": "TempHist", "url": "https://temphist.com" }
+    }
+    </script>
+  </head>
+  <body>
+    <!-- INCLUDE:nav -->
+
+    <div id="appShell" class="hidden">
+      <main id="viewOutlet" role="main">
+        <!-- INCLUDE:footer -->
+      </main>
+    </div>
+
+    <script type="module" src="/src/share-entry.ts" defer></script>
+  </body>
+</html>
