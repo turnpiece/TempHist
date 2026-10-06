@@ -30,7 +30,9 @@ body.privacy-page {
 
   // The shared footer (.site-footer, styled in _core.scss) keeps its own
   // muted, non-underlined links, so it's excluded from the prose link rule.
-  a:not(.site-footer a) {
+  // :where() keeps the exclusion at zero specificity so this rule doesn't
+  // start outranking the topnav's .active (green) link styling.
+  a:not(:where(.site-footer a)) {
     color: inherit;
     text-decoration: underline;
     transition: color 0.2s;
