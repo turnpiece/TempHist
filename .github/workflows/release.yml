@@ -1,0 +1,28 @@
+name: Release
+
+# Tags and publishes a GitHub release whenever main contains a package.json
+# version that hasn't been released yet. Bump the version on develop
+# (npm run version:patch) and it is tagged when the release PR reaches main.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release if version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if gh release view "$version" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$version" >/dev/null 2>&1; then
+            echo "$version already released; nothing to do."
+          else
+            gh release create "$version" --target "$GITHUB_SHA" --title "$version" --generate-notes
+          fi
