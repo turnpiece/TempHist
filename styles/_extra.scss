@@ -1079,18 +1079,24 @@ a.location-item {
 // --- Server-rendered location page prose (/locations/:slug) ---
 // Lives inside #viewOutlet, above the footer. #viewOutlet already supplies the
 // horizontal gutters, so this only adds vertical rhythm.
-// Narrower than the app shell ($max-page-content-width): prose and a 360px image
-// read badly stretched across a ~1180px column on large desktops. No top border —
-// at this width it would no longer line up with the shell's edges above or the
-// footer rule below.
+// Matches the .dashboard above it: single column capped at $max-content-width
+// until 1024px, where the dashboard goes two-column. From there the intro is
+// narrower than the app shell ($max-page-content-width) — prose and a 360px image
+// read badly stretched across ~1180px. No top border: at these widths it would no
+// longer line up with the shell above or the footer rule below.
 $location-intro-max-width: 960px;
+$location-intro-wide-breakpoint: 1024px;
 
 .location-intro {
-  max-width: $location-intro-max-width;
+  max-width: $max-content-width;
   margin: 0 auto;
   padding: 2.5rem 0 1rem;
   color: $colour-text;
   box-sizing: border-box;
+
+  @media (min-width: $location-intro-wide-breakpoint) {
+    max-width: $location-intro-max-width;
+  }
 
   h1 {
     font-size: 1.6rem;
@@ -1115,7 +1121,9 @@ $location-intro-max-width: 960px;
   grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
 
-  @media (min-width: 900px) {
+  // Same breakpoint as the max-width above: in a 600px column there is no room
+  // for the image beside the prose.
+  @media (min-width: $location-intro-wide-breakpoint) {
     // The source images are 320px wide, so give the image column a little more
     // than that and no more — a proportional (e.g. 5fr) column would stretch it
     // to ~465px on a wide viewport and visibly soften it.
