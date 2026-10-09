@@ -228,10 +228,17 @@ describe('location descriptions', () => {
       expect(out).toContain('location-intro__lede');
     });
 
+    it('titles the section for the climate when there is a description', () => {
+      const out = render(base);
+      expect(out).toContain('<h1>London\u2019s climate</h1>');
+      expect(out).not.toContain('London temperature history</h1>');
+    });
+
     it.each([undefined, '', '   '])('falls back to the generic text for description %j', (d) => {
       const out = render(withDescription(d as string | undefined));
       expect(out).toContain('This page charts today');
       expect(out).toContain('whether today is unusually warm or cold');
+      expect(out).toContain('<h1>London temperature history</h1>');
       expect(out).toContain('so "today" means today in');
     });
   });
@@ -322,7 +329,7 @@ describe('injectLocationPage', () => {
 
   it.skipIf(!html)('renders prose and sibling links without JS', () => {
     const out = render('london');
-    expect(out).toContain('<h1>London temperature history</h1>');
+    expect(out).toContain('<h1>London\u2019s climate</h1>');
     expect(out).toContain('href="/locations/manchester"');
     expect(out).not.toContain('href="/locations/london"'); // no self-link
     expect(out).toContain('href="/locations"');
