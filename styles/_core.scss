@@ -1214,6 +1214,15 @@ body.has-drawer-open {
   }
 }
 
+// On narrow phones (iPhone SE is 375px) the 2rem side padding stacks on top of
+// the shell gutter and wraps "Privacy Policy" onto a second line.
+@media (max-width: 479px) {
+  .site-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
 .site-footer__social {
   display: flex;
   align-items: center;
