@@ -1,16 +1,37 @@
 import { defineConfig, loadEnv } from 'vite'
 import { copyFileSync, readFileSync, existsSync } from 'node:fs'
-import { resolve, join } from 'node:path'
+import { resolve, join, sep } from 'node:path'
 import { createRequire } from 'node:module'
 import { execSync } from 'child_process'
 
 // Location-page rendering is shared verbatim with server.js rather than
 // reimplemented here — the two copies of the /s/:id share logic have already
 // drifted (see #110), and this avoids a third.
+//
+// Loaded per request, not once at startup: Vite hot-reloads TS and SCSS but does
+// not watch these CommonJS files, so a load-once require would serve stale
+// rendering until the dev server was restarted. Clearing the require cache for
+// lib/ and the locations snapshot makes edits to either show up on reload.
 const requireCjs = createRequire(join(__dirname, 'vite.config.ts'))
-const { LOCATION_SLUG_RE, getAllLocations, getLocationBySlug } = requireCjs('./lib/locations.cjs')
-const { injectLocationPage } = requireCjs('./lib/locationPage.cjs')
-const { buildSitemapXml } = requireCjs('./lib/sitemap.cjs')
+const LIB_DIR = join(__dirname, 'lib') + sep
+const LOCATIONS_SNAPSHOT = join(__dirname, 'data', 'preapproved-locations.json')
+
+function loadLocationLib() {
+  for (const key of Object.keys(requireCjs.cache)) {
+    if (key.startsWith(LIB_DIR) || key === LOCATIONS_SNAPSHOT) delete requireCjs.cache[key]
+  }
+  return {
+    ...requireCjs('./lib/locations.cjs'),
+    ...requireCjs('./lib/locationPage.cjs'),
+    ...requireCjs('./lib/sitemap.cjs'),
+  } as {
+    LOCATION_SLUG_RE: RegExp
+    getAllLocations: () => any[]
+    getLocationBySlug: (slug: string) => any
+    injectLocationPage: (html: string, loc: any, origin: string, apiBase: string, all: any[]) => string
+    buildSitemapXml: (origin: string, lastmod?: string) => string
+  }
+}
 
 // Shared helpers for share-page OG/JSON-LD injection (used by Vite dev plugin and server.js)
 function getOrdinalVite(n: number): string {
@@ -103,6 +124,8 @@ export default defineConfig(({ mode }) => {
           const match = url.match(/^\/locations\/([^/]+)\/?$/);
           if (!match) return next();
 
+          const { LOCATION_SLUG_RE, getAllLocations, getLocationBySlug, injectLocationPage } = loadLocationLib();
+
           const slug = decodeURIComponent(match[1]).toLowerCase();
           if (!LOCATION_SLUG_RE.test(slug)) return next();
 
@@ -149,6 +172,7 @@ export default defineConfig(({ mode }) => {
         // sitemap.xml, mirroring the production route.
         server.middlewares.use((req, res, next) => {
           if ((req.url?.split('?')[0] ?? '') !== '/sitemap.xml') return next();
+          const { buildSitemapXml } = loadLocationLib();
           const port = server.config.server.port ?? 5173;
           res.setHeader('Content-Type', 'application/xml; charset=utf-8');
           return res.end(buildSitemapXml(`http://localhost:${port}`));
