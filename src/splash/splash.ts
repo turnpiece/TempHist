@@ -1065,6 +1065,15 @@ export function initializeSplashScreen(): void {
  * Handle location change - navigate back to splash screen
  */
 export function handleLocationChangeInternal(): void {
+  // On a server-rendered /locations/:slug page the splash markup is hidden and
+  // its content (carousel, listeners) was never initialised, so re-showing it in
+  // place yields a splash with no carousel, at a URL still naming the old
+  // location. Go to the real splash at / instead.
+  if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+    window.location.href = '/';
+    return;
+  }
+
   debugLog('Change location executed, navigating to splash screen');
 
   // Destroy all charts before navigating away to prevent stale references

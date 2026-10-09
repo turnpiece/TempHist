@@ -8,7 +8,8 @@ const {
   LOCATION_SLUG_RE, absolutiseImages, displayStringFor, getAllLocations, getLocationBySlug,
 } = require('../lib/locations.cjs');
 const {
-  buildMeta, formatTimezone, injectLocationPage, jsonForScript, regionPhrase,
+  buildMeta, descriptionParagraphs, formatTimezone, injectLocationPage, jsonForScript, regionPhrase,
+  renderIntroHtml, summariseDescription,
 } = require('../lib/locationPage.cjs');
 const { buildSitemapXml } = require('../lib/sitemap.cjs');
 
@@ -120,6 +121,129 @@ describe('buildMeta', () => {
   });
 });
 
+describe('location descriptions', () => {
+  const base = getLocationBySlug('london');
+  const withDescription = (description: string | undefined) => ({ ...base, description });
+  const all = getAllLocations();
+
+  it('are present for every snapshot location, within the 100-word limit', () => {
+    for (const loc of all) {
+      expect(loc.description, `${loc.slug} has no description`).toBeTruthy();
+      expect(loc.description.split(/\s+/).length, `${loc.slug} is over 100 words`).toBeLessThanOrEqual(100);
+    }
+  });
+
+  describe('descriptionParagraphs', () => {
+    it('splits on blank lines and trims', () => {
+      expect(descriptionParagraphs(withDescription('One.\n\n  Two.  \n\n\nThree.')))
+        .toEqual(['One.', 'Two.', 'Three.']);
+    });
+
+    it('is empty when the description is missing, empty or blank', () => {
+      expect(descriptionParagraphs(withDescription(undefined))).toEqual([]);
+      expect(descriptionParagraphs(withDescription(''))).toEqual([]);
+      expect(descriptionParagraphs(withDescription('  \n\n '))).toEqual([]);
+    });
+  });
+
+  describe('summariseDescription', () => {
+    it('uses whole leading sentences within the length limit', () => {
+      const out = summariseDescription(withDescription('First sentence here. Second one follows. ' + 'x'.repeat(200) + '.'));
+      expect(out).toBe('First sentence here. Second one follows.');
+    });
+
+    it('never exceeds 155 characters for any location', () => {
+      for (const loc of all) {
+        const out = summariseDescription(loc);
+        expect(out.length, loc.slug).toBeGreaterThan(0);
+        expect(out.length, loc.slug).toBeLessThanOrEqual(155);
+      }
+    });
+
+    it('cuts an over-long first sentence at a word boundary', () => {
+      const out = summariseDescription(withDescription('word '.repeat(60).trim() + '.'));
+      expect(out.length).toBeLessThanOrEqual(155);
+      expect(out.endsWith('…')).toBe(true);
+      expect(out).not.toContain('wor…');
+    });
+
+    it('only summarises the first paragraph', () => {
+      expect(summariseDescription(withDescription('Short one.\n\nSecond paragraph.'))).toBe('Short one.');
+    });
+
+    it('is empty when there is no description', () => {
+      expect(summariseDescription(withDescription(undefined))).toBe('');
+    });
+  });
+
+  describe('buildMeta', () => {
+    it('differs between locations', () => {
+      const london = buildMeta(getLocationBySlug('london'), ORIGIN);
+      const singapore = buildMeta(getLocationBySlug('singapore'), ORIGIN);
+      expect(london.description).not.toBe(singapore.description);
+      expect(london.ldJson.description).not.toBe(singapore.ldJson.description);
+    });
+
+    it('has a distinct meta description for every location', () => {
+      const descriptions = all.map((l: any) => buildMeta(l, ORIGIN).description);
+      expect(new Set(descriptions).size).toBe(descriptions.length);
+    });
+
+    it('uses the location description and keeps it in the JSON-LD', () => {
+      const { description, ldJson } = buildMeta(base, ORIGIN);
+      expect(description).toBe(summariseDescription(base));
+      expect(description).toContain('temperate oceanic');
+      expect(ldJson.description).toBe(description);
+    });
+
+    it('falls back to the generic text when the description is missing', () => {
+      const { description } = buildMeta(withDescription(undefined), ORIGIN);
+      expect(description).toContain('compares with the same date');
+      expect(description).toContain('London, United Kingdom');
+    });
+  });
+
+  describe('renderIntroHtml', () => {
+    const render = (loc: any) => renderIntroHtml(loc, API, all);
+
+    it('renders each paragraph as its own <p> inside .location-intro__text', () => {
+      const out = render(withDescription('First para.\n\nSecond para.'));
+      const text = out.slice(out.indexOf('location-intro__text'));
+      expect(text).toContain('<p>First para.</p>');
+      expect(text).toContain('<p>Second para.</p>');
+    });
+
+    it('escapes HTML characters in the description', () => {
+      const out = render(withDescription('Hot <script>alert(1)</script> & "cold".'));
+      expect(out).not.toContain('<script>alert(1)</script>');
+      expect(out).toContain('Hot &lt;script&gt;alert(1)&lt;/script&gt; &amp; "cold".');
+    });
+
+    it('replaces the generic opening paragraph but keeps the how-to-use note', () => {
+      const out = render(base);
+      expect(out).toContain(base.description.split('\n\n')[0]);
+      expect(out).not.toContain('This page charts today');
+      expect(out).toContain('Switch between daily, weekly, monthly and yearly');
+      expect(out).toContain('Europe/London');
+      expect(out).toContain('location-intro__lede');
+    });
+
+    it('titles the section for the climate when there is a description', () => {
+      const out = render(base);
+      expect(out).toContain('<h1>London\u2019s climate</h1>');
+      expect(out).not.toContain('London temperature history</h1>');
+    });
+
+    it.each([undefined, '', '   '])('falls back to the generic text for description %j', (d) => {
+      const out = render(withDescription(d as string | undefined));
+      expect(out).toContain('This page charts today');
+      expect(out).toContain('whether today is unusually warm or cold');
+      expect(out).toContain('<h1>London temperature history</h1>');
+      expect(out).toContain('so "today" means today in');
+    });
+  });
+});
+
 describe('jsonForScript', () => {
   it('neutralises a closing script tag', () => {
     expect(jsonForScript({ x: '</script>' })).not.toContain('</script>');
@@ -205,10 +329,21 @@ describe('injectLocationPage', () => {
 
   it.skipIf(!html)('renders prose and sibling links without JS', () => {
     const out = render('london');
-    expect(out).toContain('<h1>London temperature history</h1>');
+    expect(out).toContain('<h1>London\u2019s climate</h1>');
     expect(out).toContain('href="/locations/manchester"');
     expect(out).not.toContain('href="/locations/london"'); // no self-link
     expect(out).toContain('href="/locations"');
+  });
+
+  it.skipIf(!html)('puts the location description in the server-rendered HTML and meta tags', () => {
+    const loc = getLocationBySlug('singapore');
+    const out = render('singapore');
+    const [firstParagraph] = loc.description.split('\n\n');
+    expect(out).toContain(`<p>${firstParagraph}</p>`);
+    const summary = summariseDescription(loc);
+    expect(out).toContain(`<meta name="description" content="${summary}" />`);
+    expect(out).toContain(`property="og:description" content="${summary}"`);
+    expect(out).toContain(`name="twitter:description" content="${summary}"`);
   });
 
   it.skipIf(!html)('sets the location-page class so the splash is hidden without JS', () => {
