@@ -1079,13 +1079,18 @@ a.location-item {
 // --- Server-rendered location page prose (/locations/:slug) ---
 // Lives inside #viewOutlet, above the footer. #viewOutlet already supplies the
 // horizontal gutters, so this only adds vertical rhythm.
+// Narrower than the app shell ($max-page-content-width): prose and a 360px image
+// read badly stretched across a ~1180px column on large desktops. No top border —
+// at this width it would no longer line up with the shell's edges above or the
+// footer rule below.
+$location-intro-max-width: 960px;
+
 .location-intro {
-  max-width: $max-page-content-width;
+  max-width: $location-intro-max-width;
   margin: 0 auto;
   padding: 2.5rem 0 1rem;
   color: $colour-text;
   box-sizing: border-box;
-  border-top: 1px solid rgba($colour-border, 0.35);
 
   h1 {
     font-size: 1.6rem;
