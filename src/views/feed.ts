@@ -1,7 +1,7 @@
 import { getApiUrl, apiFetch } from '../api/temperature';
 import { flagImg } from '../locations/locations';
 import { getCountryCodeForLocation } from '../utils/location';
-import { resetTrendBackground } from '../utils/uiHelpers';
+import { createDataAttribution, resetTrendBackground } from '../utils/uiHelpers';
 import {
   openShareModal,
   formatPeriodHeading,
@@ -189,6 +189,9 @@ export function renderFeedPage(): void {
 
   container.appendChild(header);
   container.appendChild(desc);
+  // Built in the same pass as the rest of the header so it never shifts the
+  // filter bar or grid after first paint.
+  container.appendChild(createDataAttribution());
 
   // ── Filter bar ──────────────────────────────────────────────────────────────
   const filterBar = document.createElement('div');

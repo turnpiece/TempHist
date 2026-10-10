@@ -1238,6 +1238,17 @@ $location-intro-wide-breakpoint: 1024px;
   line-height: 1.5;
 }
 
+// The Open-Meteo credit sits directly under the intro. It has no stats bubble
+// to align with here, so drop the indent .data-attribution gets elsewhere and
+// let it carry the gap to the filter bar that .feed-desc would otherwise have.
+.feed-desc:has(+ .data-attribution) {
+  margin-bottom: 0.4rem;
+}
+
+.feed-desc + .data-attribution {
+  margin: 0 0 1.5rem;
+}
+
 // CSS-only tooltip on the ℹ icon
 .feed-tooltip {
   position: relative;
@@ -1298,6 +1309,9 @@ $location-intro-wide-breakpoint: 1024px;
 
   &__btn {
     padding: 0.35rem 0.9rem;
+    @media (max-width: 480px) {
+      padding: 0.35rem 0.6rem;
+    }
     border: 1px solid rgba($colour-text, 0.25);
     border-radius: 999px;
     background: transparent;
