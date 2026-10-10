@@ -777,6 +777,24 @@ body:has(#appShell.hidden) .topnav__links a {
   }
 }
 
+// "Weather data by Open-Meteo.com" — sits directly under the stats bubble, as
+// Open-Meteo's licence asks for a link next to wherever its data is shown.
+.data-attribution {
+  margin: 0.7em 0.85em 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgba($colour-text, 0.65);
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+
+    &:hover {
+      color: $colour-text;
+    }
+  }
+}
+
 .avg-text {
   color: var(--avg);
 }

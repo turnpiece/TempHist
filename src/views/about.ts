@@ -20,6 +20,28 @@ function appendParagraph(container: HTMLElement, text: string): HTMLParagraphEle
   return el;
 }
 
+type ParagraphPart = string | { text: string; href: string };
+
+const OPEN_METEO_LINK = { text: 'Open-Meteo', href: 'https://open-meteo.com' };
+const COPERNICUS_LINK = { text: 'Copernicus Climate Change Service', href: 'https://climate.copernicus.eu' };
+
+/** Append a paragraph made of plain text and external links, in order. */
+function appendParagraphWithLinks(container: HTMLElement, parts: ParagraphPart[]): void {
+  const p = document.createElement('p');
+  parts.forEach(part => {
+    if (typeof part === 'string') {
+      p.appendChild(document.createTextNode(part));
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = part.href;
+    a.textContent = part.text;
+    a.rel = 'noopener noreferrer';
+    p.appendChild(a);
+  });
+  container.appendChild(p);
+}
+
 function appendBulletList(container: HTMLElement, items: string[]): void {
   const ul = document.createElement('ul');
   items.forEach(item => {
@@ -111,11 +133,14 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   ]);
 
   // Third-party services
-  appendSection(
-    container,
-    'Third-party services',
-    'TempHist uses Firebase (Google) for anonymous authentication. Firebase may use cookies from Google services (identitytoolkit.googleapis.com and securetoken.googleapis.com) for authentication purposes only. Historical weather data is sourced via the TempHist API from Open-Meteo. Neither service is used for advertising or cross-site tracking.'
-  );
+  appendHeading(container, 'Third-party services');
+  appendParagraphWithLinks(container, [
+    'TempHist uses Firebase (Google) for anonymous authentication. Firebase may use cookies from Google services (identitytoolkit.googleapis.com and securetoken.googleapis.com) for authentication purposes only. Historical weather data (the ERA5 reanalysis from the ',
+    COPERNICUS_LINK,
+    ') is delivered by ',
+    OPEN_METEO_LINK,
+    ' and fetched via the TempHist API. Neither service is used for advertising or cross-site tracking.',
+  ]);
 
   // Contact
   appendSectionWithLink(
@@ -185,11 +210,14 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   ]);
 
   // Third-party services
-  appendSection(
-    container,
-    'Third-party services',
-    'TempHist uses Firebase (Google) for anonymous authentication. Historical weather data is sourced via the TempHist API from Open-Meteo. Neither service is used for advertising or cross-site tracking.'
-  );
+  appendHeading(container, 'Third-party services');
+  appendParagraphWithLinks(container, [
+    'TempHist uses Firebase (Google) for anonymous authentication. Historical weather data (the ERA5 reanalysis from the ',
+    COPERNICUS_LINK,
+    ') is delivered by ',
+    OPEN_METEO_LINK,
+    ' and fetched via the TempHist API. Neither service is used for advertising or cross-site tracking.',
+  ]);
 
   // Contact
   appendSectionWithLink(
@@ -228,10 +256,10 @@ export function buildAboutContent(container: HTMLElement): void {
   // Period list (plain text — these describe in-app views, not standalone
   // pages, so they shouldn't link out from this page)
   const periodItems: Array<{ label: string; description: string }> = [
-    { label: 'Today',      description: ' — the temperature recorded on today\'s date, in each of the past 50 years' },
+    { label: 'Today',      description: ' — the average temperature on today\'s date, in each of the past 50 years' },
     { label: 'Past week',  description: ' — the average temperature for the 7 days ending today, in each of the past 50 years' },
-    { label: 'Past month', description: ' — the average temperature for the 30 days ending today, in each of the past 50 years' },
-    { label: 'Past year',  description: ' — the average temperature for the 12 months ending today, in each of the past 50 years' },
+    { label: 'Past month', description: ' — the average temperature for the 31 days ending today, in each of the past 50 years' },
+    { label: 'Past year',  description: ' — the average temperature for the 365 days ending today, in each of the past 50 years' },
   ];
 
   const ul = document.createElement('ul');
@@ -252,20 +280,49 @@ export function buildAboutContent(container: HTMLElement): void {
 
   // Data sources
   appendHeading(container, 'Data sources');
-  const dataSourcesPara = document.createElement('p');
-  dataSourcesPara.textContent = 'Historical weather data is sourced from ';
-  /*
-  const sourceLink = document.createElement('a');
-  sourceLink.href = 'https://www.visualcrossing.com';
-  sourceLink.textContent = 'Visual Crossing';
-  */
-  const sourceLink = document.createElement('a');
-  sourceLink.href = 'https://open-meteo.com';
-  sourceLink.textContent = 'Open-Meteo';
-  sourceLink.rel = 'noopener noreferrer';
-  dataSourcesPara.appendChild(sourceLink);
-  dataSourcesPara.appendChild(document.createTextNode(' via the TempHist API.'));
-  container.appendChild(dataSourcesPara);
+  appendParagraphWithLinks(container, [
+    'The temperatures are the ERA5 reanalysis, produced by ECMWF for the ',
+    COPERNICUS_LINK,
+    ' and delivered through ',
+    OPEN_METEO_LINK,
+    ' via the TempHist API. The record starts in 1940.',
+  ]);
+  appendParagraph(
+    container,
+    'A reanalysis re-runs a weather model over past decades so that it agrees with the observations available at the time (stations, ships, balloons and satellites). The result is a complete, consistent record with no gaps.'
+  );
+  appendParagraph(
+    container,
+    'The values are modelled estimates of the daily mean air temperature for a grid cell about 25 km across, not readings from a single weather station. They can differ from official station records, especially in cities, on coasts and in hills.'
+  );
+  appendParagraph(
+    container,
+    'The newest few days come from Open-Meteo\'s forecast model, which is a different model, so today\'s figure can sit slightly above or below the history it is compared with.'
+  );
+  appendParagraphWithLinks(container, [
+    'Weather data by ',
+    { text: 'Open-Meteo.com', href: 'https://open-meteo.com' },
+    ', licensed under ',
+    { text: 'CC BY 4.0', href: 'https://creativecommons.org/licenses/by/4.0/' },
+    '. Generated using Copernicus Climate Change Service information 2022. Data set: Hersbach, H. et al. (2023). ',
+    { text: 'ERA5 hourly data on single levels from 1940 to present', href: 'https://doi.org/10.24381/cds.adbb2d47' },
+    '. ECMWF.',
+  ]);
+
+  // How the numbers are made
+  appendHeading(container, 'How the numbers are made');
+  appendParagraph(
+    container,
+    'For the date you are viewing, each of the last 51 years (this year and the 50 before it) gets a single value: the mean of the daily temperatures in a window that ends on that date. That window is the date itself for Today, the 7 days ending on it for Past week, the 31 days ending on it for Past month, and the 365 days ending on it for Past year.'
+  );
+  appendBulletList(container, [
+    'The average line is the mean of those yearly values.',
+    'The trend line is a straight-line fit through the yearly values, shown in °C (or °F) per decade with a margin of error.',
+  ]);
+  appendParagraph(
+    container,
+    'Past year is the steadiest view, because a full year of days smooths out the weather. A single date is noisy, so its trend has a wide margin of error. Either way, a trend describes the past; it is not a forecast.'
+  );
 
   // Contact
   appendSectionWithLink(
