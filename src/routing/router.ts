@@ -82,13 +82,7 @@ export class TempHistRouter {
         viewKey = 'year';
         break;
       case '/splash':
-        // On a server-rendered /locations/:slug page the splash markup is hidden
-        // and its listeners were never wired, so re-showing it in place yields a
-        // blank screen. Go to the real splash at / instead.
-        if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
-          window.location.href = '/';
-          return;
-        }
+        // Redirects to / itself when called from a /locations/:slug page.
         handleLocationChangeInternal();
         return;
       default:

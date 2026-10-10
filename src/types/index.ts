@@ -31,6 +31,8 @@ export interface PreapprovedLocation {
     jpeg: string;
   } | string;
   imageAlt?: string;
+  /** Climate summary: plain text, paragraphs separated by blank lines, at most 100 words. */
+  description?: string;
   imageAttribution?: ImageAttribution | null;
 }
 

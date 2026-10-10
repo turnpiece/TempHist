@@ -28,7 +28,11 @@ body.privacy-page {
     max-width: 700px;
   }
 
-  a {
+  // The shared footer (.site-footer, styled in _core.scss) keeps its own
+  // muted, non-underlined links, so it's excluded from the prose link rule.
+  // :where() keeps the exclusion at zero specificity so this rule doesn't
+  // start outranking the topnav's .active (green) link styling.
+  a:not(:where(.site-footer a)) {
     color: inherit;
     text-decoration: underline;
     transition: color 0.2s;
@@ -1075,13 +1079,24 @@ a.location-item {
 // --- Server-rendered location page prose (/locations/:slug) ---
 // Lives inside #viewOutlet, above the footer. #viewOutlet already supplies the
 // horizontal gutters, so this only adds vertical rhythm.
+// Matches the .dashboard above it: single column capped at $max-content-width
+// until 1024px, where the dashboard goes two-column. From there the intro is
+// narrower than the app shell ($max-page-content-width) — prose and a 360px image
+// read badly stretched across ~1180px. No top border: at these widths it would no
+// longer line up with the shell above or the footer rule below.
+$location-intro-max-width: 960px;
+$location-intro-wide-breakpoint: 1024px;
+
 .location-intro {
-  max-width: $max-page-content-width;
+  max-width: $max-content-width;
   margin: 0 auto;
   padding: 2.5rem 0 1rem;
   color: $colour-text;
   box-sizing: border-box;
-  border-top: 1px solid rgba($colour-border, 0.35);
+
+  @media (min-width: $location-intro-wide-breakpoint) {
+    max-width: $location-intro-max-width;
+  }
 
   h1 {
     font-size: 1.6rem;
@@ -1106,7 +1121,9 @@ a.location-item {
   grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
 
-  @media (min-width: 900px) {
+  // Same breakpoint as the max-width above: in a 600px column there is no room
+  // for the image beside the prose.
+  @media (min-width: $location-intro-wide-breakpoint) {
     // The source images are 320px wide, so give the image column a little more
     // than that and no more — a proportional (e.g. 5fr) column would stretch it
     // to ~465px on a wide viewport and visibly soften it.
@@ -1151,8 +1168,15 @@ a.location-item {
   font-size: 0.95rem;
 }
 
+// The how-to-use note follows the location's own description, so it is kept
+// quieter than the text it supports.
+.location-intro__howto {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
 .location-intro__attribution {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   opacity: 0.7;
   margin: 0.5rem 0 0;
 }
