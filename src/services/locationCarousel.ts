@@ -307,20 +307,11 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
     });
   }
 
-  button.addEventListener('click', async (e: MouseEvent) => {
+  button.addEventListener('click', (e: MouseEvent) => {
     // Let the browser handle modified clicks natively (new tab, new window,
     // download) — otherwise cmd/ctrl/middle-click silently breaks.
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
-
-    // Construct the full location string (same format as dropdown)
-    // Format: "City, Admin1, Country" (e.g., "Manchester, England, United Kingdom")
-    const valueParts = [location.name];
-    if (location.admin1 && location.admin1.trim()) {
-      valueParts.push(location.admin1.trim());
-    }
-    valueParts.push(location.country_name);
-    const fullLocationString = valueParts.join(', ');
 
     // Submit selection signal (fire-and-forget — must not block navigation)
     apiFetch(getApiUrl('/v1/locations/selections'), {
@@ -328,28 +319,11 @@ function createLocationCard(location: PreapprovedLocation, isPriorityImage: bool
       body: JSON.stringify({ location_id: location.id }),
     }).catch(() => {});
 
-    // Reflect the selection in the URL so the address bar, history and any
-    // subsequent share match the page the user is actually looking at.
-    try {
-      history.pushState(null, '', `/locations/${location.slug}`);
-      (globalThis as any).__TH_APPLIED_SLUG = location.slug;
-    } catch { /* non-fatal: the SPA still works without the URL change */ }
-
-    // Call handleManualLocationSelection from main.ts (available globally)
-    if (typeof globalThis.handleManualLocationSelection === 'function') {
-      await globalThis.handleManualLocationSelection(
-        fullLocationString,
-        location.timezone ?? null,
-        location.latitude ?? null,
-        location.longitude ?? null
-      );
-    } else {
-      // Fallback: trigger location change directly
-      console.warn('handleManualLocationSelection not available, using fallback');
-      globalThis.tempLocation = fullLocationString;
-      globalThis.tempLocationSource = 'manual';
-      window.location.hash = '#/today';
-    }
+    // A full navigation, not an in-SPA pushState: the location image and
+    // description are only in the server-rendered /locations/:slug HTML, so a
+    // client-side transition would leave this route without them. This is the
+    // same hand-off the /locations page uses (selectLocation in locations.ts).
+    window.location.href = `/locations/${location.slug}`;
   });
 
   return button;
