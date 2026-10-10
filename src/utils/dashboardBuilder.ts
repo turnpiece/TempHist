@@ -1,5 +1,5 @@
 import { INITIAL_LOADING_TEXT } from '../constants/index';
-import { createSpinner } from './uiHelpers';
+import { createDataAttribution, createSpinner } from './uiHelpers';
 
 export interface DashboardConfig {
   idPrefix?: string;
@@ -139,6 +139,8 @@ export function buildDashboard(config: DashboardConfig): DashboardRefs {
   statsBubbleEl.appendChild(stddevTextEl);
 
   statsCol.appendChild(statsBubbleEl);
+
+  statsCol.appendChild(createDataAttribution());
 
   let incompleteNoticeEl: HTMLElement | null = null;
   if (showIncompleteNotice) {

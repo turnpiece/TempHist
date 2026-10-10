@@ -26,6 +26,23 @@ export function createSpinner(): HTMLElement {
 }
 
 /**
+ * Create the "Weather data by Open-Meteo.com" credit. Open-Meteo's licence
+ * requires a link next to any location its data is displayed. The Today view's
+ * static markup in index.html carries the same element.
+ */
+export function createDataAttribution(): HTMLParagraphElement {
+  const p = document.createElement('p');
+  p.className = 'data-attribution';
+  const a = document.createElement('a');
+  a.href = 'https://open-meteo.com/';
+  a.textContent = 'Weather data by Open-Meteo.com';
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  p.appendChild(a);
+  return p;
+}
+
+/**
  * Build location display with icon, optional country flag, and edit button.
  * Detected locations are shown in green; manually selected locations in white.
  */
