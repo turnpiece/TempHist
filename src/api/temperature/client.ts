@@ -6,6 +6,7 @@ import type {
 } from '../../types/index';
 import { getToken } from 'firebase/app-check';
 import { appCheck } from '../../firebase';
+import { recordAuthFailure } from '../../analytics/analytics';
 import { API_CONFIG } from '../../constants/index';
 import { LoadingManager } from '../../utils/LoadingManager';
 import {
@@ -87,6 +88,14 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
       (headers as Record<string, string>)['X-Firebase-AppCheck'] = token;
     } catch (acError) {
       debugLog('apiFetch: App Check token error (non-fatal):', acError);
+      // Surface via analytics so we can see how many real visitors would fail
+      // under enforcement. Deduplicated per page load by recordAuthFailure.
+      const acCode = (acError as { code?: unknown } | null)?.code;
+      recordAuthFailure(
+        'app_check_token',
+        typeof acCode === 'string' && acCode ? acCode : 'unknown',
+        window.location.pathname.startsWith('/s/') ? 'share' : 'spa',
+      );
     }
   }
 

@@ -18,7 +18,7 @@ export function reportAnalytics() {
   const getErrorType = () => {
     if (analytics.errors.length === 0) return 'none';
     
-    const errorTypes = analytics.errors.map(error => error.context?.type || 'unknown');
+    const errorTypes = analytics.errors.map(error => error.context?.type || error.error_type || 'unknown');
     const typeCounts = errorTypes.reduce((acc, type) => {
       acc[type] = (acc[type] || 0) + 1;
       return acc;
@@ -44,10 +44,11 @@ export function reportAnalytics() {
 /**
  * Send analytics to server
  */
-export async function sendAnalytics(): Promise<void> {
+export async function sendAnalytics(options: { allowUnauthenticated?: boolean } = {}): Promise<void> {
   try {
-    // Check if API is ready and Firebase is authenticated
-    if (!globalThis.currentUser) {
+    // Check if API is ready and Firebase is authenticated. /analytics itself is
+    // a public endpoint (no token is sent), so auth-failure reports opt out.
+    if (!globalThis.currentUser && !options.allowUnauthenticated) {
       debugLog('Analytics: Skipping send - Firebase not authenticated yet');
       return;
     }
@@ -104,6 +105,49 @@ export async function sendAnalytics(): Promise<void> {
     // Silently fail analytics reporting to not impact user experience
     console.warn('Analytics reporting error:', error);
   }
+}
+
+export type AuthFailureType = 'auth_signin' | 'app_check_token';
+export type AuthFailureSurface = 'share' | 'spa';
+
+const reportedAuthFailures = new Set<string>();
+
+/**
+ * Record an authentication failure (sign-in rejected, or App Check token
+ * unavailable) with its Firebase error code, and send it straight away: the
+ * unload/interval reporters are only registered after a successful sign-in, and
+ * these failures are exactly the case where that never happens.
+ *
+ * Entries use the API's ErrorDetail shape (timestamp/error_type/message) — the
+ * server discards recent_errors entries without those keys. One report per
+ * (type, code) per page load.
+ */
+export function recordAuthFailure(type: AuthFailureType, code: string, surface: AuthFailureSurface): void {
+  const key = `${type}:${code}`;
+  if (reportedAuthFailures.has(key)) return;
+  reportedAuthFailures.add(key);
+
+  const analytics = globalThis.TempHist?.analytics;
+  if (!analytics) return;
+
+  const entry = {
+    timestamp: new Date().toISOString(),
+    error: code,
+    error_type: type,
+    message: code,
+    endpoint: surface,
+    context: { type },
+    userAgent: navigator.userAgent,
+    url: window.location.pathname,
+  };
+  analytics.errors.push(entry);
+
+  // sendAnalytics builds its payload synchronously before awaiting, so the entry
+  // can be removed straight after: otherwise a later successful sign-in's
+  // unload/interval report would include (and double-count) it.
+  void sendAnalytics({ allowUnauthenticated: true });
+  const idx = analytics.errors.indexOf(entry);
+  if (idx !== -1) analytics.errors.splice(idx, 1);
 }
 
 /**

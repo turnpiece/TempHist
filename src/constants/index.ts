@@ -19,6 +19,17 @@ export const CHART_AXIS_FONT_FAMILY = "ui-monospace, 'SF Mono', 'Courier New', m
 // Loading text constant
 export const INITIAL_LOADING_TEXT = 'Loading temperature data…';
 
+// Anonymous sign-in failure states (see src/auth/signIn.ts). Deliberately not
+// "loading" copy: once sign-in has failed nothing is in flight.
+export const SIGN_IN_TIMEOUT_MS = 12000;
+export const AUTH_ERROR_TITLE = "Can't load this page";
+export const AUTH_ERROR_TEXT = {
+  network: "We couldn't connect to load this page. Check your connection and try again.",
+  verification:
+    "Your browser's privacy settings may be preventing us from loading this page. " +
+    'Try disabling tracking protection or content blockers for temphist.com, or open the link in another browser.',
+} as const;
+
 // Chart colors
 export const CHART_COLORS = {
   BAR_WARM: '#FF3B30',
