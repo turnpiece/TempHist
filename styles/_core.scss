@@ -1319,3 +1319,26 @@ body.has-drawer-open {
     }
   }
 }
+
+// Retry button placed inside an error block (share-page connection error,
+// splash-screen auth error): sits on its own line instead of floating right.
+.btn-retry--block {
+  float: none;
+  display: inline-block;
+  margin: 0;
+  padding: 6px 16px;
+  font-size: 0.95em;
+}
+
+// Splash-screen banner shown when anonymous sign-in fails (see src/auth/authErrorBanner.ts)
+.auth-error {
+  margin: 0 0 1.25rem;
+
+  &[hidden] {
+    display: none;
+  }
+
+  .error-container {
+    margin-top: 0;
+  }
+}
