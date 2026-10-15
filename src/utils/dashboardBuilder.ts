@@ -8,6 +8,8 @@ export interface DashboardConfig {
   showIncompleteNotice?: boolean;
   showErrorContainer?: boolean;
   extraStatsContent?: HTMLElement[];
+  /** Extra lines for the meta bubble, below the Open-Meteo attribution. */
+  extraMetaContent?: HTMLElement[];
 }
 
 export interface DashboardRefs {
@@ -33,7 +35,15 @@ function maybeId(el: HTMLElement, idPrefix: string | undefined, suffix: string):
 }
 
 export function buildDashboard(config: DashboardConfig): DashboardRefs {
-  const { idPrefix, tabsEl, showDataNotice, showIncompleteNotice, showErrorContainer, extraStatsContent } = config;
+  const {
+    idPrefix,
+    tabsEl,
+    showDataNotice,
+    showIncompleteNotice,
+    showErrorContainer,
+    extraStatsContent,
+    extraMetaContent,
+  } = config;
 
   const dashboard = document.createElement('div');
   dashboard.className = 'dashboard';
@@ -120,7 +130,7 @@ export function buildDashboard(config: DashboardConfig): DashboardRefs {
   statsCol.className = 'dashboard__stats';
 
   const statsBubbleEl = document.createElement('div');
-  statsBubbleEl.className = 'stats-bubble';
+  statsBubbleEl.className = 'bubble stats-bubble';
   maybeId(statsBubbleEl, idPrefix, 'StatsBubble');
 
   const avgTextEl = document.createElement('div');
@@ -140,7 +150,15 @@ export function buildDashboard(config: DashboardConfig): DashboardRefs {
 
   statsCol.appendChild(statsBubbleEl);
 
-  statsCol.appendChild(createDataAttribution());
+  const metaBubble = document.createElement('div');
+  metaBubble.className = 'bubble meta-bubble';
+  metaBubble.appendChild(createDataAttribution());
+  if (extraMetaContent) {
+    for (const el of extraMetaContent) {
+      metaBubble.appendChild(el);
+    }
+  }
+  statsCol.appendChild(metaBubble);
 
   let incompleteNoticeEl: HTMLElement | null = null;
   if (showIncompleteNotice) {

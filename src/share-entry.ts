@@ -10,11 +10,12 @@ import '@fontsource/inter/latin-500.css';
 import '@fontsource/inter/latin-600.css';
 import '@fontsource/inter/latin-700.css';
 import '../share.scss';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import type { FirebaseUser } from './types/index.js';
 import { initCoreRuntime } from './coreRuntime';
-import { mountSharePageShell, loadSharePageData } from './share';
+import { mountSharePageShell, loadSharePageData, showShareConnectionError } from './share';
+import { attemptSignIn } from './auth/signIn';
 import { setupMobileNavigation, handleWindowResize } from './topnav';
 
 declare global {
@@ -35,10 +36,14 @@ mountSharePageShell();
 setupMobileNavigation();
 window.addEventListener('resize', handleWindowResize);
 
-debugLog('Share page: starting Firebase anonymous sign-in...');
-signInAnonymously(auth).catch((error) => {
-  console.error('Firebase anonymous sign-in error:', error);
-});
+// Sign-in can fail (content blockers, offline, App Check, rate limiting) or hang;
+// show an accurate state with Retry rather than a spinner that never resolves.
+// A late success still arrives through onAuthStateChanged below.
+function startSignIn(): void {
+  debugLog('Share page: starting Firebase anonymous sign-in...');
+  void attemptSignIn(auth, 'share', (kind) => showShareConnectionError(kind, startSignIn));
+}
+startSignIn();
 
 onAuthStateChanged(auth, (user: FirebaseUser | null) => {
   if (!user) return;

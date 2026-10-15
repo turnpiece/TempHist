@@ -173,7 +173,12 @@ Register that UUID in **Firebase Console → App Check → Apps → [your web ap
 VITE_APPCHECK_DEBUG_TOKEN=<your-debug-token-uuid>
 ```
 
-Without this, `signInAnonymously` will silently hang and the location carousel (and all API calls) will fail with "No authenticated user" warnings.
+Without this, anonymous sign-in can fail or hang. After 12 s the app shows a "couldn't connect" / "privacy settings" message with a Retry button (on the home page and on share pages) rather than loading forever.
+
+### Sign-in failures and App Check enforcement
+
+- Anonymous sign-in failures and App Check token errors are reported to the API's public `/analytics` endpoint as `recent_errors` entries with `error_type` `auth_signin` or `app_check_token`, the Firebase error code in `message`, and `endpoint` `share` or `spa`. See `src/auth/signIn.ts` and `recordAuthFailure` in `src/analytics/analytics.ts`.
+- **Decision (P1-178, #159):** Authentication App Check stays on **Monitoring** for now. Enforcing it would stop first-time visitors in privacy-protected browsers (reCAPTCHA starved of signals) from signing in, and share pages need a token to fetch chart data. Revisit — with a public share-data endpoint or server-side bootstrap of the data — once the failure counts above show how many real visitors would be affected.
 
 ## Testing
 

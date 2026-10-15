@@ -13,6 +13,8 @@ import {
 } from './chart/chart';
 import { renderStatsToElements, applyTrendBackground } from './utils/uiHelpers';
 import { buildDashboard } from './utils/dashboardBuilder';
+import { AUTH_ERROR_TEXT, AUTH_ERROR_TITLE, INITIAL_LOADING_TEXT } from './constants/index';
+import type { SignInFailureKind } from './auth/signIn';
 
 // Chart.js global (loaded via CDN defer in index.html)
 declare const Chart: any;
@@ -243,8 +245,12 @@ export function mountSharePageShell(): void {
  * mountSharePageShell() has already built the shell.
  */
 export function loadSharePageData(): void {
-  if (!pendingShare) return;
+  if (!pendingShare || loadStarted) return;
+  loadStarted = true;
   const { shareId, refs } = pendingShare;
+  // A sign-in that failed (or timed out) and then succeeded late, or was
+  // retried: put the connecting state back before the fetch starts.
+  if (connectionErrorShown) showShareConnecting();
 
   (async () => {
     try {
@@ -261,6 +267,70 @@ export function loadSharePageData(): void {
       showShareError(refs, message);
     }
   })();
+}
+
+// Guards loadSharePageData(): onAuthStateChanged can fire again after a retry
+// or a late sign-in success, and the data must load exactly once.
+let loadStarted = false;
+let connectionErrorShown = false;
+let preErrorHeading: { title: string; locationDisplay: string } | null = null;
+
+/**
+ * Replace the spinner with an accurate "couldn't load" state once sign-in has
+ * failed. Distinct from showShareError(), which is for a share that failed to
+ * load and titles the page "Share not found" — wrong for a connection problem.
+ * `onRetry` is invoked when the visitor presses Retry; call showShareConnecting
+ * from it (done here) before re-attempting.
+ */
+export function showShareConnectionError(kind: SignInFailureKind, onRetry: () => void): void {
+  if (!pendingShare || loadStarted) return;
+  const { refs } = pendingShare;
+
+  if (!connectionErrorShown) {
+    preErrorHeading = {
+      title: refs.titleEl.textContent ?? '',
+      locationDisplay: refs.locationEl.style.display,
+    };
+  }
+  connectionErrorShown = true;
+
+  refs.loadingEl.classList.remove('visible');
+  refs.loadingEl.classList.add('hidden');
+  refs.titleEl.textContent = AUTH_ERROR_TITLE;
+  refs.locationEl.style.display = 'none';
+  refs.errorMessageEl.textContent = AUTH_ERROR_TEXT[kind];
+
+  const content = refs.errorMessageEl.parentElement;
+  content?.querySelector('.btn-retry')?.remove();
+  const retryBtn = document.createElement('button');
+  retryBtn.type = 'button';
+  retryBtn.className = 'btn-retry btn-retry--block';
+  retryBtn.textContent = 'Retry';
+  retryBtn.addEventListener('click', () => {
+    showShareConnecting();
+    onRetry();
+  });
+  content?.appendChild(retryBtn);
+
+  refs.errorContainerEl.style.display = 'block';
+}
+
+/** Restore the in-flight loading state (initial state, or after Retry). */
+export function showShareConnecting(): void {
+  if (!pendingShare || !connectionErrorShown) return;
+  const { refs } = pendingShare;
+  connectionErrorShown = false;
+
+  refs.errorContainerEl.style.display = 'none';
+  refs.errorMessageEl.parentElement?.querySelector('.btn-retry')?.remove();
+  if (preErrorHeading) {
+    refs.titleEl.textContent = preErrorHeading.title;
+    refs.locationEl.style.display = preErrorHeading.locationDisplay;
+    preErrorHeading = null;
+  }
+  refs.loadingTextEl.textContent = INITIAL_LOADING_TEXT;
+  refs.loadingEl.classList.remove('hidden');
+  refs.loadingEl.classList.add('visible');
 }
 
 function hideAppChrome(): void {
@@ -332,7 +402,8 @@ export function buildShareUI(viewOutlet: HTMLElement, prefill?: SharePrefill): S
 
   const refs = buildDashboard({
     showErrorContainer: true,
-    extraStatsContent: [generatedAtEl, ctaDiv],
+    extraMetaContent: [generatedAtEl],
+    extraStatsContent: [ctaDiv],
   });
 
   refs.loadingEl.classList.add('visible');
