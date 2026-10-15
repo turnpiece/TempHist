@@ -298,6 +298,9 @@ export function showShareConnectionError(kind: SignInFailureKind, onRetry: () =>
   refs.loadingEl.classList.add('hidden');
   refs.titleEl.textContent = AUTH_ERROR_TITLE;
   refs.locationEl.style.display = 'none';
+  // The location heading normally provides the gap under the header; with it
+  // hidden the title would sit flush against the nav.
+  refs.titleEl.closest('.share-page')?.classList.add('share-page--connection-error');
   refs.errorMessageEl.textContent = AUTH_ERROR_TEXT[kind];
 
   const content = refs.errorMessageEl.parentElement;
@@ -323,6 +326,7 @@ export function showShareConnecting(): void {
 
   refs.errorContainerEl.style.display = 'none';
   refs.errorMessageEl.parentElement?.querySelector('.btn-retry')?.remove();
+  refs.titleEl.closest('.share-page')?.classList.remove('share-page--connection-error');
   if (preErrorHeading) {
     refs.titleEl.textContent = preErrorHeading.title;
     refs.locationEl.style.display = preErrorHeading.locationDisplay;

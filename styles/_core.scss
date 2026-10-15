@@ -1395,4 +1395,16 @@ body.has-drawer-open {
   .error-container {
     margin-top: 0;
   }
+
+  // Standalone pages (Locations, Snapshots) have no heading above the banner,
+  // so it needs its own gap under the header.
+  &.auth-error--page {
+    margin-top: 1.5rem;
+  }
+}
+
+// Share page connection error: the location heading that normally sits above
+// the title is hidden, so give the title the space it would have provided.
+.share-page--connection-error .period-subheading {
+  margin-top: 1.5rem;
 }

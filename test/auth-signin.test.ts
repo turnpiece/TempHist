@@ -160,10 +160,15 @@ describe('share page connection error state', () => {
     expect(loadingEl.classList.contains('visible')).toBe(false)
     expect(loadingEl.classList.contains('hidden')).toBe(true)
 
+    // Gap under the header while the location heading is hidden; removed on Retry
+    const sharePage = document.querySelector('.share-page') as HTMLElement
+    expect(sharePage.classList.contains('share-page--connection-error')).toBe(true)
+
     const retry = document.querySelector('.btn-retry') as HTMLButtonElement
     expect(retry).not.toBeNull()
     retry.click()
     expect(onRetry).toHaveBeenCalledTimes(1)
+    expect(sharePage.classList.contains('share-page--connection-error')).toBe(false)
     // Retry puts the connecting state back
     expect((document.querySelector('.error-container') as HTMLElement).style.display).toBe('none')
     expect(document.querySelector('.btn-retry')).toBeNull()
@@ -195,5 +200,65 @@ describe('share page connection error state', () => {
     expect(metaCalls).toHaveLength(1)
     expect(document.querySelector('.btn-retry')).toBeNull()
     vi.doUnmock('../src/api/temperature')
+  })
+})
+
+describe('sign-in failure banner on standalone pages', () => {
+  beforeEach(() => {
+    document.body.className = 'locations-page'
+    document.body.replaceChildren()
+    const outlet = document.createElement('main')
+    outlet.id = 'viewOutlet'
+    const section = document.createElement('section')
+    section.id = 'locationsView'
+    outlet.appendChild(section)
+    document.body.appendChild(outlet)
+    vi.resetModules()
+  })
+
+  it('creates the banner at the top of #viewOutlet when the page has no #authError', async () => {
+    const { showAuthErrorBanner } = await import('../src/auth/authErrorBanner')
+    showAuthErrorBanner('network', vi.fn())
+
+    const outlet = document.getElementById('viewOutlet')!
+    const banner = document.getElementById('authError')!
+    expect(outlet.firstElementChild).toBe(banner)
+    expect(banner.hidden).toBe(false)
+    expect(banner.classList.contains('auth-error--page')).toBe(true)
+    expect(banner.textContent).toContain("couldn't connect")
+    // Footer is revealed even though no content rendered
+    expect(document.body.classList.contains('content-ready')).toBe(true)
+  })
+
+  it('reuses an existing #authError container (homepage splash)', async () => {
+    const existing = document.createElement('div')
+    existing.id = 'authError'
+    existing.hidden = true
+    document.body.appendChild(existing)
+
+    const { showAuthErrorBanner } = await import('../src/auth/authErrorBanner')
+    showAuthErrorBanner('verification', vi.fn())
+
+    expect(document.querySelectorAll('#authError')).toHaveLength(1)
+    expect(existing.hidden).toBe(false)
+    expect(existing.textContent).toContain('privacy settings')
+  })
+
+  it('Retry hides the banner and re-runs sign-in', async () => {
+    const { showAuthErrorBanner } = await import('../src/auth/authErrorBanner')
+    const onRetry = vi.fn()
+    showAuthErrorBanner('network', onRetry)
+
+    ;(document.querySelector('#authError .btn-retry') as HTMLButtonElement).click()
+    expect(onRetry).toHaveBeenCalledTimes(1)
+    expect(document.getElementById('authError')!.hidden).toBe(true)
+    expect(document.querySelector('#authError .btn-retry')).toBeNull()
+  })
+
+  it('does nothing when there is no #viewOutlet to put it in', async () => {
+    document.body.replaceChildren()
+    const { showAuthErrorBanner } = await import('../src/auth/authErrorBanner')
+    expect(() => showAuthErrorBanner('network', vi.fn())).not.toThrow()
+    expect(document.getElementById('authError')).toBeNull()
   })
 })

@@ -201,12 +201,22 @@ globalThis.showChartElements = showChartElements;
 // Sign in anonymously. On failure (blocked, offline, timed out, rejected) show a
 // banner with Retry on the splash screen instead of silently never starting; a
 // late success still arrives through onAuthStateChanged below.
+//
+// About and Privacy are static text that never touch the API, so they render
+// straight away and must neither wait for sign-in nor show its failure banner.
+const API_FREE_PAGE_PATHS = new Set(['/about', '/privacy', '/privacy/app']);
+const isApiFreePage =
+  !document.querySelector('#todayView') && API_FREE_PAGE_PATHS.has(window.location.pathname);
+
 function startSignIn(): void {
   debugLog('Starting Firebase anonymous sign-in...');
   debugLog('Firebase project ID:', app.options.projectId);
-  void attemptSignIn(auth, 'spa', (kind) => showAuthErrorBanner(kind, startSignIn));
+  void attemptSignIn(auth, 'spa', (kind) => {
+    if (!isApiFreePage) showAuthErrorBanner(kind, startSignIn);
+  });
 }
 startSignIn();
+if (isApiFreePage) initializeSplashScreen();
 
 // Wait for authentication before running the rest of your code
 onAuthStateChanged(auth, (user: FirebaseUser | null) => {
@@ -234,8 +244,9 @@ function startAppWithFirebaseUser(user: FirebaseUser): void {
   // Initialise analytics reporting
   setupAnalyticsReporting();
   
-  // Initialise splash screen functionality (now currentUser is available)
-  initializeSplashScreen();
+  // Initialise splash screen functionality (now currentUser is available).
+  // API-free static pages were already rendered at load, see above.
+  if (!isApiFreePage) initializeSplashScreen();
 }
 
 // Make mainAppLogic globally available
