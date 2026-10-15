@@ -63,6 +63,17 @@ $max-page-shell-width: calc(#{$max-page-content-width} + #{2 * $desktop-page-gut
 $max-chart-height: 1800px;
 $sidebar-w: 240px; // Must match --sidebar-w CSS custom property
 
+// The summary text's font size varies by context (see the ≥1024px override
+// and .share-modal-panel), and its lateral padding is 0.85em of that. The stats
+// and meta bubbles use a smaller font, so 0.85em there would be narrower and
+// their text wouldn't line up with the summary's. They take --bubble-pad-x
+// instead, which tracks the summary's font size. Declared before the
+// breakpoint overrides below so those win at equal specificity.
+:root {
+  --summary-font-size: 1rem;
+  --bubble-pad-x: calc(0.85 * var(--summary-font-size));
+}
+
 html {
   // --static-bg-base is set by JS to grad.bottom when a trend is active, so the solid
   // background-color and the bottom of the 1000px gradient both end at the same colour as the
@@ -166,6 +177,10 @@ a {
 }
 
 @media (min-width: 1024px) {
+  :root {
+    --summary-font-size: 1.4rem;
+  }
+
   .dashboard {
     max-width: $max-page-content-width;
     min-height: calc(800px + 2rem);
@@ -191,7 +206,7 @@ a {
   }
 
   .dashboard__left .summary-text {
-    font-size: 1.4rem;
+    font-size: var(--summary-font-size);
     line-height: 1.45;
     // ~4 lines + padding at this font-size — matches real summary text
     // closely enough that filling it in doesn't push the chart/stats/footer
@@ -761,7 +776,9 @@ body:has(#appShell.hidden) .topnav__links a {
   gap: 0.25em;
   border: 1px solid transparent;
   border-radius: 10px;
-  padding: 0.5em 0.85em;
+  // Lateral padding matches .summary-text (see --bubble-pad-x); the 1px border
+  // is taken off so the text edge lines up with the borderless summary.
+  padding: 0.5em calc(var(--bubble-pad-x) - 1px);
   margin: 0.4em 0 1em;
   width: 100%;
   max-width: $max-content-width;
