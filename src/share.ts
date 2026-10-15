@@ -402,7 +402,8 @@ export function buildShareUI(viewOutlet: HTMLElement, prefill?: SharePrefill): S
 
   const refs = buildDashboard({
     showErrorContainer: true,
-    extraStatsContent: [generatedAtEl, ctaDiv],
+    extraMetaContent: [generatedAtEl],
+    extraStatsContent: [ctaDiv],
   });
 
   refs.loadingEl.classList.add('visible');

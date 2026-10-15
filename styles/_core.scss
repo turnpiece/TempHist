@@ -208,8 +208,8 @@ a {
   }
 
   // The stats bubble used to sit below the chart with its own max-width.
-  // Inside its own column it should fill the column edge-to-edge.
-  .dashboard__stats .stats-bubble {
+  // Inside its own column the bubbles should fill the column edge-to-edge.
+  .dashboard__stats .bubble {
     max-width: 100%;
   }
 }
@@ -751,20 +751,28 @@ body:has(#appShell.hidden) .topnav__links a {
   }
 }
 
-// Semi-transparent bubble grouping avg + trend + (optional std dev) below the chart
-.stats-bubble {
+// Shared geometry for the bubbles stacked in the dashboard's stats column
+// (.stats-bubble, .meta-bubble). Keeping border, padding and font-size basis in
+// one place is what makes text in different bubbles line up; each variant below
+// only adds its own colours.
+.bubble {
   display: flex;
   flex-direction: column;
   gap: 0.25em;
-  background: rgba(#607090, 0.6);
-  border: 1px solid rgba(#607090, 0.5);
+  border: 1px solid transparent;
   border-radius: 10px;
   padding: 0.5em 0.85em;
-  margin-top: 0.4em;
+  margin: 0.4em 0 1em;
   width: 100%;
   max-width: $max-content-width;
   box-sizing: border-box;
   font-size: 0.88em;
+}
+
+// Semi-transparent bubble grouping avg + trend + (optional std dev) below the chart
+.stats-bubble {
+  background: rgba(#607090, 0.6);
+  border-color: rgba(#607090, 0.5);
   // Reserves space for its 3 lines (avg/trend/stddev) before they're filled
   // in — this had no reservation at all before, so the bubble grew from 0 to
   // ~6em the moment data arrived. Same opacity:0 reasoning as .summary-text.
@@ -777,8 +785,33 @@ body:has(#appShell.hidden) .topnav__links a {
   }
 }
 
+// Quieter sibling of the stats bubble holding the page's metadata: the
+// Open-Meteo credit everywhere, plus "Generated on…" on share pages.
+// Translucent so it follows the page's warm/cool trend tint.
+.meta-bubble {
+  background: rgba(#0e1028, 0.38);
+  border-color: rgba(#607090, 0.28);
+  // Revealed just after the stats bubble (hence the delay), not before it.
+  transition: opacity 0.4s ease 0.2s;
+
+  .data-attribution {
+    margin: 0;
+    font-size: 0.9em;
+  }
+}
+
+// Stay hidden until the stats bubble before it has its data. Opacity (not
+// display) so the bubble keeps its space and nothing shifts when it appears;
+// visibility keeps the hidden link out of the tab order.
+.stats-bubble:not(.visible) ~ .meta-bubble {
+  opacity: 0;
+  visibility: hidden;
+  transition: none;
+}
+
 // "Weather data by Open-Meteo.com" — sits directly under the stats bubble, as
 // Open-Meteo's licence asks for a link next to wherever its data is shown.
+// Inside .meta-bubble on the dashboards; the feed view uses it standalone.
 .data-attribution {
   margin: 0.7em 0.85em 0;
   font-size: 0.8rem;
@@ -1299,10 +1332,14 @@ body.has-drawer-open {
   transition: opacity 0.3s ease;
 }
 
+// Lives inside .meta-bubble. Muted via colour rather than opacity so it can
+// fade in through .share-page-pending → .share-page-ready without the two
+// opacity rules fighting.
 .share-generated-at {
-  margin-top: 1rem;
-  font-size: 0.85rem;
-  opacity: 0.7;
+  margin: 0;
+  font-size: 0.9em;
+  line-height: 1.4;
+  color: rgba($colour-text, 0.65);
 }
 
 .share-page-cta {
