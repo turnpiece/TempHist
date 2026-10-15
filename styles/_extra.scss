@@ -1513,6 +1513,11 @@ $location-intro-wide-breakpoint: 1024px;
 // any viewport-based media query overrides (font size) that are
 // inappropriate for a fixed-size modal container.
 .share-modal-panel .dashboard {
+  // Re-declare both: --bubble-pad-x is substituted where it's declared, so it
+  // doesn't pick up this scope's --summary-font-size by inheritance alone.
+  --summary-font-size: 1rem;
+  --bubble-pad-x: calc(0.85 * var(--summary-font-size));
+
   max-width: 100%;
   padding-right: 0;
   min-height: 0;
@@ -1529,7 +1534,7 @@ $location-intro-wide-breakpoint: 1024px;
   }
 
   .dashboard__left .summary-text {
-    font-size: 1rem;
+    font-size: var(--summary-font-size);
     line-height: 1.5;
   }
 }
