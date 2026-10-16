@@ -139,6 +139,7 @@ describe('Snapshots page before sign-in', () => {
     const grid = document.querySelector('.feed-grid') as HTMLElement
     expect(grid.querySelector('#authError')).not.toBeNull()
     expect(grid.classList.contains('auth-error-region--failed')).toBe(true)
+    expect(grid.querySelector('.feed-loading')).toBeNull()
     expect(grid.textContent).toContain("couldn't connect")
     // Static content is still there
     expect(document.querySelector('.feed-desc')).not.toBeNull()
