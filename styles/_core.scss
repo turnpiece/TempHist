@@ -63,6 +63,17 @@ $max-page-shell-width: calc(#{$max-page-content-width} + #{2 * $desktop-page-gut
 $max-chart-height: 1800px;
 $sidebar-w: 240px; // Must match --sidebar-w CSS custom property
 
+// The summary text's font size varies by context (see the ≥1024px override
+// and .share-modal-panel), and its lateral padding is 0.85em of that. The stats
+// and meta bubbles use a smaller font, so 0.85em there would be narrower and
+// their text wouldn't line up with the summary's. They take --bubble-pad-x
+// instead, which tracks the summary's font size. Declared before the
+// breakpoint overrides below so those win at equal specificity.
+:root {
+  --summary-font-size: 1rem;
+  --bubble-pad-x: calc(0.85 * var(--summary-font-size));
+}
+
 html {
   // --static-bg-base is set by JS to grad.bottom when a trend is active, so the solid
   // background-color and the bottom of the 1000px gradient both end at the same colour as the
@@ -166,6 +177,10 @@ a {
 }
 
 @media (min-width: 1024px) {
+  :root {
+    --summary-font-size: 1.4rem;
+  }
+
   .dashboard {
     max-width: $max-page-content-width;
     min-height: calc(800px + 2rem);
@@ -191,7 +206,7 @@ a {
   }
 
   .dashboard__left .summary-text {
-    font-size: 1.4rem;
+    font-size: var(--summary-font-size);
     line-height: 1.45;
     // ~4 lines + padding at this font-size — matches real summary text
     // closely enough that filling it in doesn't push the chart/stats/footer
@@ -208,8 +223,8 @@ a {
   }
 
   // The stats bubble used to sit below the chart with its own max-width.
-  // Inside its own column it should fill the column edge-to-edge.
-  .dashboard__stats .stats-bubble {
+  // Inside its own column the bubbles should fill the column edge-to-edge.
+  .dashboard__stats .bubble {
     max-width: 100%;
   }
 }
@@ -751,20 +766,30 @@ body:has(#appShell.hidden) .topnav__links a {
   }
 }
 
-// Semi-transparent bubble grouping avg + trend + (optional std dev) below the chart
-.stats-bubble {
+// Shared geometry for the bubbles stacked in the dashboard's stats column
+// (.stats-bubble, .meta-bubble). Keeping border, padding and font-size basis in
+// one place is what makes text in different bubbles line up; each variant below
+// only adds its own colours.
+.bubble {
   display: flex;
   flex-direction: column;
   gap: 0.25em;
-  background: rgba(#607090, 0.6);
-  border: 1px solid rgba(#607090, 0.5);
+  border: 1px solid transparent;
   border-radius: 10px;
-  padding: 0.5em 0.85em;
-  margin-top: 0.4em;
+  // Lateral padding matches .summary-text (see --bubble-pad-x); the 1px border
+  // is taken off so the text edge lines up with the borderless summary.
+  padding: 0.5em calc(var(--bubble-pad-x) - 1px);
+  margin: 0.4em 0 1em;
   width: 100%;
   max-width: $max-content-width;
   box-sizing: border-box;
   font-size: 0.88em;
+}
+
+// Semi-transparent bubble grouping avg + trend + (optional std dev) below the chart
+.stats-bubble {
+  background: rgba(#607090, 0.6);
+  border-color: rgba(#607090, 0.5);
   // Reserves space for its 3 lines (avg/trend/stddev) before they're filled
   // in — this had no reservation at all before, so the bubble grew from 0 to
   // ~6em the moment data arrived. Same opacity:0 reasoning as .summary-text.
@@ -777,8 +802,33 @@ body:has(#appShell.hidden) .topnav__links a {
   }
 }
 
+// Quieter sibling of the stats bubble holding the page's metadata: the
+// Open-Meteo credit everywhere, plus "Generated on…" on share pages.
+// Translucent so it follows the page's warm/cool trend tint.
+.meta-bubble {
+  background: rgba(#0e1028, 0.38);
+  border-color: rgba(#607090, 0.28);
+  // Revealed just after the stats bubble (hence the delay), not before it.
+  transition: opacity 0.4s ease 0.2s;
+
+  .data-attribution {
+    margin: 0;
+    font-size: 0.9em;
+  }
+}
+
+// Stay hidden until the stats bubble before it has its data. Opacity (not
+// display) so the bubble keeps its space and nothing shifts when it appears;
+// visibility keeps the hidden link out of the tab order.
+.stats-bubble:not(.visible) ~ .meta-bubble {
+  opacity: 0;
+  visibility: hidden;
+  transition: none;
+}
+
 // "Weather data by Open-Meteo.com" — sits directly under the stats bubble, as
 // Open-Meteo's licence asks for a link next to wherever its data is shown.
+// Inside .meta-bubble on the dashboards; the feed view uses it standalone.
 .data-attribution {
   margin: 0.7em 0.85em 0;
   font-size: 0.8rem;
@@ -1299,10 +1349,14 @@ body.has-drawer-open {
   transition: opacity 0.3s ease;
 }
 
+// Lives inside .meta-bubble. Muted via colour rather than opacity so it can
+// fade in through .share-page-pending → .share-page-ready without the two
+// opacity rules fighting.
 .share-generated-at {
-  margin-top: 1rem;
-  font-size: 0.85rem;
-  opacity: 0.7;
+  margin: 0;
+  font-size: 0.9em;
+  line-height: 1.4;
+  color: rgba($colour-text, 0.65);
 }
 
 .share-page-cta {
@@ -1318,4 +1372,52 @@ body.has-drawer-open {
       text-decoration: underline;
     }
   }
+}
+
+// Retry button placed inside an error block (share-page connection error,
+// splash-screen auth error): sits on its own line instead of floating right.
+.btn-retry--block {
+  float: none;
+  display: inline-block;
+  margin: 0;
+  padding: 6px 16px;
+  font-size: 0.95em;
+}
+
+// Splash-screen banner shown when anonymous sign-in fails (see src/auth/authErrorBanner.ts)
+.auth-error {
+  margin: 0 0 1.25rem;
+
+  &[hidden] {
+    display: none;
+  }
+
+  .error-container {
+    margin-top: 0;
+  }
+
+  // Fallback placement at the top of #viewOutlet, under the header.
+  &.auth-error--page {
+    margin-top: 1.5rem;
+  }
+
+  // Inside a page's data area (Snapshots grid, Locations list), below the
+  // page's own static heading. Spans the full width of the Snapshots grid.
+  &.auth-error--region {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+}
+
+// A page's data area while sign-in has failed: reserve roughly the space the
+// content would take, so the footer doesn't sit directly under the notice and
+// the page reads as having content missing.
+.auth-error-region--failed {
+  min-height: max(50vh, 20rem);
+}
+
+// Share page connection error: the location heading that normally sits above
+// the title is hidden, so give the title the space it would have provided.
+.share-page--connection-error .period-subheading {
+  margin-top: 1.5rem;
 }

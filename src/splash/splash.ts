@@ -9,6 +9,7 @@ import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } f
 import { resetCarouselState } from '../services/locationCarousel';
 import { apiFetch, getApiUrl, fetchTemperatureDataAsync } from '../api/temperature';
 import { SNAPSHOTS_ENABLED } from '../constants';
+import { whenSignedIn } from '../auth/signedIn';
 import { DataCache } from '../utils/DataCache';
 import { LoadingManager } from '../utils/LoadingManager';
 import { LazyLoader } from '../utils/LazyLoader';
@@ -909,7 +910,7 @@ export function initializeSplashScreen(): void {
         renderLocationsPage();
       } else if (SNAPSHOTS_ENABLED && currentPath === '/feed') {
         renderFeedPage();
-        prefetchApprovedLocations();
+        void whenSignedIn().then(() => prefetchApprovedLocations());
       }
     }
 

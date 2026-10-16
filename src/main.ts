@@ -3,7 +3,7 @@ import '@fontsource/inter/latin-500.css';
 import '@fontsource/inter/latin-600.css';
 import '@fontsource/inter/latin-700.css';
 import '../styles.scss';
-import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { app, auth } from './firebase';
 
 // Chart.js types
@@ -32,6 +32,9 @@ import { reportAnalytics, sendAnalytics, setupAnalyticsReporting } from './analy
 import { setupMobileNavigation, handleWindowResize, initializeSplashScreen } from './splash/splash';
 import { showFatalError, hideChartElements, showChartElements, hideIncompleteDataNotice, reapplyTrendBackground } from './utils/uiHelpers';
 import { initCoreRuntime } from './coreRuntime';
+import { attemptSignIn } from './auth/signIn';
+import { showAuthErrorBanner, hideAuthErrorBanner } from './auth/authErrorBanner';
+import { markSignedIn } from './auth/signedIn';
 // installDevTestHooks is loaded dynamically inside the DEBUGGING guard below so it is
 // excluded from production bundles entirely. To re-enable, ensure DEBUGGING is true (i.e.
 // run the dev server) — no code change needed.
@@ -196,18 +199,28 @@ globalThis.showFatalError = showFatalError;
 globalThis.hideChartElements = hideChartElements;
 globalThis.showChartElements = showChartElements;
 
-// Sign in anonymously
-debugLog('Starting Firebase anonymous sign-in...');
-debugLog('Firebase project ID:', app.options.projectId);
-signInAnonymously(auth)
-  .then((userCredential) => {
-    debugLog('Firebase sign-in successful:', userCredential.user?.uid);
-    debugLog('Firebase project ID from user:', userCredential.user?.tenantId);
-  })
-  .catch((error) => {
-    console.error("Firebase anonymous sign-in error:", error);
-    debugLog('Firebase sign-in failed:', error);
+// Sign in anonymously. On failure (blocked, offline, timed out, rejected) show a
+// banner with Retry on the splash screen instead of silently never starting; a
+// late success still arrives through onAuthStateChanged below.
+//
+// Standalone pages (About, Privacy, Snapshots, Locations) render their static
+// content at load instead of waiting for sign-in, so a failed or slow sign-in
+// never leaves them blank. About and Privacy need no API at all and show no
+// sign-in notice; Snapshots and Locations hold their API calls until sign-in
+// succeeds (see auth/signedIn.ts) and show the notice where the data would go.
+const API_FREE_PAGE_PATHS = new Set(['/about', '/privacy', '/privacy/app']);
+const isStandalonePage = !document.querySelector('#todayView');
+const isApiFreePage = isStandalonePage && API_FREE_PAGE_PATHS.has(window.location.pathname);
+
+function startSignIn(): void {
+  debugLog('Starting Firebase anonymous sign-in...');
+  debugLog('Firebase project ID:', app.options.projectId);
+  void attemptSignIn(auth, 'spa', (kind) => {
+    if (!isApiFreePage) showAuthErrorBanner(kind, startSignIn);
   });
+}
+startSignIn();
+if (isStandalonePage) initializeSplashScreen();
 
 // Wait for authentication before running the rest of your code
 onAuthStateChanged(auth, (user: FirebaseUser | null) => {
@@ -228,14 +241,17 @@ onAuthStateChanged(auth, (user: FirebaseUser | null) => {
 function startAppWithFirebaseUser(user: FirebaseUser): void {
   // Store the Firebase user for use in apiFetch FIRST
   globalThis.currentUser = user;
+  markSignedIn();
+  hideAuthErrorBanner();
 
   debugLog('Script starting...');
 
   // Initialise analytics reporting
   setupAnalyticsReporting();
   
-  // Initialise splash screen functionality (now currentUser is available)
-  initializeSplashScreen();
+  // Initialise splash screen functionality (now currentUser is available).
+  // Standalone pages were already rendered at load, see above.
+  if (!isStandalonePage) initializeSplashScreen();
 }
 
 // Make mainAppLogic globally available

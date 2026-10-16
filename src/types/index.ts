@@ -198,6 +198,11 @@ export interface AnalyticsData {
 export interface ErrorLog {
   timestamp: string;
   error: string;
+  // API-shaped fields (api/models.py ErrorDetail). The analytics endpoint drops
+  // recent_errors entries that lack timestamp/error_type/message.
+  error_type?: string;
+  message?: string;
+  endpoint?: string;
   stack?: string;
   context?: Record<string, any>;
   userAgent: string;

@@ -96,6 +96,9 @@
             </div>
           </div>
 
+          <!-- Shown by src/auth/authErrorBanner.ts if anonymous sign-in fails -->
+          <div id="authError" class="auth-error" hidden></div>
+
           <!-- Location carousel -->
           <div class="hero-cities">
             <div class="location-carousel" id="location-carousel">
@@ -206,12 +209,14 @@
             </div>
 
             <div class="dashboard__stats">
-              <div id="todayStatsBubble" class="stats-bubble data-field">
+              <div id="todayStatsBubble" class="bubble stats-bubble data-field">
                 <div id="avgText" class="avg-text"></div>
                 <div id="trendText" class="trend-text"></div>
                 <div id="stddevText" class="stddev-text"></div>
               </div>
-              <p class="data-attribution"><a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Weather data by Open-Meteo.com</a></p>
+              <div class="bubble meta-bubble">
+                <p class="data-attribution"><a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Weather data by Open-Meteo.com</a></p>
+              </div>
               <div id="incompleteDataNotice" class="notice" style="display: none;"></div>
             </div>
           </div>

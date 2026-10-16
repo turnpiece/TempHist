@@ -1,4 +1,6 @@
 import { apiFetch, getApiUrl } from '../api/temperature';
+import { whenSignedIn } from '../auth/signedIn';
+import { buildErrorNotice } from '../utils/errorNotice';
 import { resetTrendBackground } from '../utils/uiHelpers';
 import type { PreapprovedLocation } from '../types/index';
 
@@ -182,21 +184,35 @@ function buildFeaturedItem(loc: PreapprovedLocation): HTMLAnchorElement {
   return btn;
 }
 
-async function waitForAuth(maxMs = 5000): Promise<void> {
-  const deadline = Date.now() + maxMs;
-  while (!globalThis.currentUser && Date.now() < deadline) {
-    await new Promise(r => setTimeout(r, 100));
-  }
-}
-
-function parseLocArr(result: PromiseSettledResult<any>): any[] {
-  if (result.status !== 'fulfilled' || !result.value) return [];
-  const d = result.value;
+function parseLocArr(body: unknown): any[] {
+  const d = body as any;
+  if (!d) return [];
   const arr = Array.isArray(d) ? d
     : Array.isArray(d?.data) ? d.data
     : Array.isArray(d?.locations) ? d.locations
     : [];
   return arr.filter((x: any) => x?.id && x?.name && x?.country_code);
+}
+
+interface LocationList {
+  /** false when the request rejected, timed out, or came back non-OK. */
+  ok: boolean;
+  items: any[];
+}
+
+/**
+ * Fetch one location list. A failed request is reported as `ok: false` rather
+ * than as an empty list, so the page can tell "couldn't load" apart from
+ * "loaded, and there is nothing there".
+ */
+async function fetchLocationList(path: string, signal: AbortSignal): Promise<LocationList> {
+  try {
+    const res = await apiFetch(getApiUrl(path), { signal });
+    if (!res.ok) return { ok: false, items: [] };
+    return { ok: true, items: parseLocArr(await res.json()) };
+  } catch {
+    return { ok: false, items: [] };
+  }
 }
 
 // ── Region grouping ──────────────────────────────────────────────────────────
@@ -249,6 +265,7 @@ function groupPreapprovedByRegion(
 }
 
 const POPULAR_LIMIT = 20;
+const LOCATIONS_LOAD_TIMEOUT_MS = 12_000;
 
 /**
  * Compact one-line list item used in the "Popular" section: flag + city name
@@ -344,128 +361,182 @@ export async function renderLocationsPage(): Promise<void> {
 
   const content = document.createElement('div');
   content.className = 'locations-content';
+  // If sign-in fails, the connection notice replaces the content here (see
+  // auth/authErrorBanner.ts) while the page heading stays.
+  content.setAttribute('data-auth-error-region', '');
   container.appendChild(content);
 
   view.appendChild(container);
 
+  showLoading(content);
+
+  // The page renders before sign-in completes; hold the API calls until it does.
+  await whenSignedIn();
+  await loadLocations(content);
+}
+
+function showLoading(content: HTMLElement): void {
   const loadingEl = document.createElement('p');
   loadingEl.className = 'locations-status';
   loadingEl.textContent = 'Loading locations…';
-  content.appendChild(loadingEl);
+  content.replaceChildren(loadingEl);
+}
 
-  await waitForAuth();
+/** Shown when the lists could not be loaded (as opposed to loaded and empty). */
+function showLoadError(content: HTMLElement, onRetry: () => void): void {
+  content.replaceChildren(buildErrorNotice("We couldn't load the locations. Try again.", onRetry));
+}
 
+/** One-line note under a partially loaded page, with its own Retry. */
+function buildPartialFailureNote(text: string, onRetry: () => void): HTMLElement {
+  const note = document.createElement('p');
+  note.className = 'locations-status locations-status--error';
+  note.append(`${text} `);
+
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'btn-retry btn-retry--block';
+  retry.textContent = 'Retry';
+  retry.addEventListener('click', onRetry);
+  note.appendChild(retry);
+  return note;
+}
+
+async function loadLocations(content: HTMLElement): Promise<void> {
+  // apiFetch retries for ~7s on its own; this bounds the whole wait so the
+  // "Loading…" state always ends in either content or an error.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LOCATIONS_LOAD_TIMEOUT_MS);
+
+  let preapprovedRes: LocationList;
+  let popularRes: LocationList;
   try {
     // Request a generous upper bound on popular; the API may ignore the
     // `limit` query param today, in which case we still clamp client-side below.
-    const [preapprovedRes, popularRes] = await Promise.allSettled([
-      apiFetch(getApiUrl('/v1/locations/preapproved')).then(r => r.ok ? r.json() : null),
-      apiFetch(getApiUrl(`/v1/locations/popular?limit=${POPULAR_LIMIT}`)).then(r => r.ok ? r.json() : null),
+    [preapprovedRes, popularRes] = await Promise.all([
+      fetchLocationList('/v1/locations/preapproved', controller.signal),
+      fetchLocationList(`/v1/locations/popular?limit=${POPULAR_LIMIT}`, controller.signal),
     ]);
+  } finally {
+    clearTimeout(timer);
+  }
 
-    content.replaceChildren();
+  // The view may have been re-rendered or left while we waited.
+  if (!content.isConnected) return;
 
-    const featured: PreapprovedLocation[] = parseLocArr(preapprovedRes);
-    const popular: PopularLocation[] = parseLocArr(popularRes);
-    const featuredIds = new Set(featured.map(l => l.id));
-    // Slugs that actually have a server-rendered /locations/:slug page.
-    const curatedSlugs = new Set(featured.map(l => l.slug));
-    // Popular only shows entries that aren't already in the curated set, and
-    // is capped at POPULAR_LIMIT.
-    const popularItems = popular.filter(l => !featuredIds.has(l.id)).slice(0, POPULAR_LIMIT);
+  const retry = () => {
+    showLoading(content);
+    void loadLocations(content);
+  };
 
-    if (!featured.length && !popularItems.length) {
-      const empty = document.createElement('p');
-      empty.className = 'locations-status';
-      empty.textContent = 'No locations available.';
-      content.appendChild(empty);
+  content.replaceChildren();
+
+  const featured: PreapprovedLocation[] = preapprovedRes.items;
+  const popular: PopularLocation[] = popularRes.items;
+  const featuredIds = new Set(featured.map(l => l.id));
+  // Slugs that actually have a server-rendered /locations/:slug page.
+  const curatedSlugs = new Set(featured.map(l => l.slug));
+  // Popular only shows entries that aren't already in the curated set, and
+  // is capped at POPULAR_LIMIT.
+  const popularItems = popular.filter(l => !featuredIds.has(l.id)).slice(0, POPULAR_LIMIT);
+
+  if (!featured.length && !popularItems.length) {
+    // Only claim there are no locations if the requests actually succeeded.
+    if (!preapprovedRes.ok || !popularRes.ok) {
+      showLoadError(content, retry);
       return;
     }
+    const empty = document.createElement('p');
+    empty.className = 'locations-status';
+    empty.textContent = 'No locations available.';
+    content.appendChild(empty);
+    return;
+  }
 
-    // Client-side filter input. Stays at the top of the content; the filter
-    // never calls the API — it only toggles `hidden` on already-rendered cards.
-    const filterRow = document.createElement('div');
-    filterRow.className = 'locations-filter';
-    const filterInput = document.createElement('input');
-    filterInput.type = 'search';
-    filterInput.className = 'locations-filter__input';
-    filterInput.placeholder = 'Filter locations…';
-    filterInput.setAttribute('aria-label', 'Filter locations by name');
-    filterInput.autocomplete = 'off';
-    filterRow.appendChild(filterInput);
-    content.appendChild(filterRow);
+  // Client-side filter input. Stays at the top of the content; the filter
+  // never calls the API — it only toggles `hidden` on already-rendered cards.
+  const filterRow = document.createElement('div');
+  filterRow.className = 'locations-filter';
+  const filterInput = document.createElement('input');
+  filterInput.type = 'search';
+  filterInput.className = 'locations-filter__input';
+  filterInput.placeholder = 'Filter locations…';
+  filterInput.setAttribute('aria-label', 'Filter locations by name');
+  filterInput.autocomplete = 'off';
+  filterRow.appendChild(filterInput);
+  content.appendChild(filterRow);
 
-    // Regional sections cover only the curated/preapproved set — those are the
-    // ones with images and the careful geographic grouping. Popular entries
-    // (which may be anywhere in the world and won't have images) get a single
-    // dedicated section below.
-    const grouped = groupPreapprovedByRegion(featured);
+  // Regional sections cover only the curated/preapproved set — those are the
+  // ones with images and the careful geographic grouping. Popular entries
+  // (which may be anywhere in the world and won't have images) get a single
+  // dedicated section below.
+  const grouped = groupPreapprovedByRegion(featured);
 
-    for (const label of REGION_BUCKETS) {
-      const group = grouped.get(label);
-      if (!group || !group.length) continue;
+  for (const label of REGION_BUCKETS) {
+    const group = grouped.get(label);
+    if (!group || !group.length) continue;
 
-      const section = document.createElement('section');
-      section.className = 'locations-region';
-      const labelId = `region-${label.replace(/\s+/g, '-').toLowerCase()}`;
-      section.setAttribute('aria-labelledby', labelId);
+    const section = document.createElement('section');
+    section.className = 'locations-region';
+    const labelId = `region-${label.replace(/\s+/g, '-').toLowerCase()}`;
+    section.setAttribute('aria-labelledby', labelId);
 
-      const header = document.createElement('h3');
-      header.className = 'locations-region__header';
-      header.id = labelId;
-      header.textContent = label;
-      section.appendChild(header);
+    const header = document.createElement('h3');
+    header.className = 'locations-region__header';
+    header.id = labelId;
+    header.textContent = label;
+    section.appendChild(header);
 
-      const grid = document.createElement('div');
-      grid.className = 'locations-grid locations-grid--featured';
-      group.forEach(loc => {
-        const card = buildFeaturedItem(loc);
-        annotateCardForSearch(card, loc);
-        grid.appendChild(card);
-      });
-      section.appendChild(grid);
-
-      content.appendChild(section);
-    }
-
-    if (popularItems.length) {
-      const section = document.createElement('section');
-      section.className = 'locations-region locations-region--popular';
-      section.setAttribute('aria-labelledby', 'region-popular');
-
-      const header = document.createElement('h3');
-      header.className = 'locations-region__header';
-      header.id = 'region-popular';
-      header.textContent = 'Popular';
-      section.appendChild(header);
-
-      const list = document.createElement('div');
-      list.className = 'locations-popular-list';
-      popularItems.forEach(loc => {
-        const row = buildPopularRow(loc, curatedSlugs.has(loc.slug));
-        annotateCardForSearch(row, loc);
-        list.appendChild(row);
-      });
-      section.appendChild(list);
-
-      content.appendChild(section);
-    }
-
-    const emptyState = document.createElement('p');
-    emptyState.className = 'locations-status locations-empty-state';
-    emptyState.textContent = 'No locations match that filter.';
-    emptyState.hidden = true;
-    content.appendChild(emptyState);
-
-    filterInput.addEventListener('input', () => {
-      applyLocationsFilter(content, filterInput.value);
+    const grid = document.createElement('div');
+    grid.className = 'locations-grid locations-grid--featured';
+    group.forEach(loc => {
+      const card = buildFeaturedItem(loc);
+      annotateCardForSearch(card, loc);
+      grid.appendChild(card);
     });
-  } catch {
-    content.replaceChildren();
-    const err = document.createElement('p');
-    err.className = 'locations-status locations-status--error';
-    err.textContent = 'Failed to load locations. Please try again.';
-    content.appendChild(err);
+    section.appendChild(grid);
+
+    content.appendChild(section);
+  }
+
+  if (popularItems.length) {
+    const section = document.createElement('section');
+    section.className = 'locations-region locations-region--popular';
+    section.setAttribute('aria-labelledby', 'region-popular');
+
+    const header = document.createElement('h3');
+    header.className = 'locations-region__header';
+    header.id = 'region-popular';
+    header.textContent = 'Popular';
+    section.appendChild(header);
+
+    const list = document.createElement('div');
+    list.className = 'locations-popular-list';
+    popularItems.forEach(loc => {
+      const row = buildPopularRow(loc, curatedSlugs.has(loc.slug));
+      annotateCardForSearch(row, loc);
+      list.appendChild(row);
+    });
+    section.appendChild(list);
+
+    content.appendChild(section);
+  }
+
+  const emptyState = document.createElement('p');
+  emptyState.className = 'locations-status locations-empty-state';
+  emptyState.textContent = 'No locations match that filter.';
+  emptyState.hidden = true;
+  content.appendChild(emptyState);
+
+  filterInput.addEventListener('input', () => {
+    applyLocationsFilter(content, filterInput.value);
+  });
+
+  // One list loaded and the other didn't: show what we have, and say so.
+  if (!preapprovedRes.ok) {
+    content.appendChild(buildPartialFailureNote("We couldn't load the featured locations.", retry));
+  } else if (!popularRes.ok) {
+    content.appendChild(buildPartialFailureNote("We couldn't load the popular locations.", retry));
   }
 }
 

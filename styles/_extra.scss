@@ -1424,20 +1424,25 @@ $location-intro-wide-breakpoint: 1024px;
 }
 
 // Empty / error states
-.feed-empty,
-.feed-error {
+.feed-empty {
   grid-column: 1 / -1;
   text-align: center;
   padding: 2rem 1rem;
   opacity: 0.7;
 }
 
-.feed-error {
-  color: var(--warning);
+// Same look as .locations-status
+.feed-loading {
+  grid-column: 1 / -1;
+  color: rgba($colour-text, 0.6);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+}
 
-  &::before {
-    content: '⚠️ ';
-  }
+// Load failure: the shared .error-container block (see utils/errorNotice.ts),
+// spanning the whole grid.
+.feed-grid > .error-container {
+  grid-column: 1 / -1;
 }
 
 // Load more button
@@ -1513,6 +1518,11 @@ $location-intro-wide-breakpoint: 1024px;
 // any viewport-based media query overrides (font size) that are
 // inappropriate for a fixed-size modal container.
 .share-modal-panel .dashboard {
+  // Re-declare both: --bubble-pad-x is substituted where it's declared, so it
+  // doesn't pick up this scope's --summary-font-size by inheritance alone.
+  --summary-font-size: 1rem;
+  --bubble-pad-x: calc(0.85 * var(--summary-font-size));
+
   max-width: 100%;
   padding-right: 0;
   min-height: 0;
@@ -1529,7 +1539,7 @@ $location-intro-wide-breakpoint: 1024px;
   }
 
   .dashboard__left .summary-text {
-    font-size: 1rem;
+    font-size: var(--summary-font-size);
     line-height: 1.5;
   }
 }
