@@ -1424,20 +1424,17 @@ $location-intro-wide-breakpoint: 1024px;
 }
 
 // Empty / error states
-.feed-empty,
-.feed-error {
+.feed-empty {
   grid-column: 1 / -1;
   text-align: center;
   padding: 2rem 1rem;
   opacity: 0.7;
 }
 
-.feed-error {
-  color: var(--warning);
-
-  &::before {
-    content: '⚠️ ';
-  }
+// Load failure: the shared .error-container block (see utils/errorNotice.ts),
+// spanning the whole grid.
+.feed-grid > .error-container {
+  grid-column: 1 / -1;
 }
 
 // Load more button

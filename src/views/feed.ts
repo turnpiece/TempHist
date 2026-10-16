@@ -1,6 +1,7 @@
 import { getApiUrl, apiFetch } from '../api/temperature';
 import { isSignedIn, whenSignedIn } from '../auth/signedIn';
 import { flagImg } from '../locations/locations';
+import { buildErrorNotice } from '../utils/errorNotice';
 import { getCountryCodeForLocation } from '../utils/location';
 import { createDataAttribution, resetTrendBackground } from '../utils/uiHelpers';
 import {
@@ -10,6 +11,7 @@ import {
 import type { SharePrefill } from '../share';
 
 const LIMIT = 20;
+const FEED_ERROR_TEXT = "Couldn't connect to the temperature data server. Please try again.";
 
 export type Period = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -153,13 +155,6 @@ function buildEmptyMessage(period: Period | ''): HTMLElement {
   return el;
 }
 
-function buildErrorMessage(msg: string): HTMLElement {
-  const el = document.createElement('p');
-  el.className = 'feed-error';
-  el.textContent = msg;
-  return el;
-}
-
 export function renderFeedPage(): void {
   resetTrendBackground();
 
@@ -254,12 +249,14 @@ export function renderFeedPage(): void {
         loadMoreBtn.hidden = data.shares.length < LIMIT;
         currentOffset = offset + data.shares.length;
       }
-    } catch (err) {
+    } catch {
+      // apiFetch has already logged the cause; the visitor just needs to know
+      // it didn't load, and a way to try again.
       if (!append) {
-        grid.textContent = '';
-        grid.appendChild(buildErrorMessage(
-          err instanceof Error ? err.message : 'Failed to load feed.'
-        ));
+        grid.replaceChildren(buildErrorNotice(FEED_ERROR_TEXT, () => {
+          grid.replaceChildren();
+          void loadShares(period, offset, false);
+        }));
       }
       loadMoreBtn.hidden = true;
     } finally {
