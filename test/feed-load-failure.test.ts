@@ -59,6 +59,66 @@ beforeEach(() => {
   document.body.appendChild(section)
 })
 
+describe('Snapshots page loading state', () => {
+  it('shows "Loading snapshots…" before sign-in completes', async () => {
+    const { renderFeedPage } = await import('../src/views/feed')
+    renderFeedPage()
+    await flush()
+
+    expect(grid().querySelector('.feed-loading')!.textContent).toBe('Loading snapshots…')
+    expect(apiFetch).not.toHaveBeenCalled()
+  })
+
+  it('keeps showing it while the request is in flight, then replaces it with the cards', async () => {
+    let resolve!: (r: Response) => void
+    apiFetch.mockReturnValue(new Promise<Response>((r) => { resolve = r }))
+    await renderFeed()
+    expect(grid().querySelector('.feed-loading')).not.toBeNull()
+
+    resolve(okShares([share]))
+    await flush()
+    expect(grid().querySelector('.feed-loading')).toBeNull()
+    expect(grid().querySelectorAll('.feed-card')).toHaveLength(1)
+  })
+
+  it('replaces it with the error if the request fails', async () => {
+    apiFetch.mockRejectedValue(new Error('HTTP error! status: 502'))
+    await renderFeed()
+
+    expect(grid().querySelector('.feed-loading')).toBeNull()
+    expect(grid().querySelector('.error-container')).not.toBeNull()
+  })
+
+  it('shows it again while a filter change or Retry is loading', async () => {
+    apiFetch.mockResolvedValueOnce(okShares([share]))
+    await renderFeed()
+
+    let resolve!: (r: Response) => void
+    apiFetch.mockReturnValueOnce(new Promise<Response>((r) => { resolve = r }))
+    ;(document.querySelector('[data-period="daily"]') as HTMLButtonElement).click()
+    await flush()
+    expect(grid().querySelector('.feed-loading')).not.toBeNull()
+    expect(grid().querySelector('.feed-card')).toBeNull()
+
+    resolve(okShares([]))
+    await flush()
+    expect(grid().querySelector('.feed-loading')).toBeNull()
+  })
+
+  it('does not show it when appending with Load more', async () => {
+    const full = Array.from({ length: 20 }, (_, i) => ({ ...share, id: `s${i}` }))
+    apiFetch.mockResolvedValueOnce(okShares(full))
+    await renderFeed()
+
+    apiFetch.mockReturnValueOnce(new Promise<Response>(() => {}))
+    ;(document.querySelector('.feed-load-more') as HTMLButtonElement).click()
+    await flush()
+
+    expect(grid().querySelector('.feed-loading')).toBeNull()
+    expect(grid().querySelectorAll('.feed-card')).toHaveLength(20)
+  })
+})
+
 describe('Snapshots page when the API fails', () => {
   it('shows a friendly error with Retry in the shared error container, not the raw HTTP error', async () => {
     apiFetch.mockRejectedValue(new Error('HTTP error! status: 502'))

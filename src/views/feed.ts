@@ -234,8 +234,16 @@ export function renderFeedPage(): void {
     loadMoreBtn.disabled = isLoading;
   }
 
+  function showLoadingMessage(): void {
+    const el = document.createElement('p');
+    el.className = 'feed-loading';
+    el.textContent = 'Loading snapshots…';
+    grid.replaceChildren(el);
+  }
+
   async function loadShares(period: Period | '', offset: number, append: boolean): Promise<void> {
     setLoading(true);
+    if (!append) showLoadingMessage();
     try {
       const data = await fetchShares(period, offset);
       if (!append) {
@@ -286,6 +294,8 @@ export function renderFeedPage(): void {
 
   // ── Initial load ─────────────────────────────────────────────────────────────
   // The page renders before sign-in completes; hold the API call until it does.
+  // Show the loading message meanwhile (a sign-in failure notice replaces it).
+  showLoadingMessage();
   if (isSignedIn()) {
     void loadShares(currentPeriod, 0, false);
   } else {
