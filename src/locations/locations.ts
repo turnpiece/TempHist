@@ -1,4 +1,5 @@
 import { apiFetch, getApiUrl } from '../api/temperature';
+import { whenSignedIn } from '../auth/signedIn';
 import { resetTrendBackground } from '../utils/uiHelpers';
 import type { PreapprovedLocation } from '../types/index';
 
@@ -182,13 +183,6 @@ function buildFeaturedItem(loc: PreapprovedLocation): HTMLAnchorElement {
   return btn;
 }
 
-async function waitForAuth(maxMs = 5000): Promise<void> {
-  const deadline = Date.now() + maxMs;
-  while (!globalThis.currentUser && Date.now() < deadline) {
-    await new Promise(r => setTimeout(r, 100));
-  }
-}
-
 function parseLocArr(result: PromiseSettledResult<any>): any[] {
   if (result.status !== 'fulfilled' || !result.value) return [];
   const d = result.value;
@@ -344,6 +338,9 @@ export async function renderLocationsPage(): Promise<void> {
 
   const content = document.createElement('div');
   content.className = 'locations-content';
+  // If sign-in fails, the connection notice replaces the content here (see
+  // auth/authErrorBanner.ts) while the page heading stays.
+  content.setAttribute('data-auth-error-region', '');
   container.appendChild(content);
 
   view.appendChild(container);
@@ -353,7 +350,8 @@ export async function renderLocationsPage(): Promise<void> {
   loadingEl.textContent = 'Loading locations…';
   content.appendChild(loadingEl);
 
-  await waitForAuth();
+  // The page renders before sign-in completes; hold the API calls until it does.
+  await whenSignedIn();
 
   try {
     // Request a generous upper bound on popular; the API may ignore the

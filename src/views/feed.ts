@@ -1,4 +1,5 @@
 import { getApiUrl, apiFetch } from '../api/temperature';
+import { isSignedIn, whenSignedIn } from '../auth/signedIn';
 import { flagImg } from '../locations/locations';
 import { getCountryCodeForLocation } from '../utils/location';
 import { createDataAttribution, resetTrendBackground } from '../utils/uiHelpers';
@@ -214,6 +215,9 @@ export function renderFeedPage(): void {
   // ── Grid ────────────────────────────────────────────────────────────────────
   const grid = document.createElement('div');
   grid.className = 'feed-grid';
+  // If sign-in fails, the connection notice replaces the grid's content here
+  // (see auth/authErrorBanner.ts) while the header, intro and filters stay.
+  grid.setAttribute('data-auth-error-region', '');
   container.appendChild(grid);
 
   // ── Load more ───────────────────────────────────────────────────────────────
@@ -271,6 +275,9 @@ export function renderFeedPage(): void {
       currentPeriod = period;
       currentOffset = 0;
       filterBtns.forEach(b => b.classList.toggle('active', b === btn));
+      // Not signed in yet (or sign-in failed): remember the choice; the
+      // initial load below uses it once sign-in succeeds.
+      if (!isSignedIn()) return;
       await loadShares(period, 0, false);
     });
   });
@@ -281,7 +288,12 @@ export function renderFeedPage(): void {
   });
 
   // ── Initial load ─────────────────────────────────────────────────────────────
-  loadShares('', 0, false);
+  // The page renders before sign-in completes; hold the API call until it does.
+  if (isSignedIn()) {
+    void loadShares(currentPeriod, 0, false);
+  } else {
+    void whenSignedIn().then(() => loadShares(currentPeriod, 0, false));
+  }
 }
 
 /** After prefetchedLocations loads, add flags to any feed cards already rendered without them */

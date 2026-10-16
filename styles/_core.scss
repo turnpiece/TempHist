@@ -1396,11 +1396,24 @@ body.has-drawer-open {
     margin-top: 0;
   }
 
-  // Standalone pages (Locations, Snapshots) have no heading above the banner,
-  // so it needs its own gap under the header.
+  // Fallback placement at the top of #viewOutlet, under the header.
   &.auth-error--page {
     margin-top: 1.5rem;
   }
+
+  // Inside a page's data area (Snapshots grid, Locations list), below the
+  // page's own static heading. Spans the full width of the Snapshots grid.
+  &.auth-error--region {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+}
+
+// A page's data area while sign-in has failed: reserve roughly the space the
+// content would take, so the footer doesn't sit directly under the notice and
+// the page reads as having content missing.
+.auth-error-region--failed {
+  min-height: max(50vh, 20rem);
 }
 
 // Share page connection error: the location heading that normally sits above
