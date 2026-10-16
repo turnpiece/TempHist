@@ -34,6 +34,7 @@ import { showFatalError, hideChartElements, showChartElements, hideIncompleteDat
 import { initCoreRuntime } from './coreRuntime';
 import { attemptSignIn } from './auth/signIn';
 import { showAuthErrorBanner, hideAuthErrorBanner } from './auth/authErrorBanner';
+import { markSignedIn } from './auth/signedIn';
 // installDevTestHooks is loaded dynamically inside the DEBUGGING guard below so it is
 // excluded from production bundles entirely. To re-enable, ensure DEBUGGING is true (i.e.
 // run the dev server) — no code change needed.
@@ -202,11 +203,14 @@ globalThis.showChartElements = showChartElements;
 // banner with Retry on the splash screen instead of silently never starting; a
 // late success still arrives through onAuthStateChanged below.
 //
-// About and Privacy are static text that never touch the API, so they render
-// straight away and must neither wait for sign-in nor show its failure banner.
+// Standalone pages (About, Privacy, Snapshots, Locations) render their static
+// content at load instead of waiting for sign-in, so a failed or slow sign-in
+// never leaves them blank. About and Privacy need no API at all and show no
+// sign-in notice; Snapshots and Locations hold their API calls until sign-in
+// succeeds (see auth/signedIn.ts) and show the notice where the data would go.
 const API_FREE_PAGE_PATHS = new Set(['/about', '/privacy', '/privacy/app']);
-const isApiFreePage =
-  !document.querySelector('#todayView') && API_FREE_PAGE_PATHS.has(window.location.pathname);
+const isStandalonePage = !document.querySelector('#todayView');
+const isApiFreePage = isStandalonePage && API_FREE_PAGE_PATHS.has(window.location.pathname);
 
 function startSignIn(): void {
   debugLog('Starting Firebase anonymous sign-in...');
@@ -216,7 +220,7 @@ function startSignIn(): void {
   });
 }
 startSignIn();
-if (isApiFreePage) initializeSplashScreen();
+if (isStandalonePage) initializeSplashScreen();
 
 // Wait for authentication before running the rest of your code
 onAuthStateChanged(auth, (user: FirebaseUser | null) => {
@@ -237,6 +241,7 @@ onAuthStateChanged(auth, (user: FirebaseUser | null) => {
 function startAppWithFirebaseUser(user: FirebaseUser): void {
   // Store the Firebase user for use in apiFetch FIRST
   globalThis.currentUser = user;
+  markSignedIn();
   hideAuthErrorBanner();
 
   debugLog('Script starting...');
@@ -245,8 +250,8 @@ function startAppWithFirebaseUser(user: FirebaseUser): void {
   setupAnalyticsReporting();
   
   // Initialise splash screen functionality (now currentUser is available).
-  // API-free static pages were already rendered at load, see above.
-  if (!isApiFreePage) initializeSplashScreen();
+  // Standalone pages were already rendered at load, see above.
+  if (!isStandalonePage) initializeSplashScreen();
 }
 
 // Make mainAppLogic globally available
