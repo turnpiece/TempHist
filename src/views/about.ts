@@ -237,7 +237,7 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
 export function buildPrivacyAppContent(container: HTMLElement): void {
   appendHeading(container, 'App Privacy Policy', 'h2');
 
-  appendParagraph(container, 'Effective date: March 2026');
+  appendParagraph(container, 'Effective date: October 2026');
 
   appendParagraph(
     container,
@@ -248,7 +248,11 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   appendHeading(container, 'Location data');
   appendParagraph(
     container,
-    'TempHist sends your location to the TempHist API (api.temphist.com) over an encrypted (HTTPS) connection so it can fetch temperature history for your area. For everyday use — viewing today\'s, weekly, monthly, or yearly temperature history — only your city name is sent; your precise GPS coordinates stay on your device. Your GPS coordinates are only ever transmitted if you explicitly tap the Share button (see ‘Share feature’ below) — simply selecting a location does not send your coordinates anywhere. This data is never sold, used for advertising, or shared with third parties for tracking. To support location history and reduce repeated lookups, the app stores on your device the detected city name and up to 10 recent GPS locations in app storage (SharedPreferences). This data is cleared only when the app is uninstalled.'
+    'TempHist sends your location to the TempHist API (api.temphist.com) over an encrypted (HTTPS) connection so it can fetch temperature history for your area. For everyday use — viewing today\'s, weekly, monthly, or yearly temperature history — only your city name is sent to the TempHist API. Your GPS coordinates are only sent to the TempHist API if you explicitly tap the Share button (see ‘Share feature’ below) — simply selecting a location does not send your coordinates to the TempHist API. To support location history and reduce repeated lookups, the app stores on your device the detected city name and up to 10 recent GPS locations in app storage (SharedPreferences). This data is cleared only when the app is uninstalled.'
+  );
+  appendParagraph(
+    container,
+    'To turn your device\'s coordinates into a city name, the app uses your operating system\'s built-in geocoding service. On iOS and Android this is typically a request to Apple or Google, which therefore receives your precise coordinates, under their own privacy policies. Your location is never sold or used for advertising.'
   );
 
   // Anonymous authentication
@@ -276,23 +280,75 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
     'If you use the Share button, your current location (including its GPS coordinates), chart data, and the city name are posted to api.temphist.com/v1/shares to generate a shareable link. No additional personal data is included.'
   );
 
+  // Anonymous analytics and diagnostics
+  appendHeading(container, 'Analytics and diagnostics');
+  appendParagraph(
+    container,
+    'The app sends the following anonymous information, which is not linked to your identity and is used only to understand how the app is used and to find and fix problems:'
+  );
+  appendBulletList(container, [
+    'Usage events sent to the TempHist API: the location you requested, how that location was chosen, your platform, and basic session and error diagnostics. The API keeps these for 7 days.',
+    'Crash reports and error diagnostics sent to Firebase Crashlytics (Google): stack traces, device and operating system information, an installation identifier, and, if app attestation fails, the platform, provider, and error code. Crashlytics is only active in release builds. Google retains this data under its own policies.',
+  ]);
+
+  // App attestation
+  appendHeading(container, 'App attestation');
+  appendParagraph(
+    container,
+    'To protect the TempHist API from abuse, the app uses Firebase App Check to confirm that requests come from a genuine copy of the app. On Android this uses Google Play Integrity, and on iOS it uses Apple DeviceCheck / App Attest. Device and app integrity information is exchanged with Google or Apple for this purpose, under their own privacy policies.'
+  );
+
+  // IP addresses
+  appendHeading(container, 'IP addresses');
+  appendParagraph(
+    container,
+    'The TempHist API uses your IP address only transiently, for short-lived rate-limit counters and abuse prevention. It is not stored in the analytics events or in application logs. Your IP address is also processed by the infrastructure and third-party services listed below, which handle it under their own policies.'
+  );
+
   // What is not collected
   appendHeading(container, 'What is not collected');
   appendBulletList(container, [
     'Personal identifiers such as name, email, or phone number',
-    'Analytics or advertising data',
+    'Advertising data or advertising identifiers',
     'Cross-site tracking',
   ]);
 
   // Third-party services
   appendHeading(container, 'Third-party services');
+  appendParagraph(
+    container,
+    'TempHist relies on the following third-party services, some of which receive information from the app or from the TempHist API:'
+  );
+  appendParagraph(
+    container,
+    'Firebase (Google) provides anonymous authentication, App Check, and Crashlytics crash reporting.'
+  );
+  appendParagraph(
+    container,
+    'Apple and Google provide your device\'s geocoding service and the app attestation services described above.'
+  );
   appendParagraphWithLinks(container, [
-    'TempHist uses Firebase (Google) for anonymous authentication. Historical weather data (the ERA5 reanalysis from the ',
+    'When you search for a city by name, your search text is sent via the TempHist API to ',
+    MAPBOX_LINK,
+    ' and Open-Meteo’s geocoding service to find matching places.',
+  ]);
+  appendParagraphWithLinks(container, [
+    'Historical weather data (the ERA5 reanalysis from the ',
     COPERNICUS_LINK,
     ') is delivered by ',
     OPEN_METEO_LINK,
-    ' and fetched via the TempHist API. Neither service is used for advertising or cross-site tracking.',
+    ' and fetched via the TempHist API.',
   ]);
+  appendParagraphWithLinks(container, [
+    CLOUDFLARE_LINK,
+    ' acts as a proxy and content delivery network in front of the TempHist API, so it sees your IP address and requests. The API is hosted on ',
+    RAILWAY_LINK,
+    '.',
+  ]);
+  appendParagraph(
+    container,
+    'None of these services is used by TempHist for advertising or cross-site tracking. Some of them are operated by companies outside the UK, so your data may be processed in other countries.'
+  );
 
   // Contact
   appendSectionWithLink(
