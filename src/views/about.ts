@@ -24,6 +24,13 @@ type ParagraphPart = string | { text: string; href: string };
 
 const OPEN_METEO_LINK = { text: 'Open-Meteo', href: 'https://open-meteo.com' };
 const COPERNICUS_LINK = { text: 'Copernicus Climate Change Service', href: 'https://climate.copernicus.eu' };
+const NOMINATIM_LINK = { text: 'OpenStreetMap Nominatim', href: 'https://nominatim.org' };
+const IPAPI_LINK = { text: 'ipapi.co', href: 'https://ipapi.co' };
+const MAPBOX_LINK = { text: 'Mapbox', href: 'https://www.mapbox.com' };
+const CLOUDFLARE_LINK = { text: 'Cloudflare', href: 'https://www.cloudflare.com' };
+const RAILWAY_LINK = { text: 'Railway', href: 'https://railway.com' };
+const GOOGLE_PRIVACY_LINK = { text: 'Privacy Policy', href: 'https://policies.google.com/privacy' };
+const GOOGLE_TERMS_LINK = { text: 'Terms of Service', href: 'https://policies.google.com/terms' };
 
 /** Append a paragraph made of plain text and external links, in order. */
 function appendParagraphWithLinks(container: HTMLElement, parts: ParagraphPart[]): void {
@@ -86,7 +93,7 @@ function appendSectionWithLink(
 export function buildPrivacyWebContent(container: HTMLElement): void {
   appendHeading(container, 'Privacy Policy', 'h2');
 
-  appendParagraph(container, 'Effective date: March 2026');
+  appendParagraph(container, 'Effective date: October 2026');
 
   appendParagraph(
     container,
@@ -107,14 +114,21 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   appendHeading(container, 'Location data');
   appendParagraph(
     container,
-    'TempHist sends your location to the TempHist API (api.temphist.com) over an encrypted (HTTPS) connection to fetch temperature history for your area. For everyday browsing, only your city name is sent — your GPS coordinates stay on your device. Your GPS coordinates are only ever transmitted if you explicitly use the Share button (see ‘Share feature’ below). This data is never sold, used for advertising, or shared with third parties for tracking. Your location is also stored in a browser cookie for up to one hour so the site remembers your preference between visits.'
+    'TempHist sends your location to the TempHist API (api.temphist.com) over an encrypted (HTTPS) connection to fetch temperature history for your area. For everyday browsing, only your city name is sent to the TempHist API. Your GPS coordinates are only sent to the TempHist API if you explicitly use the Share button (see ‘Share feature’ below). Your location is also stored in a browser cookie for up to one hour so the site remembers your preference between visits.'
   );
+  appendParagraphWithLinks(container, [
+    'To find the name of your city, the way your location is looked up depends on your browser settings. If you allow your browser to share your location, your device’s precise latitude and longitude are sent directly from your browser to ',
+    NOMINATIM_LINK,
+    ' to look up the nearest city, and that service also sees your IP address. If your location is unavailable or you decline to share it, your browser instead asks ',
+    IPAPI_LINK,
+    ' to approximate your location from your IP address. Your location data is never sold or used for advertising.',
+  ]);
 
   // Anonymous authentication
   appendSection(
     container,
     'Anonymous authentication',
-    'TempHist uses Firebase anonymous authentication. No account, email, name, or password is required. Each session is assigned an anonymous identifier (UID) used solely to authenticate requests to the TempHist API. This UID is not linked to any personal information.'
+    'TempHist uses Firebase anonymous authentication. No account, email, name, or password is required. Each session is assigned an anonymous identifier (UID) used solely to authenticate requests to the TempHist API. This UID is not linked to any personal information. Firebase keeps this anonymous sign-in in your browser’s storage (IndexedDB or local storage) so that you stay signed in between visits, in addition to the cookies described under ‘Third-party services’ below.'
   );
 
   // Share feature
@@ -124,23 +138,84 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
     'If you use the Share button, your current location (including its GPS coordinates), chart data, and the city name are sent to the TempHist API to generate a shareable link. No additional personal data is included.'
   );
 
+  // Anonymous diagnostics
+  appendHeading(container, 'Anonymous diagnostics');
+  appendParagraph(
+    container,
+    'To keep the site reliable, TempHist sends anonymous diagnostic information about each visit to the TempHist API. It is not linked to your identity and is used only to find and fix problems. It includes:'
+  );
+  appendBulletList(container, [
+    'Session duration, and the number of API calls, failures, and retry attempts',
+    'Error details, including sign-in and App Check failure codes',
+    'App version, platform, and browser user agent',
+    'An anonymous session ID',
+    'The location you requested and the location it resolved to',
+    'API response times',
+  ]);
+  appendParagraph(
+    container,
+    'This information is received by the TempHist API and kept for 7 days. The TempHist API does not store or log your IP address with it.'
+  );
+
+  // IP addresses
+  appendHeading(container, 'IP addresses');
+  appendParagraph(
+    container,
+    'The TempHist API uses your IP address only transiently, for short-lived rate-limit counters and abuse prevention. It is not stored in the anonymous diagnostics or in application logs. Your IP address is also processed by the infrastructure and third-party services listed below, which handle it under their own policies.'
+  );
+
   // What is not collected
   appendHeading(container, 'What is not collected');
   appendBulletList(container, [
     'Personal identifiers such as name, email, or phone number',
-    'Analytics or advertising data',
+    'Advertising data or advertising identifiers',
     'Cross-site tracking',
   ]);
 
   // Third-party services
   appendHeading(container, 'Third-party services');
+  appendParagraph(
+    container,
+    'TempHist relies on the following third-party services, some of which receive information from your browser or from the TempHist API:'
+  );
   appendParagraphWithLinks(container, [
-    'TempHist uses Firebase (Google) for anonymous authentication. Firebase may use cookies from Google services (identitytoolkit.googleapis.com and securetoken.googleapis.com) for authentication purposes only. Historical weather data (the ERA5 reanalysis from the ',
+    'Firebase (Google) provides anonymous authentication. Firebase may use cookies from Google services (identitytoolkit.googleapis.com and securetoken.googleapis.com) for authentication purposes only.',
+  ]);
+  appendParagraphWithLinks(container, [
+    'Google reCAPTCHA v3, through Firebase App Check, helps protect the site from abuse. It runs in your browser and collects hardware and software information to tell people from bots. Google’s ',
+    GOOGLE_PRIVACY_LINK,
+    ' and ',
+    GOOGLE_TERMS_LINK,
+    ' apply.',
+  ]);
+  appendParagraphWithLinks(container, [
+    NOMINATIM_LINK,
+    ' and ',
+    IPAPI_LINK,
+    ' are used to work out your city name, as described under ‘Location data’.',
+  ]);
+  appendParagraphWithLinks(container, [
+    'When you search for a city by name, your search text is sent via the TempHist API to ',
+    MAPBOX_LINK,
+    ' and Open-Meteo’s geocoding service to find matching places.',
+  ]);
+  appendParagraphWithLinks(container, [
+    'Historical weather data (the ERA5 reanalysis from the ',
     COPERNICUS_LINK,
     ') is delivered by ',
     OPEN_METEO_LINK,
-    ' and fetched via the TempHist API. Neither service is used for advertising or cross-site tracking.',
+    ' and fetched via the TempHist API.',
   ]);
+  appendParagraphWithLinks(container, [
+    CLOUDFLARE_LINK,
+    ' acts as a proxy and content delivery network in front of the website and the TempHist API, so it sees visitors’ IP addresses and requests. The website and API are hosted on ',
+    RAILWAY_LINK,
+    '.',
+  ]);
+  appendParagraph(
+    container,
+    'None of these services is used by TempHist for advertising or cross-site tracking. Some of them are operated by companies outside the UK, so your data may be processed in other countries.'
+  );
 
   // Contact
   appendSectionWithLink(
