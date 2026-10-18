@@ -161,7 +161,7 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   appendHeading(container, 'IP addresses');
   appendParagraph(
     container,
-    'The TempHist API uses your IP address only transiently, for short-lived rate-limit counters and abuse prevention. It is not stored in the anonymous diagnostics or in application logs. Your IP address is also processed by the infrastructure and third-party services listed below, which handle it under their own policies.'
+    'The TempHist API uses your IP address only transiently, for short-lived rate-limit counters and abuse prevention. It is not stored in the anonymous diagnostics or in application logs. Your IP address is also processed by the infrastructure and third-party services listed below, which handle it under their own policies. Cloudflare and Railway keep their own short-lived request logs and analytics for security, troubleshooting and traffic statistics, typically for around a month, under their own policies.'
   );
 
   // What is not collected
@@ -306,7 +306,7 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   appendHeading(container, 'IP addresses');
   appendParagraph(
     container,
-    'The TempHist API uses your IP address only transiently, for short-lived rate-limit counters and abuse prevention. It is not stored in the analytics events or in application logs. Your IP address is also processed by the infrastructure and third-party services listed below, which handle it under their own policies.'
+    'The TempHist API uses your IP address only transiently, for short-lived rate-limit counters and abuse prevention. It is not stored in the analytics events or in application logs. Your IP address is also processed by the infrastructure and third-party services listed below, which handle it under their own policies. Cloudflare and Railway keep their own short-lived request logs and analytics for security, troubleshooting and traffic statistics, typically for around a month, under their own policies.'
   );
 
   // What is not collected
