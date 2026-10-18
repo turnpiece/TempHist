@@ -214,6 +214,10 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   ]);
   appendParagraph(
     container,
+    'Cloudflare Web Analytics is also enabled on this website. It uses a small script to measure page views and page-load performance. It does not use cookies or local storage to do so, and does not fingerprint individual visitors.'
+  );
+  appendParagraph(
+    container,
     'None of these services is used by TempHist for advertising or cross-site tracking. Some of them are operated by companies outside the UK, so your data may be processed in other countries.'
   );
 
