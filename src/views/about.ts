@@ -208,7 +208,7 @@ export function buildPrivacyWebContent(container: HTMLElement): void {
   ]);
   appendParagraphWithLinks(container, [
     CLOUDFLARE_LINK,
-    ' acts as a proxy and content delivery network in front of the website and the TempHist API, so it sees visitors’ IP addresses and requests. The website and API are hosted on ',
+    ' acts as a proxy and content delivery network in front of the website and the TempHist API, so it sees visitors’ IP addresses and requests, and provides Turnpiece with traffic analytics based on them, such as the countries and IP addresses requests come from. The website and API are hosted on ',
     RAILWAY_LINK,
     '.',
   ]);
@@ -341,7 +341,7 @@ export function buildPrivacyAppContent(container: HTMLElement): void {
   ]);
   appendParagraphWithLinks(container, [
     CLOUDFLARE_LINK,
-    ' acts as a proxy and content delivery network in front of the TempHist API, so it sees your IP address and requests. The API is hosted on ',
+    ' acts as a proxy and content delivery network in front of the TempHist API, so it sees your IP address and requests, and provides Turnpiece with traffic analytics based on them, such as the countries and IP addresses requests come from. The API is hosted on ',
     RAILWAY_LINK,
     '.',
   ]);
