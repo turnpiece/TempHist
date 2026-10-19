@@ -259,6 +259,11 @@ declare global {
   var tempLocationCountryCode: string | null;
   var tempLatitude: number | null;
   var tempLongitude: number | null;
+  /** Coordinates of the last detected (GPS/IP) position, kept after a manual pick. */
+  var tempDetectedLatitude: number | null;
+  var tempDetectedLongitude: number | null;
+  /** True when the location is detected or a manual pick within range of the detected one. */
+  var tempLocationIsOwn: boolean | null;
   var currentUser: FirebaseUser | null;
   var TempHist: {
     cache: {

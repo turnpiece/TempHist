@@ -10,7 +10,7 @@ import { DataCache } from '../utils/DataCache';
 import { FeatureFlags } from '../utils/FeatureFlags';
 import { fetchTemperatureDataAsync, transformToChartData, calculateTemperatureRange, validateTemperatureDataResponse } from '../api/temperature';
 import { createTemperatureChart, updateChartTrendLine } from '../chart/chart';
-import { updateSummaryTextElements, buildLocationDisplay, checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, applyTrendBackground, resetTrendBackground } from '../utils/uiHelpers';
+import { updateSummaryTextElements, buildLocationDisplay, getLocationHeadingClass,checkDataCompleteness, showChartElements, generateErrorMessage, isAbortError, clearAllLoadingIntervals, applyTrendBackground, resetTrendBackground } from '../utils/uiHelpers';
 import { buildDashboard } from '../utils/dashboardBuilder';
 import { setupChangeLocationButton } from './today';
 import { setupShareButton } from '../share';
@@ -208,6 +208,7 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
       globalThis.tempLocation = DEFAULT_LOCATION;
       globalThis.tempLocationSource = 'default';
       globalThis.tempLocationIsDetected = false;
+      globalThis.tempLocationIsOwn = false;
     }
   } else {
     debugLog('renderPeriod: Using existing location:', globalThis.tempLocation);
@@ -235,9 +236,9 @@ export async function renderPeriod(sectionId: string, periodKey: 'week' | 'month
   const displayLocation = getDisplayCity(currentLocation);
   const locationTextElement = document.getElementById(`${periodKey}LocationText`);
   if (locationTextElement) {
-    locationTextElement.className = `location-heading location-${globalThis.tempLocationSource || 'unknown'}`;
+    locationTextElement.className = getLocationHeadingClass();
     const countryCode = getCountryCodeForLocation(globalThis.tempLocation!);
-    buildLocationDisplay(locationTextElement, displayLocation, periodKey, countryCode, !!globalThis.tempLocationIsDetected);
+    buildLocationDisplay(locationTextElement, displayLocation, periodKey, countryCode, !!globalThis.tempLocationIsOwn);
     setupChangeLocationButton(periodKey);
   }
 
