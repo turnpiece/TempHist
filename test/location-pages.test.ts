@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -287,7 +287,19 @@ describe('location page cache headers (server.js)', () => {
 
   it('states the edge lifetime in CDN-Cache-Control, not Cache-Control', () => {
     expect(locationBlock).toContain("setHeader('CDN-Cache-Control'");
-    expect(locationBlock).toContain('stale-while-revalidate=86400');
+    expect(locationBlock).toContain("'public, max-age=600'");
+  });
+
+  it('never lets the edge serve this HTML stale', () => {
+    // It names the build's JS bundle, which a deploy replaces; a stale copy
+    // loads a bundle that no longer exists.
+    const cdnValue = locationBlock.match(/setHeader\('CDN-Cache-Control', '([^']*)'/)?.[1] ?? '';
+    expect(cdnValue).not.toContain('stale-while-revalidate');
+    expect(cdnValue).not.toContain('stale-if-error');
+  });
+
+  it('purges the edge copies when the server boots', () => {
+    expect(serverSrc).toContain('purgeServerRenderedPages()');
   });
 
   it('sends browsers a revalidate-always directive', () => {
@@ -393,5 +405,51 @@ describe('injectLocationPage', () => {
 
   it.skipIf(!html)('consumes the SSR marker', () => {
     expect(render('london')).not.toContain('SSR:LOCATION_INTRO');
+  });
+});
+
+describe('purgeServerRenderedPages', () => {
+  const { purgeServerRenderedPages, parseHosts } = require('../lib/edgePurge.cjs');
+  const env = {
+    CLOUDFLARE_ZONE_ID: 'zone123',
+    CLOUDFLARE_API_TOKEN: 'tok',
+    CLOUDFLARE_PURGE_HOSTS: 'staging.temphist.com, Other.example.com',
+  };
+
+  it('does nothing unless zone, token and hosts are all configured', async () => {
+    const fetchImpl = vi.fn();
+    for (const missing of Object.keys(env)) {
+      const partial = { ...env, [missing]: '' };
+      expect(await purgeServerRenderedPages(partial, fetchImpl)).toEqual({ skipped: true });
+    }
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('purges the location and share prefixes for every host', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    const result = await purgeServerRenderedPages(env, fetchImpl);
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe('https://api.cloudflare.com/client/v4/zones/zone123/purge_cache');
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe('Bearer tok');
+    expect(JSON.parse(init.body).prefixes).toEqual([
+      'staging.temphist.com/locations/',
+      'staging.temphist.com/s/',
+      'other.example.com/locations/',
+      'other.example.com/s/',
+    ]);
+    expect(result.skipped).toBe(false);
+  });
+
+  it('rejects on a non-OK response without leaking the token', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 403 });
+    await expect(purgeServerRenderedPages(env, fetchImpl)).rejects.toThrow('HTTP 403');
+    await expect(purgeServerRenderedPages(env, fetchImpl)).rejects.not.toThrow(/tok/);
+  });
+
+  it('drops malformed host entries', () => {
+    expect(parseHosts('a.com, ,b.com/path, c d')).toEqual(['a.com']);
   });
 });
