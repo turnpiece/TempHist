@@ -43,8 +43,18 @@ export function createDataAttribution(): HTMLParagraphElement {
 }
 
 /**
+ * Class names for a location heading. The user's own location — detected, or a
+ * manual pick near the detected position — is green via `location-detected`;
+ * everything else is styled by how it was chosen.
+ */
+export function getLocationHeadingClass(): string {
+  const variant = globalThis.tempLocationIsOwn ? 'detected' : (globalThis.tempLocationSource || 'unknown');
+  return `location-heading location-${variant}`;
+}
+
+/**
  * Build location display with icon, optional country flag, and edit button.
- * Detected locations are shown in green; manually selected locations in white.
+ * The user's own location is shown in green; other locations in white.
  */
 export function buildLocationDisplay(
   container: HTMLElement,

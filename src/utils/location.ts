@@ -130,3 +130,83 @@ export function getCountryCodeForLocation(locationSlug: string): string | null {
   // Fall back to the country code stored from geolocation/IP detection
   return globalThis.tempLocationCountryCode ?? null;
 }
+
+/**
+ * Two locations closer than this are treated as the same place for UI purposes
+ * (e.g. detected "Greater London" vs preapproved "London"). Mirrors the API's
+ * METRO_CACHE_SNAP_KM — the distance within which both share one temperature
+ * record — rather than its 2 km SAME_LOCATION_RADIUS_KM, which is too small for
+ * a GPS fix in outer Greater London to match the city's centre point.
+ */
+export const SAME_PLACE_RADIUS_KM = 30;
+
+const EARTH_RADIUS_KM = 6371;
+const DETECTED_COORDS_KEY = 'temphist_detected_coords';
+
+export interface Coords {
+  latitude: number | null | undefined;
+  longitude: number | null | undefined;
+}
+
+/** Great-circle distance in kilometres. */
+export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(a));
+}
+
+function hasCoords(c: Coords | null): c is { latitude: number; longitude: number } {
+  return !!c && Number.isFinite(c.latitude) && Number.isFinite(c.longitude);
+}
+
+/** True when both points have coordinates and lie within `radiusKm` of each other. */
+export function isSamePlace(a: Coords | null, b: Coords | null, radiusKm: number = SAME_PLACE_RADIUS_KM): boolean {
+  if (!hasCoords(a) || !hasCoords(b)) return false;
+  return haversineKm(a.latitude, a.longitude, b.latitude, b.longitude) <= radiusKm;
+}
+
+/**
+ * Remember where the user was actually detected, so a later manual pick can be
+ * compared against it. Mirrored to sessionStorage so it survives the full-page
+ * navigation from the standalone /locations page back into the SPA.
+ */
+export function rememberDetectedCoords(latitude: number, longitude: number): void {
+  globalThis.tempDetectedLatitude = latitude;
+  globalThis.tempDetectedLongitude = longitude;
+  try {
+    sessionStorage.setItem(DETECTED_COORDS_KEY, JSON.stringify({ latitude, longitude }));
+  } catch {
+    // sessionStorage unavailable (private mode, quota) — in-memory copy still works
+  }
+}
+
+export function getDetectedCoords(): { latitude: number; longitude: number } | null {
+  const memory = { latitude: globalThis.tempDetectedLatitude, longitude: globalThis.tempDetectedLongitude };
+  if (hasCoords(memory)) return memory;
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(DETECTED_COORDS_KEY) ?? 'null');
+    if (hasCoords(stored)) {
+      globalThis.tempDetectedLatitude = stored.latitude;
+      globalThis.tempDetectedLongitude = stored.longitude;
+      return { latitude: stored.latitude, longitude: stored.longitude };
+    }
+  } catch {
+    // ignore malformed or unavailable storage
+  }
+  return null;
+}
+
+/**
+ * Whether the current location is "the user's own": either it was detected, or
+ * it was picked from the list and sits within SAME_PLACE_RADIUS_KM of the
+ * detected position. Locations without coordinates behave as before.
+ */
+export function isOwnLocation(loc: { isDetected: boolean; source: string | null } & Coords): boolean {
+  if (loc.isDetected) return true;
+  if (loc.source !== 'manual') return false;
+  return isSamePlace(loc, getDetectedCoords());
+}

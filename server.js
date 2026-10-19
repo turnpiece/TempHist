@@ -5,6 +5,7 @@ const { getOrdinal } = require('./lib/getOrdinal');
 const { LOCATION_SLUG_RE, getAllLocations, getLocationBySlug } = require('./lib/locations.cjs');
 const { injectLocationPage } = require('./lib/locationPage.cjs');
 const { buildSitemapXml } = require('./lib/sitemap.cjs');
+const { purgeServerRenderedPages } = require('./lib/edgePurge.cjs');
 require('dotenv').config();
 const app = express();
 app.set('trust proxy', true);
@@ -349,16 +350,21 @@ app.use((req, res, next) => {
     //     is on (the default on Free/Pro/Business). With it off — the Enterprise
     //     default — the same header means BYPASS and nothing caches at all.
     //
-    // Browsers revalidate every time, so a deploy is visible immediately; the
-    // edge holds the page for an hour and may serve it stale for a day while it
-    // refreshes. Note the edge only caches these at all if a Cloudflare cache
-    // rule marks /locations/* eligible — HTML is not cached by default. Without
-    // that rule these headers are inert, not harmful.
+    // Browsers revalidate every time, so a deploy is visible immediately. The
+    // edge holds the page for ten minutes and never serves it stale: this HTML
+    // names the build's fingerprinted JS bundle, which a deploy replaces, so a
+    // stale copy (stale-while-revalidate allowed one for up to a day) loads a
+    // bundle that no longer exists. lib/edgePurge.cjs additionally purges these
+    // pages on boot so a release is visible at once; the short TTL bounds the
+    // staleness where that purge isn't configured. Note the edge only caches
+    // these at all if a Cloudflare cache rule marks /locations/* eligible —
+    // HTML is not cached by default. Without that rule these headers are inert,
+    // not harmful.
     res.setHeader('Cache-Control', isProd
       ? 'public, max-age=0, must-revalidate'
       : 'no-cache');
     if (isProd) {
-      res.setHeader('CDN-Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+      res.setHeader('CDN-Cache-Control', 'public, max-age=600');
     }
     res.setHeader('Vary', 'Accept-Encoding');
     return res.send(html);
@@ -442,5 +448,13 @@ app.use((req, res, next) => {
 app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 TempHist running on port ${port}`);
   console.log(`📂 Serving static files from dist/`);
+
+  // The new build is now serving, so edge copies of the previous build's HTML
+  // can go. Fire and forget: a failed purge must not affect serving.
+  if (isProd) {
+    purgeServerRenderedPages()
+      .then((r) => r.skipped || console.log('[edge-purge] purged', r.prefixes.join(', ')))
+      .catch((err) => console.error('[edge-purge]', err.message));
+  }
 });
 
