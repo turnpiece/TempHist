@@ -120,6 +120,7 @@ export function mainAppLogic(): void {
     globalThis.tempLocation = DEFAULT_LOCATION;
     globalThis.tempLocationSource = 'default';
     globalThis.tempLocationIsDetected = false;
+    globalThis.tempLocationIsOwn = false;
   }
 
   if (globalThis.tempLocation) {

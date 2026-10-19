@@ -3,7 +3,7 @@ import { setLocationCookie, getDisplayCity, getCountryCodeForLocation } from '..
 import { updateDataNotice } from '../../utils/dataNotice';
 import { Logger } from '../../utils/Logger';
 import { Debouncer } from '../../utils/Debouncer';
-import { buildLocationDisplay } from '../../utils/uiHelpers';
+import { buildLocationDisplay, getLocationHeadingClass } from '../../utils/uiHelpers';
 import { handleLocationChangeInternal } from '../../splash/splash';
 import { fetchHistoricalData } from './fetchHistoricalData';
 
@@ -48,9 +48,9 @@ export function displayLocationAndFetchData(): void {
 
   const locationTextElement = document.getElementById('locationText');
   if (locationTextElement) {
-    locationTextElement.className = `location-heading location-${globalThis.tempLocationSource || 'unknown'}`;
+    locationTextElement.className = getLocationHeadingClass();
     const countryCode = getCountryCodeForLocation(globalThis.tempLocation!);
-    buildLocationDisplay(locationTextElement, locationDisplay, '', countryCode, !!globalThis.tempLocationIsDetected);
+    buildLocationDisplay(locationTextElement, locationDisplay, '', countryCode, !!globalThis.tempLocationIsOwn);
     setupChangeLocationButton();
   }
 
