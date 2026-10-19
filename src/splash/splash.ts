@@ -2,7 +2,7 @@
  * Splash screen functionality - location selection and initialization
  */
 
-import { setLocationCookie, getLocationCookie, getCountryCodeForLocation, getDisplayCity } from '../utils/location';
+import { setLocationCookie, getLocationCookie, getCountryCodeForLocation, getDisplayCity, rememberDetectedCoords, isOwnLocation } from '../utils/location';
 import { getGeoPrefetchPromise, getLocationKnownPromise } from '../services/geolocationPrefetch';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from '../services/locationDetection';
 import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../utils/dateUtils';
@@ -132,7 +132,7 @@ function refreshSnapFlags(): void {
 function refreshLocationFlag(): void {
   if (!globalThis.tempLocation) return;
   const countryCode = getCountryCodeForLocation(globalThis.tempLocation);
-  const isDetected = !!globalThis.tempLocationIsDetected;
+  const isDetected = !!globalThis.tempLocationIsOwn;
   if (!countryCode && !isDetected) return;
   const displayCity = getDisplayCity(globalThis.tempLocation, 27);
   // Update all visible location headings (today + active period views)
@@ -590,6 +590,12 @@ export async function proceedWithLocation(
   globalThis.tempLocationSource = locationSource; // Track the source: 'detected', 'manual', 'default'
   globalThis.tempLatitude = latitude;
   globalThis.tempLongitude = longitude;
+  if (locationSource === 'detected' && latitude != null && longitude != null) {
+    rememberDetectedCoords(latitude, longitude);
+  }
+  // Same place as the detected position (e.g. "London" vs detected "Greater London")
+  // is styled as the user's own location; tempLocationSource stays as chosen.
+  globalThis.tempLocationIsOwn = isOwnLocation({ isDetected: isDetectedLocation, source: locationSource, latitude, longitude });
   debugLog('Set globalThis.tempLocation to:', globalThis.tempLocation, 'timezone:', timezone, 'coords:', latitude, longitude);
 
   // Store in cookie for future visits
