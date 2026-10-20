@@ -181,6 +181,41 @@ describe('fetchShares', () => {
 // ── buildCard ─────────────────────────────────────────────────────────────────
 
 describe('buildCard', () => {
+  describe('country flag', () => {
+    afterEach(() => {
+      delete (globalThis as any).TempHist
+      ;(globalThis as any).tempLocationCountryCode = null
+    })
+
+    it('shows the flag for the share country_code even when the city is not preapproved', () => {
+      const card = buildCard(makeShare({ location: 'Kirkenes, Finnmark, Norway', country_code: 'NO' }))
+      const flag = card.querySelector<HTMLImageElement>('.feed-card__city .flag-img')
+      expect(flag?.src).toContain('/no.png')
+    })
+
+    it('prefers the share country_code over the preapproved list', () => {
+      ;(globalThis as any).TempHist = {
+        prefetchedLocations: [{ name: 'Greater London', slug: 'greater-london', country_code: 'XX' }],
+      }
+      const card = buildCard(makeShare({ location: 'Greater London, England, United Kingdom', country_code: 'GB' }))
+      expect(card.querySelector<HTMLImageElement>('.flag-img')?.src).toContain('/gb.png')
+    })
+
+    it('falls back to the preapproved list when the share has no country_code', () => {
+      ;(globalThis as any).TempHist = {
+        prefetchedLocations: [{ name: 'Dublin', slug: 'dublin', country_code: 'IE' }],
+      }
+      const card = buildCard(makeShare({ location: 'Dublin', country_code: null }))
+      expect(card.querySelector<HTMLImageElement>('.flag-img')?.src).toContain('/ie.png')
+    })
+
+    it("never shows the viewer's own country on a share with no resolvable country", () => {
+      ;(globalThis as any).tempLocationCountryCode = 'GB'
+      const card = buildCard(makeShare({ location: 'Madrid', country_code: null }))
+      expect(card.querySelector('.flag-img')).toBeNull()
+    })
+  })
+
   it('returns an anchor element with feed-card class', () => {
     const card = buildCard(makeShare())
     expect(card.tagName).toBe('A')
