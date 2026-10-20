@@ -117,18 +117,33 @@ export function countryCodeToFlag(code: string): string {
  * not in the approved list).
  */
 export function getCountryCodeForLocation(locationSlug: string): string | null {
+  return getPreapprovedCountryCode(locationSlug)
+    // Fall back to the country code stored from geolocation/IP detection
+    ?? globalThis.tempLocationCountryCode
+    ?? null;
+}
+
+/** Preapproved-list match only, with no fallback to the viewer's own country. */
+function getPreapprovedCountryCode(locationSlug: string): string | null {
   const locations = globalThis.TempHist?.prefetchedLocations;
-  if (locations) {
-    const decoded = decodeURIComponent(locationSlug);
-    const city = decoded.split(',')[0].trim().toLowerCase();
-    const match = locations.find(l =>
-      l.slug === locationSlug ||
-      l.name.toLowerCase() === city
-    );
-    if (match) return match.country_code;
-  }
-  // Fall back to the country code stored from geolocation/IP detection
-  return globalThis.tempLocationCountryCode ?? null;
+  if (!locations) return null;
+  const decoded = decodeURIComponent(locationSlug);
+  const city = decoded.split(',')[0].trim().toLowerCase();
+  const match = locations.find(l =>
+    l.slug === locationSlug ||
+    l.name.toLowerCase() === city
+  );
+  return match?.country_code ?? null;
+}
+
+/**
+ * Country code for someone else's share (feed card, snapshot, share page): the
+ * code the API stored on the share, else a preapproved-list match on the name.
+ * Never falls back to the viewer's own country — that would put the wrong flag
+ * on another person's share.
+ */
+export function getShareCountryCode(share: { location: string; country_code?: string | null }): string | null {
+  return share.country_code || getPreapprovedCountryCode(share.location);
 }
 
 /**
