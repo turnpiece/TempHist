@@ -2,7 +2,7 @@ import { getApiUrl, apiFetch } from '../api/temperature';
 import { isSignedIn, whenSignedIn } from '../auth/signedIn';
 import { flagImg } from '../locations/locations';
 import { buildErrorNotice } from '../utils/errorNotice';
-import { getCountryCodeForLocation } from '../utils/location';
+import { getShareCountryCode } from '../utils/location';
 import { createDataAttribution, resetTrendBackground } from '../utils/uiHelpers';
 import {
   openShareModal,
@@ -22,6 +22,8 @@ export interface ShareItem {
   identifier: string;
   ref_year: number;
   unit: 'celsius' | 'fahrenheit';
+  /** ISO 3166-1 alpha-2, resolved by the API; null when it couldn't be determined. */
+  country_code?: string | null;
   created_at: string;
   og_image_url: string;
   share_url: string;
@@ -117,7 +119,8 @@ export function buildCard(share: ShareItem): HTMLElement {
   const cityEl = document.createElement('div');
   cityEl.className = 'feed-card__city';
   cityEl.dataset.city = city;
-  const countryCode = getCountryCodeForLocation(city);
+  cityEl.dataset.location = share.location;
+  const countryCode = getShareCountryCode(share);
   if (countryCode) cityEl.appendChild(flagImg(countryCode, 20));
   cityEl.appendChild(document.createTextNode(city));
 
@@ -307,7 +310,7 @@ export function renderFeedPage(): void {
 export function refreshFeedFlags(): void {
   document.querySelectorAll<HTMLElement>('.feed-card__city[data-city]').forEach(el => {
     if (el.querySelector('.flag-img')) return;
-    const cc = getCountryCodeForLocation(el.dataset.city!);
+    const cc = getShareCountryCode({ location: el.dataset.location ?? el.dataset.city! });
     if (!cc) return;
     el.prepend(flagImg(cc, 20));
   });

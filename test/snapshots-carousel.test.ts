@@ -21,6 +21,8 @@ vi.mock('../src/utils/location', () => ({
   getLocationCookie: vi.fn().mockReturnValue(null),
   getOrdinal: vi.fn((n: number) => `${n}th`),
   getCountryCodeForLocation: vi.fn().mockReturnValue('gb'),
+  // Share flags come from the share's own country_code; no viewer-country fallback
+  getShareCountryCode: vi.fn((share: { country_code?: string | null }) => share.country_code ?? null),
   getDisplayCity: vi.fn((loc: string) => loc.split(',')[0].trim()),
 }))
 
@@ -236,6 +238,18 @@ describe('initSnapshotsCarousel', () => {
 
     const section = document.getElementById('snapshotsSection')!
     expect(section.children).toHaveLength(0)
+  })
+
+  it('shows the flag from the share country_code, and none when it is null', async () => {
+    mockFetchShares([
+      { ...makeShare('s1', 'Kirkenes'), country_code: 'NO' },
+      { ...makeShare('s2', 'Madrid'), country_code: null },
+    ])
+    await initSnapshotsCarousel()
+
+    const [kirkenes, madrid] = Array.from(document.querySelectorAll('.snap-loc'))
+    expect(kirkenes.querySelector<HTMLImageElement>('.flag-img')?.src).toContain('/no.png')
+    expect(madrid.querySelector('.flag-img')).toBeNull()
   })
 
   it('clears previous content when called a second time', async () => {

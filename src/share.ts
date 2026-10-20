@@ -6,7 +6,7 @@ import {
   calculateTemperatureRange
 } from './api/temperature';
 import type { ChartDataPoint, JobResultResponse, PreapprovedLocation } from './types/index';
-import { getOrdinal, countryCodeToFlag, getCountryCodeForLocation } from './utils/location';
+import { getOrdinal, countryCodeToFlag, getShareCountryCode } from './utils/location';
 import {
   createTemperatureChart,
   updateChartTrendLine,
@@ -25,6 +25,8 @@ interface ShareMetadata {
   identifier: string;
   ref_year: number;
   unit: 'celsius' | 'fahrenheit';
+  /** ISO 3166-1 alpha-2, resolved by the API; null when it couldn't be determined. */
+  country_code?: string | null;
   created_at: string;
   /** Computed fresh per request by the API: true while the day's value can
    *  still change, false once the day is over and the data is fixed for
@@ -41,6 +43,7 @@ export interface SharePrefill {
   period: 'daily' | 'weekly' | 'monthly' | 'yearly';
   identifier: string;
   ref_year: number;
+  country_code?: string | null;
 }
 
 export interface ShareUIRefs {
@@ -81,6 +84,12 @@ export async function createShare(params: ShareParams): Promise<string> {
       unit: 'celsius',
       latitude: globalThis.tempLatitude ?? null,
       longitude: globalThis.tempLongitude ?? null,
+      // Overwritten on every location change (see proceedWithLocation), so it
+      // always belongs to the current location; null lets the API resolve it.
+      country_code: getShareCountryCode({
+        location: globalThis.tempLocation ?? '',
+        country_code: globalThis.tempLocationCountryCode,
+      }),
     }),
   });
   if (!response.ok) {
@@ -414,7 +423,7 @@ export function buildShareUI(viewOutlet: HTMLElement, prefill?: SharePrefill): S
 
   if (prefill) {
     const prefillCity = prefill.location.split(',')[0].trim();
-    const prefillCode = getCountryCodeForLocation(prefill.location);
+    const prefillCode = getShareCountryCode(prefill);
     const prefillFlag = prefillCode ? countryCodeToFlag(prefillCode) : null;
     refs.locationEl.textContent = prefillFlag ? `${prefillFlag} ${prefillCity}` : prefillCity;
     refs.titleEl.textContent = formatPeriodHeading(prefill);
@@ -514,9 +523,10 @@ export async function renderShareChart(
   const tempDecimals = isFahrenheit || meta.period === 'daily' ? 1 : 2;
   const cityName = meta.location.split(',')[0].trim();
 
-  // Look up flag from preapproved locations by city name
+  // The share's own country code first, then the preapproved list by city name
   const matchedLocation = locations.find(l => l.name.toLowerCase() === cityName.toLowerCase());
-  const flag = matchedLocation ? countryCodeToFlag(matchedLocation.country_code) : null;
+  const countryCode = meta.country_code || matchedLocation?.country_code;
+  const flag = countryCode ? countryCodeToFlag(countryCode) : null;
   const locationLabel = flag ? `${flag} ${cityName}` : `\ud83d\udccd ${cityName}`;
 
   refs.locationEl.textContent = locationLabel;
