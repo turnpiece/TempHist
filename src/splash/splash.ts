@@ -2,7 +2,7 @@
  * Splash screen functionality - location selection and initialization
  */
 
-import { setLocationCookie, getLocationCookie, getCountryCodeForLocation, getDisplayCity, rememberDetectedCoords, isOwnLocation } from '../utils/location';
+import { setLocationCookie, getLocationCookie, getCountryCodeForLocation, getShareCountryCode, getDisplayCity, rememberDetectedCoords, isOwnLocation } from '../utils/location';
 import { getGeoPrefetchPromise, getLocationKnownPromise } from '../services/geolocationPrefetch';
 import { detectUserLocationWithGeolocation, getLocationFromIP } from '../services/locationDetection';
 import { getEffectiveDateForLocation, localTodayIn, msUntilNextLocalMidnight } from '../utils/dateUtils';
@@ -120,7 +120,7 @@ async function loadPreapprovedLocations(): Promise<PreapprovedLocation[]> {
 function refreshSnapFlags(): void {
   document.querySelectorAll<HTMLElement>('.snap-loc[data-city]').forEach(el => {
     if (el.querySelector('.flag-img')) return;
-    const cc = getCountryCodeForLocation(el.dataset.city!);
+    const cc = getShareCountryCode({ location: el.dataset.location ?? el.dataset.city! });
     if (!cc) return;
     el.prepend(flagImg(cc, 20));
   });
@@ -862,7 +862,8 @@ export async function initSnapshotsCarousel(): Promise<void> {
     const locEl = document.createElement('span');
     locEl.className = 'snap-loc';
     locEl.dataset.city = city;
-    const countryCode = getCountryCodeForLocation(city);
+    locEl.dataset.location = share.location ?? city;
+    const countryCode = getShareCountryCode(share);
     if (countryCode) locEl.appendChild(flagImg(countryCode, 20));
     locEl.appendChild(document.createTextNode(city));
 
