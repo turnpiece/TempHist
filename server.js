@@ -5,6 +5,7 @@ const { getOrdinal } = require('./lib/getOrdinal');
 const { LOCATION_SLUG_RE, getAllLocations, getLocationBySlug } = require('./lib/locations.cjs');
 const { injectLocationPage } = require('./lib/locationPage.cjs');
 const { buildSitemapXml } = require('./lib/sitemap.cjs');
+const { buildRobotsTxt } = require('./lib/robots.cjs');
 const { purgeServerRenderedPages } = require('./lib/edgePurge.cjs');
 require('dotenv').config();
 const app = express();
@@ -115,6 +116,7 @@ app.use((req, res, next) => {
 
 // --- robots.txt ---
 // Disallow all crawlers unless ALLOW_INDEXING=true is set (production only).
+// With indexing on, named search crawlers are kept off /s/ — see lib/robots.cjs.
 //
 // Keep the TTL short. The body is driven by an env var, so a long cache means a
 // stale `Disallow: /` can keep the whole site out of search results long after
@@ -123,13 +125,9 @@ app.use((req, res, next) => {
 // enough that a future flip self-heals, and robots.txt is tiny and rarely
 // fetched, so the extra origin traffic is negligible.
 app.get('/robots.txt', (req, res) => {
-  const allow = process.env.ALLOW_INDEXING === 'true';
   res.setHeader('Content-Type', 'text/plain');
   res.setHeader('Cache-Control', 'public, max-age=3600');
-  res.send(allow
-    ? `User-agent: *\nAllow: /\nSitemap: ${getPublicOrigin(req)}/sitemap.xml\n`
-    : 'User-agent: *\nDisallow: /\n'
-  );
+  res.send(buildRobotsTxt(getPublicOrigin(req), process.env.ALLOW_INDEXING === 'true'));
 });
 
 // --- sitemap.xml ---
