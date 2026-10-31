@@ -12,6 +12,7 @@ const {
   renderIntroHtml, summariseDescription,
 } = require('../lib/locationPage.cjs');
 const { buildSitemapXml } = require('../lib/sitemap.cjs');
+const { buildRobotsTxt, SHARE_PAGE_BLOCKED_CRAWLERS } = require('../lib/robots.cjs');
 
 const ORIGIN = 'https://temphist.com';
 const API = 'https://api.temphist.com';
@@ -271,6 +272,48 @@ describe('buildSitemapXml', () => {
 
   it('strips a trailing slash from the origin', () => {
     expect(buildSitemapXml('https://temphist.com/', '2026-01-01')).not.toContain('temphist.com//');
+  });
+});
+
+describe('buildRobotsTxt', () => {
+  /** Parse into { userAgents: string[], rules: string[] } groups, as a crawler would. */
+  const groups = (txt: string) =>
+    txt.trim().split(/\n\s*\n/).map((block) => {
+      const lines = block.split('\n');
+      return {
+        userAgents: lines.filter((l) => l.startsWith('User-agent:')).map((l) => l.slice(12).trim()),
+        rules: lines.filter((l) => /^(Allow|Disallow):/.test(l)),
+      };
+    });
+
+  describe('ALLOW_INDEXING=true', () => {
+    const txt = buildRobotsTxt(ORIGIN, true);
+
+    it('keeps every named crawler off /s/ while allowing the rest of the site', () => {
+      expect(SHARE_PAGE_BLOCKED_CRAWLERS).toEqual(
+        expect.arrayContaining(['Reflectionbot', 'AhrefsBot', 'Googlebot', 'Applebot', 'DuckDuckBot']),
+      );
+      const named = groups(txt).find((g) => g.userAgents.includes('Googlebot'))!;
+      expect(named.userAgents).toEqual(SHARE_PAGE_BLOCKED_CRAWLERS);
+      expect(named.rules).toEqual(['Allow: /', 'Disallow: /s/']);
+    });
+
+    it('does not block /s/ for the wildcard group, so link previews keep working', () => {
+      const wildcard = groups(txt).find((g) => g.userAgents.includes('*'))!;
+      expect(wildcard.rules).toEqual(['Allow: /']);
+      expect(wildcard.userAgents).toEqual(['*']);
+    });
+
+    it('keeps the sitemap line and strips a trailing slash from the origin', () => {
+      expect(txt).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`);
+      expect(buildRobotsTxt('https://temphist.com/', true)).not.toContain('temphist.com//');
+    });
+  });
+
+  describe('ALLOW_INDEXING unset', () => {
+    it('disallows everything with no sitemap', () => {
+      expect(buildRobotsTxt(ORIGIN, false)).toBe('User-agent: *\nDisallow: /\n');
+    });
   });
 });
 
