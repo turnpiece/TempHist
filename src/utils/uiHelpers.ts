@@ -6,6 +6,7 @@ import type { TemperatureDataMetadata } from '../types/index';
 import { LoadingManager } from './LoadingManager';
 import { updateDataNotice } from './dataNotice';
 import { countryCodeToFlag } from './location';
+import { attachStatsInfo } from './statsInfo';
 
 declare const debugLog: (...args: any[]) => void;
 
@@ -160,7 +161,7 @@ export function renderStatsToElements(
 
   if (stddevTextEl) {
     if (averageData.stdDev != null) {
-      stddevTextEl.textContent = `Year-to-year spread (standard deviation): ± ${averageData.stdDev.toFixed(decimals)}${unitLabel}`;
+      stddevTextEl.textContent = `Standard deviation: ± ${averageData.stdDev.toFixed(decimals)}${unitLabel}`;
       stddevTextEl.style.display = '';
     } else {
       stddevTextEl.style.display = 'none';
@@ -172,13 +173,10 @@ export function renderStatsToElements(
     trendData.slope > 0 ? 'rising' : 'falling';
     const unit = trendData.unit || `${unitLabel}/decade`;
     const slopeAbs = Math.abs(trendData.slope).toFixed(decimals);
-    const hasError = trendData.slopeError != null;
-    const errorPart = hasError
-      ? ` ± ${Math.abs(trendData.slopeError as number).toFixed(decimals)}`
+    const errorPart = trendData.slopeError != null
+      ? ` ± ${Math.abs(trendData.slopeError).toFixed(decimals)}`
       : '';
-    // The ± is one standard error of the fitted slope, not a standard deviation
-    const errorLabel = hasError ? ' (standard error)' : '';
-    trendTextEl.textContent = `Trend: ${direction} at ${slopeAbs}${errorPart}${unit}${errorLabel}`;
+    trendTextEl.textContent = `Trend: ${direction} at ${slopeAbs}${errorPart}${unit}`;
   }
 }
 
@@ -211,7 +209,12 @@ export function updateSummaryTextElements(
   // Show stats bubble — use period-specific ID for period views, 'todayStatsBubble' for Today view
   const bubbleId = periodKey ? `${periodKey}StatsBubble` : 'todayStatsBubble';
   const statsBubble = document.getElementById(bubbleId);
-  if (statsBubble) statsBubble.classList.add('visible');
+  if (statsBubble) {
+    // Today's bubble is static markup in index.html; period/share bubbles get
+    // theirs from buildDashboard. attachStatsInfo is a no-op if already present.
+    attachStatsInfo(statsBubble);
+    statsBubble.classList.add('visible');
+  }
 }
 
 /** Hide the overlay without clearing the stored gradient (used by non-data pages so Today can restore it on return). */

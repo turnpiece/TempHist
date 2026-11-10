@@ -1,5 +1,6 @@
 import { INITIAL_LOADING_TEXT } from '../constants/index';
 import { createDataAttribution, createSpinner } from './uiHelpers';
+import { attachStatsInfo } from './statsInfo';
 
 export interface DashboardConfig {
   idPrefix?: string;
@@ -147,6 +148,7 @@ export function buildDashboard(config: DashboardConfig): DashboardRefs {
   stddevTextEl.className = 'stddev-text';
   maybeId(stddevTextEl, idPrefix, 'StddevText');
   statsBubbleEl.appendChild(stddevTextEl);
+  attachStatsInfo(statsBubbleEl);
 
   statsCol.appendChild(statsBubbleEl);
 
