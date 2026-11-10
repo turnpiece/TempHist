@@ -160,7 +160,7 @@ export function renderStatsToElements(
 
   if (stddevTextEl) {
     if (averageData.stdDev != null) {
-      stddevTextEl.textContent = `Standard deviation: ± ${averageData.stdDev.toFixed(decimals)}${unitLabel}`;
+      stddevTextEl.textContent = `Year-to-year spread (standard deviation): ± ${averageData.stdDev.toFixed(decimals)}${unitLabel}`;
       stddevTextEl.style.display = '';
     } else {
       stddevTextEl.style.display = 'none';
@@ -172,10 +172,13 @@ export function renderStatsToElements(
     trendData.slope > 0 ? 'rising' : 'falling';
     const unit = trendData.unit || `${unitLabel}/decade`;
     const slopeAbs = Math.abs(trendData.slope).toFixed(decimals);
-    const errorPart = trendData.slopeError != null
-      ? ` ± ${Math.abs(trendData.slopeError).toFixed(decimals)}`
+    const hasError = trendData.slopeError != null;
+    const errorPart = hasError
+      ? ` ± ${Math.abs(trendData.slopeError as number).toFixed(decimals)}`
       : '';
-    trendTextEl.textContent = `Trend: ${direction} at ${slopeAbs}${errorPart}${unit}`;
+    // The ± is one standard error of the fitted slope, not a standard deviation
+    const errorLabel = hasError ? ' (standard error)' : '';
+    trendTextEl.textContent = `Trend: ${direction} at ${slopeAbs}${errorPart}${unit}${errorLabel}`;
   }
 }
 

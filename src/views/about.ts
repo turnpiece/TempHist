@@ -7,9 +7,10 @@ import { resetTrendBackground } from '../utils/uiHelpers';
 
 // ─── Shared DOM helper functions ────────────────────────────────────────────
 
-function appendHeading(container: HTMLElement, text: string, level: 'h2' | 'h3' = 'h3'): void {
+function appendHeading(container: HTMLElement, text: string, level: 'h2' | 'h3' = 'h3', id?: string): void {
   const el = document.createElement(level);
   el.textContent = text;
+  if (id) el.id = id;
   container.appendChild(el);
 }
 
@@ -460,7 +461,7 @@ export function buildAboutContent(container: HTMLElement): void {
   );
   appendBulletList(container, [
     'The average line is the mean of those yearly values.',
-    'The trend line is a straight-line fit through the yearly values, shown in °C (or °F) per decade with a margin of error.',
+    'The trend line is a straight-line fit through the yearly values, shown in °C (or °F) per decade with its standard error (±).',
   ]);
   appendParagraph(
     container,
@@ -468,7 +469,22 @@ export function buildAboutContent(container: HTMLElement): void {
   );
   appendParagraph(
     container,
-    'Past year is the steadiest view, because a full year of days smooths out the weather. A single date is noisy, so its trend has a wide margin of error. Either way, a trend describes the past; it is not a forecast.'
+    'A trend describes the past; it is not a forecast.'
+  );
+
+  // How certain is the trend? (anchor so labels and replies can link to it)
+  appendHeading(container, 'How certain is the trend?', 'h3', 'trend-certainty');
+  appendParagraph(
+    container,
+    'The ± after a trend is its standard error: roughly how much the fitted rate of change would shift if the same method were applied to another run of years like these. It is not the standard deviation, which is the year-to-year spread shown separately.'
+  );
+  appendParagraph(
+    container,
+    'One standard error covers about two-thirds of the likely range; double it for roughly 95%. If a trend is smaller than about twice its ±, such as +0.5 ± 0.8°F/decade, it can\'t be told apart from no trend. When comparing cities, compare each trend against its ± rather than the trend alone.'
+  );
+  appendParagraph(
+    container,
+    'The calculation treats each year as independent of the last, which isn\'t quite true, so the real uncertainty is probably a little wider. Single dates are noisy, so their trends have a wide ±; Past year is the steadiest view.'
   );
 
   // Contact
