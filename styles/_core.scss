@@ -796,9 +796,62 @@ body:has(#appShell.hidden) .topnav__links a {
   min-height: 6em;
   opacity: 0;
   transition: opacity 0.4s;
+  // Anchor for the info button in the top-right corner
+  position: relative;
 
   &.visible {
     opacity: 1;
+  }
+
+  // Keep the first line (Average) clear of the info button
+  .avg-text {
+    padding-right: 2.5em;
+  }
+}
+
+// Small "i" button on the stats bubble that expands a plain-English note about
+// the ± and the standard deviation (see src/utils/statsInfo.ts).
+.stats-info-btn {
+  position: absolute;
+  top: 0.4em;
+  right: 0.5em;
+  width: 1.9em;
+  height: 1.9em;
+  padding: 0;
+  border: 1px solid rgba($colour-text, 0.6);
+  border-radius: 50%;
+  background: transparent;
+  color: rgba($colour-text, 0.85);
+  font: italic 600 0.95em/1 Georgia, 'Times New Roman', serif;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible,
+  &[aria-expanded='true'] {
+    background: rgba($colour-text, 0.18);
+    color: $colour-text;
+  }
+}
+
+.stats-info-note {
+  margin-top: 0.35em;
+  padding-top: 0.5em;
+  border-top: 1px solid rgba($colour-text, 0.2);
+  font-size: 0.92em;
+  line-height: 1.45;
+  color: rgba($colour-text, 0.9);
+
+  p {
+    margin: 0 0 0.5em;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
   }
 }
 
