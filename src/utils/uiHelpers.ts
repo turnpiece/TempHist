@@ -6,6 +6,7 @@ import type { TemperatureDataMetadata } from '../types/index';
 import { LoadingManager } from './LoadingManager';
 import { updateDataNotice } from './dataNotice';
 import { countryCodeToFlag } from './location';
+import { attachStatsInfo } from './statsInfo';
 
 declare const debugLog: (...args: any[]) => void;
 
@@ -208,7 +209,12 @@ export function updateSummaryTextElements(
   // Show stats bubble — use period-specific ID for period views, 'todayStatsBubble' for Today view
   const bubbleId = periodKey ? `${periodKey}StatsBubble` : 'todayStatsBubble';
   const statsBubble = document.getElementById(bubbleId);
-  if (statsBubble) statsBubble.classList.add('visible');
+  if (statsBubble) {
+    // Today's bubble is static markup in index.html; period/share bubbles get
+    // theirs from buildDashboard. attachStatsInfo is a no-op if already present.
+    attachStatsInfo(statsBubble);
+    statsBubble.classList.add('visible');
+  }
 }
 
 /** Hide the overlay without clearing the stored gradient (used by non-data pages so Today can restore it on return). */
