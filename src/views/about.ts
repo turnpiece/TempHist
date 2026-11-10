@@ -432,7 +432,15 @@ export function buildAboutContent(container: HTMLElement): void {
   );
   appendParagraph(
     container,
-    'The newest few days come from Open-Meteo\'s forecast model, which is a different model, so today\'s figure can sit slightly above or below the history it is compared with.'
+    'For every year, TempHist asks for the same ERA5 grid cell at your location\'s coordinates, using the same model version. We pin the model because the service\'s default switches model in 2017, which would put a step into the series.'
+  );
+  appendParagraph(
+    container,
+    'The newest week of data comes from Open-Meteo\'s forecast model, which is a different model, so the latest figure can sit slightly above or below the history it is compared with. It also counts as a point in the trend, so it can nudge it slightly.'
+  );
+  appendParagraph(
+    container,
+    'To keep things fast, a place can occasionally be served data for a neighbouring location within about 30 km. And because ERA5 is a model product rather than a homogenised station record, the earliest years may drift slightly.'
   );
   appendParagraphWithLinks(container, [
     'Weather data by ',
@@ -454,6 +462,10 @@ export function buildAboutContent(container: HTMLElement): void {
     'The average line is the mean of those yearly values.',
     'The trend line is a straight-line fit through the yearly values, shown in °C (or °F) per decade with a margin of error.',
   ]);
+  appendParagraph(
+    container,
+    'Both use the same 51 values, so the window moves forward each year: 1976 to 2026 for a 2026 view, 1977 to 2027 for a 2027 view.'
+  );
   appendParagraph(
     container,
     'Past year is the steadiest view, because a full year of days smooths out the weather. A single date is noisy, so its trend has a wide margin of error. Either way, a trend describes the past; it is not a forecast.'
