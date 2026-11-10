@@ -31,6 +31,9 @@ export function attachStatsInfo(bubble: HTMLElement | null): void {
   note.className = 'stats-info-note';
   note.hidden = true;
 
+  const average = document.createElement('p');
+  average.textContent =
+    'Average: the mean of the 51 yearly values in the chart, including this year\'s.';
   const trend = document.createElement('p');
   trend.textContent =
     'Trend: how fast temperatures are changing per decade. The ± is how uncertain that figure is (one standard error). If the trend is smaller than about twice its ±, it can\'t be told apart from no trend.';
@@ -43,7 +46,7 @@ export function attachStatsInfo(bubble: HTMLElement | null): void {
   link.textContent = 'More about the numbers';
   more.appendChild(link);
 
-  note.append(trend, spread, more);
+  note.append(average, trend, spread, more);
 
   button.addEventListener('click', () => {
     const expanding = note.hidden;

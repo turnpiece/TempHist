@@ -38,6 +38,15 @@ describe('attachStatsInfo', () => {
     expect(btn.getAttribute('aria-expanded')).toBe('false');
   });
 
+  it('explains the average, trend and standard deviation, in that order', () => {
+    const b = bubble();
+    attachStatsInfo(b);
+    const paras = Array.from(b.querySelectorAll('.stats-info-note p')).map(p => p.textContent);
+    expect(paras[0]).toBe('Average: the mean of the 51 yearly values in the chart, including this year\'s.');
+    expect(paras[1]).toMatch(/^Trend:/);
+    expect(paras[2]).toMatch(/^Standard deviation:/);
+  });
+
   it('links to the About page section on the trend', () => {
     const b = bubble();
     attachStatsInfo(b);
